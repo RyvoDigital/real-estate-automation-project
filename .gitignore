@@ -1,0 +1,20 @@
+# --- Secrets / environment (NEVER commit) ---
+.env
+.env.*
+!.env.example
+*.local
+
+# --- Backups (DB dumps live outside git history) ---
+/backups/
+
+# --- Node / tooling ---
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# --- OS / editor cruft ---
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
