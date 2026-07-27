@@ -49,13 +49,31 @@ compose exec -T postgres pg_dump -U "${N8N_DB_USER}" "${N8N_DB_NAME}" | gzip > "
 echo "  -> DB dump: ${DUMP_FILE} ($(du -h "${DUMP_FILE}" | cut -f1))"
 
 # 2. Export all n8n workflows to JSON into the repo (one file per workflow).
+# n8n exits 1 with "No workflows found with specified filters" when the
+# instance has no workflows, which is the normal state until Phase 1 builds the
+# first automation. That must not fail the backup: otherwise cron reports a
+# failure every night and the operator learns to ignore the log. Any OTHER
+# export failure is real and still aborts.
 mkdir -p "${WORKFLOWS_DIR}"
-compose exec -T n8n n8n export:workflow --all --separate --output=/tmp/wf-export >/dev/null
-# Pull the exported files from the container into the repo workflows/ dir.
-WF_CID="$(compose ps -q n8n)"
-docker cp "${WF_CID}:/tmp/wf-export/." "${WORKFLOWS_DIR}/"
-compose exec -T n8n rm -rf /tmp/wf-export || true
-echo "  -> Workflow export refreshed in ${WORKFLOWS_DIR}"
+EXPORT_RC=0
+EXPORT_OUT="$(compose exec -T n8n n8n export:workflow --all --separate \
+  --output=/tmp/wf-export 2>&1)" || EXPORT_RC=$?
+
+if [[ "${EXPORT_RC}" -ne 0 ]]; then
+  if grep -qi 'no workflows found' <<< "${EXPORT_OUT}"; then
+    echo "  -> No workflows in n8n yet; nothing to export (expected pre-Phase 1)"
+  else
+    echo "ERROR: n8n workflow export failed (exit ${EXPORT_RC}):" >&2
+    echo "${EXPORT_OUT}" >&2
+    exit 1
+  fi
+else
+  # Pull the exported files from the container into the repo workflows/ dir.
+  WF_CID="$(compose ps -q n8n)"
+  docker cp "${WF_CID}:/tmp/wf-export/." "${WORKFLOWS_DIR}/"
+  compose exec -T n8n rm -rf /tmp/wf-export || true
+  echo "  -> Workflow export refreshed in ${WORKFLOWS_DIR}"
+fi
 
 # 3. Commit workflow exports (only if something changed).
 IS_GIT_REPO=0
