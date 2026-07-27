@@ -58,7 +58,9 @@ compose exec -T n8n rm -rf /tmp/wf-export || true
 echo "  -> Workflow export refreshed in ${WORKFLOWS_DIR}"
 
 # 3. Commit workflow exports (only if something changed).
+IS_GIT_REPO=0
 if git -C "${REPO_ROOT}" rev-parse --git-dir >/dev/null 2>&1; then
+  IS_GIT_REPO=1
   git -C "${REPO_ROOT}" add workflows/
   if ! git -C "${REPO_ROOT}" diff --cached --quiet; then
     git -C "${REPO_ROOT}" commit -m "backup: n8n workflow export ${DATE}"
@@ -71,7 +73,25 @@ else
 fi
 
 # 4. Retention: delete DB dumps older than RETENTION_DAYS.
+# Runs BEFORE the push so that a push failure (network, revoked deploy key)
+# can never leave old dumps accumulating until the disk fills.
 find "${BACKUP_DIR}" -name 'n8n-*.sql.gz' -type f -mtime "+${RETENTION_DAYS}" -delete
 echo "  -> Pruned DB dumps older than ${RETENTION_DAYS} days"
+
+# 5. Push the workflow library offsite to GitHub (deploy key, write access).
+# A commit that never leaves the box is not a backup, so a push failure is a
+# loud non-zero exit -- by this point the dump and prune have already happened.
+if [[ "${IS_GIT_REPO}" -eq 1 ]]; then
+  BRANCH="$(git -C "${REPO_ROOT}" rev-parse --abbrev-ref HEAD)"
+  if [[ -z "$(git -C "${REPO_ROOT}" log --oneline "origin/${BRANCH}..${BRANCH}" 2>/dev/null)" ]]; then
+    echo "  -> Nothing to push (in sync with origin/${BRANCH})"
+  elif git -C "${REPO_ROOT}" push origin "${BRANCH}"; then
+    echo "  -> Pushed workflow export to origin/${BRANCH}"
+  else
+    echo "ERROR: git push failed. Workflow exports are committed locally but NOT" >&2
+    echo "       backed up offsite. Check the deploy key and network." >&2
+    exit 1
+  fi
+fi
 
 echo "[$(date -Iseconds)] Backup complete"
