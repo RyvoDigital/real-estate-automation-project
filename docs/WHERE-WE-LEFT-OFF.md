@@ -1,7 +1,8 @@
 # Where we left off
 
-**Last updated:** 2026-07-27
-**Phase:** 0 (infrastructure) — **complete**, verification checklist passed
+**Last updated:** 2026-08-07
+**Phase:** 0 (infrastructure) — **complete**, verification checklist passed,
+restore drill passed
 **Next:** Phase 1 — the AI Inbound Concierge automation (awaiting spec)
 
 This file is the running state-of-play for whoever (human or agent) picks the
@@ -91,6 +92,30 @@ Verified functionally, not just by reading flags: the publishable key gets
 **401** on every table; `service_role` does a full SELECT / INSERT / DELETE
 round-trip.
 
+### ⚠️ The free tier auto-pauses after ~1 week of inactivity
+
+**This is not theoretical — the project paused during a 10-day break in
+late July / early August 2026.** Supabase pauses free-tier projects after
+roughly 7 days with no activity; the database stops answering and has to be
+restored manually from the dashboard before anything works again.
+
+Implications:
+
+- Any n8n workflow hitting Supabase after a quiet week fails on a **dead
+  connection**, not a clean error. Phase 1 automations must not assume the
+  platform DB is reachable.
+- "Inactivity" is measured on the Supabase project. The engine Postgres on our
+  own server is unaffected and keeps running — so the nightly backup keeps
+  succeeding and gives **no signal** that the platform DB has gone away. A
+  green backup log does not mean Supabase is up.
+- A real client's automations generate daily traffic, so a live project is
+  unlikely to idle into a pause — but the gap between signing a client and
+  their first steady traffic is exactly when this would bite.
+
+**Decision to make before launch:** upgrade to Supabase Pro (no auto-pause,
+longer backup retention) or move the platform DB onto the existing Hetzner
+Postgres. Tracked in §7 under *Outstanding before the first client*.
+
 ### ⚠️ Read this before writing migration 0003
 
 Supabase's `ALTER DEFAULT PRIVILEGES` grants full DML only on tables created by
@@ -165,9 +190,32 @@ Verified: last run exit 0; dump `n8n-20260727.sql.gz` (52K gz / 335KB raw)
 passes `gzip -t` and ends with `PostgreSQL database dump complete`. Deploy-key
 write access confirmed by pushing and deleting a throwaway branch.
 
-`infra/scripts/restore.sh` exists but **has never been exercised.** Doing a
-real restore drill into a scratch database is the highest-value untested thing
-here.
+### Restore drill — done 2026-08-07, PASS
+
+`restore.sh` has now been exercised. `n8n-20260807.sql.gz` was restored into a
+scratch database and compared against live: **110/110 tables, 820/820 columns,
+7/7 sequences, exact row counts on all 110 tables, and a full-content md5 match
+on 109 of 110.** The one differing table (`user`) matches the *dump* exactly —
+live had simply moved its `lastActiveAt`/`updatedAt` on since the 03:00
+snapshot. Live was never written to and nothing was restarted.
+
+Six defects were found and fixed in `restore.sh` — the worst being that the
+load ran without `ON_ERROR_STOP`, so a completely failed restore would print
+"Restore complete." and bring n8n up against an **empty database**. The script
+also had no way to restore anywhere but over production, which is why it had
+never been tested.
+
+Full procedure and evidence: [`restore-drill.md`](restore-drill.md). Re-run the
+drill after any change to `backup.sh`, `restore.sh`, the Postgres image or the
+n8n version, and at least quarterly:
+
+```bash
+./infra/scripts/restore.sh --target-db n8n_restore_drill backups/n8n-YYYYMMDD.sql.gz
+# ...then drop the scratch DB (command is printed at the end of the run)
+```
+
+**Still untested:** booting n8n against a restored database, and the live
+(destructive) restore path itself — drill mode skips the n8n stop/start.
 
 ---
 
@@ -230,12 +278,34 @@ auth disabled, unattended upgrades active, no Postgres port published.
 **Before Phase 1 work begins:**
 
 1. Fill `ANTHROPIC_API_KEY` in the server `.env`.
-2. Do a **restore drill** — `restore.sh` is untested. Restore a dump into a
-   scratch DB and confirm n8n comes up against it.
+2. ~~Do a restore drill~~ — **done 2026-08-07, PASS** (see §4).
 3. Confirm the Supabase free-tier backup retention and decide whether the
    platform DB needs its own dump alongside the engine DB. `backup.sh`
    currently backs up **only the engine Postgres** — Supabase is not dumped by
    anything we control.
+
+### ⚠️ Outstanding before the first client
+
+These are acceptable to carry while the platform has no real data or users.
+They are **not** acceptable once a paying client's leads are in the system.
+
+1. **Boot n8n against a restored database.** The 2026-08-07 drill proved the
+   data and schema round-trip faithfully (§4), but not that n8n actually
+   *starts* against the result. Needs a maintenance window and a throwaway n8n
+   container pointed at a scratch DB — never the live container. Until this is
+   done, the recovery path is verified only up to the database layer.
+2. **The live (destructive) restore path is still unexercised.** Drill mode
+   deliberately skips the `stop n8n` / `start n8n` steps and the `EXIT` trap,
+   so those specific lines have never run against a real failure.
+3. **Put `N8N_ENCRYPTION_KEY` in a password manager.** Restoring the database
+   onto a new host without that exact key leaves every stored n8n credential
+   permanently unreadable. There are currently **0 credentials**, which makes
+   this cheap to get right now and expensive to get wrong later.
+4. **Decide on the Supabase plan** — see the auto-pause note in §3. A paused
+   platform DB during a live client's business hours is an outage.
+5. **Alerting on backup failure.** A failed nightly run is currently visible
+   only in `/var/log/ryvo-backup.log`, which nobody reads until something
+   already looks wrong.
 
 **Deferred by design (Section 11 of the handoff):** automation logic, the
 cockpit UI, Zero, WhatsApp/Instagram/calendar integrations, any client-facing
