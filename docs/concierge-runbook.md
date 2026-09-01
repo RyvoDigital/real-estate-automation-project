@@ -128,12 +128,18 @@ daily schedule restored.
 **Where the alarm shows up:** n8n → Executions, filtered to
 `supabase_keepalive`, status Error.
 
-> **Known gap.** That is a pull signal — it only helps if somebody looks. There
-> is no push alert yet, because the operator's WhatsApp number is not known to
-> the system (`client_automations.config.escalate_to` is `null` until the first
-> real inbound message reveals it). Wire a WhatsApp or email alert onto the
-> failure branch as soon as that number is set. Until then, treat "no one has
-> checked n8n Executions in a week" as a real risk.
+> **Known gap — now unblocked, still open.** That is a pull signal: it only
+> helps if somebody looks. There is still no push alert on the failure branch.
+>
+> The blocker is gone — `client_automations.config.escalate_to` is now
+> `+351933048230`, confirmed joined to the sandbox — so a WhatsApp alert can be
+> wired onto the failure branch as soon as a send node exists (Checkpoint B
+> brings one). Do that then; it is a two-node addition.
+>
+> Note the dependency: a WhatsApp alert travels over the same sandbox whose
+> session expires every 3 days (§2.1), so it is not a channel to rely on alone.
+> Until it exists, treat "nobody has looked at n8n Executions this week" as a
+> real risk.
 
 ---
 
@@ -219,8 +225,24 @@ file; it does not inject `.env` into containers. Only what is listed under
 there.
 
 Changing any of this requires `docker compose --env-file ../.env up -d n8n`.
-Activating a workflow from the CLI also requires a restart — n8n prints
-*"Changes will not take effect if n8n is running"*.
+
+### Activating a workflow: use the UI, not the CLI
+
+**Toggling a workflow active in the n8n UI takes effect immediately — no
+restart.** The restart requirement is specific to `n8n update:workflow` from the
+CLI, which prints *"Changes will not take effect if n8n is running"* and means
+it: the trigger is not registered until n8n reloads.
+
+Checkpoint A was built CLI-first and cost four bounces as a result — one for the
+compose change, which was genuinely required, and three purely to pick up
+activations. Later checkpoints should not accumulate restarts that way:
+
+- **Config change** (anything in `environment:`) → restart, unavoidable.
+- **Workflow create/update** → import via CLI is fine, but **activate in the
+  UI**, or restart once at the end of a batch rather than after each workflow.
+
+This matters more as soon as there is live traffic, when each bounce is a real
+outage rather than a free 20 seconds.
 
 ---
 
@@ -298,6 +320,8 @@ message row; a second distinct message → updates the lead, no duplicate, no
 second `lead.created`; unknown recipient → `unknown_client` event, no lead;
 inbound image (`NumMedia=1`) → stored without crashing; run payloads free of PII.
 
-**Not yet verified: a real message from a real handset via Twilio.** That needs
-the webhook configured in the Twilio console. Everything up to that point is
-proven; end-to-end delivery is not.
+**End-to-end confirmed the same day.** A real WhatsApp message from the
+operator's handset through the Twilio sandbox produced execution 18, `success`,
+1.611s: one lead (`+351933048230`, `full_name` "Manuel Vale" taken from
+`ProfileName`), one message row (inbound, correct body, `status='received'`,
+`ai_generated=false`), no duplicates. Checkpoint A is closed.
