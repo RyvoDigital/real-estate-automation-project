@@ -1,14 +1,54 @@
 # Where we left off
 
-**Last updated:** 2026-08-07
-**Phase:** 0 (infrastructure) — **complete**, verification checklist passed,
-restore drill passed
-**Next:** Phase 1 — the AI Inbound Concierge automation (awaiting spec)
+**Last updated:** 2026-09-01
+**Phase:** 0 complete (checklist + restore drill passed).
+Phase 1 **Checkpoint A complete**, verified end to end.
+**Next:** Phase 1 Checkpoint B — the Claude call, history load and WhatsApp send.
 
 This file is the running state-of-play for whoever (human or agent) picks the
 project up next. The durable *design* lives in
 [`phase-0-infrastructure-handoff.md`](phase-0-infrastructure-handoff.md); this
 file records what is actually deployed right now and what tripped us up.
+
+---
+
+## 0. Phase 1, Checkpoint A — done 2026-09-01
+
+**Channel changed.** The Meta Cloud API path is blocked (the Facebook account
+needed for the Business Portfolio was disabled, appeal denied). Phase 1 runs on
+the **Twilio Sandbox for WhatsApp**. Everything downstream of the inbound parse
+is channel-agnostic, so returning to Meta touches the parse node, the signature
+check and the send node — nothing else. The Meta keys stay in `.env.example` as
+empty placeholders.
+
+Live now: `inbound_concierge_whatsapp` (18 nodes, active, `POST
+/webhook/twilio-inbound`) and `supabase_keepalive` (daily 04:00). 40/40
+automated checks passed against genuinely Twilio-signed requests, then confirmed
+with a real handset — execution 18, success, 1.611s, one lead, one message, no
+duplicates.
+
+**Operational runbook — read this before touching the Concierge:**
+[`concierge-runbook.md`](concierge-runbook.md). It carries the failure-first
+checklist (sandbox session expires every **3 days** — always check that before
+debugging), the Twilio console path, the signature-URL trap, and the secrets
+rules.
+
+Things that will bite whoever is next:
+
+1. **The Twilio sandbox session expires every 3 days.** Inbound silently stops.
+   Re-send `join <keyword>` before debugging anything.
+2. **Dedupe is enforced by the database**, not workflow logic — migrations
+   `0003` + `0004`. Both indexes are deliberately **non-partial**: PostgREST's
+   upsert emits `ON CONFLICT` with no predicate and cannot see a partial index
+   (`42P10`). Do not "tidy" them back.
+3. **Activate workflows in the n8n UI, not the CLI.** UI is immediate; CLI needs
+   a restart. Checkpoint A cost four bounces by doing it CLI-first.
+4. **The n8n `environment:` block is a security surface.** With
+   `N8N_BLOCK_ENV_ACCESS_IN_NODE=false`, any Code node can read every variable
+   there. Keep it minimal — the Supabase key is an n8n credential precisely so
+   it is not there, and so `export:workflow` cannot push it to GitHub.
+5. **`escalate_to`** is set to `+351933048230`. The keepalive still has no push
+   alert; wire one onto its failure branch once Checkpoint B adds a send node.
 
 ---
 
