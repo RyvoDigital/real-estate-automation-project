@@ -4,6 +4,15 @@
 **Phase:** 0 complete (checklist + restore drill passed).
 Phase 1 **Checkpoint A complete**, verified end to end.
 **Next:** Phase 1 Checkpoint B — the Claude call, history load and WhatsApp send.
+**This is the only open item.**
+
+**Server patch state:** fully patched and rebooted 2026-09-01 ~16:02 UTC.
+Kernel `6.8.0-138-generic` (from `-117`, four kernel updates plus `libc6`);
+`/var/run/reboot-required` cleared. All three containers came back on their own
+via `restart: unless-stopped`, postgres healthy, and — the check that actually
+matters — an unsigned `POST` to `/webhook/twilio-inbound` returned **403**,
+proving n8n re-registered the webhook from the database rather than merely
+starting. Both workflows still `active=true`.
 
 This file is the running state-of-play for whoever (human or agent) picks the
 project up next. The durable *design* lives in
@@ -339,13 +348,28 @@ They are **not** acceptable once a paying client's leads are in the system.
    so those specific lines have never run against a real failure.
 3. **Put `N8N_ENCRYPTION_KEY` in a password manager.** Restoring the database
    onto a new host without that exact key leaves every stored n8n credential
-   permanently unreadable. There are currently **0 credentials**, which makes
-   this cheap to get right now and expensive to get wrong later.
-4. **Decide on the Supabase plan** — see the auto-pause note in §3. A paused
-   platform DB during a live client's business hours is an outage.
-5. **Alerting on backup failure.** A failed nightly run is currently visible
-   only in `/var/log/ryvo-backup.log`, which nobody reads until something
-   already looks wrong.
+   permanently unreadable. **This escalated on 2026-09-01** — an earlier version
+   of this list said "there are currently 0 credentials, which makes this cheap
+   to get right now". That is no longer true: the Supabase `service_role` key is
+   now stored as an n8n credential (deliberately, so `export:workflow` cannot
+   push it to git). Losing the encryption key now loses real credential
+   material, not a hypothetical.
+4. **Back up the platform DB.** `backup.sh` covers only the engine Postgres;
+   Supabase — which holds the actual leads — is dumped by nothing we control.
+   The engine DB holds workflows we could rebuild from git. Supabase will hold
+   data we could not.
+5. **Decide on the Supabase plan** — see the auto-pause note in §3. Less urgent
+   since the keepalive (§0) makes the idle pause structurally impossible, but
+   Pro's backup retention still matters once there is data worth retaining.
+6. **Push alerting on backup *and* keepalive failure.** Both are pull-only
+   today — `/var/log/ryvo-backup.log` and n8n → Executions — and nobody reads
+   either until something already looks wrong. The channel must not be the
+   Twilio sandbox alone, whose session dies every 3 days.
+
+**Done since this list was written:** 2FA on the n8n owner account (2026-09-01,
+recovery codes in the password manager) — the condition attached to the env-access
+decision in `concierge-runbook.md` §6. Server fully patched and rebooted
+2026-09-01 (see §0).
 
 **Deferred by design (Section 11 of the handoff):** automation logic, the
 cockpit UI, Zero, WhatsApp/Instagram/calendar integrations, any client-facing

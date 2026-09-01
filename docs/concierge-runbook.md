@@ -291,6 +291,16 @@ tail -50 /var/log/ryvo-backup.log                           # nightly backup
 n8n UI → **Executions** is the fastest view of what a webhook actually did:
 which node failed, with the input and output of each.
 
+> **A rejected forgery is recorded as `status=success`.** This is correct from
+> n8n's point of view — the workflow ran to completion, took the false branch
+> and returned 403 — but it means **execution status alone cannot distinguish
+> "handled a real message" from "rejected an attacker"**. Do not use a count of
+> successful executions as a health or volume metric; it includes every 403.
+>
+> To tell them apart, look at `automation_runs` (only written on the accepted
+> path) or at the `IsSignatureValid` branch inside the execution. If Checkpoint D
+> adds monitoring, count `automation_runs` rows, not n8n executions.
+
 Query the platform DB directly (service_role, server-side only):
 
 ```bash
