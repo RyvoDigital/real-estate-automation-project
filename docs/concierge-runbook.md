@@ -241,8 +241,11 @@ an already-total position, not a new door.
 These conditions are part of the decision. If one stops holding, the decision
 needs revisiting — it was only ever justified with them in place:
 
-- [ ] **2FA on the n8n owner account.** That account is now the single control
+- [x] **2FA on the n8n owner account.** That account is now the single control
       protecting everything in the container env. This is the load-bearing one.
+      *Enabled 1 Sep 2026; recovery codes in the operator's password manager.*
+      Those codes bypass 2FA by design — they are equivalent to the account and
+      belong with `N8N_ENCRYPTION_KEY`, not in a note or an inbox.
 - [ ] **Keep the container env block minimal.** Prefer n8n credentials over env
       vars for anything new.
 - [ ] **Revisit the moment anyone else gets n8n access.** The premise doing the
