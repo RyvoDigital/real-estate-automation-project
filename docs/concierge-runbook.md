@@ -215,14 +215,42 @@ against image `2.28.3`, not assumed:
 
 **`N8N_BLOCK_ENV_ACCESS_IN_NODE=false` lets any Code node read every variable in
 that env block** — including `N8N_ENCRYPTION_KEY`, `DB_POSTGRESDB_PASSWORD` and
-the JWT secret. Accepted deliberately, tolerable only while the operator is the
-sole workflow author. **Treat the `environment:` block as a security surface:
-anything added there becomes readable from any Code node.** Keep it minimal.
+the JWT secret. **Treat the `environment:` block as a security surface: anything
+added there becomes readable from any Code node.** Keep it minimal.
 
 Note that `docker compose --env-file` only feeds *interpolation* of the compose
 file; it does not inject `.env` into containers. Only what is listed under
 `environment:` is present. The Supabase and Anthropic keys are deliberately not
 there.
+
+### The decision, and the conditions attached to it
+
+Taken **1 Sep 2026**, deliberately, with the trade-off understood.
+
+**The alternative was worse.** Putting the auth token into a built-in Crypto
+node's parameter looks tidier, but node parameters are not credentials:
+`n8n export:workflow` writes them in plaintext to `workflows/`, and `backup.sh`
+commits that to GitHub nightly. That route puts a live secret into git history.
+
+**Why the marginal risk is smaller than the exposure list suggests:** anyone who
+can author a workflow can already *use* every stored n8n credential inside a
+node. Exposing `N8N_ENCRYPTION_KEY` upgrades that from "can use credentials in
+place" to "can exfiltrate them in reusable form" — a real escalation, but from
+an already-total position, not a new door.
+
+These conditions are part of the decision. If one stops holding, the decision
+needs revisiting — it was only ever justified with them in place:
+
+- [ ] **2FA on the n8n owner account.** That account is now the single control
+      protecting everything in the container env. This is the load-bearing one.
+- [ ] **Keep the container env block minimal.** Prefer n8n credentials over env
+      vars for anything new.
+- [ ] **Revisit the moment anyone else gets n8n access.** The premise doing the
+      work here is "only Manuel authors workflows." That premise is the whole
+      argument; when it goes, so does the justification.
+- [ ] **Long term, signature validation belongs in a small dedicated service in
+      front of n8n**, not inside it. Not worth maintaining a component for a
+      build scaffold — noted as the eventual shape, not a backlog item.
 
 Changing any of this requires `docker compose --env-file ../.env up -d n8n`.
 

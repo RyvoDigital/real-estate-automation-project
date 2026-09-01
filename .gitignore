@@ -4,6 +4,22 @@
 !.env.example
 *.local
 
+# --- Commercial / legal material (deliberately NOT in this repo) ---
+# Pricing, setup fees, discounting policy, contract terms and the open
+# legal-entity question. Kept out for a specific reason, not just tidiness:
+# the SERVER pulls this repo, so committing it would place commercial terms on
+# the production box for no operational benefit. "It is a private repo" is not
+# the control you want protecting this -- that lasts exactly until the first
+# collaborator is added.
+#
+# The engineering content that used to live alongside it has been extracted:
+#   docs/engineering-lessons.md   (the tests-that-pass-wrongly pattern)
+#   docs/concierge-runbook.md §6  (conditions on the n8n env-access decision)
+# If you add commercial material to that doc, it stays here. If you add
+# ENGINEERING material to it, port the engineering part into docs/ instead --
+# otherwise it becomes invisible to anyone working from the repo.
+ryvo-operations-and-commercial-reference.md
+
 # --- Backups (DB dumps live outside git history) ---
 /backups/
 
