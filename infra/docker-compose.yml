@@ -41,6 +41,29 @@ services:
       - N8N_USER_MANAGEMENT_JWT_SECRET=${N8N_JWT_SECRET}
       - GENERIC_TIMEZONE=Europe/Lisbon
       - N8N_DIAGNOSTICS_ENABLED=false
+      # --- Twilio inbound webhook signature verification (Phase 1) ---
+      # Verifying X-Twilio-Signature needs HMAC-SHA1 over the request, which
+      # means two n8n defaults have to be relaxed. Both were measured, not
+      # assumed, against this exact image:
+      #   * require('crypto') in a Code node -> "Module 'crypto' is disallowed"
+      #   * $env in a Code node              -> "access to env vars denied"
+      #
+      # TRADE-OFF, accepted deliberately: N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      # lets ANY Code node read EVERY variable below -- including
+      # N8N_ENCRYPTION_KEY, DB_POSTGRESDB_PASSWORD and the JWT secret. That is
+      # tolerable only because the operator is the sole workflow author.
+      #
+      # Consequently this env block is a security surface: anything added here
+      # becomes readable from any Code node. Keep it minimal. In particular the
+      # Supabase service_role key is deliberately NOT here -- it lives in an
+      # n8n credential, which is encrypted at rest and, unlike a node
+      # parameter, is never written into workflow JSON by
+      # `n8n export:workflow` (and so never reaches git via backup.sh).
+      - NODE_FUNCTION_ALLOW_BUILTIN=crypto
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+      - TWILIO_WHATSAPP_FROM=${TWILIO_WHATSAPP_FROM}
     volumes:
       - n8n_data:/home/node/.n8n
     depends_on:
