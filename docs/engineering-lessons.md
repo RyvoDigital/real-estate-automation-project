@@ -64,7 +64,64 @@ that the clever version was never buying anything.
 
 ---
 
-## 2. The failure you can see is rarely the failure that matters
+## 2. The same pattern, applied to documentation
+
+§1 is about tests that pass while testing the wrong thing. The identical failure
+happens with *sources*: a confident, specific, well-formatted claim that is
+simply out of date. It reads exactly like a correct one.
+
+**2026-09-02.** The Sonnet 5 cost baseline was published at $3/$15 per MTok,
+citing an introductory rate "expiring 2026-08-31". That expiry was cancelled on
+2026-08-10 and $2/$10 made permanent — announced in an edit to Anthropic's own
+launch post. The stale line survives in third-party pricing pages and in at
+least one cached reference table, which is what got read. The cost baseline was
+wrong by ~50%, and it was wrong in the confident direction: a specific number,
+a specific date, a plausible mechanism.
+
+The tell was available and ignored: **the claim was that a price would change
+two days ago.** Anything asserting a recent change is exactly what a cached
+source gets wrong, because the cache predates the change.
+
+Rules:
+
+1. **Check the authoritative source, not the convenient one.** A cached table,
+   a summary, or a skill file is a starting point, never the citation. For
+   prices, limits, deprecations, and dates: read the vendor's own current page.
+2. **Recency is a red flag, not a reassurance.** A source describing something
+   that changed recently — or is about to — is the most likely to be stale.
+3. **Distrust specificity as evidence.** "$2/MTok through 2026-08-31" feels more
+   trustworthy than "about $2/MTok". It is not; it is just more precise about
+   something it may have wrong.
+4. **When a number will end up in a commercial or contractual document, verify
+   it at the source before publishing it**, however sure it looks.
+
+---
+
+## 3. A test written for one property finds a defect in another
+
+**2026-09-02.** A probe was written to check one thing: that the Concierge never
+implies property stock it cannot see. Running it surfaced something unrelated
+and worse — an **English** question was getting **Portuguese** replies, on five
+runs out of five. Portuguese examples embedded in the system prompt to
+illustrate forbidden phrasing were biasing the model's output language.
+
+It would have shipped. The replies were fluent, correct, on-brand, and
+well-behaved on the property question — and in the wrong language. Nothing about
+them looked like a bug except the language, and the person who wrote the prompt
+was not looking at the language.
+
+Two things follow:
+
+- **Look at what the check produced, not only at its verdict.** The probe's own
+  assertion passed. The defect was visible in the output beside it, and only
+  because the output was printed rather than reduced to pass/fail.
+- **Write probes that emit evidence, not just judgements.** A harness that
+  prints only "15/15 passed" would have hidden this completely. Cheap, verbose
+  output is worth more than a tidy summary while a system is young.
+
+---
+
+## 4. The failure you can see is rarely the failure that matters
 
 Related to §1 but distinct, and worth stating separately.
 
@@ -78,7 +135,7 @@ gap is usually obvious.
 
 ---
 
-## 3. Prefer the boring mechanism the platform already arbitrates
+## 5. Prefer the boring mechanism the platform already arbitrates
 
 Dedupe was originally specified as workflow logic: look up the message id, and
 insert if absent. That is correct in the single-threaded story and wrong under

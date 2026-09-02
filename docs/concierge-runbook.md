@@ -47,29 +47,33 @@ Changing model or effort is a config update. **Do not hardcode either in a node.
 > accumulates toward the 20-message limit. Re-baseline with real multi-turn
 > history at B2; these numbers are history-free and are the floor, not the norm.
 
-### Cost per turn — and a pricing change that already happened
+### Cost per turn
 
-At Sonnet 5 standard rates (**$3 / $15 per MTok**):
+At Sonnet 5's rates of **$2 / $10 per MTok**:
 
 ```
-(1,859 in ÷ 1e6 × $3) + (233 out ÷ 1e6 × $15)  ≈  $0.0091 per turn
+(1,859 in ÷ 1e6 × $2) + (233 out ÷ 1e6 × $10)  ≈  $0.0060 per turn
 ```
 
-So roughly **$0.09 per 10-turn conversation**, before history growth pushes
+So roughly **$0.06 per 10-turn conversation**, before history growth pushes
 input tokens up in later turns.
 
-> ⚠️ **Two things make any older cost estimate wrong.**
+> **On the price: $2/$10 is permanent.** It launched as introductory pricing
+> due to revert to $3/$15 on 2026-09-01; that increase was cancelled and the
+> rate made permanent on 2026-08-10. Many third-party pricing pages still carry
+> the stale "reverts 1 September" line, and so does at least one cached
+> reference table. **An earlier revision of this runbook used $3/$15 and was
+> wrong by ~50%** — corrected 2026-09-02. If you are re-deriving cost, read
+> Anthropic's own pricing page, not a summary of it.
+
+> ⚠️ **The tokenizer change still invalidates older estimates.** Sonnet 5 uses
+> the tokenizer introduced with Opus 4.7: roughly **30% more tokens for the same
+> text** than Sonnet 4.6. Per-token pricing is unchanged, so the cost of an
+> equivalent request rose even though the price list did not. Token counts
+> measured on any earlier model do not transfer — re-run `count_tokens` against
+> `claude-sonnet-5` rather than scaling an old figure.
 >
-> 1. **Sonnet 5's introductory pricing ($2/$10 per MTok) expired 2026-08-31.**
->    Standard $3/$15 applies from 1 September — the day before these numbers
->    were taken. Any figure derived before that date is ~33% low.
-> 2. **Sonnet 5 uses a new tokenizer: roughly 30% more tokens for the same text
->    than Sonnet 4.6.** Per-token pricing is unchanged, so the *cost of an
->    equivalent request* rose even where the price list did not. Token counts
->    measured on any earlier model do not transfer — re-run `count_tokens`
->    against `claude-sonnet-5` rather than scaling an old figure.
->
-> Both feed the cost-per-conversation input to the commercial reference, which
+> This feeds the cost-per-conversation input to the commercial reference, which
 > is maintained outside this repo. **Flagged to the operator 2026-09-02.**
 
 ### Structured outputs replace prompt-and-parse
