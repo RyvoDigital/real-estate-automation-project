@@ -11,6 +11,101 @@ node, and nothing else.
 
 ---
 
+## 0. The Claude call — model, settings, measured baselines
+
+**Checkpoint B in progress (2026-09-02).** These are the pre-build measurements
+taken against the live API before the workflow nodes were written. Record any
+later comparison against these numbers, not against impressions.
+
+### Configuration (lives in `client_automations.config`, not in the workflow)
+
+| Key | Value | Why |
+|---|---|---|
+| `model` | `claude-sonnet-5` | Verified against the account's `/v1/models`. Short conversational replies plus field extraction sit comfortably in Sonnet's range; per-conversation cost lands on margin. |
+| `effort` | `low` | Measured indistinguishable from `medium` on quality and marginally faster. Revisit at B2, when qualification depth starts to matter. |
+| `thinking` | `adaptive` | On Sonnet 5, adaptive is **on by default** — omitting the field does not disable it. |
+| `max_tokens` | `1024` | Caps thinking **plus** reply. Holds only because replies are 1–3 sentences. |
+| `history_limit` | `20` | Last 20 messages for this lead, oldest first. |
+
+Changing model or effort is a config update. **Do not hardcode either in a node.**
+
+### Measured baselines — 2026-09-02, 42 probe calls
+
+| Metric | Value |
+|---|---|
+| Latency, mean | **4.26 s** |
+| Latency, min / max | 2.86 s / 5.77 s |
+| Worst single observation | **10.06 s** — see the SLA note below |
+| Input tokens / turn | ~1,859 (system prompt ≈3.1 KB, no history) |
+| Output tokens / turn | ~233 |
+| Structured-output conformance | **23/23 schema-valid, zero parse failures** |
+
+> **The 10.06 s outlier matters.** §11.1 sets a ~10 second target. Mean latency
+> has ~2× headroom, but the tail has already touched the limit once in 42 calls.
+> If reply latency becomes a complaint, look at the tail, not the mean — and
+> remember input tokens (and therefore latency) grow as conversation history
+> accumulates toward the 20-message limit. Re-baseline with real multi-turn
+> history at B2; these numbers are history-free and are the floor, not the norm.
+
+### Cost per turn — and a pricing change that already happened
+
+At Sonnet 5 standard rates (**$3 / $15 per MTok**):
+
+```
+(1,859 in ÷ 1e6 × $3) + (233 out ÷ 1e6 × $15)  ≈  $0.0091 per turn
+```
+
+So roughly **$0.09 per 10-turn conversation**, before history growth pushes
+input tokens up in later turns.
+
+> ⚠️ **Two things make any older cost estimate wrong.**
+>
+> 1. **Sonnet 5's introductory pricing ($2/$10 per MTok) expired 2026-08-31.**
+>    Standard $3/$15 applies from 1 September — the day before these numbers
+>    were taken. Any figure derived before that date is ~33% low.
+> 2. **Sonnet 5 uses a new tokenizer: roughly 30% more tokens for the same text
+>    than Sonnet 4.6.** Per-token pricing is unchanged, so the *cost of an
+>    equivalent request* rose even where the price list did not. Token counts
+>    measured on any earlier model do not transfer — re-run `count_tokens`
+>    against `claude-sonnet-5` rather than scaling an old figure.
+>
+> Both feed the cost-per-conversation input to the commercial reference, which
+> is maintained outside this repo. **Flagged to the operator 2026-09-02.**
+
+### Structured outputs replace prompt-and-parse
+
+The handoff (§4.3) specifies "return only JSON" plus defensive parsing. Sonnet 5
+supports `output_config.format` with a JSON schema, which constrains the
+response **at the API level** — 23/23 valid across probing, versus hoping.
+
+The §5.2 schema is unchanged; it is enforced rather than requested. Defensive
+parsing stays as a second layer, because structured outputs do **not** hold when
+`stop_reason` is `refusal` or `max_tokens`. So `bad_json` moves from a likely
+failure mode to a genuine edge case — it is not dead code.
+
+**Consequence for the §12.10 test:** forcing bad JSON via a prompt change no
+longer works, because the API will not emit it. That test injects a malformed
+payload at the parse node instead.
+
+### Three prompt defects caught by probing, before any node was built
+
+Each was found by running the real prompt against the real API and grading the
+output — not by reading it. This is the §6.4 pattern in
+[`engineering-lessons.md`](engineering-lessons.md) applied deliberately.
+
+| # | Defect | Would have failed | Fix |
+|---|---|---|---|
+| 1 | **Over-escalation.** "Is the apartment in Cascais still available?" set `needs_human=true`. The "never invent availability" rule read as an escalation trigger — and since the AI never has inventory, that escalates nearly every first message. | §12.1 | Separated "I don't have that detail" (a reply behaviour — keep qualifying) from `needs_human` (a workflow stop). Stated that not knowing is the *normal* case. **9/9 escalation decisions correct.** |
+| 2 | **Implied inventory.** "We do have some lovely options in Cascais in that range" — no specific property, but it claims stock the system cannot see. Same class of error as quoting a price. | No test; caught by review | Explicit forbidden-phrase block plus a required two-part response (colleague will confirm + one qualifying question). **15/15 passed**, graded by an independent judge call, not self-assessment. |
+| 3 | **Language leak.** An **English** question ("Do you have anything with a sea view?") got **Portuguese** replies on 5 of 5 runs — the Portuguese examples inside the prompt were biasing output language. | §11.4, §12.4 | Hoisted language matching above everything else and labelled in-prompt examples as illustrative only. **18/18**, including a mid-conversation PT→EN switch. |
+
+Defect 2 was the one worth the most: it passes casual reading, and the reply
+sounds helpful. If prompt wording ever stops holding that line, replace it with
+a deterministic guard rather than a better prompt — the evidence says wording is
+currently sufficient, but 15 runs is not proof of reliability.
+
+---
+
 ## 1. What is running
 
 | Thing | Value |
