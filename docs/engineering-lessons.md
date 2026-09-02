@@ -11,7 +11,7 @@ Append to it. An entry earns its place by having cost real time at least once.
 
 ## 1. Tests that pass while testing the wrong thing
 
-**This has now bitten the project four times in four different disguises.** It
+**This has now bitten the project six times in six different disguises.** It
 is the single most useful thing in this file.
 
 | # | Incident | What reported success | What was actually true |
@@ -20,6 +20,8 @@ is the single most useful thing in this file.
 | 2 | Nightly backup during a Supabase pause | Exit 0, fresh dump, clean push to GitHub | The database holding every lead was **offline and unreachable** |
 | 3 | Migration `0003` unique-index test (1 Sep 2026) | Duplicate rejected, `ON CONFLICT` worked, all green | The test wrote the index predicate **by hand in raw SQL**. PostgREST — the actual caller — emits `ON CONFLICT (client_id, phone)` with no predicate and fails `42P10` against a partial index |
 | 4 | Schema comparison during the restore drill | `columns: IDENTICAL`, `indexes: IDENTICAL` | **Both sides had errored to empty.** Shell quoting had mangled the SQL, and comparing two empty result sets reports a perfect match |
+| 5 | n8n workflow deployed via CLI (2 Sep 2026) | `active=true` in the database, and the boot log said `Activated workflow "inbound_concierge_whatsapp"` | **No webhook was registered and every request 404'd.** n8n 2.28 also requires `publish:workflow`; without it activation aborts for *every* workflow, silently taking the Supabase keepalive down too |
+| 6 | Run logging after the Twilio send (2 Sep 2026) | Execution status `success`, reply delivered to the lead | **No `automation_runs` row was ever written.** A node read `$input` while sitting after an HTTP node, so `client_automation_id` was `undefined`, the insert failed a NOT NULL constraint, and `neverError` swallowed the 4xx |
 
 ### The clearest statement of it is #3
 
@@ -61,6 +63,28 @@ that the clever version was never buying anything.
 6. **Guard against the empty-set pass.** #4 slipped through because "no
    differences" and "no data" are indistinguishable in a naive diff. Assert the
    row count is what you expect *before* concluding the comparison passed.
+7. **When a system reports its own health, prefer the number over the
+   adjective.** In #5 a boolean said `active=true` and a log line said
+   `Activated workflow` — both adjectives, both false. The only thing that
+   differed between the broken and working states was a *count*:
+   `Processed N draft workflows, M published workflows`. Adjectives are written
+   once by an optimist; counts are computed each time.
+   **Then verify the number means what you assume** — `M=1` has since been seen
+   with two workflows demonstrably running, so the count is a smoke alarm, not
+   a certificate. The only thing that actually settles it is behaviour: a
+   registered webhook that returns 403, and an execution *row*.
+8. **A warning you have not yet been burned by is invisible.** The n8n CLI
+   printed `Please use: publish:workflow --id=...` at Checkpoint A, in the
+   normal output, at the exact moment it mattered. It was read past, because
+   nothing had failed yet. Warnings are only legible in hindsight — so when a
+   tool volunteers an instruction you did not ask for, treat it as a finding
+   and act on it or write down why not.
+9. **After an HTTP node, `$input` is a response envelope, not your data.** #6's
+   node read `$input.first().json` expecting the accumulated item and got
+   `{statusCode, headers, body}`. Every field it wanted was `undefined`. When a
+   node follows an HTTP call, reference the upstream node explicitly
+   (`$('AfterSend')`), and be suspicious of `neverError`: it converts a 4xx
+   into a silent success, which is the entire failure mode of this section.
 
 ---
 

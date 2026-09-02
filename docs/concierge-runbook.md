@@ -373,10 +373,33 @@ Skip the publish and the failure is invisible and misleading: the workflow shows
 for every other workflow too** — a single unpublished workflow took the Supabase
 keepalive down with it.
 
-The one honest signal is the boot line
-`Finished building workflow dependency index. Processed N draft workflows, M published workflows.`
-**If `M` is 0, nothing is live**, whatever `active` says. Check that line, not
-the `Activated workflow` line, which lies.
+`Activated workflow "..."` in the boot log does **not** mean the workflow is
+live. It appeared for both workflows while neither was registered.
+
+The boot line `Processed N draft workflows, M published workflows` is a better
+signal than the adjective — **M=0 meant nothing was live** — but do not read it
+as a count of working workflows: M=1 has been observed with two workflows
+demonstrably running. Use it to notice trouble, not to confirm health.
+
+**Confirm behaviourally. Two checks, both cheap:**
+
+```bash
+# 1. Is the webhook actually registered? (an unsigned POST must 403, not 404)
+curl -s -o /dev/null -w '%{http_code}\n' -X POST \
+  https://n8n.ryvodigital.com/webhook/twilio-inbound --data 'a=b'
+
+# 2. Has the schedule actually fired? (an execution ROW, not a status field)
+#    docker compose exec -T postgres psql -U "$N8N_DB_USER" -d "$N8N_DB_NAME" -c \
+#      "SELECT e.status, e.\"startedAt\" FROM execution_entity e
+#         JOIN workflow_entity w ON w.id=e.\"workflowId\"
+#        WHERE w.name='supabase_keepalive' ORDER BY e.\"startedAt\" DESC LIMIT 3;"
+```
+
+**Publish every workflow you touch, not just the one you edited.** A redeploy
+script that published only the inbound workflow silently left the keepalive
+unpublished — and the keepalive is the thing protecting us from the Supabase
+pause. It had **never fired on its 04:00 schedule**; the only executions on
+record were from a forced test. Confirmed genuinely live 2026-09-02 16:48:49.
 
 Cost us ~40 minutes on 2026-09-02, including restoring a known-good workflow to
 prove the new one wasn't at fault — it wasn't; nothing was published.
