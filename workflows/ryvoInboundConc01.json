@@ -1,1 +1,1303 @@
-{"updatedAt":"2026-09-01T15:03:21.172Z","createdAt":"2026-09-01T15:03:15.228Z","id":"ryvoInboundConc01","name":"inbound_concierge_whatsapp","description":null,"active":true,"isArchived":false,"nodes":[{"parameters":{"httpMethod":"POST","path":"twilio-inbound","responseMode":"responseNode","options":{"rawBody":false}},"id":"a0000000-0000-4000-8000-000000000001","name":"Webhook","type":"n8n-nodes-base.webhook","typeVersion":2,"position":[-880,300],"webhookId":"ryvo-twilio-inbound-hook"},{"parameters":{"jsCode":"// Verify X-Twilio-Signature.\n//\n// Algorithm (verified against Twilio's published test vector before this was\n// written): HMAC-SHA1, base64, keyed with the account auth token, over the\n// exact public webhook URL followed by every POST parameter sorted by name,\n// name and value concatenated with NO delimiters.\n//\n// Iterates whatever parameters actually arrived. Never a fixed list: Twilio\n// adds webhook parameters without notice, and validating against a hardcoded\n// set silently starts rejecting valid requests.\nconst crypto = require('crypto');\n\n// MUST be the exact public URL Twilio signed against. n8n sits behind Caddy and\n// internally sees http://n8n:5678/..., which produces a different signature and\n// a 403 on every request. Measured, not guessed. Constructed here rather than\n// read from X-Forwarded-* so a forged header cannot influence what we verify.\nconst PUBLIC_URL = 'https://n8n.ryvodigital.com/webhook/twilio-inbound';\n\nconst item = $input.first().json;\nconst headers = item.headers || {};\nconst params = item.body || {};\nconst received = headers['x-twilio-signature'] || '';\n\nconst token = $env.TWILIO_AUTH_TOKEN;\nconst expectedSid = $env.TWILIO_ACCOUNT_SID;\n\nfunction signatureBase(url, p) {\n  const keys = Object.keys(p).sort();\n  let s = url;\n  for (const k of keys) {\n    const v = p[k];\n    s += k + (v === undefined || v === null ? '' : String(v));\n  }\n  return s;\n}\n\nlet valid = false;\nlet reason = 'signature_mismatch';\n\nif (!token) {\n  reason = 'no_auth_token_in_env';\n} else if (!received) {\n  reason = 'missing_signature_header';\n} else {\n  const expected = crypto\n    .createHmac('sha1', token)\n    .update(Buffer.from(signatureBase(PUBLIC_URL, params), 'utf-8'))\n    .digest('base64');\n  const a = Buffer.from(expected, 'utf-8');\n  const b = Buffer.from(received, 'utf-8');\n  // Length check first: timingSafeEqual throws on length mismatch.\n  if (a.length === b.length && crypto.timingSafeEqual(a, b)) {\n    valid = true;\n    reason = 'ok';\n  }\n}\n\n// A valid signature proves the request came from *a* Twilio account. Confirm it\n// is OURS before acting on it.\nif (valid && expectedSid && params.AccountSid !== expectedSid) {\n  valid = false;\n  reason = 'account_sid_mismatch';\n}\n\nreturn [{ json: { headers, body: params, _sig: { valid, reason }, _startedAt: new Date().toISOString() } }];"},"id":"a0000000-0000-4000-8000-000000000002","name":"VerifySignature","type":"n8n-nodes-base.code","typeVersion":2,"position":[-660,300]},{"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"id":"sig-valid","leftValue":"={{ $json._sig.valid }}","rightValue":"","operator":{"type":"boolean","operation":"true","singleValue":true}}],"combinator":"and"},"options":{}},"id":"a0000000-0000-4000-8000-000000000003","name":"IsSignatureValid","type":"n8n-nodes-base.if","typeVersion":2.2,"position":[-440,300]},{"parameters":{"respondWith":"text","responseBody":"Forbidden","options":{"responseCode":403}},"id":"a0000000-0000-4000-8000-000000000004","name":"Respond403","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[-220,460]},{"parameters":{"respondWith":"text","responseBody":"<?xml version=\"1.0\" encoding=\"UTF-8\"?><Response></Response>","options":{"responseCode":200,"responseHeaders":{"entries":[{"name":"content-type","value":"text/xml"}]}}},"id":"a0000000-0000-4000-8000-000000000005","name":"Respond200TwiML","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[-220,160]},{"parameters":{"jsCode":"// Normalise the Twilio payload into the shape the rest of the workflow uses.\n// Everything downstream of here is channel-agnostic: swapping back to the Meta\n// Cloud API should only require changing this node, the signature check and the\n// eventual send node.\nconst src = $('VerifySignature').first().json;\nconst b = src.body || {};\n\n// Twilio prefixes WhatsApp addresses: 'whatsapp:+351933048230'.\n// leads.phone and clients.whatsapp_number store the bare E.164 number.\nconst strip = (v) => String(v || '').replace(/^whatsapp:/, '').trim();\n\nconst numMedia = parseInt(b.NumMedia || '0', 10) || 0;\nconst media = [];\nfor (let i = 0; i < numMedia; i++) {\n  media.push({ url: b['MediaUrl' + i] || null, contentType: b['MediaContentType' + i] || null });\n}\n\nreturn [{\n  json: {\n    // Supabase REST base. Not a secret -- the project URL is public by design;\n    // access is gated by the service_role key (an encrypted n8n credential) and\n    // by RLS being deny-by-default. Single place to change per environment.\n    supabaseUrl: 'https://txxkqskhxhwtrhbmwwig.supabase.co',\n\n    messageSid: b.MessageSid || null,\n    accountSid: b.AccountSid || null,\n    from: strip(b.From),\n    to: strip(b.To),\n    waId: b.WaId || null,\n    profileName: b.ProfileName || null,\n    body: b.Body || '',\n    numMedia,\n    media,\n    // NumMedia > 0 with an empty Body is an image/audio/location-only message.\n    // Checkpoint A only has to not crash on it; Checkpoint D handles it properly.\n    isNonText: numMedia > 0,\n    startedAt: src._startedAt,\n  }\n}];"},"id":"a0000000-0000-4000-8000-000000000006","name":"Normalise","type":"n8n-nodes-base.code","typeVersion":2,"position":[0,160]},{"parameters":{"url":"={{ $json.supabaseUrl }}/rest/v1/clients","authentication":"predefinedCredentialType","nodeCredentialType":"supabaseApi","sendQuery":true,"queryParameters":{"parameters":[{"name":"whatsapp_number","value":"=eq.{{ $json.to }}"},{"name":"select","value":"id,name,timezone,locale,client_automations(id,config,automations!inner(key))"},{"name":"client_automations.automations.key","value":"eq.inbound_concierge"},{"name":"limit","value":"1"}]},"options":{"response":{"response":{"fullResponse":true,"neverError":true}}}},"id":"a0000000-0000-4000-8000-000000000007","name":"ResolveClient","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[220,160],"credentials":{"supabaseApi":{"id":"ryvoSupabaseCred","name":"Ryvo Supabase (service_role)"}}},{"parameters":{"jsCode":"// Flatten the client lookup and decide whether we know this recipient.\nconst res = $input.first().json;\nconst n = $('Normalise').first().json;\nconst rows = Array.isArray(res.body) ? res.body : [];\nconst client = rows[0] || null;\nconst ca = client && Array.isArray(client.client_automations) ? client.client_automations[0] : null;\n\n// Supabase being unreachable (free-tier auto-pause) surfaces as a non-2xx or a\n// transport error, NOT as an empty result. Distinguish the two: an empty list\n// means 'we do not serve this number', a bad status means 'the platform DB is\n// down'. Conflating them would silently drop real leads during an outage.\nconst httpOk = res.statusCode >= 200 && res.statusCode < 300;\n\nreturn [{\n  json: {\n    ...n,\n    httpOk,\n    statusCode: res.statusCode,\n    found: httpOk && !!client && !!ca,\n    errorType: !httpOk ? 'platform_db_unreachable' : (!client || !ca ? 'unknown_client' : null),\n    clientId: client ? client.id : null,\n    clientName: client ? client.name : null,\n    clientAutomationId: ca ? ca.id : null,\n    config: ca ? ca.config : null,\n  }\n}];"},"id":"a0000000-0000-4000-8000-000000000008","name":"FlattenClient","type":"n8n-nodes-base.code","typeVersion":2,"position":[440,160]},{"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"id":"client-found","leftValue":"={{ $json.found }}","rightValue":"","operator":{"type":"boolean","operation":"true","singleValue":true}}],"combinator":"and"},"options":{}},"id":"a0000000-0000-4000-8000-000000000009","name":"IsClientKnown","type":"n8n-nodes-base.if","typeVersion":2.2,"position":[660,160]},{"parameters":{"method":"POST","url":"={{ $json.supabaseUrl }}/rest/v1/events","authentication":"predefinedCredentialType","nodeCredentialType":"supabaseApi","sendBody":true,"specifyBody":"json","jsonBody":"={{ JSON.stringify({ client_id: $json.clientId, type: 'run.failed', severity: 'critical', summary: ($json.errorType || 'unknown_client') + ': inbound WhatsApp to ' + $json.to, data: { error_type: $json.errorType, to: $json.to, message_sid: $json.messageSid, status_code: $json.statusCode } }) }}","options":{"response":{"response":{"fullResponse":true,"neverError":true}}}},"id":"a0000000-0000-4000-8000-000000000010","name":"LogUnknownClientEvent","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[880,340],"credentials":{"supabaseApi":{"id":"ryvoSupabaseCred","name":"Ryvo Supabase (service_role)"}}},{"parameters":{"url":"={{ $json.supabaseUrl }}/rest/v1/leads","authentication":"predefinedCredentialType","nodeCredentialType":"supabaseApi","sendQuery":true,"queryParameters":{"parameters":[{"name":"client_id","value":"=eq.{{ $json.clientId }}"},{"name":"phone","value":"=eq.{{ $json.from }}"},{"name":"select","value":"id,stage"},{"name":"limit","value":"1"}]},"options":{"response":{"response":{"fullResponse":true,"neverError":true}}}},"id":"a0000000-0000-4000-8000-000000000011","name":"FindExistingLead","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[880,100],"credentials":{"supabaseApi":{"id":"ryvoSupabaseCred","name":"Ryvo Supabase (service_role)"}}},{"parameters":{"method":"POST","url":"={{ $('FlattenClient').first().json.supabaseUrl }}/rest/v1/leads","authentication":"predefinedCredentialType","nodeCredentialType":"supabaseApi","sendQuery":true,"queryParameters":{"parameters":[{"name":"on_conflict","value":"client_id,phone"}]},"sendHeaders":true,"headerParameters":{"parameters":[{"name":"Prefer","value":"resolution=merge-duplicates,return=representation"}]},"sendBody":true,"specifyBody":"json","jsonBody":"={{ JSON.stringify((() => { const c = $('FlattenClient').first().json; const existing = Array.isArray($json.body) && $json.body.length > 0; const row = { client_id: c.clientId, phone: c.from, source: 'whatsapp', last_contact_at: new Date().toISOString(), updated_at: new Date().toISOString() }; if (!existing) { row.stage = 'new'; row.consent_status = 'unknown'; if (c.profileName) row.full_name = c.profileName; } return row; })()) }}","options":{"response":{"response":{"fullResponse":true,"neverError":true}}}},"id":"a0000000-0000-4000-8000-000000000012","name":"UpsertLead","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[1100,100],"credentials":{"supabaseApi":{"id":"ryvoSupabaseCred","name":"Ryvo Supabase (service_role)"}}},{"parameters":{"jsCode":"// Carry forward whether this was a first contact, plus the lead id.\nconst up = $input.first().json;\nconst c = $('FlattenClient').first().json;\nconst prior = $('FindExistingLead').first().json;\n\nconst priorRows = Array.isArray(prior.body) ? prior.body : [];\nconst isNewLead = priorRows.length === 0;\nconst rows = Array.isArray(up.body) ? up.body : [];\nconst lead = rows[0] || null;\n\nreturn [{\n  json: {\n    ...c,\n    isNewLead,\n    leadId: lead ? lead.id : (priorRows[0] ? priorRows[0].id : null),\n    upsertStatus: up.statusCode,\n  }\n}];"},"id":"a0000000-0000-4000-8000-000000000013","name":"AfterLead","type":"n8n-nodes-base.code","typeVersion":2,"position":[1320,100]},{"parameters":{"method":"POST","url":"={{ $json.supabaseUrl }}/rest/v1/messages","authentication":"predefinedCredentialType","nodeCredentialType":"supabaseApi","sendBody":true,"specifyBody":"json","jsonBody":"={{ JSON.stringify({ client_id: $json.clientId, lead_id: $json.leadId, channel: 'whatsapp', direction: 'inbound', body: $json.body, status: 'received', ai_generated: false, approved_by_human: null, external_id: $json.messageSid }) }}","options":{"response":{"response":{"fullResponse":true,"neverError":true}}}},"id":"a0000000-0000-4000-8000-000000000014","name":"InsertMessage","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[1540,100],"credentials":{"supabaseApi":{"id":"ryvoSupabaseCred","name":"Ryvo Supabase (service_role)"}}},{"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"loose","version":2},"conditions":[{"id":"is-dup","leftValue":"={{ $json.statusCode }}","rightValue":409,"operator":{"type":"number","operation":"equals"}}],"combinator":"and"},"options":{}},"id":"a0000000-0000-4000-8000-000000000015","name":"IsDuplicateDelivery","type":"n8n-nodes-base.if","typeVersion":2.2,"position":[1760,100]},{"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"id":"is-new-lead","leftValue":"={{ $('AfterLead').first().json.isNewLead }}","rightValue":"","operator":{"type":"boolean","operation":"true","singleValue":true}}],"combinator":"and"},"options":{}},"id":"a0000000-0000-4000-8000-000000000016","name":"IsFirstContact","type":"n8n-nodes-base.if","typeVersion":2.2,"position":[1980,180]},{"parameters":{"method":"POST","url":"={{ $('AfterLead').first().json.supabaseUrl }}/rest/v1/events","authentication":"predefinedCredentialType","nodeCredentialType":"supabaseApi","sendBody":true,"specifyBody":"json","jsonBody":"={{ JSON.stringify((() => { const a = $('AfterLead').first().json; return { client_id: a.clientId, type: 'lead.created', severity: 'info', summary: 'New WhatsApp lead ' + a.from + (a.profileName ? ' (' + a.profileName + ')' : ''), data: { lead_id: a.leadId, source: 'whatsapp', channel: 'twilio_sandbox' } }; })()) }}","options":{"response":{"response":{"fullResponse":true,"neverError":true}}}},"id":"a0000000-0000-4000-8000-000000000017","name":"EventLeadCreated","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[2200,100],"credentials":{"supabaseApi":{"id":"ryvoSupabaseCred","name":"Ryvo Supabase (service_role)"}}},{"parameters":{"method":"POST","url":"={{ $('AfterLead').first().json.supabaseUrl }}/rest/v1/automation_runs","authentication":"predefinedCredentialType","nodeCredentialType":"supabaseApi","sendBody":true,"specifyBody":"json","jsonBody":"={{ JSON.stringify((() => { const a = $('AfterLead').first().json; const m = $('InsertMessage').first().json; const dup = m.statusCode === 409; const started = a.startedAt; const finished = new Date().toISOString(); return { client_automation_id: a.clientAutomationId, status: 'success', started_at: started, finished_at: finished, duration_ms: Math.max(0, new Date(finished) - new Date(started)), payload: { checkpoint: 'A', duplicate_delivery: dup, first_contact: a.isNewLead, non_text: a.isNonText, num_media: a.numMedia, message_status: m.statusCode } }; })()) }}","options":{"response":{"response":{"fullResponse":true,"neverError":true}}}},"id":"a0000000-0000-4000-8000-000000000018","name":"LogRun","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[2420,180],"credentials":{"supabaseApi":{"id":"ryvoSupabaseCred","name":"Ryvo Supabase (service_role)"}}}],"connections":{"Webhook":{"main":[[{"node":"VerifySignature","type":"main","index":0}]]},"VerifySignature":{"main":[[{"node":"IsSignatureValid","type":"main","index":0}]]},"IsSignatureValid":{"main":[[{"node":"Respond200TwiML","type":"main","index":0}],[{"node":"Respond403","type":"main","index":0}]]},"Respond200TwiML":{"main":[[{"node":"Normalise","type":"main","index":0}]]},"Normalise":{"main":[[{"node":"ResolveClient","type":"main","index":0}]]},"ResolveClient":{"main":[[{"node":"FlattenClient","type":"main","index":0}]]},"FlattenClient":{"main":[[{"node":"IsClientKnown","type":"main","index":0}]]},"IsClientKnown":{"main":[[{"node":"FindExistingLead","type":"main","index":0}],[{"node":"LogUnknownClientEvent","type":"main","index":0}]]},"FindExistingLead":{"main":[[{"node":"UpsertLead","type":"main","index":0}]]},"UpsertLead":{"main":[[{"node":"AfterLead","type":"main","index":0}]]},"AfterLead":{"main":[[{"node":"InsertMessage","type":"main","index":0}]]},"InsertMessage":{"main":[[{"node":"IsDuplicateDelivery","type":"main","index":0}]]},"IsDuplicateDelivery":{"main":[[{"node":"LogRun","type":"main","index":0}],[{"node":"IsFirstContact","type":"main","index":0}]]},"IsFirstContact":{"main":[[{"node":"EventLeadCreated","type":"main","index":0}],[{"node":"LogRun","type":"main","index":0}]]},"EventLeadCreated":{"main":[[{"node":"LogRun","type":"main","index":0}]]}},"settings":{"executionOrder":"v1","saveManualExecutions":true},"staticData":null,"meta":null,"nodeGroups":[],"pinData":null,"versionId":"8760d9a8-8790-47ea-bd8e-18e416bd44ba","activeVersionId":"8760d9a8-8790-47ea-bd8e-18e416bd44ba","versionCounter":1,"triggerCount":1,"sourceWorkflowId":null,"tags":[],"shared":[{"updatedAt":"2026-09-01T15:03:15.228Z","createdAt":"2026-09-01T15:03:15.228Z","role":"workflow:owner","workflowId":"ryvoInboundConc01","projectId":"uJAXibMof3BDHwvP","project":{"updatedAt":"2026-07-04T23:01:35.388Z","createdAt":"2026-07-04T22:58:34.115Z","id":"uJAXibMof3BDHwvP","name":"Manuel Vale <hello@ryvodigital.com>","type":"personal","icon":null,"description":null,"customTelemetryTags":[],"creatorId":"e3386b92-bb92-47d2-89c0-7fc4fb66650c"}}],"versionMetadata":{"name":null,"description":null}}
+{
+  "updatedAt": "2026-09-01T15:03:21.172Z",
+  "createdAt": "2026-09-01T15:03:15.228Z",
+  "id": "ryvoInboundConc01",
+  "name": "inbound_concierge_whatsapp",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "twilio-inbound",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": false
+        }
+      },
+      "id": "a0000000-0000-4000-8000-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -880,
+        300
+      ],
+      "webhookId": "ryvo-twilio-inbound-hook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Verify X-Twilio-Signature.\n//\n// Algorithm (verified against Twilio's published test vector before this was\n// written): HMAC-SHA1, base64, keyed with the account auth token, over the\n// exact public webhook URL followed by every POST parameter sorted by name,\n// name and value concatenated with NO delimiters.\n//\n// Iterates whatever parameters actually arrived. Never a fixed list: Twilio\n// adds webhook parameters without notice, and validating against a hardcoded\n// set silently starts rejecting valid requests.\nconst crypto = require('crypto');\n\n// MUST be the exact public URL Twilio signed against. n8n sits behind Caddy and\n// internally sees http://n8n:5678/..., which produces a different signature and\n// a 403 on every request. Measured, not guessed. Constructed here rather than\n// read from X-Forwarded-* so a forged header cannot influence what we verify.\nconst PUBLIC_URL = 'https://n8n.ryvodigital.com/webhook/twilio-inbound';\n\nconst item = $input.first().json;\nconst headers = item.headers || {};\nconst params = item.body || {};\nconst received = headers['x-twilio-signature'] || '';\n\nconst token = $env.TWILIO_AUTH_TOKEN;\nconst expectedSid = $env.TWILIO_ACCOUNT_SID;\n\nfunction signatureBase(url, p) {\n  const keys = Object.keys(p).sort();\n  let s = url;\n  for (const k of keys) {\n    const v = p[k];\n    s += k + (v === undefined || v === null ? '' : String(v));\n  }\n  return s;\n}\n\nlet valid = false;\nlet reason = 'signature_mismatch';\n\nif (!token) {\n  reason = 'no_auth_token_in_env';\n} else if (!received) {\n  reason = 'missing_signature_header';\n} else {\n  const expected = crypto\n    .createHmac('sha1', token)\n    .update(Buffer.from(signatureBase(PUBLIC_URL, params), 'utf-8'))\n    .digest('base64');\n  const a = Buffer.from(expected, 'utf-8');\n  const b = Buffer.from(received, 'utf-8');\n  // Length check first: timingSafeEqual throws on length mismatch.\n  if (a.length === b.length && crypto.timingSafeEqual(a, b)) {\n    valid = true;\n    reason = 'ok';\n  }\n}\n\n// A valid signature proves the request came from *a* Twilio account. Confirm it\n// is OURS before acting on it.\nif (valid && expectedSid && params.AccountSid !== expectedSid) {\n  valid = false;\n  reason = 'account_sid_mismatch';\n}\n\nreturn [{ json: { headers, body: params, _sig: { valid, reason }, _startedAt: new Date().toISOString() } }];"
+      },
+      "id": "a0000000-0000-4000-8000-000000000002",
+      "name": "VerifySignature",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "sig-valid",
+              "leftValue": "={{ $json._sig.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a0000000-0000-4000-8000-000000000003",
+      "name": "IsSignatureValid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Forbidden",
+        "options": {
+          "responseCode": 403
+        }
+      },
+      "id": "a0000000-0000-4000-8000-000000000004",
+      "name": "Respond403",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -220,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Response></Response>",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "content-type",
+                "value": "text/xml"
+              }
+            ]
+          }
+        }
+      },
+      "id": "a0000000-0000-4000-8000-000000000005",
+      "name": "Respond200TwiML",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -220,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalise the Twilio payload into the shape the rest of the workflow uses.\n// Everything downstream of here is channel-agnostic: swapping back to the Meta\n// Cloud API should only require changing this node, the signature check and the\n// eventual send node.\nconst src = $('VerifySignature').first().json;\nconst b = src.body || {};\n\n// Twilio prefixes WhatsApp addresses: 'whatsapp:+351933048230'.\n// leads.phone and clients.whatsapp_number store the bare E.164 number.\nconst strip = (v) => String(v || '').replace(/^whatsapp:/, '').trim();\n\nconst numMedia = parseInt(b.NumMedia || '0', 10) || 0;\nconst media = [];\nfor (let i = 0; i < numMedia; i++) {\n  media.push({ url: b['MediaUrl' + i] || null, contentType: b['MediaContentType' + i] || null });\n}\n\nreturn [{\n  json: {\n    // Supabase REST base. Not a secret -- the project URL is public by design;\n    // access is gated by the service_role key (an encrypted n8n credential) and\n    // by RLS being deny-by-default. Single place to change per environment.\n    supabaseUrl: 'https://txxkqskhxhwtrhbmwwig.supabase.co',\n\n    messageSid: b.MessageSid || null,\n    accountSid: b.AccountSid || null,\n    from: strip(b.From),\n    to: strip(b.To),\n    waId: b.WaId || null,\n    profileName: b.ProfileName || null,\n    body: b.Body || '',\n    numMedia,\n    media,\n    // NumMedia > 0 with an empty Body is an image/audio/location-only message.\n    // Checkpoint A only has to not crash on it; Checkpoint D handles it properly.\n    isNonText: numMedia > 0,\n    startedAt: src._startedAt,\n  }\n}];"
+      },
+      "id": "a0000000-0000-4000-8000-000000000006",
+      "name": "Normalise",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.supabaseUrl }}/rest/v1/clients",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "whatsapp_number",
+              "value": "=eq.{{ $json.to }}"
+            },
+            {
+              "name": "select",
+              "value": "id,name,timezone,locale,client_automations(id,config,automations!inner(key))"
+            },
+            {
+              "name": "client_automations.automations.key",
+              "value": "eq.inbound_concierge"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "a0000000-0000-4000-8000-000000000007",
+      "name": "ResolveClient",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        160
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "ryvoSupabaseCred",
+          "name": "Ryvo Supabase (service_role)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Flatten the client lookup and decide whether we know this recipient.\nconst res = $input.first().json;\nconst n = $('Normalise').first().json;\nconst rows = Array.isArray(res.body) ? res.body : [];\nconst client = rows[0] || null;\nconst ca = client && Array.isArray(client.client_automations) ? client.client_automations[0] : null;\n\n// Supabase being unreachable (free-tier auto-pause) surfaces as a non-2xx or a\n// transport error, NOT as an empty result. Distinguish the two: an empty list\n// means 'we do not serve this number', a bad status means 'the platform DB is\n// down'. Conflating them would silently drop real leads during an outage.\nconst httpOk = res.statusCode >= 200 && res.statusCode < 300;\n\nreturn [{\n  json: {\n    ...n,\n    httpOk,\n    statusCode: res.statusCode,\n    found: httpOk && !!client && !!ca,\n    errorType: !httpOk ? 'platform_db_unreachable' : (!client || !ca ? 'unknown_client' : null),\n    clientId: client ? client.id : null,\n    clientName: client ? client.name : null,\n    clientAutomationId: ca ? ca.id : null,\n    config: ca ? ca.config : null,\n  }\n}];"
+      },
+      "id": "a0000000-0000-4000-8000-000000000008",
+      "name": "FlattenClient",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "client-found",
+              "leftValue": "={{ $json.found }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a0000000-0000-4000-8000-000000000009",
+      "name": "IsClientKnown",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.supabaseUrl }}/rest/v1/events",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ client_id: $json.clientId, type: 'run.failed', severity: 'critical', summary: ($json.errorType || 'unknown_client') + ': inbound WhatsApp to ' + $json.to, data: { error_type: $json.errorType, to: $json.to, message_sid: $json.messageSid, status_code: $json.statusCode } }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "a0000000-0000-4000-8000-000000000010",
+      "name": "LogUnknownClientEvent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        340
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "ryvoSupabaseCred",
+          "name": "Ryvo Supabase (service_role)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.supabaseUrl }}/rest/v1/leads",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "client_id",
+              "value": "=eq.{{ $json.clientId }}"
+            },
+            {
+              "name": "phone",
+              "value": "=eq.{{ $json.from }}"
+            },
+            {
+              "name": "select",
+              "value": "id,stage"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "a0000000-0000-4000-8000-000000000011",
+      "name": "FindExistingLead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        100
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "ryvoSupabaseCred",
+          "name": "Ryvo Supabase (service_role)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('FlattenClient').first().json.supabaseUrl }}/rest/v1/leads",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "on_conflict",
+              "value": "client_id,phone"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify((() => { const c = $('FlattenClient').first().json; const existing = Array.isArray($json.body) && $json.body.length > 0; const row = { client_id: c.clientId, phone: c.from, source: 'whatsapp', last_contact_at: new Date().toISOString(), updated_at: new Date().toISOString() }; if (!existing) { row.stage = 'new'; row.consent_status = 'unknown'; if (c.profileName) row.full_name = c.profileName; } return row; })()) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "a0000000-0000-4000-8000-000000000012",
+      "name": "UpsertLead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        100
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "ryvoSupabaseCred",
+          "name": "Ryvo Supabase (service_role)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Carry forward whether this was a first contact, plus the lead id.\nconst up = $input.first().json;\nconst c = $('FlattenClient').first().json;\nconst prior = $('FindExistingLead').first().json;\n\nconst priorRows = Array.isArray(prior.body) ? prior.body : [];\nconst isNewLead = priorRows.length === 0;\nconst rows = Array.isArray(up.body) ? up.body : [];\nconst lead = rows[0] || null;\n\nreturn [{\n  json: {\n    ...c,\n    isNewLead,\n    leadId: lead ? lead.id : (priorRows[0] ? priorRows[0].id : null),\n    upsertStatus: up.statusCode,\n  }\n}];"
+      },
+      "id": "a0000000-0000-4000-8000-000000000013",
+      "name": "AfterLead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.supabaseUrl }}/rest/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ client_id: $json.clientId, lead_id: $json.leadId, channel: 'whatsapp', direction: 'inbound', body: $json.body, status: 'received', ai_generated: false, approved_by_human: null, external_id: $json.messageSid }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "a0000000-0000-4000-8000-000000000014",
+      "name": "InsertMessage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        100
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "ryvoSupabaseCred",
+          "name": "Ryvo Supabase (service_role)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "is-dup",
+              "leftValue": "={{ $json.statusCode }}",
+              "rightValue": 409,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a0000000-0000-4000-8000-000000000015",
+      "name": "IsDuplicateDelivery",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1760,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "is-new-lead",
+              "leftValue": "={{ $('AfterLead').first().json.isNewLead }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a0000000-0000-4000-8000-000000000016",
+      "name": "IsFirstContact",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1980,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('AfterLead').first().json.supabaseUrl }}/rest/v1/events",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify((() => { const a = $('AfterLead').first().json; return { client_id: a.clientId, type: 'lead.created', severity: 'info', summary: 'New WhatsApp lead ' + a.from + (a.profileName ? ' (' + a.profileName + ')' : ''), data: { lead_id: a.leadId, source: 'whatsapp', channel: 'twilio_sandbox' } }; })()) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "a0000000-0000-4000-8000-000000000017",
+      "name": "EventLeadCreated",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        100
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "ryvoSupabaseCred",
+          "name": "Ryvo Supabase (service_role)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('AfterLead').first().json.supabaseUrl }}/rest/v1/automation_runs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.run) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "a0000000-0000-4000-8000-000000000018",
+      "name": "LogRun",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5060,
+        140
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "ryvoSupabaseCred",
+          "name": "Ryvo Supabase (service_role)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "url": "={{ $('AfterLead').first().json.supabaseUrl }}/rest/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "lead_id",
+              "value": "=eq.{{ $('AfterLead').first().json.leadId }}"
+            },
+            {
+              "name": "select",
+              "value": "direction,body,external_id,created_at"
+            },
+            {
+              "name": "order",
+              "value": "created_at.desc"
+            },
+            {
+              "name": "limit",
+              "value": "={{ $('AfterLead').first().json.config.history_limit || 20 }}"
+            }
+          ]
+        }
+      },
+      "id": "b1-LoadHistory",
+      "name": "LoadHistory",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2640,
+        100
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "ryvoSupabaseCred",
+          "name": "Ryvo Supabase (service_role)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const SYSTEM_TEMPLATE = \"You are Sofia, an assistant for Ryvo Test Client, a luxury real estate agency covering Cascais, Estoril and Lisbon.\\n\\nLANGUAGE - THIS OVERRIDES EVERYTHING BELOW\\nDetect the language of the lead's MOST RECENT message and reply in THAT language.\\nEnglish in -> English out. Portugues in -> Portugues out. Espanol in -> Espanol out.\\nIf the lead switches language mid-conversation, switch with them immediately.\\nSome examples in these instructions are written in Portuguese purely to illustrate a\\npattern; they are NOT a signal to reply in Portuguese. Never let the language of these\\ninstructions influence the language of your reply - only the lead's message decides.\\n\\nVoice: warm, professional, never pushy. This is luxury real estate, not a call centre.\\nKeep replies WhatsApp-native: 1-3 short sentences. No email formatting, no bullet lists, no headings.\\nQualify conversationally, one or two questions at a time. Never interrogate with a list.\\n\\nOver the conversation, gather: buyer or seller, budget range, timeline, preferred area, financing status.\\n\\nYOU CANNOT SEE ANY PROPERTY LISTINGS\\nYou have no access to listings, prices, availability, photos or stock of any kind.\\nYou therefore must NEVER state or imply that a property exists, is available, or matches\\nwhat the lead asked for. This includes soft implications. All of these are FORBIDDEN\\n(shown in English and Portuguese only as examples - the rule applies in every language):\\n  \\\"we have some options in that range\\\"    \\\"temos algumas opcoes\\\"\\n  \\\"yes, we have sea-view apartments\\\"      \\\"sim, temos varios imoveis assim\\\"\\n  \\\"there are a few that would suit you\\\"   \\\"encontramos facilmente algo assim\\\"\\nEven a vague \\\"we do have options\\\" is forbidden, because you cannot know it.\\n\\nInstead, when asked what is available or whether something exists, do BOTH of these:\\n  1. Say plainly that a colleague will confirm what is currently available.\\n  2. Move the conversation forward with ONE qualifying question (area, budget, timeline,\\n     bedrooms, or buy-to-live vs investment).\\nDescribing which AREAS the agency covers is fine - that is not a stock claim.\\n\\nNOT KNOWING SOMETHING IS NORMAL - IT IS NOT AN ESCALATION\\nSet needs_human FALSE when you simply lack a property detail. That is your most common\\nsituation and you handle it yourself.\\n\\nWHAT YOU MUST NOT DO\\n- Never invent property details, prices, availability, or legal/tax advice.\\n- Never negotiate price or terms.\\n- If asked directly whether you are an AI or a bot, say honestly that you are an assistant. Never claim to be human.\\n- If the lead asks to book a viewing, acknowledge warmly and say a colleague will confirm a time. Do NOT propose specific times.\\n\\nSET needs_human TRUE ONLY FOR THESE\\n- The lead explicitly asks to speak to a person.\\n- Price negotiation, offers, or contractual/legal/tax questions.\\n- The lead is upset, complaining, or hostile.\\n- The lead asks to book or schedule a viewing.\\n- Anything you genuinely cannot handle without inventing facts BEYOND ordinary \\\"I don't have that detail\\\".\\n\\nIf needs_human is true, your reply must still be warm and must not promise a specific time or outcome.\\n\";\nconst REPLY_SCHEMA = {\"type\": \"object\", \"properties\": {\"reply\": {\"type\": \"string\"}, \"lead_type\": {\"type\": \"string\", \"enum\": [\"buyer\", \"seller\", \"renter\", \"unknown\"]}, \"full_name\": {\"type\": [\"string\", \"null\"]}, \"budget_min\": {\"type\": [\"number\", \"null\"]}, \"budget_max\": {\"type\": [\"number\", \"null\"]}, \"timeline\": {\"type\": [\"string\", \"null\"]}, \"area\": {\"type\": [\"string\", \"null\"]}, \"qualification_notes\": {\"type\": \"object\", \"properties\": {\"financing\": {\"type\": [\"string\", \"null\"]}, \"bedrooms\": {\"type\": [\"number\", \"null\"]}, \"purpose\": {\"type\": [\"string\", \"null\"]}}, \"required\": [\"financing\", \"bedrooms\", \"purpose\"], \"additionalProperties\": false}, \"stage\": {\"type\": \"string\", \"enum\": [\"contacted\", \"qualified\", \"nurturing\"]}, \"intent\": {\"type\": \"string\", \"enum\": [\"question\", \"booking\", \"not_interested\", \"other\"]}, \"wants_booking\": {\"type\": \"boolean\"}, \"proposed_times\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}, \"needs_human\": {\"type\": \"boolean\"}, \"escalation_reason\": {\"type\": [\"string\", \"null\"]}}, \"required\": [\"reply\", \"lead_type\", \"full_name\", \"budget_min\", \"budget_max\", \"timeline\", \"area\", \"qualification_notes\", \"stage\", \"intent\", \"wants_booking\", \"proposed_times\", \"needs_human\", \"escalation_reason\"], \"additionalProperties\": false};\n\n// Build the Anthropic request. Everything tunable comes from\n// client_automations.config so model/effort are a config change, not a node edit.\nconst a   = $('AfterLead').first().json;\nconst cfg = a.config || {};\nconst res = $input.first().json;\n\n// A failed history query and a genuinely-first message are different situations.\n// Only one of them is normal. Distinguish them rather than proceeding blind.\nconst httpOk = res.statusCode >= 200 && res.statusCode < 300;\nif (!httpOk) {\n  return [{ json: { ...a, fatal: true, errorType: 'history_load_failed',\n                    errorMessage: 'messages query returned ' + res.statusCode } }];\n}\n\nconst rows = Array.isArray(res.body) ? res.body : [];\n// Query is newest-first so the LIMIT takes the LAST N. Reverse for oldest-first.\nconst ordered = rows.slice().reverse();\n\n// Checkpoint A already stored this inbound message, so it IS the final user turn.\n// Verify that empirically instead of reasoning about it.\nconst last = ordered[ordered.length - 1];\nconst currentTurnAlreadyPresent = !!last && last.external_id === a.messageSid;\n\nconst messages = ordered\n  .filter(r => (r.body || '').trim().length > 0)\n  .map(r => ({ role: r.direction === 'outbound' ? 'assistant' : 'user',\n               content: r.body }));\n\n// Anthropic requires the conversation to start with a user turn.\nwhile (messages.length && messages[0].role !== 'user') messages.shift();\n\nif (!currentTurnAlreadyPresent) {\n  // Defensive: if A's row is somehow missing, append the live text rather than\n  // calling with no current turn at all.\n  messages.push({ role: 'user', content: a.body });\n}\nif (!messages.length) {\n  return [{ json: { ...a, fatal: true, errorType: 'empty_history',\n                    errorMessage: 'no usable messages to send' } }];\n}\n\nconst areas = (cfg.areas || []).join(', ');\nconst system = SYSTEM_TEMPLATE\n  .replace(/__AGENT__/g, cfg.agent_name || 'Sofia')\n  .replace(/__AGENCY__/g, cfg.agency_name || a.clientName || 'the agency')\n  .replace(/__AREAS__/g, areas || 'the areas we cover');\n\nreturn [{ json: {\n  ...a,\n  fatal: false,\n  currentTurnAlreadyPresent,\n  historyCount: messages.length,\n  claudeBody: {\n    model: cfg.model || 'claude-sonnet-5',\n    max_tokens: cfg.max_tokens || 1024,\n    system,\n    messages,\n    thinking: { type: cfg.thinking || 'adaptive' },\n    output_config: { effort: cfg.effort || 'low',\n                     format: { type: 'json_schema', schema: REPLY_SCHEMA } },\n  },\n  claudeStartedAt: new Date().toISOString(),\n} }];\n"
+      },
+      "id": "b1-BuildClaudeRequest",
+      "name": "BuildClaudeRequest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2860,
+        100
+      ],
+      "notes": "Model/effort/thinking/max_tokens/history_limit all read from client_automations.config."
+    },
+    {
+      "parameters": {
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.claudeBody) }}"
+      },
+      "id": "b1-CallClaude",
+      "name": "CallClaude",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3080,
+        100
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ryvoAnthropicCrd",
+          "name": "Ryvo Anthropic (x-api-key)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "retryable",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.statusCode === 0 || $json.statusCode >= 500 }}",
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b1-IsClaudeRetryable",
+      "name": "IsClaudeRetryable",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3300,
+        100
+      ],
+      "notes": "Retry once on timeout/5xx only. A 4xx is a config fault - retrying wastes money and time (spec 4.2)."
+    },
+    {
+      "parameters": {
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('BuildClaudeRequest').first().json.claudeBody) }}"
+      },
+      "id": "b1-CallClaudeRetry",
+      "name": "CallClaudeRetry",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3520,
+        20
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ryvoAnthropicCrd",
+          "name": "Ryvo Anthropic (x-api-key)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Defensive parse. Structured outputs (output_config.format) already constrain the\n// response to the schema at the API level, so this is a BACKSTOP, not the primary\n// mechanism - but it is not dead code: structured outputs do NOT hold when\n// stop_reason is 'refusal' or 'max_tokens'.\nconst b   = $('BuildClaudeRequest').first().json;\nconst res = $input.first().json;\nconst started = b.claudeStartedAt;\nconst finished = new Date().toISOString();\nconst durationMs = Math.max(0, new Date(finished) - new Date(started));\n\nfunction fail(errorType, errorMessage) {\n  return [{ json: { ...b, ok: false, errorType, errorMessage, durationMs,\n                    usage: null, parsed: null } }];\n}\n\nconst code = res.statusCode;\nif (code === 401 || code === 403) return fail('claude_auth', 'HTTP ' + code);\nif (code >= 400 && code < 500)    return fail('claude_bad_request', 'HTTP ' + code);\nif (!(code >= 200 && code < 300)) return fail('claude_unavailable', 'HTTP ' + code);\n\nconst body = res.body || {};\nif (body.stop_reason === 'refusal')    return fail('claude_refusal', 'model declined');\nif (body.stop_reason === 'max_tokens') return fail('claude_truncated', 'hit max_tokens');\n\nlet text = '';\nfor (const blk of (body.content || [])) if (blk.type === 'text') text += blk.text;\n// Strip fences / stray prose even though structured outputs should prevent them.\ntext = text.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();\nconst s = text.indexOf('{'), e = text.lastIndexOf('}');\nif (s !== -1 && e > s) text = text.slice(s, e + 1);\n\nlet p;\ntry { p = JSON.parse(text); } catch (err) { return fail('bad_json', String(err.message)); }\n\nconst REQUIRED = ['reply','lead_type','stage','intent','wants_booking','needs_human'];\nfor (const k of REQUIRED) if (!(k in p)) return fail('bad_json', 'missing key: ' + k);\nif (typeof p.reply !== 'string' || !p.reply.trim()) return fail('bad_json', 'empty reply');\nif (typeof p.needs_human !== 'boolean') return fail('bad_json', 'needs_human not boolean');\n\n// Sanity-check extracted money before it is ever trusted downstream (spec 4.3).\n// Bad structured data is worse than absent structured data.\nconst rejected = [];\nconst sane = (v) => {\n  if (v === null || v === undefined) return null;\n  const n = Number(v);\n  if (!Number.isFinite(n)) return null;\n  if (n < 1000 || n > 50000000) { rejected.push(n); return null; }\n  return n;\n};\np.budget_min = sane(p.budget_min);\np.budget_max = sane(p.budget_max);\nif (p.budget_min !== null && p.budget_max !== null && p.budget_min > p.budget_max) {\n  rejected.push(p.budget_min, p.budget_max);\n  p.budget_min = null; p.budget_max = null;\n}\n\nreturn [{ json: { ...b, ok: true, errorType: null, errorMessage: null, durationMs,\n                  usage: body.usage || null, modelUsed: body.model || null,\n                  rejectedBudgets: rejected, parsed: p } }];\n"
+      },
+      "id": "b1-ParseClaude",
+      "name": "ParseClaude",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3740,
+        100
+      ],
+      "notes": "Backstop only - the API already enforces the schema. Still required for refusal / max_tokens."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ok",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b1-IsReplyUsable",
+      "name": "IsReplyUsable",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3960,
+        100
+      ],
+      "notes": "A malformed or refused response must never reach the lead. Silence plus a logged error is recoverable; a broken reply is not."
+    },
+    {
+      "parameters": {
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{ $env.TWILIO_ACCOUNT_SID }}/Messages.json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "twilioApi",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "From",
+              "value": "={{ $env.TWILIO_WHATSAPP_FROM }}"
+            },
+            {
+              "name": "To",
+              "value": "=whatsapp:{{ $json.from }}"
+            },
+            {
+              "name": "Body",
+              "value": "={{ $json.parsed.reply }}"
+            }
+          ]
+        }
+      },
+      "id": "b1-SendWhatsApp",
+      "name": "SendWhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4180,
+        20
+      ],
+      "credentials": {
+        "twilioApi": {
+          "id": "ryvoTwilioCred",
+          "name": "Ryvo Twilio (sandbox)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst p   = $('ParseClaude').first().json;\nconst res = $input.first().json;\nconst ok  = res.statusCode >= 200 && res.statusCode < 300;\nconst b   = res.body || {};\nreturn [{ json: { ...p,\n  sendOk: ok,\n  twilioSid: ok ? (b.sid || null) : null,\n  twilioErrorCode: ok ? null : (b.code || res.statusCode),\n  twilioErrorMessage: ok ? null : String(b.message || '').slice(0, 300),\n} }];\n"
+      },
+      "id": "b1-AfterSend",
+      "name": "AfterSend",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4400,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "method": "POST",
+        "url": "={{ $('AfterLead').first().json.supabaseUrl }}/rest/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ client_id: $json.clientId, lead_id: $json.leadId, channel: 'whatsapp', direction: 'outbound', body: $json.parsed.reply, status: $json.sendOk ? 'sent' : 'failed', ai_generated: true, approved_by_human: null, external_id: $json.twilioSid }) }}"
+      },
+      "id": "b1-StoreOutbound",
+      "name": "StoreOutbound",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4620,
+        20
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "ryvoSupabaseCred",
+          "name": "Ryvo Supabase (service_role)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Read AfterSend explicitly. This node sits after StoreOutbound, whose output is\n// an HTTP response ({statusCode, body}) - NOT the accumulated item. Using\n// $input here silently produced client_automation_id: undefined, and the run\n// insert failed a NOT NULL constraint invisibly because neverError swallows 4xx.\nconst j = $('AfterSend').first().json;\nconst store = $input.first().json;\nconst u = j.usage || {};\nreturn [{ json: { run: {\n  client_automation_id: j.clientAutomationId,\n  status: j.sendOk ? 'success' : 'error',\n  started_at: j.startedAt,\n  finished_at: new Date().toISOString(),\n  duration_ms: Math.max(0, new Date() - new Date(j.startedAt)),\n  error_type: j.sendOk ? null : 'whatsapp_send_failed',\n  error_message: j.sendOk ? null : ('twilio ' + j.twilioErrorCode + ': ' + j.twilioErrorMessage),\n  payload: { checkpoint: 'B1', model: j.modelUsed, claude_ms: j.durationMs,\n             input_tokens: u.input_tokens ?? null, output_tokens: u.output_tokens ?? null,\n             history_messages: j.historyCount, current_turn_from_history: j.currentTurnAlreadyPresent,\n             needs_human: j.parsed ? j.parsed.needs_human : null,\n             intent: j.parsed ? j.parsed.intent : null,\n             rejected_budgets: (j.rejectedBudgets || []).length,\n             twilio_sid: j.twilioSid, first_contact: j.isNewLead,\n             outbound_row_status: store.statusCode },\n} } }];\n"
+      },
+      "id": "b1-PrepRunAI",
+      "name": "PrepRunAI",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4840,
+        20
+      ],
+      "notes": "No message bodies or PII in payload (spec 4.2)."
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst j = $input.first().json;\nreturn [{ json: { run: {\n  client_automation_id: j.clientAutomationId,\n  status: 'error',\n  started_at: j.startedAt,\n  finished_at: new Date().toISOString(),\n  duration_ms: Math.max(0, new Date() - new Date(j.startedAt)),\n  error_type: j.errorType || 'claude_failed',\n  error_message: (j.errorMessage || '').slice(0, 500),\n  payload: { checkpoint: 'B1', claude_ms: j.durationMs || null, sent_to_lead: false,\n             history_messages: j.historyCount ?? null },\n} } }];\n"
+      },
+      "id": "b1-PrepRunFailed",
+      "name": "PrepRunFailed",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4180,
+        240
+      ],
+      "notes": "Nothing was sent to the lead. Escalation is Checkpoint B3."
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst a = $('AfterLead').first().json;\nreturn [{ json: { run: {\n  client_automation_id: a.clientAutomationId,\n  status: 'success',\n  started_at: a.startedAt,\n  finished_at: new Date().toISOString(),\n  duration_ms: Math.max(0, new Date() - new Date(a.startedAt)),\n  error_type: null, error_message: null,\n  payload: { checkpoint: 'B1', duplicate_delivery: true, sent_to_lead: false },\n} } }];\n"
+      },
+      "id": "b1-PrepRunDuplicate",
+      "name": "PrepRunDuplicate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        360
+      ],
+      "notes": "Twilio retry - already answered. Must not reply twice."
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "VerifySignature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VerifySignature": {
+      "main": [
+        [
+          {
+            "node": "IsSignatureValid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IsSignatureValid": {
+      "main": [
+        [
+          {
+            "node": "Respond200TwiML",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond403",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond200TwiML": {
+      "main": [
+        [
+          {
+            "node": "Normalise",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalise": {
+      "main": [
+        [
+          {
+            "node": "ResolveClient",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ResolveClient": {
+      "main": [
+        [
+          {
+            "node": "FlattenClient",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FlattenClient": {
+      "main": [
+        [
+          {
+            "node": "IsClientKnown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IsClientKnown": {
+      "main": [
+        [
+          {
+            "node": "FindExistingLead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "LogUnknownClientEvent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FindExistingLead": {
+      "main": [
+        [
+          {
+            "node": "UpsertLead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UpsertLead": {
+      "main": [
+        [
+          {
+            "node": "AfterLead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AfterLead": {
+      "main": [
+        [
+          {
+            "node": "InsertMessage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "InsertMessage": {
+      "main": [
+        [
+          {
+            "node": "IsDuplicateDelivery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IsDuplicateDelivery": {
+      "main": [
+        [
+          {
+            "node": "PrepRunDuplicate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IsFirstContact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IsFirstContact": {
+      "main": [
+        [
+          {
+            "node": "EventLeadCreated",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "LoadHistory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EventLeadCreated": {
+      "main": [
+        [
+          {
+            "node": "LoadHistory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PrepRunDuplicate": {
+      "main": [
+        [
+          {
+            "node": "LogRun",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LoadHistory": {
+      "main": [
+        [
+          {
+            "node": "BuildClaudeRequest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BuildClaudeRequest": {
+      "main": [
+        [
+          {
+            "node": "CallClaude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CallClaude": {
+      "main": [
+        [
+          {
+            "node": "IsClaudeRetryable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IsClaudeRetryable": {
+      "main": [
+        [
+          {
+            "node": "CallClaudeRetry",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ParseClaude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CallClaudeRetry": {
+      "main": [
+        [
+          {
+            "node": "ParseClaude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ParseClaude": {
+      "main": [
+        [
+          {
+            "node": "IsReplyUsable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IsReplyUsable": {
+      "main": [
+        [
+          {
+            "node": "SendWhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PrepRunFailed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SendWhatsApp": {
+      "main": [
+        [
+          {
+            "node": "AfterSend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AfterSend": {
+      "main": [
+        [
+          {
+            "node": "StoreOutbound",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "StoreOutbound": {
+      "main": [
+        [
+          {
+            "node": "PrepRunAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PrepRunAI": {
+      "main": [
+        [
+          {
+            "node": "LogRun",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PrepRunFailed": {
+      "main": [
+        [
+          {
+            "node": "LogRun",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "staticData": null,
+  "meta": null,
+  "nodeGroups": [],
+  "pinData": null,
+  "versionId": "8760d9a8-8790-47ea-bd8e-18e416bd44ba",
+  "activeVersionId": "8760d9a8-8790-47ea-bd8e-18e416bd44ba",
+  "versionCounter": 1,
+  "triggerCount": 1,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-09-01T15:03:15.228Z",
+      "createdAt": "2026-09-01T15:03:15.228Z",
+      "role": "workflow:owner",
+      "workflowId": "ryvoInboundConc01",
+      "projectId": "uJAXibMof3BDHwvP",
+      "project": {
+        "updatedAt": "2026-07-04T23:01:35.388Z",
+        "createdAt": "2026-07-04T22:58:34.115Z",
+        "id": "uJAXibMof3BDHwvP",
+        "name": "Manuel Vale <hello@ryvodigital.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "customTelemetryTags": [],
+        "creatorId": "e3386b92-bb92-47d2-89c0-7fc4fb66650c"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

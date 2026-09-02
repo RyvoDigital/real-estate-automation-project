@@ -356,6 +356,31 @@ needs revisiting — it was only ever justified with them in place:
 
 Changing any of this requires `docker compose --env-file ../.env up -d n8n`.
 
+### Deploying a workflow from the CLI: import, **publish**, restart
+
+**`import:workflow` + `active=true` is not enough on n8n 2.28.** A workflow must
+also be **published**:
+
+```bash
+n8n import:workflow --input=/tmp/wf.json
+n8n publish:workflow --id=<workflow-id>     # <-- skipping this is silent
+# then restart n8n
+```
+
+Skip the publish and the failure is invisible and misleading: the workflow shows
+`active=true`, the boot log says **`Activated workflow "..."`**, and yet
+`webhook_entity` is empty and every request 404s. Worse, it **aborts activation
+for every other workflow too** — a single unpublished workflow took the Supabase
+keepalive down with it.
+
+The one honest signal is the boot line
+`Finished building workflow dependency index. Processed N draft workflows, M published workflows.`
+**If `M` is 0, nothing is live**, whatever `active` says. Check that line, not
+the `Activated workflow` line, which lies.
+
+Cost us ~40 minutes on 2026-09-02, including restoring a known-good workflow to
+prove the new one wasn't at fault — it wasn't; nothing was published.
+
 ### Activating a workflow: use the UI, not the CLI
 
 **Toggling a workflow active in the n8n UI takes effect immediately — no
