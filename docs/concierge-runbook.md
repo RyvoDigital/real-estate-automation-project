@@ -446,6 +446,35 @@ record were from a forced test. Confirmed genuinely live 2026-09-02 16:48:49.
 Cost us ~40 minutes on 2026-09-02, including restoring a known-good workflow to
 prove the new one wasn't at fault — it wasn't; nothing was published.
 
+### After patching a workflow, re-export from n8n and commit THAT
+
+The file in `workflows/` must be **byte-identical to what
+`n8n export:workflow` emits**, because `backup.sh` re-exports and commits it
+every night at 03:00. If the committed file differs in formatting, the nightly
+run rewrites it, commits, and races anything pushed from the laptop.
+
+That is exactly what happened on 2026-09-03: the B1/B2 patch scripts wrote the
+file with `json.dump(indent=2)`, the nightly export rewrote it in n8n's
+single-line format, and **the backup push was rejected — so that night's run
+exited non-zero and the workflow export never reached GitHub.** The dump and
+prune had already run, so nothing was lost, but the offsite copy was missed.
+
+The order that works:
+
+```bash
+# 1. patch the file locally, 2. import + publish + restart, then:
+docker exec -i "$CID" n8n export:workflow --all --separate --output=/tmp/wfx
+docker cp "$CID":/tmp/wfx/. /opt/ryvo-automation-platform/workflows/
+# 3. commit THAT, not the patched file
+```
+
+**The patch script's output is an input to n8n, not the artefact of record.**
+Verify by taking a second export and diffing it against the committed file — it
+must be identical.
+
+Note this also means a failed nightly push is currently only visible in
+`/var/log/ryvo-backup.log`. It is the same pull-only gap as the keepalive alarm.
+
 ### Activating a workflow: use the UI, not the CLI
 
 **Toggling a workflow active in the n8n UI takes effect immediately — no
