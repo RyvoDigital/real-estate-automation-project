@@ -25,6 +25,23 @@ is the single most useful thing in this file.
 | 8 | Keepalive push alert, first verification (3 Sep 2026) | Twin execution `error`, and the only node that throws sits *downstream* of the notify — so the notify "must" have run | **The notify never ran.** An upstream node threw: `neverError` covers non-2xx *responses*, not transport errors, and the twin's host did not resolve. The alert was blind to precisely the failure it exists to catch — a Supabase auto-pause removes the DNS record |
 | 7 | Gate B2's headline proof — four-message conversation, budget and timeline survived an unrelated message (3 Sep 2026) | Green: fields present, `changed=0`, gate passes | **The rule under test was never exercised.** Claude re-states budget/timeline/area from history every turn (0/6 runs returned null), so the fields survived because the *model* re-supplied them, not because the no-backwards rule protected them |
 
+### One caught before it shipped
+
+Google's free/busy endpoint returns **HTTP 200 with an empty `busy` list** for a
+calendar it cannot read — the error sits in a `calendars[id].errors` array that
+a naive reader never looks at. A wrong calendar id is therefore byte-identical
+to a completely free calendar, and would have made the Concierge offer every
+slot in the window as available.
+
+Nothing broke: it was found on 2026-09-03 by deliberately probing the endpoint
+with a bad id *before* writing the consumer, precisely because this table
+predicts that an empty result and a failed result look alike. `readFreeBusy()`
+now requires a 2xx, the calendar key present, and no `errors` array before it
+will treat an empty `busy` as "free".
+
+The pattern is becoming predictive rather than only retrospective, which is the
+point of keeping the table.
+
 ### #7 is the subtlest, because the feature worked
 
 The no-backwards rule was correct, shipped, and did nothing during its own
@@ -185,7 +202,48 @@ Two things follow:
 
 ---
 
-## 4. The failure you can see is rarely the failure that matters
+## 4. Two green suites can share a blind spot
+
+§1 is a test exercising the wrong path. §3 is a test finding a defect it wasn't
+looking for. This is a third thing: **two correct suites, both passing, with a
+gap between them that neither owned.**
+
+**2026-09-03.** After the Checkpoint C prompt change, three suites ran green:
+inventory 15/15, language 18/18, never-invent-a-time 18/18. An English booking
+request was nonetheless answering in Portuguese, about 1 time in 12.
+
+Neither suite was wrong:
+
+- The **never-invent** suite graded *times*. The times were correct, so it
+  passed — it had no opinion about language.
+- The **language** suite graded *language*. It had no case carrying a slot list,
+  because slot lists did not exist when it was written.
+
+The defect lived in the combination: a reply that is both a booking offer and in
+a particular language. Each suite owned one dimension. Nothing owned the pair.
+
+> **A passing suite tells you about the dimension it tests, not about that
+> dimension's combinations with others.**
+
+What follows:
+
+1. **When a prompt changes, the risk is in every feature that shares the
+   output** — not just the section edited. The system prompt is one artefact
+   feeding one reply; language, inventory discipline, escalation and booking all
+   ride the same generated string. Editing any part can move any other.
+2. **New capability means new combinations.** Adding slot lists created a
+   `booking × language` cell that had never existed. Ask what pairs the change
+   creates, then decide which the suites should own.
+3. **Make the combination a permanent case, not a one-off check.** It was caught
+   by reading output rather than by an assertion, which is luck. It is now a
+   standing case in `tests/prompt_suites.py`.
+
+It was found the same way as §3 — by looking at what the check printed rather
+than at its verdict. That is now twice. Verbose probe output has earned its cost.
+
+---
+
+## 5. The failure you can see is rarely the failure that matters
 
 Related to §1 but distinct, and worth stating separately.
 
@@ -199,7 +257,7 @@ gap is usually obvious.
 
 ---
 
-## 5. Prefer the boring mechanism the platform already arbitrates
+## 6. Prefer the boring mechanism the platform already arbitrates
 
 Dedupe was originally specified as workflow logic: look up the message id, and
 insert if absent. That is correct in the single-threaded story and wrong under
