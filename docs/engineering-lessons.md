@@ -11,7 +11,7 @@ Append to it. An entry earns its place by having cost real time at least once.
 
 ## 1. Tests that pass while testing the wrong thing
 
-**This has now bitten the project seven times in seven different disguises.** It
+**This has now bitten the project eight times in eight different disguises.** It
 is the single most useful thing in this file.
 
 | # | Incident | What reported success | What was actually true |
@@ -22,6 +22,7 @@ is the single most useful thing in this file.
 | 4 | Schema comparison during the restore drill | `columns: IDENTICAL`, `indexes: IDENTICAL` | **Both sides had errored to empty.** Shell quoting had mangled the SQL, and comparing two empty result sets reports a perfect match |
 | 5 | n8n workflow deployed via CLI (2 Sep 2026) | `active=true` in the database, and the boot log said `Activated workflow "inbound_concierge_whatsapp"` | **No webhook was registered and every request 404'd.** n8n 2.28 also requires `publish:workflow`; without it activation aborts for *every* workflow, silently taking the Supabase keepalive down too |
 | 6 | Run logging after the Twilio send (2 Sep 2026) | Execution status `success`, reply delivered to the lead | **No `automation_runs` row was ever written.** A node read `$input` while sitting after an HTTP node, so `client_automation_id` was `undefined`, the insert failed a NOT NULL constraint, and `neverError` swallowed the 4xx |
+| 8 | Keepalive push alert, first verification (3 Sep 2026) | Twin execution `error`, and the only node that throws sits *downstream* of the notify — so the notify "must" have run | **The notify never ran.** An upstream node threw: `neverError` covers non-2xx *responses*, not transport errors, and the twin's host did not resolve. The alert was blind to precisely the failure it exists to catch — a Supabase auto-pause removes the DNS record |
 | 7 | Gate B2's headline proof — four-message conversation, budget and timeline survived an unrelated message (3 Sep 2026) | Green: fields present, `changed=0`, gate passes | **The rule under test was never exercised.** Claude re-states budget/timeline/area from history every turn (0/6 runs returned null), so the fields survived because the *model* re-supplied them, not because the no-backwards rule protected them |
 
 ### #7 is the subtlest, because the feature worked
@@ -103,7 +104,22 @@ that the clever version was never buying anything.
    nothing had failed yet. Warnings are only legible in hindsight — so when a
    tool volunteers an instruction you did not ask for, treat it as a finding
    and act on it or write down why not.
-9. **After an HTTP node, `$input` is a response envelope, not your data.** #6's
+9. **"Handles errors" usually means *some* errors.** n8n's `neverError`
+   suppresses non-2xx responses and nothing else; DNS failures, refused
+   connections and timeouts still throw. Whenever a setting claims to absorb
+   failure, ask *which* failures — then check the one your system actually
+   suffers. Ours was DNS, because an auto-paused Supabase project loses its
+   DNS record, so the guard covered every case except the real one.
+10. **"Only X throws, so X ran" is not evidence.** #8 was diagnosed by that
+   inference and it was wrong — an upstream node threw. An execution's failure
+   tells you it failed, not *where*. Check which node failed before reasoning
+   from it; the answer is in the execution data.
+11. **Read the evidence before cleaning up.** #8 took two attempts because the
+   first run's execution rows were deleted during teardown before anyone had
+   looked at them. Teardown is the last step, not a step that runs alongside
+   inspection — and a throwaway artefact is worth nothing compared to the one
+   diagnostic it carries.
+12. **After an HTTP node, `$input` is a response envelope, not your data.** #6's
    node read `$input.first().json` expecting the accumulated item and got
    `{statusCode, headers, body}`. Every field it wanted was `undefined`. When a
    node follows an HTTP call, reference the upstream node explicitly

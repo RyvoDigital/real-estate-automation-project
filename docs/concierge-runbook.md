@@ -179,12 +179,27 @@ the alert was `SENT` or `ALSO FAILED`.
 it cannot reach. **An alert target stored inside the monitored system is
 unreachable exactly when it is needed.**
 
+> ⚠️ **`neverError` does not cover transport errors, and this alert was blind
+> to its own trigger condition.** `neverError` suppresses non-2xx *responses*.
+> A DNS failure, refused connection, or timeout is a **transport** error and the
+> node throws regardless — killing the execution and skipping every in-flow
+> error branch.
+>
+> A Supabase auto-pause removes the project's DNS record (observed 2026-08-07:
+> the host stopped resolving). So `PingSupabase` threw, `NotifyKeepaliveFailure`
+> never ran, and **the alert would never have fired for the one failure it
+> exists to catch.** Fixed by setting `onError: continueRegularOutput` on every
+> HTTP node that already sets `neverError` — 21 on the Concierge, 2 here. The
+> `PingSupabase` node carries a note saying so; do not remove it.
+>
+> Verified 2026-09-03 (second attempt, after the first was misread): the twin's
+> thrown message reported `Operator WhatsApp alert SENT`, Twilio returned 2xx,
+> and the operator confirmed receipt on the handset.
+>
 > **Stated limitation, not solved.** This alert rides the same Twilio sandbox
 > whose session expires every 3 days (§2.1). It is strictly better than
 > pull-only and strictly worse than a real alerting path. Email or a second
-> channel belongs in Checkpoint D. Verified 2026-09-03 with a throwaway twin
-> pointed at a dead host: the execution errored, which means the notify node
-> upstream of the throw did run.
+> channel belongs in Checkpoint D.
 
 ### Checkpoint B2 re-baseline — latency and tokens with real history
 
