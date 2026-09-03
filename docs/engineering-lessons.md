@@ -11,7 +11,7 @@ Append to it. An entry earns its place by having cost real time at least once.
 
 ## 1. Tests that pass while testing the wrong thing
 
-**This has now bitten the project six times in six different disguises.** It
+**This has now bitten the project seven times in seven different disguises.** It
 is the single most useful thing in this file.
 
 | # | Incident | What reported success | What was actually true |
@@ -22,6 +22,30 @@ is the single most useful thing in this file.
 | 4 | Schema comparison during the restore drill | `columns: IDENTICAL`, `indexes: IDENTICAL` | **Both sides had errored to empty.** Shell quoting had mangled the SQL, and comparing two empty result sets reports a perfect match |
 | 5 | n8n workflow deployed via CLI (2 Sep 2026) | `active=true` in the database, and the boot log said `Activated workflow "inbound_concierge_whatsapp"` | **No webhook was registered and every request 404'd.** n8n 2.28 also requires `publish:workflow`; without it activation aborts for *every* workflow, silently taking the Supabase keepalive down too |
 | 6 | Run logging after the Twilio send (2 Sep 2026) | Execution status `success`, reply delivered to the lead | **No `automation_runs` row was ever written.** A node read `$input` while sitting after an HTTP node, so `client_automation_id` was `undefined`, the insert failed a NOT NULL constraint, and `neverError` swallowed the 4xx |
+| 7 | Gate B2's headline proof — four-message conversation, budget and timeline survived an unrelated message (3 Sep 2026) | Green: fields present, `changed=0`, gate passes | **The rule under test was never exercised.** Claude re-states budget/timeline/area from history every turn (0/6 runs returned null), so the fields survived because the *model* re-supplied them, not because the no-backwards rule protected them |
+
+### #7 is the subtlest, because the feature worked
+
+The no-backwards rule was correct, shipped, and did nothing during its own
+acceptance test. Its input never contained the null it exists to reject. A test
+can exercise the right *interface*, produce the right *outcome*, and still not
+touch the mechanism it claims to prove.
+
+Two things separated a real proof from a green one:
+
+- **Ask what the input to the mechanism actually was**, not just what came out.
+  Probing the model directly showed 0/6 nulls — the rule's trigger condition
+  never occurred.
+- **Force the condition.** The rule was then tested by running the shipping
+  source with the null case injected: 10/10, including the case where six
+  populated fields and a stage regression were all correctly refused.
+
+It also revealed *when* the rule is actually load-bearing, which the natural
+test could never show: not when the model forgets mid-window, but when the
+conversation outgrows the 20-message history limit and the turn that carried the
+budget falls out of the window entirely. At that point the model *cannot*
+re-state it, and the rule is the only thing standing between a known budget and
+a silent null.
 
 ### The clearest statement of it is #3
 

@@ -91,6 +91,48 @@ failure mode to a genuine edge case — it is not dead code.
 longer works, because the API will not emit it. That test injects a malformed
 payload at the parse node instead.
 
+> ⚠️ **Schema validity is not semantic validity — and this bit us.** On
+> 2026-09-03 a schema-valid response carried
+> `reply: ": corrigir - vou responder corretamente.}"` and it was **delivered to
+> a real lead**. It passed every structural check: a non-empty string in a
+> string field. Only the *content* was broken.
+>
+> Not reproducible in 8 further runs — rare, not systematic, which is precisely
+> why it needs a deterministic check rather than a better prompt. `ParseClaude`
+> now runs `replyLooksBroken()`: rejects a reply under 15 characters, starting
+> with punctuation, containing a brace, under 3 words, or containing no letters.
+> Structural markers only — nothing language-specific, since replies are
+> pt-PT / en / es. Verified 8/8 rejects and 6/6 accepts with no false positives.
+> A rejected reply routes to `PrepRunFailed`: **nothing is sent to the lead.**
+>
+> An earlier revision of this section implied structured outputs removed the
+> broken-reply risk. They remove *parse* failures, not *garbage content*.
+
+### Checkpoint B2 re-baseline — latency and tokens with real history
+
+Measured 2026-09-03 through the live workflow, one lead, history growing turn by
+turn. `claude_ms` is the model leg; `total_ms` is the whole run.
+
+| turn | history msgs | input tok | output tok | claude_ms | total_ms |
+|---|---|---|---|---|---|
+| 1 | 1 | 2,045 | 208 | 3,601 | 5,989 |
+| 2 | 3 | 2,119 | 187 | 6,301 | 8,017 |
+| 3 | 5 | 2,152 | 237 | 4,068 | 5,829 |
+| 4 | 7 | 2,224 | 235 | 4,071 | 5,607 |
+| 5 | 9 | 2,327 | 220 | 4,954 | — |
+
+Input tokens grow ~70/turn (~35 per stored message). Extrapolating to a full
+20-message window: **~2,700 input tokens**, so ~$0.0076/turn — still well inside
+the earlier estimate. Latency did **not** degrade with history over this range.
+
+> **The tail did worsen, but not here.** A direct-API probe on 2026-09-03
+> recorded **11.14 s** on one call, against the 10.06 s previously on record and
+> a ~10 s target in §11.1. It was an isolated observation in a 14-call probe and
+> did **not** appear in the workflow runs (worst `claude_ms` there was 6.3 s).
+> **Reported to the operator before any tuning; nothing was tuned.** If this
+> recurs, the lever is `effort` in config — but establish a rate first, because
+> two isolated observations are not a trend.
+
 ### Three prompt defects caught by probing, before any node was built
 
 Each was found by running the real prompt against the real API and grading the

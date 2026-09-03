@@ -528,7 +528,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        5060,
+        6380,
         140
       ],
       "credentials": {
@@ -725,7 +725,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\n// Defensive parse. Structured outputs (output_config.format) already constrain the\n// response to the schema at the API level, so this is a BACKSTOP, not the primary\n// mechanism - but it is not dead code: structured outputs do NOT hold when\n// stop_reason is 'refusal' or 'max_tokens'.\nconst b   = $('BuildClaudeRequest').first().json;\nconst res = $input.first().json;\nconst started = b.claudeStartedAt;\nconst finished = new Date().toISOString();\nconst durationMs = Math.max(0, new Date(finished) - new Date(started));\n\nfunction fail(errorType, errorMessage) {\n  return [{ json: { ...b, ok: false, errorType, errorMessage, durationMs,\n                    usage: null, parsed: null } }];\n}\n\nconst code = res.statusCode;\nif (code === 401 || code === 403) return fail('claude_auth', 'HTTP ' + code);\nif (code >= 400 && code < 500)    return fail('claude_bad_request', 'HTTP ' + code);\nif (!(code >= 200 && code < 300)) return fail('claude_unavailable', 'HTTP ' + code);\n\nconst body = res.body || {};\nif (body.stop_reason === 'refusal')    return fail('claude_refusal', 'model declined');\nif (body.stop_reason === 'max_tokens') return fail('claude_truncated', 'hit max_tokens');\n\nlet text = '';\nfor (const blk of (body.content || [])) if (blk.type === 'text') text += blk.text;\n// Strip fences / stray prose even though structured outputs should prevent them.\ntext = text.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();\nconst s = text.indexOf('{'), e = text.lastIndexOf('}');\nif (s !== -1 && e > s) text = text.slice(s, e + 1);\n\nlet p;\ntry { p = JSON.parse(text); } catch (err) { return fail('bad_json', String(err.message)); }\n\nconst REQUIRED = ['reply','lead_type','stage','intent','wants_booking','needs_human'];\nfor (const k of REQUIRED) if (!(k in p)) return fail('bad_json', 'missing key: ' + k);\nif (typeof p.reply !== 'string' || !p.reply.trim()) return fail('bad_json', 'empty reply');\nif (typeof p.needs_human !== 'boolean') return fail('bad_json', 'needs_human not boolean');\n\n// Sanity-check extracted money before it is ever trusted downstream (spec 4.3).\n// Bad structured data is worse than absent structured data.\nconst rejected = [];\nconst sane = (v) => {\n  if (v === null || v === undefined) return null;\n  const n = Number(v);\n  if (!Number.isFinite(n)) return null;\n  if (n < 1000 || n > 50000000) { rejected.push(n); return null; }\n  return n;\n};\np.budget_min = sane(p.budget_min);\np.budget_max = sane(p.budget_max);\nif (p.budget_min !== null && p.budget_max !== null && p.budget_min > p.budget_max) {\n  rejected.push(p.budget_min, p.budget_max);\n  p.budget_min = null; p.budget_max = null;\n}\n\nreturn [{ json: { ...b, ok: true, errorType: null, errorMessage: null, durationMs,\n                  usage: body.usage || null, modelUsed: body.model || null,\n                  rejectedBudgets: rejected, parsed: p } }];\n"
+        "jsCode": "\n// Defensive parse. Structured outputs (output_config.format) already constrain the\n// response to the schema at the API level, so this is a BACKSTOP, not the primary\n// mechanism - but it is not dead code: structured outputs do NOT hold when\n// stop_reason is 'refusal' or 'max_tokens'.\nconst b   = $('BuildClaudeRequest').first().json;\nconst res = $input.first().json;\nconst started = b.claudeStartedAt;\nconst finished = new Date().toISOString();\nconst durationMs = Math.max(0, new Date(finished) - new Date(started));\n\nfunction fail(errorType, errorMessage) {\n  return [{ json: { ...b, ok: false, errorType, errorMessage, durationMs,\n                    usage: null, parsed: null } }];\n}\n\nconst code = res.statusCode;\nif (code === 401 || code === 403) return fail('claude_auth', 'HTTP ' + code);\nif (code >= 400 && code < 500)    return fail('claude_bad_request', 'HTTP ' + code);\nif (!(code >= 200 && code < 300)) return fail('claude_unavailable', 'HTTP ' + code);\n\nconst body = res.body || {};\nif (body.stop_reason === 'refusal')    return fail('claude_refusal', 'model declined');\nif (body.stop_reason === 'max_tokens') return fail('claude_truncated', 'hit max_tokens');\n\nlet text = '';\nfor (const blk of (body.content || [])) if (blk.type === 'text') text += blk.text;\n// Strip fences / stray prose even though structured outputs should prevent them.\ntext = text.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();\nconst s = text.indexOf('{'), e = text.lastIndexOf('}');\nif (s !== -1 && e > s) text = text.slice(s, e + 1);\n\nlet p;\ntry { p = JSON.parse(text); } catch (err) { return fail('bad_json', String(err.message)); }\n\n// ---------------------------------------------------------------------------\n// SEMANTIC guard on the reply.\n//\n// Structured outputs guarantee the response matches the SCHEMA. They do not\n// guarantee the reply is a sensible sentence. On 2026-09-03 a schema-valid\n// response carried reply = \": corrigir - vou responder corretamente.}\" and it\n// was DELIVERED to a real lead. It parsed cleanly: a non-empty string in a\n// string field. Only the content was broken.\n//\n// Not reproducible in 8 further runs, so this is rare rather than systematic --\n// which is exactly why it needs a deterministic check rather than a better\n// prompt. Structural markers only; nothing language-specific, since replies are\n// pt-PT / en / es.\nfunction replyLooksBroken(s) {\n  const t = (s || '').trim();\n  if (t.length < 15) return 'too short (' + t.length + ' chars)';\n  if (':;,.})]>'.includes(t[0])) return 'starts with punctuation: ' + JSON.stringify(t[0]);\n  if (t.includes('{') || t.includes('}')) return 'contains a brace - JSON leaked into the reply';\n  if (t.split(/\\s+/).filter(Boolean).length < 3) return 'fewer than 3 words';\n  if (!/[a-zA-Z\u00c0-\u00ff]/.test(t)) return 'contains no letters';\n  return null;\n}\n\nconst REQUIRED = ['reply','lead_type','stage','intent','wants_booking','needs_human'];\nfor (const k of REQUIRED) if (!(k in p)) return fail('bad_json', 'missing key: ' + k);\nif (typeof p.reply !== 'string' || !p.reply.trim()) return fail('bad_json', 'empty reply');\nif (typeof p.needs_human !== 'boolean') return fail('bad_json', 'needs_human not boolean');\n\nconst broken = replyLooksBroken(p.reply);\nif (broken) return fail('bad_reply', 'reply rejected: ' + broken);\n\n// Sanity-check extracted money before it is ever trusted downstream (spec 4.3).\n// Bad structured data is worse than absent structured data.\nconst rejected = [];\nconst sane = (v) => {\n  if (v === null || v === undefined) return null;\n  const n = Number(v);\n  if (!Number.isFinite(n)) return null;\n  if (n < 1000 || n > 50000000) { rejected.push(n); return null; }\n  return n;\n};\np.budget_min = sane(p.budget_min);\np.budget_max = sane(p.budget_max);\nif (p.budget_min !== null && p.budget_max !== null && p.budget_min > p.budget_max) {\n  rejected.push(p.budget_min, p.budget_max);\n  p.budget_min = null; p.budget_max = null;\n}\n\nreturn [{ json: { ...b, ok: true, errorType: null, errorMessage: null, durationMs,\n                  usage: body.usage || null, modelUsed: body.model || null,\n                  rejectedBudgets: rejected, parsed: p } }];\n"
       },
       "id": "b1-ParseClaude",
       "name": "ParseClaude",
@@ -869,14 +869,14 @@
     },
     {
       "parameters": {
-        "jsCode": "\n// Read AfterSend explicitly. This node sits after StoreOutbound, whose output is\n// an HTTP response ({statusCode, body}) - NOT the accumulated item. Using\n// $input here silently produced client_automation_id: undefined, and the run\n// insert failed a NOT NULL constraint invisibly because neverError swallows 4xx.\nconst j = $('AfterSend').first().json;\nconst store = $input.first().json;\nconst u = j.usage || {};\nreturn [{ json: { run: {\n  client_automation_id: j.clientAutomationId,\n  status: j.sendOk ? 'success' : 'error',\n  started_at: j.startedAt,\n  finished_at: new Date().toISOString(),\n  duration_ms: Math.max(0, new Date() - new Date(j.startedAt)),\n  error_type: j.sendOk ? null : 'whatsapp_send_failed',\n  error_message: j.sendOk ? null : ('twilio ' + j.twilioErrorCode + ': ' + j.twilioErrorMessage),\n  payload: { checkpoint: 'B1', model: j.modelUsed, claude_ms: j.durationMs,\n             input_tokens: u.input_tokens ?? null, output_tokens: u.output_tokens ?? null,\n             history_messages: j.historyCount, current_turn_from_history: j.currentTurnAlreadyPresent,\n             needs_human: j.parsed ? j.parsed.needs_human : null,\n             intent: j.parsed ? j.parsed.intent : null,\n             rejected_budgets: (j.rejectedBudgets || []).length,\n             twilio_sid: j.twilioSid, first_contact: j.isNewLead,\n             outbound_row_status: store.statusCode },\n} } }];\n"
+        "jsCode": "\n// Read AfterSend explicitly. This node sits after StoreOutbound, whose output is\n// an HTTP response ({statusCode, body}) - NOT the accumulated item. Using\n// $input here silently produced client_automation_id: undefined, and the run\n// insert failed a NOT NULL constraint invisibly because neverError swallows 4xx.\nconst j = $('AfterSend').first().json;\nconst store = $('StoreOutbound').first().json;\nconst lu = $('AfterLeadUpdate').first().json;\nconst u = j.usage || {};\nreturn [{ json: { run: {\n  client_automation_id: j.clientAutomationId,\n  status: j.sendOk ? 'success' : 'error',\n  started_at: j.startedAt,\n  finished_at: new Date().toISOString(),\n  duration_ms: Math.max(0, new Date() - new Date(j.startedAt)),\n  error_type: j.sendOk ? null : 'whatsapp_send_failed',\n  error_message: j.sendOk ? null : ('twilio ' + j.twilioErrorCode + ': ' + j.twilioErrorMessage),\n  payload: { checkpoint: 'B1', model: j.modelUsed, claude_ms: j.durationMs,\n             input_tokens: u.input_tokens ?? null, output_tokens: u.output_tokens ?? null,\n             history_messages: j.historyCount, current_turn_from_history: j.currentTurnAlreadyPresent,\n             needs_human: j.parsed ? j.parsed.needs_human : null,\n             intent: j.parsed ? j.parsed.intent : null,\n             rejected_budgets: (j.rejectedBudgets || []).length,\n             twilio_sid: j.twilioSid, first_contact: j.isNewLead,\n             outbound_row_status: store.statusCode,\n             // B2: what the merge actually did, so an erased field would be visible\n             lead_update_ok: lu.leadUpdateOk, lead_update_status: lu.leadUpdateStatus,\n             stage_before: lu.stageBefore, stage_after: lu.stageAfter,\n             became_qualified: lu.becameQualified,\n             fields_changed: (lu.changed || []).length,\n             fields_protected: (lu.kept || []).length },\n} } }];\n"
       },
       "id": "b1-PrepRunAI",
       "name": "PrepRunAI",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4840,
+        6160,
         20
       ],
       "notes": "No message bodies or PII in payload (spec 4.2)."
@@ -908,6 +908,199 @@
         360
       ],
       "notes": "Twilio retry - already answered. Must not reply twice."
+    },
+    {
+      "parameters": {
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "url": "={{ $('AfterLead').first().json.supabaseUrl }}/rest/v1/leads",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "=eq.{{ $('AfterLead').first().json.leadId }}"
+            },
+            {
+              "name": "select",
+              "value": "*"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "id": "b2-LoadCurrentLead",
+      "name": "LoadCurrentLead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4840,
+        20
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "ryvoSupabaseCred",
+          "name": "Ryvo Supabase (service_role)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// ============================================================================\n// The no-backwards rule is the whole of Gate B2.\n//\n// Claude returns null for budget when the message is about parking. Writing\n// that null straight through erases what was learned three messages ago -- and\n// the reply still looks perfect, so it fails INVISIBLY. Nothing downstream can\n// tell an erased field from one that was never learned.\n//\n// So: a populated field NEVER goes back to null, and never goes back to a less\n// specific value. Every field below is merged, not assigned.\n// ============================================================================\nconst a   = $('AfterLead').first().json;\nconst pc  = $('ParseClaude').first().json;\nconst p   = pc.parsed || {};\nconst res = $input.first().json;\n\nconst httpOk = res.statusCode >= 200 && res.statusCode < 300;\nconst rows = Array.isArray(res.body) ? res.body : [];\nconst cur = rows[0] || null;\nif (!httpOk || !cur) {\n  // Do not guess at a merge against unknown current state -- that is exactly\n  // how a field gets silently erased.\n  return [{ json: { ...pc, leadUpdateSkipped: true,\n                    leadUpdateError: 'could not read current lead (HTTP ' + res.statusCode + ')',\n                    patch: null, becameQualified: false, changed: [], kept: [] } }];\n}\n\nconst changed = [];   // field -> what it became\nconst kept    = [];   // field -> what was protected from being overwritten\nconst patch   = {};\n\n// --- scalar fields: fill or improve, never blank -----------------------------\nfunction mergeScalar(field, incoming, opts) {\n  opts = opts || {};\n  const before = cur[field];\n  const isBlank = (v) => v === null || v === undefined ||\n                         (typeof v === 'string' && v.trim() === '') ||\n                         (opts.blankValues || []).includes(v);\n  if (isBlank(incoming)) {\n    if (!isBlank(before)) kept.push(field + '=' + before + ' (incoming was null)');\n    return;\n  }\n  if (String(before) === String(incoming)) return;          // no change\n  if (!isBlank(before) && opts.onlyIfBlank) {\n    kept.push(field + '=' + before + ' (already set)');\n    return;\n  }\n  patch[field] = incoming;\n  changed.push(field + ': ' + (before === null ? 'null' : before) + ' -> ' + incoming);\n}\n\n// full_name: ProfileName seeded it at Checkpoint A. Let Claude improve on the\n// seed once, then stop churning it.\nconst seededName = a.profileName || null;\nmergeScalar('full_name', p.full_name,\n            { onlyIfBlank: cur.full_name !== null && cur.full_name !== seededName });\n\nmergeScalar('lead_type', p.lead_type, { blankValues: ['unknown'] });\nmergeScalar('timeline',  p.timeline);\nmergeScalar('area',      p.area);\n\n// --- budget: sanity-checked in ParseClaude, merged here ----------------------\n// ParseClaude already nulled implausible values and collected them. Widening is\n// allowed (a lead who says \"up to 1.5M\" after \"up to 800k\" has genuinely moved);\n// blanking is not.\nmergeScalar('budget_min', p.budget_min);\nmergeScalar('budget_max', p.budget_max);\n\n// --- qualification jsonb: merge keys, never replace the object ---------------\nconst q = Object.assign({}, cur.qualification || {});\nconst notes = p.qualification_notes || {};\nfor (const k of ['financing', 'bedrooms', 'purpose']) {\n  const v = notes[k];\n  if (v === null || v === undefined || (typeof v === 'string' && !v.trim())) {\n    if (q[k] !== undefined && q[k] !== null) kept.push('qualification.' + k + ' (incoming null)');\n    continue;\n  }\n  if (String(q[k]) !== String(v)) {\n    q[k] = v;\n    changed.push('qualification.' + k + ': ' + (q[k] === undefined ? 'unset' : q[k]));\n  }\n}\n\n// Rejected budgets go HERE, not into the numeric columns. Bad structured data is\n// worse than absent structured data, because everything downstream trusts it.\nconst rejected = pc.rejectedBudgets || [];\nif (rejected.length) {\n  q.rejected_budgets = (q.rejected_budgets || []).concat(\n    rejected.map(v => ({ value: v, at: new Date().toISOString(),\n                         reason: 'implausible for EUR property budget' })));\n  changed.push('qualification.rejected_budgets += ' + rejected.length);\n}\n\n// --- stage: monotonic along new -> contacted -> qualified --------------------\nconst RANK = { new: 0, nurturing: 1, contacted: 1, qualified: 2 };\nconst before = cur.stage || 'new';\nlet proposed = p.stage || null;\n\nif (proposed === 'viewing_booked') {\n  // Nothing can book until Checkpoint C. Refuse it outright rather than\n  // trusting the model not to ask.\n  q.stage_signals = (q.stage_signals || []).concat(\n    [{ rejected: 'viewing_booked', at: new Date().toISOString() }]);\n  changed.push('qualification.stage_signals += rejected viewing_booked');\n  proposed = null;\n}\n\nlet stage = before;\nif (proposed && proposed !== before) {\n  if (proposed === 'nurturing') {\n    // A qualified lead is not demoted to nurturing on one quiet message; record\n    // the signal instead so it is not lost.\n    if (RANK[before] >= RANK.qualified) {\n      q.stage_signals = (q.stage_signals || []).concat(\n        [{ signal: 'nurturing', suppressed_from: before, at: new Date().toISOString() }]);\n      kept.push('stage=' + before + ' (nurturing signal recorded, not applied)');\n    } else {\n      stage = 'nurturing';\n    }\n  } else if ((RANK[proposed] ?? 0) > (RANK[before] ?? 0)) {\n    stage = proposed;\n  } else {\n    kept.push('stage=' + before + ' (model proposed ' + proposed + ', a regression)');\n  }\n}\nif (stage !== before) { patch.stage = stage; changed.push('stage: ' + before + ' -> ' + stage); }\n\nif (JSON.stringify(q) !== JSON.stringify(cur.qualification || {})) patch.qualification = q;\n\n// --- always touched ---------------------------------------------------------\nconst now = new Date().toISOString();\npatch.last_contact_at = now;\npatch.updated_at = now;\n\n// lead.qualified fires ONCE, on the transition -- not on every later message.\nconst becameQualified = (before !== 'qualified' && stage === 'qualified');\n\nreturn [{ json: { ...pc, leadUpdateSkipped: false, leadUpdateError: null,\n                  patch, becameQualified, changed, kept,\n                  stageBefore: before, stageAfter: stage } }];\n"
+      },
+      "id": "b2-MergeLeadFields",
+      "name": "MergeLeadFields",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5060,
+        20
+      ],
+      "notes": "The no-backwards rule. A populated field never returns to null. Merges, never assigns."
+    },
+    {
+      "parameters": {
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "method": "PATCH",
+        "url": "={{ $('AfterLead').first().json.supabaseUrl }}/rest/v1/leads",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "=eq.{{ $('AfterLead').first().json.leadId }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.patch || {}) }}"
+      },
+      "id": "b2-UpdateLead",
+      "name": "UpdateLead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5280,
+        20
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "ryvoSupabaseCred",
+          "name": "Ryvo Supabase (service_role)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Lesson 9: this node follows an HTTP call, so $input is a response envelope\n// ({statusCode, headers, body}), NOT the accumulated item. Read the upstream\n// node explicitly. Reading $input here is what silently produced\n// client_automation_id: undefined at B1.\nconst m   = $('MergeLeadFields').first().json;\nconst res = $input.first().json;\nconst ok  = res.statusCode >= 200 && res.statusCode < 300;\nconst rows = Array.isArray(res.body) ? res.body : [];\nreturn [{ json: { ...m,\n  leadUpdateOk: ok && !m.leadUpdateSkipped,\n  leadUpdateStatus: res.statusCode,\n  leadAfter: rows[0] || null,\n} }];\n"
+      },
+      "id": "b2-AfterLeadUpdate",
+      "name": "AfterLeadUpdate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5500,
+        20
+      ],
+      "notes": "Reads $('MergeLeadFields') explicitly - $input after an HTTP node is an envelope (lesson 9)."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "became-qualified",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.becameQualified }}",
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b2-IsNewlyQualified",
+      "name": "IsNewlyQualified",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        5720,
+        20
+      ],
+      "notes": "Fires on the TRANSITION only. Gated on stageBefore != qualified, so later messages do not re-emit."
+    },
+    {
+      "parameters": {
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "method": "POST",
+        "url": "={{ $('AfterLead').first().json.supabaseUrl }}/rest/v1/events",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify((() => { const j = $json; const l = j.leadAfter || {}; return { client_id: j.clientId, type: 'lead.qualified', severity: 'info', summary: 'Lead qualified: ' + j.from + (l.area ? ' | ' + l.area : '') + (l.budget_max ? ' | up to ' + l.budget_max : ''), data: { lead_id: j.leadId, stage_before: j.stageBefore, stage_after: j.stageAfter, lead_type: l.lead_type, timeline: l.timeline, area: l.area, budget_min: l.budget_min, budget_max: l.budget_max } }; })()) }}"
+      },
+      "id": "b2-EventLeadQualified",
+      "name": "EventLeadQualified",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5940,
+        -80
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "ryvoSupabaseCred",
+          "name": "Ryvo Supabase (service_role)"
+        }
+      }
     }
   ],
   "connections": {
@@ -1232,7 +1425,7 @@
       "main": [
         [
           {
-            "node": "PrepRunAI",
+            "node": "LoadCurrentLead",
             "type": "main",
             "index": 0
           }
@@ -1255,6 +1448,79 @@
         [
           {
             "node": "LogRun",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LoadCurrentLead": {
+      "main": [
+        [
+          {
+            "node": "MergeLeadFields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MergeLeadFields": {
+      "main": [
+        [
+          {
+            "node": "UpdateLead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UpdateLead": {
+      "main": [
+        [
+          {
+            "node": "AfterLeadUpdate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AfterLeadUpdate": {
+      "main": [
+        [
+          {
+            "node": "IsNewlyQualified",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IsNewlyQualified": {
+      "main": [
+        [
+          {
+            "node": "EventLeadQualified",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PrepRunAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EventLeadQualified": {
+      "main": [
+        [
+          {
+            "node": "PrepRunAI",
             "type": "main",
             "index": 0
           }
