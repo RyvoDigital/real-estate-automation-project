@@ -11,6 +11,29 @@
 // exactly three edges: filtering to working hours, formatting for the lead, and
 // setting the calendar event's zone.
 // ============================================================================
+// ---------------------------------------------------------------------------
+// Google free/busy returns HTTP 200 for a calendar it cannot read, with an
+// `errors` array and an EMPTY `busy` list. An unreachable or misconfigured
+// calendar is therefore indistinguishable from a totally free one unless the
+// errors array is read. Unguarded, that offers every slot in the window as
+// available. Verified against the live API on 2026-09-03.
+function readFreeBusy(httpResponse, calendarId) {
+  const res = httpResponse || {};
+  const code = res.statusCode;
+  if (!(code >= 200 && code < 300)) {
+    return { ok: false, busy: [], error: 'freebusy_http_' + code };
+  }
+  const cals = (res.body && res.body.calendars) || null;
+  if (!cals) return { ok: false, busy: [], error: 'freebusy_malformed' };
+  const entry = cals[calendarId];
+  if (!entry) return { ok: false, busy: [], error: 'freebusy_calendar_absent' };
+  if (Array.isArray(entry.errors) && entry.errors.length) {
+    const reason = entry.errors.map(e => e.reason || 'unknown').join(',');
+    return { ok: false, busy: [], error: 'freebusy_calendar_error:' + reason };
+  }
+  return { ok: true, busy: Array.isArray(entry.busy) ? entry.busy : [], error: null };
+}
+
 function computeSlots(opts) {
   const {
     nowISO,                    // UTC instant, ISO
@@ -78,23 +101,54 @@ function computeSlots(opts) {
     cursor = cursor.plus({ days: 1 });
   }
 
-  // Spread across days rather than offering three consecutive morning slots.
-  // A soft date preference (from what the lead asked for) is honoured by
-  // ordering only -- the workflow still supplies every time.
+  // ---------------------------------------------------------------------
+  // preferDate comes from the MODEL (it extracts "quinta-feira" from the
+  // lead's message), so it is validated before it is allowed to influence
+  // anything. It affects ORDERING and INCLUSION only -- never eligibility.
+  // A slot that is not genuinely free can never be surfaced by preferring it.
+  // Any failed check falls back silently to spreading.
+  // ---------------------------------------------------------------------
+  let preferStatus = 'none';
+  let prefer = null;
   if (preferDate) {
-    perDay.sort((a, b) => (a.date === preferDate ? -1 : 0) - (b.date === preferDate ? -1 : 0));
-  }
-  const out = [];
-  for (const d of perDay) {
-    if (out.length >= max) break;
-    out.push(d.free[0]);
-  }
-  // If only one day has availability, fill from that day rather than under-offering.
-  if (out.length < max && perDay.length === 1) {
-    for (const s of perDay[0].free.slice(1)) {
-      if (out.length >= max) break;
-      out.push(s);
+    preferStatus = 'invalid';
+    const d = DateTime.fromISO(String(preferDate), { zone });
+    if (d.isValid) {
+      const dayKey = d.toFormat('yyyy-LL-dd');
+      const dayStartUtc = d.startOf('day').toUTC();
+      const dayEndUtc = d.endOf('day').toUTC();
+      const inWindow = dayEndUtc >= now && dayStartUtc <= windowEnd;
+      const notPast = dayEndUtc > now;
+      const afterNotice = dayEndUtc > earliest;
+      const workingDay = allowedDays.has(d.weekday);
+      if (inWindow && notPast && afterNotice && workingDay) {
+        prefer = dayKey;
+        // Valid, but the day may simply be full. That is a different outcome
+        // from an invalid request and the reply should be able to say so.
+        preferStatus = perDay.some(x => x.date === dayKey) ? 'used' : 'full';
+      }
     }
   }
-  return out;
+
+  const out = [];
+  if (prefer && preferStatus === 'used') {
+    // Listen to what was asked for: take up to 2 from the requested day, then
+    // spread the remainder, so an alternative is still offered.
+    const day = perDay.find(x => x.date === prefer);
+    for (const s of day.free.slice(0, Math.min(2, max))) out.push(s);
+  }
+  for (const d of perDay) {
+    if (out.length >= max) break;
+    if (prefer && d.date === prefer) continue;          // already taken from
+    out.push(d.free[0]);
+  }
+  // If only one day has availability at all, fill from it rather than
+  // under-offering.
+  if (out.length < max && perDay.length === 1) {
+    for (const s of perDay[0].free) {
+      if (out.length >= max) break;
+      if (!out.some(o => o.startUtc === s.startUtc)) out.push(s);
+    }
+  }
+  return { slots: out, preferDate: prefer, preferStatus };
 }
