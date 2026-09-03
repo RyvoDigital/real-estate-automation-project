@@ -108,6 +108,84 @@ payload at the parse node instead.
 > An earlier revision of this section implied structured outputs removed the
 > broken-reply risk. They remove *parse* failures, not *garbage content*.
 
+### Escalation (Checkpoint B3)
+
+**Triggers** — any one escalates: `needs_human` from the model (lead asks for a
+person, price/legal/tax questions, hostility, booking request); `budget >=
+config.high_value_threshold_eur` (currently €2,000,000); or **any** Claude,
+parse, or reply-guard failure. A failure is a trigger in its own right: the lead
+still gets the handoff note, because silence is worse than an imperfect answer.
+
+**The four steps run in §8 order**, and the order is load-bearing:
+
+1. **`MarkLeadEscalated`** — writes `qualification.escalated = {at, reason,
+   reasons}`. **First**, so a message arriving concurrently is already blocked
+   even if a later step fails.
+2. **`SendHandoffNote`** — the lead is never left in silence. The note is a fixed
+   string from config, so it does not depend on Claude having succeeded.
+3. **`NotifyOperator`** — WhatsApp to `config.escalate_to`, short enough for a
+   lock screen: number, reason, last message.
+4. **`WriteEscalationEvents`** — `lead.escalated` at `warning`.
+
+**Persistence runs BEFORE the escalation branch.** Originally it did not, and a
+€3M lead escalated with `leads.budget_max` still `null` — the escalation reason
+knew the figure while the row the human opens did not. Extraction is valid
+whether or not the AI is the one replying next. Do not move this back.
+
+**Already-escalated leads are never answered again.** `IsLeadEscalated` checks
+`qualification.escalated` immediately after the lead upsert — **before** the
+Claude call, so escalation stops spend as well as replies. Later messages are
+stored and logged with `silenced_escalated_lead: true`, `ai_called: false`.
+
+> **The trap, handled explicitly.** The operator notification and the lead reply
+> ride the **same Twilio sandbox**. If the sandbox is why the reply failed, the
+> notification fails too — the alert dies with the thing it is alerting about.
+> `AfterNotify` records that case as `error_type='escalation_notify_failed'`,
+> writes a second event at **`severity='critical'`**, and fails the run. A
+> missing `config.escalate_to` is treated the same way rather than passing
+> silently.
+
+**Clearing an escalation** is manual and deliberate — there is no UI yet:
+
+```sql
+-- removes the flag so the AI resumes on the next inbound message
+update public.leads
+   set qualification = qualification - 'escalated', updated_at = now()
+ where phone = '+3519...';
+```
+
+### The reply guard retries before it escalates
+
+A rejected reply is retried **once** (`CallClaudeGuardRetry`), because the one
+malformed reply observed was not reproducible in 8 runs — a retry very likely
+recovers it invisibly. Only a **second** rejection escalates.
+
+> **This is why the guard was not safe until B3.** Between B2 and B3 a rejected
+> reply sent the lead *nothing*, which the spec is explicit is worse than an
+> imperfect answer. The guard only became safe once escalation existed to catch
+> what it rejects. `wasGuardRetry` prevents a second retry, so the path cannot
+> loop.
+
+### Keepalive push alert (§9)
+
+`supabase_keepalive` now notifies on failure before throwing: notify first, then
+throw. The throw is what makes n8n record a **failed execution** (the pull
+signal); the WhatsApp is the **push signal**. In that order, so a Twilio failure
+cannot swallow the execution-level alarm — and the thrown message states whether
+the alert was `SENT` or `ALSO FAILED`.
+
+**The alert target is hardcoded** to `+351933048230`, deliberately.
+`config.escalate_to` lives in Supabase — the very system this alert fires when
+it cannot reach. **An alert target stored inside the monitored system is
+unreachable exactly when it is needed.**
+
+> **Stated limitation, not solved.** This alert rides the same Twilio sandbox
+> whose session expires every 3 days (§2.1). It is strictly better than
+> pull-only and strictly worse than a real alerting path. Email or a second
+> channel belongs in Checkpoint D. Verified 2026-09-03 with a throwaway twin
+> pointed at a dead host: the execution errored, which means the notify node
+> upstream of the throw did run.
+
 ### Checkpoint B2 re-baseline — latency and tokens with real history
 
 Measured 2026-09-03 through the live workflow, one lead, history growing turn by
@@ -132,6 +210,12 @@ the earlier estimate. Latency did **not** degrade with history over this range.
 > **Reported to the operator before any tuning; nothing was tuned.** If this
 > recurs, the lever is `effort` in config — but establish a rate first, because
 > two isolated observations are not a trend.
+>
+> **Both outliers to date were on direct-API probes; neither appeared in a
+> workflow run.** That may be telling us something about the probe — it fires
+> calls back-to-back with no pacing, which the workflow never does — rather than
+> about the system. Before tuning `effort`, first establish whether the tail
+> exists in workflow traffic at all.
 
 ### Three prompt defects caught by probing, before any node was built
 
