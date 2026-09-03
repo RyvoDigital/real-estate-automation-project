@@ -201,6 +201,27 @@ unreachable exactly when it is needed.**
 > pull-only and strictly worse than a real alerting path. Email or a second
 > channel belongs in Checkpoint D.
 
+### What Checkpoint C must undo — three deliberate B-era blocks
+
+Booking is refused in **three separate places** during Checkpoint B, on purpose,
+because nothing could book yet. All three must be lifted together. Miss one and
+the failure is confusing rather than obvious — the likely symptom is a booking
+that appears to work while the lead row never reaches `viewing_booked`.
+
+| # | Where | What it does now | C must |
+|---|---|---|---|
+| 1 | `MergeLeadFields` | Refuses `stage: viewing_booked` outright, records the attempt in `qualification.stage_signals` | Allow it, and add `viewing_booked` to the `RANK` map — it is currently absent, so even once permitted it would be treated as rank 0 and rejected as a regression |
+| 2 | System prompt (`config`-composed) | *"If the lead asks to book a viewing, acknowledge warmly and say a colleague will confirm a time. Do NOT propose specific times."* | Replace with real slot proposal, fed by free/busy |
+| 3 | `DecideEscalation` (via `needs_human`) | A booking request **escalates** — the model sets `needs_human: true` for "asks to book or schedule a viewing" | Remove booking from the escalation triggers in the prompt, so `wants_booking` routes to the calendar instead of to a human |
+
+Config already carries what C needs: `booking_window_days: 14` and
+`working_hours` (09:00–19:00, Mon–Sat). `GOOGLE_CALENDAR_ID` and the n8n Google
+credential are operator-supplied.
+
+Note the ordering trap in #1: `RANK` is `{new:0, nurturing:1, contacted:1,
+qualified:2}`. Permitting the stage without ranking it above `qualified` means
+the no-backwards rule silently blocks every booking.
+
 ### Checkpoint B2 re-baseline — latency and tokens with real history
 
 Measured 2026-09-03 through the live workflow, one lead, history growing turn by

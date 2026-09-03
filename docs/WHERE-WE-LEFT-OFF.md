@@ -371,6 +371,16 @@ recovery codes in the password manager) — the condition attached to the env-ac
 decision in `concierge-runbook.md` §6. Server fully patched and rebooted
 2026-09-01 (see §0).
 
+### Checkpoint D — ordering decided 2026-09-03
+
+**The email / second alerting channel is the FIRST item in D**, ahead of
+`metrics_daily`, non-text media handling and the forced-failure drills.
+
+Reason: the keepalive and escalation alarms both ride the Twilio sandbox, whose
+session expires every 72 hours. After the 2026-09-03 fix the push alarm works —
+but it has exactly one leg, on a 72-hour timer. One working leg is not
+redundancy. See `concierge-runbook.md` §9.
+
 **Deferred by design (Section 11 of the handoff):** automation logic, the
 cockpit UI, Zero, WhatsApp/Instagram/calendar integrations, any client-facing
 login.
