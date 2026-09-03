@@ -1,10 +1,10 @@
 # Where we left off
 
-**Last updated:** 2026-09-01
+**Last updated:** 2026-09-03
 **Phase:** 0 complete (checklist + restore drill passed).
-Phase 1 **Checkpoint A complete**, verified end to end.
-**Next:** Phase 1 Checkpoint B — the Claude call, history load and WhatsApp send.
-**This is the only open item.**
+Phase 1 **Checkpoints A, B1, B2 and B3 complete**, each verified end to end.
+**Next:** Phase 1 Checkpoint C — calendar booking. Operator is provisioning
+Google Cloud and the n8n credential; `GOOGLE_CALENDAR_ID` pending.
 
 **Server patch state:** fully patched and rebooted 2026-09-01 ~16:02 UTC.
 Kernel `6.8.0-138-generic` (from `-117`, four kernel updates plus `libc6`);
@@ -21,7 +21,34 @@ file records what is actually deployed right now and what tripped us up.
 
 ---
 
-## 0. Phase 1, Checkpoint A — done 2026-09-01
+## 0. Phase 1 — Checkpoint B complete (2026-09-03)
+
+The Concierge now answers, learns, and knows when to stop. **52 nodes**, active
+on `POST /webhook/twilio-inbound`; `supabase_keepalive` is 6 nodes, daily 04:00
+and genuinely firing (verified by execution row, not by `active=true`).
+
+| Gate | What it added | Proof |
+|---|---|---|
+| B1 | History load, Claude call, defensive parse, Twilio send, outbound row | Real handset, reply in correct Portuguese, ~6s |
+| B2 | Lead persistence, stage transitions, the no-backwards rule, `events` | Four-message conversation; budget and timeline survived an unrelated message |
+| B3 | Full escalation (four §8 steps), reply-guard retry, keepalive push alert | Three escalation triggers, post-escalation silence, alert delivered |
+
+Model `claude-sonnet-5` at `effort: low`, read from `client_automations.config`.
+Structured outputs primary, defensive parse as backstop. **Read
+[`concierge-runbook.md`](concierge-runbook.md) §0 before touching any of it** —
+model config, measured baselines, and the prompt defects that probing caught.
+
+**Read [`engineering-lessons.md`](engineering-lessons.md) too.** Eight instances
+of the same failure now: something reported success while the underlying thing
+had failed. Rule 10 is the one to internalise — *"only X throws, so X ran" is
+not evidence*.
+
+Carried forward into C: the three deliberate booking blocks listed in
+`concierge-runbook.md`, which must all be lifted together.
+
+---
+
+## 0b. Phase 1, Checkpoint A — done 2026-09-01
 
 **Channel changed.** The Meta Cloud API path is blocked (the Facebook account
 needed for the Business Portfolio was disabled, appeal denied). Phase 1 runs on
@@ -30,7 +57,7 @@ is channel-agnostic, so returning to Meta touches the parse node, the signature
 check and the send node — nothing else. The Meta keys stay in `.env.example` as
 empty placeholders.
 
-Live now: `inbound_concierge_whatsapp` (18 nodes, active, `POST
+At the time: `inbound_concierge_whatsapp` (18 nodes, active, `POST
 /webhook/twilio-inbound`) and `supabase_keepalive` (daily 04:00). 40/40
 automated checks passed against genuinely Twilio-signed requests, then confirmed
 with a real handset — execution 18, success, 1.611s, one lead, one message, no
@@ -56,8 +83,10 @@ Things that will bite whoever is next:
    `N8N_BLOCK_ENV_ACCESS_IN_NODE=false`, any Code node can read every variable
    there. Keep it minimal — the Supabase key is an n8n credential precisely so
    it is not there, and so `export:workflow` cannot push it to GitHub.
-5. **`escalate_to`** is set to `+351933048230`. The keepalive still has no push
-   alert; wire one onto its failure branch once Checkpoint B adds a send node.
+5. **`escalate_to`** is set to `+351933048230`. ~~The keepalive still has no push
+   alert~~ — added and verified at B3, but see the transport-error caveat in
+   `concierge-runbook.md` §9: it was initially blind to the one failure it
+   exists to catch.
 
 ---
 
