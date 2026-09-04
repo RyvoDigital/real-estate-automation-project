@@ -21,7 +21,41 @@ file records what is actually deployed right now and what tripped us up.
 
 ---
 
-## 0. Phase 1 — Checkpoint B complete (2026-09-03)
+## 0. Phase 1 — Checkpoint C, Gate C1 complete (2026-09-04)
+
+**The Concierge proposes real times.** 54 nodes; `QueryFreeBusy` and
+`ProposeSlots` sit between `LoadHistory` and `BuildClaudeRequest`, so free/busy
+is already in the prompt whenever the conversation turns to booking. **Nothing
+creates events yet — that is C2.**
+
+| | |
+|---|---|
+| Slots chosen by | the **workflow**, never the model — C2 must match a confirmation against exactly what was offered |
+| Stored at | `leads.qualification.proposed_slots` (with `prefer_date`, `prefer_requested`, `at`) |
+| Config added | `timezone`, `calendar_id`, `min_hours_notice: 24`, `viewing_duration_minutes: 60` |
+| Latency | 5.7–6.8s end to end, `claude_ms` 4.0–5.2s — free/busy costs well under a second |
+
+Three things C1 got wrong before it got them right, all worth knowing:
+
+1. **A wrong calendar id is indistinguishable from a free calendar** — Google
+   answers 200 with `busy: []` and hides the failure in `calendars[id].errors`.
+   Found by probing before writing the consumer.
+2. **An unrelated message overwrote a live offer.** "Tem estacionamento?"
+   replaced a standing Thursday offer with a fresh spread, leaving C2 nothing to
+   match. Offers are now re-used and re-validated, not recomputed.
+3. **"Friday is fully booked" was said about a Friday that was merely too
+   soon.** `preferStatus` now distinguishes `full` / `too_soon` / `closed_day` /
+   `out_of_window`, and the prompt turns each into a different sentence.
+
+See `concierge-runbook.md` → *Booking — how Gate C1 proposes times*.
+
+**Next: Gate C2 (it books), then C3 (it doesn't double-book).** Block #1 in the
+runbook's "What Checkpoint C must undo" table is still in place — `MergeLeadFields`
+refuses `viewing_booked` and `RANK` has no entry for it.
+
+---
+
+## 0a. Phase 1 — Checkpoint B complete (2026-09-03)
 
 The Concierge now answers, learns, and knows when to stop. **52 nodes**, active
 on `POST /webhook/twilio-inbound`; `supabase_keepalive` is 6 nodes, daily 04:00
@@ -38,10 +72,12 @@ Structured outputs primary, defensive parse as backstop. **Read
 [`concierge-runbook.md`](concierge-runbook.md) §0 before touching any of it** —
 model config, measured baselines, and the prompt defects that probing caught.
 
-**Read [`engineering-lessons.md`](engineering-lessons.md) too.** Eight instances
-of the same failure now: something reported success while the underlying thing
-had failed. Rule 10 is the one to internalise — *"only X throws, so X ran" is
-not evidence*.
+**Read [`engineering-lessons.md`](engineering-lessons.md) too.** Nine instances
+of the same failure now: a test and the system disagreeing about what was
+actually exercised. Rule 10 is the one to internalise — *"only X throws, so X
+ran" is not evidence*. Instance 9 runs it backwards: a **red** suite that was
+prompting a stale copy, and nearly bought a fix for a defect production did not
+have.
 
 Carried forward into C: the three deliberate booking blocks listed in
 `concierge-runbook.md`, which must all be lifted together.

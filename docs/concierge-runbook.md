@@ -208,19 +208,127 @@ because nothing could book yet. All three must be lifted together. Miss one and
 the failure is confusing rather than obvious — the likely symptom is a booking
 that appears to work while the lead row never reaches `viewing_booked`.
 
-| # | Where | What it does now | C must |
-|---|---|---|---|
-| 1 | `MergeLeadFields` | Refuses `stage: viewing_booked` outright, records the attempt in `qualification.stage_signals` | Allow it, and add `viewing_booked` to the `RANK` map — it is currently absent, so even once permitted it would be treated as rank 0 and rejected as a regression |
-| 2 | System prompt (`config`-composed) | *"If the lead asks to book a viewing, acknowledge warmly and say a colleague will confirm a time. Do NOT propose specific times."* | Replace with real slot proposal, fed by free/busy |
-| 3 | `DecideEscalation` (via `needs_human`) | A booking request **escalates** — the model sets `needs_human: true` for "asks to book or schedule a viewing" | Remove booking from the escalation triggers in the prompt, so `wants_booking` routes to the calendar instead of to a human |
+| # | Where | What it does now | C must | Status |
+|---|---|---|---|---|
+| 1 | `MergeLeadFields` | Refuses `stage: viewing_booked` outright, records the attempt in `qualification.stage_signals` | Allow it, and add `viewing_booked` to the `RANK` map — it is currently absent, so even once permitted it would be treated as rank 0 and rejected as a regression | **Still in place** — C2 |
+| 2 | System prompt (`config`-composed) | *"If the lead asks to book a viewing, acknowledge warmly and say a colleague will confirm a time. Do NOT propose specific times."* | Replace with real slot proposal, fed by free/busy | **Lifted at C1** |
+| 3 | `DecideEscalation` (via `needs_human`) | A booking request **escalates** — the model sets `needs_human: true` for "asks to book or schedule a viewing" | Remove booking from the escalation triggers in the prompt, so `wants_booking` routes to the calendar instead of to a human | **Lifted at C1** |
 
-Config already carries what C needs: `booking_window_days: 14` and
-`working_hours` (09:00–19:00, Mon–Sat). `GOOGLE_CALENDAR_ID` and the n8n Google
-credential are operator-supplied.
+Config carries what C needs: `booking_window_days: 14`, `working_hours`
+(09:00–19:00, Mon–Sat), and — added at C1 — `timezone`, `calendar_id`,
+`min_hours_notice` (24) and `viewing_duration_minutes` (60). The n8n Google
+credential is operator-supplied.
+
+`GOOGLE_CALENDAR_ID` remains in `.env` **as documentation of provenance only**.
+The workflow reads `config.calendar_id`; the env var is where that value came
+from. A missing or malformed id in config is guarded explicitly and reported as
+`slotError`, exactly like a bad id from env would be.
+
+> **Onboarding consideration — the OAuth app is set to "Internal".** That
+> removes the 7-day refresh-token expiry for our own account, but it also means
+> **only `ryvodigital.com` accounts can authorise this app**. A real client's
+> calendar lives outside that domain. It does not block Checkpoint C, and the
+> ops doc already recommends clients own their own integrations — but the first
+> external client either authorises through their own Google Cloud project or
+> the app has to go External and through verification.
 
 Note the ordering trap in #1: `RANK` is `{new:0, nurturing:1, contacted:1,
 qualified:2}`. Permitting the stage without ranking it above `qualified` means
 the no-backwards rule silently blocks every booking.
+
+### Booking — how Gate C1 proposes times (2026-09-04)
+
+**The workflow chooses the slots. The model only phrases them.** This is not a
+style preference: Checkpoint C2 has to match "the Thursday one please" against
+exactly what was offered, so the offer must be something the workflow knows. If
+the model picked the times, nothing could match them later.
+
+Two nodes sit between `LoadHistory` and `BuildClaudeRequest`:
+
+| Node | Does |
+|---|---|
+| `QueryFreeBusy` | `POST https://www.googleapis.com/calendar/v3/freeBusy` over the whole `booking_window_days`, using the **`Ryvo Google Calendar` n8n credential** — no token in the workflow JSON |
+| `ProposeSlots` | Validates the response, picks up to 3 slots, and writes `slotLines` for the prompt |
+
+Free/busy runs on **every inbound message**, not only booking ones. It is one
+cheap call, and it means the times are already in the prompt if the conversation
+turns to booking — no second Claude call, no extra latency on the turn that
+matters.
+
+**A wrong calendar id looks exactly like a free calendar.** Google answers
+`HTTP 200` with `busy: []` and puts the failure in `calendars[id].errors`.
+Unguarded, that offers every slot in the window. `readFreeBusy()` requires a
+2xx, the calendar key present, and no `errors` array before it will read an
+empty `busy` as "free"; `ProposeSlots` separately rejects a missing or
+malformed `calendar_id` in config. Both produce `slotError`, never silence.
+
+**Timezones.** Everything is computed and stored in UTC. `config.timezone`
+(IANA, e.g. `Europe/Lisbon`) is applied at exactly three edges: filtering to
+working hours, formatting for the lead, and — from C2 — the calendar event.
+Nothing hardcodes Lisbon; the day walk happens in the client's zone, because a
+day boundary in Lisbon is not one in Madrid. `tests/slot_engine.test.js` runs
+every case against `Europe/Madrid` too, since the live setup has calendar,
+config and cron all agreeing on Lisbon and would hide the bug.
+
+**An offer on the table stays on the table.** The first build recomputed a
+fresh spread on every message, so an unrelated "tem estacionamento?" silently
+replaced a live Thursday offer and left C2 with nothing to match. `ProposeSlots`
+now re-uses the stored proposals, re-validating them against current free/busy
+each turn and dropping anything past, inside `min_hours_notice`, or newly busy.
+`offer_source` in the run payload says which happened:
+
+| `offer_source` | Means |
+|---|---|
+| `fresh` | No prior offer, or the prior one had nothing left |
+| `reused` | The standing offer was re-validated and held |
+| `fresh_new_date` | The lead asked for a **usable** new day, which supersedes |
+
+A requested day only supersedes if it is genuinely usable. Asking "e no
+domingo?" must not destroy a live Thursday offer — we cannot do Sundays, so the
+lead would simply lose the times they were considering.
+
+**Say which thing was true, never guess why.** When a requested day yields
+nothing, `preferStatus` distinguishes the reasons and the prompt turns each into
+a different sentence:
+
+| `preferStatus` | The lead is told |
+|---|---|
+| `used` | (nothing — the day was honoured) |
+| `full` | that day is fully booked |
+| `too_soon` | that day is too soon; we need `min_hours_notice` hours |
+| `closed_day` | that is not a day we do viewings |
+| `out_of_window` | that is further ahead than we can book |
+| `invalid` | (nothing — silent fallback to spreading) |
+
+This matters more than it reads. The build said *"Friday is fully booked"* about
+a Friday that was merely inside the 24-hour notice window — an assertion about
+the calendar that nothing had checked. Same rule as inventory: say what the
+system knows, never assert what it cannot see.
+
+**No availability escalates.** If the lead is asking to book and there are no
+slots — a full window, or any `slotError` — `DecideEscalation` raises
+`no_availability:<cause>` and a human takes over. It is gated on
+`wants_booking`, so an unrelated question during a calendar outage does not
+escalate the lead. This is the one escalation that sends the model's honest
+reply *and* the handoff note (`handoffBody`); every other escalation sends the
+note alone, because a lead who asked for a human should not get an AI answer
+first.
+
+> `StoreHandoffMessage` writes `handoffBody`, i.e. what was actually sent — not
+> the config template. The `messages` table is what `LoadHistory` feeds back to
+> Claude, so a divergence there gives the model a false memory of its own last
+> message.
+
+**Latency with the calendar call added:** 5.7–6.8s end to end (inbound webhook
+to outbound row), `claude_ms` 4.0–5.2s. The free/busy round trip costs well
+under a second. Target is ~10s; there is headroom, so nothing has been tuned.
+
+**Clearing a stuck booking state.** Until C2 lands nothing writes
+`viewing_booked`. When it does, the two places to look are `leads.stage` and
+`leads.qualification` (`proposed_slots`, and from C2 the event id). To release a
+lead: set `stage` back to `qualified` and delete the `qualification.proposed_slots`
+key — the next inbound message then recomputes a fresh offer. Deleting the
+Google event is a separate manual step; nothing reconciles it yet.
 
 ### Checkpoint B2 re-baseline — latency and tokens with real history
 

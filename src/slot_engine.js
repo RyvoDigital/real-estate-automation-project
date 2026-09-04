@@ -34,6 +34,67 @@ function readFreeBusy(httpResponse, calendarId) {
   return { ok: true, busy: Array.isArray(entry.busy) ? entry.busy : [], error: null };
 }
 
+// ---------------------------------------------------------------------------
+// A lightweight, workflow-side date HINT.
+//
+// The slots must be in Claude's prompt before it replies, and Checkpoint C2
+// needs the workflow to know exactly which slots were offered -- so the model
+// cannot be the one choosing them. That rules out taking the preferred day from
+// the model's output on the same turn.
+//
+// This produces a CANDIDATE date only. Every guard in computeSlots still
+// applies, and anything unrecognised or invalid falls back silently to
+// spreading. The worst failure is an uneven spread, never a wrong or
+// unavailable time.
+const WEEKDAYS = {
+  1: ['segunda', 'monday', 'lunes'],
+  2: ['terca', 'tuesday', 'martes'],
+  3: ['quarta', 'wednesday', 'miercoles'],
+  4: ['quinta', 'thursday', 'jueves'],
+  5: ['sexta', 'friday', 'viernes'],
+  6: ['sabado', 'saturday'],
+  7: ['domingo', 'sunday'],
+};
+function extractPreferredDate(text, tz, nowISO) {
+  if (!text) return null;
+  // Strip diacritics first. A JS \\b after "ã" never matches, because an accented
+  // character is not a word character -- so "amanhã?" failed while "tomorrow"
+  // worked. Normalising also removes the need to enumerate accented variants.
+  const t = String(text).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const now = DateTime.fromISO(nowISO, { zone: 'utc' }).setZone(tz);
+
+  if (/\b(hoje|today|hoy)\b/.test(t)) return now.toFormat('yyyy-LL-dd');
+  if (/\b(amanha|tomorrow|manana)\b/.test(t)) {
+    return now.plus({ days: 1 }).toFormat('yyyy-LL-dd');
+  }
+  // Explicit dd/mm or dd-mm, year optional.
+  const m = t.match(/\b(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{2,4}))?\b/);
+  if (m) {
+    const day = Number(m[1]), mon = Number(m[2]);
+    let year = m[3] ? Number(m[3]) : now.year;
+    if (year < 100) year += 2000;
+    const d = DateTime.fromObject({ year, month: mon, day }, { zone: tz });
+    if (d.isValid) {
+      // A bare dd/mm already past this year means next year.
+      return (!m[3] && d < now.startOf('day') ? d.plus({ years: 1 }) : d).toFormat('yyyy-LL-dd');
+    }
+    return null;
+  }
+  for (const [wd, names] of Object.entries(WEEKDAYS)) {
+    if (names.some(n => t.includes(n))) {
+      const target = Number(wd);
+      // "next <weekday>" means the coming one; today does not count, because a
+      // same-day request will fail min_hours_notice anyway.
+      let d = now.plus({ days: 1 }).startOf('day');
+      for (let i = 0; i < 7; i++) {
+        if (d.weekday === target) return d.toFormat('yyyy-LL-dd');
+        d = d.plus({ days: 1 });
+      }
+    }
+  }
+  return null;
+}
+
 function computeSlots(opts) {
   const {
     nowISO,                    // UTC instant, ISO
@@ -71,6 +132,7 @@ function computeSlots(opts) {
   // Walk calendar days in the CLIENT's zone, not UTC -- a day boundary in
   // Lisbon is not a day boundary in Madrid.
   const perDay = [];
+  const perDayAll = [];
   let cursor = now.setZone(zone).startOf('day');
   const lastDay = windowEnd.setZone(zone).endOf('day');
 
@@ -79,6 +141,7 @@ function computeSlots(opts) {
       const dayStart = cursor.set({ hour: sh, minute: sm, second: 0, millisecond: 0 });
       const dayEnd = cursor.set({ hour: eh, minute: em, second: 0, millisecond: 0 });
       const free = [];
+      let eligible = 0;
       // Re-derive from the day, so a DST transition inside the day is applied
       // by Luxon rather than by adding fixed offsets.
       for (let t = dayStart; t.plus({ minutes: durationMinutes }) <= dayEnd; t = t.plus({ minutes: step })) {
@@ -86,6 +149,7 @@ function computeSlots(opts) {
         const eUtc = t.plus({ minutes: durationMinutes }).toUTC();
         if (sUtc < earliest) continue;              // past, or inside notice period
         if (eUtc > windowEnd) continue;             // beyond the booking window
+        eligible++;                                 // would be offerable if free
         if (overlaps(sUtc, eUtc)) continue;         // busy
         free.push({
           startUtc: sUtc.toISO(),
@@ -95,6 +159,13 @@ function computeSlots(opts) {
           timeLocal: t.toFormat('HH:mm'),
           zone,
         });
+      }
+      // `eligible` counts slots that clear the past/notice/window tests but
+      // ignores busy. It is the only way to tell "that day is booked up" from
+      // "that day is too soon" -- and saying the wrong one is asserting a cause
+      // the system does not actually know.
+      if (eligible || free.length) {
+        perDayAll.push({ date: cursor.toFormat('yyyy-LL-dd'), free, eligible });
       }
       if (free.length) perDay.push({ date: cursor.toFormat('yyyy-LL-dd'), free });
     }
@@ -121,11 +192,25 @@ function computeSlots(opts) {
       const notPast = dayEndUtc > now;
       const afterNotice = dayEndUtc > earliest;
       const workingDay = allowedDays.has(d.weekday);
+      // Each failure gets its own status. They all fall back to spreading, but
+      // the reply should be able to say WHICH thing was true -- "we are closed
+      // on Sundays" and "that is too soon" are different sentences to a lead,
+      // and picking the wrong one is an invented fact.
+      if (!workingDay) preferStatus = 'closed_day';
+      else if (!notPast || !afterNotice) preferStatus = 'too_soon';
+      else if (!inWindow) preferStatus = 'out_of_window';
       if (inWindow && notPast && afterNotice && workingDay) {
         prefer = dayKey;
-        // Valid, but the day may simply be full. That is a different outcome
-        // from an invalid request and the reply should be able to say so.
-        preferStatus = perDay.some(x => x.date === dayKey) ? 'used' : 'full';
+        // Valid, but the day may yield nothing -- and there are two different
+        // reasons for that. "Full" means the calendar is genuinely blocked;
+        // "too soon" means every slot on that day sits inside min_hours_notice.
+        // Reporting one as the other is asserting a cause we did not check.
+        if (perDay.some(x => x.date === dayKey)) {
+          preferStatus = 'used';
+        } else {
+          const rec = perDayAll.find(x => x.date === dayKey);
+          preferStatus = (rec && rec.eligible > 0) ? 'full' : 'too_soon';
+        }
       }
     }
   }
@@ -150,5 +235,6 @@ function computeSlots(opts) {
       if (!out.some(o => o.startUtc === s.startUtc)) out.push(s);
     }
   }
-  return { slots: out, preferDate: prefer, preferStatus };
+  return { slots: out, preferDate: prefer,
+           preferRequested: preferDate || null, preferStatus };
 }

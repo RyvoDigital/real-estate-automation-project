@@ -42,19 +42,37 @@ chk('takes 2 from the preferred day, then offers an alternative',
     thu.slots.map(s=>`${s.dateLocal} ${s.timeLocal}`).join(' | '));
 
 // ---- preferDate guards: each must fall back SILENTLY ----------------------
+// Each guard reports WHY it rejected the day. The reply says "we are closed on
+// Sundays" or "that is too soon" out of this, so a wrong label is an invented
+// fact -- the same rule that governs inventory.
 const guards = [
-  ['not a real date',        'not-a-date'],
-  ['nonsense date',          '2026-13-45'],
-  ['in the past',            '2026-09-01'],
-  ['today, inside notice',   '2026-09-07'],
-  ['beyond booking window',  '2026-10-30'],
-  ['a Sunday (non-working)', '2026-09-13'],
+  ['not a real date',        'not-a-date',  'invalid'],
+  ['nonsense date',          '2026-13-45',  'invalid'],
+  ['in the past',            '2026-09-01',  'too_soon'],
+  ['today, inside notice',   '2026-09-07',  'too_soon'],
+  ['beyond booking window',  '2026-10-30',  'out_of_window'],
+  ['a Sunday (non-working)', '2026-09-13',  'closed_day'],
 ];
-for (const [label, pd] of guards) {
+for (const [label, pd, want] of guards) {
   const r = S({ preferDate: pd });
-  const fellBack = r.preferStatus==='invalid' && r.slots.length>0;
+  const fellBack = r.preferStatus!=='used' && r.preferDate===null && r.slots.length>0;
   chk(`guard: ${label} -> silent fallback`, fellBack, `status=${r.preferStatus} slots=${r.slots.length}`);
+  chk(`guard: ${label} -> reports the real reason`, r.preferStatus===want,
+      `want=${want} got=${r.preferStatus}`);
+  chk(`guard: ${label} -> keeps the requested day for the reply`,
+      r.preferRequested===pd, String(r.preferRequested));
 }
+
+// ---- "full" and "too soon" must not be confused --------------------------
+// A day whose slots are all inside min_hours_notice is NOT booked up. Saying
+// "fully booked" there asserts something about the calendar we never checked.
+const tooSoonDay = S({ preferDate:'2026-09-08', minHoursNotice:37 });
+chk('valid day, every slot inside notice -> "too_soon", not "full"',
+    tooSoonDay.preferStatus==='too_soon', tooSoonDay.preferStatus);
+const bookedDay = S({ preferDate:'2026-09-08',
+  busy:[{start:'2026-09-08T00:00:00Z', end:'2026-09-09T00:00:00Z'}] });
+chk('valid day, genuinely blocked -> "full", not "too_soon"',
+    bookedDay.preferStatus==='full', bookedDay.preferStatus);
 
 // ---- preferDate valid but the day is FULL --------------------------------
 const fullDay = S({ preferDate:'2026-09-10',

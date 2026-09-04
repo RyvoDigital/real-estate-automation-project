@@ -8,7 +8,14 @@ read them and embed a copy into the workflow at build time.
 |---|---|---|
 | `concierge_system_prompt.txt` | `BuildClaudeRequest` (`SYSTEM_TEMPLATE`) | Placeholders `__AGENT__`, `__AGENCY__`, `__AREAS__` are filled from `client_automations.config` |
 | `slot_engine.js` | `ProposeSlots` (Checkpoint C) | Unit-tested standalone; see the harness in the C1 notes |
-| `available_slots_block.example.txt` | appended to the system prompt per request | Illustrative shape only — the workflow generates the real one from free/busy |
+
+**There is deliberately no example of the `AVAILABLE_SLOTS` block here.** There
+was one, `available_slots_block.example.txt`, and it drifted: by 2026-09-04 it
+had fallen a sentence behind the shipping node, so `tests/prompt_suites.py` was
+measuring a weaker prompt than production sent and attributing the resulting
+failures to the live system. The suite now renders the block out of the
+shipping node via `tests/render_slots_block.py`, and raises rather than falling
+back if it cannot. Do not reintroduce a copy.
 
 **These are inputs to n8n, not the artefact of record.** The committed
 `workflows/*.json` must remain byte-identical to `n8n export:workflow` output —

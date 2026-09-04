@@ -11,7 +11,7 @@ Append to it. An entry earns its place by having cost real time at least once.
 
 ## 1. Tests that pass while testing the wrong thing
 
-**This has now bitten the project eight times in eight different disguises.** It
+**This has now bitten the project nine times in nine different disguises.** It
 is the single most useful thing in this file.
 
 | # | Incident | What reported success | What was actually true |
@@ -24,6 +24,7 @@ is the single most useful thing in this file.
 | 6 | Run logging after the Twilio send (2 Sep 2026) | Execution status `success`, reply delivered to the lead | **No `automation_runs` row was ever written.** A node read `$input` while sitting after an HTTP node, so `client_automation_id` was `undefined`, the insert failed a NOT NULL constraint, and `neverError` swallowed the 4xx |
 | 8 | Keepalive push alert, first verification (3 Sep 2026) | Twin execution `error`, and the only node that throws sits *downstream* of the notify — so the notify "must" have run | **The notify never ran.** An upstream node threw: `neverError` covers non-2xx *responses*, not transport errors, and the twin's host did not resolve. The alert was blind to precisely the failure it exists to catch — a Supabase auto-pause removes the DNS record |
 | 7 | Gate B2's headline proof — four-message conversation, budget and timeline survived an unrelated message (3 Sep 2026) | Green: fields present, `changed=0`, gate passes | **The rule under test was never exercised.** Claude re-states budget/timeline/area from history every turn (0/6 runs returned null), so the fields survived because the *model* re-supplied them, not because the no-backwards rule protected them |
+| 9 | The `AVAILABLE_SLOTS` language suite (4 Sep 2026) | A red result: 1 English-in/Portuguese-out leak in 12, read as a live defect in the shipping Concierge | **The suite was prompting a weaker system than production.** It read the slot block from a hand-maintained `available_slots_block.example.txt`, which had fallen one sentence behind the node — the missing sentence being the "translate weekday and month names" instruction added precisely to stop that leak. The failure belonged to the copy, not to the product |
 
 ### One caught before it shipped
 
@@ -41,6 +42,28 @@ will treat an empty `busy` as "free".
 
 The pattern is becoming predictive rather than only retrospective, which is the
 point of keeping the table.
+
+### #9 runs the pattern backwards, which is why it nearly cost a day
+
+Every other row is a test reporting **success** over a broken thing. #9 is a
+test reporting **failure** over a working one, and the instinct it triggers is
+worse: a red suite invites you to go and change the product. The prompt was
+about to be reinforced against a leak the shipping prompt already handled.
+
+What separated it from a real defect was a habit, not a new idea — before
+acting on the result, print what the test actually sent and diff it against
+what production sends. They differed by one sentence, and that sentence was the
+fix for exactly the failure being reported.
+
+So the rule generalises past its usual direction:
+
+> A test result — green **or** red — is only as trustworthy as the evidence
+> that the test fed the system the same input the real caller feeds it.
+
+The structural fix is the one worth copying: the suite no longer holds a copy
+of the prompt fragment at all. It renders it out of the shipping node
+(`tests/render_slots_block.py`) and **raises** if it cannot, because a fallback
+to a stale copy is the exact failure being designed out.
 
 ### #7 is the subtlest, because the feature worked
 
@@ -136,7 +159,18 @@ that the clever version was never buying anything.
    looked at them. Teardown is the last step, not a step that runs alongside
    inspection — and a throwaway artefact is worth nothing compared to the one
    diagnostic it carries.
-12. **After an HTTP node, `$input` is a response envelope, not your data.** #6's
+12. **A red result is a claim too, and it needs the same provenance check as a
+   green one.** #9 reported a language leak that the shipping prompt did not
+   have, because the suite prompted from a hand-maintained copy that had
+   drifted one sentence behind. The reflex a failure provokes — go and change
+   the product — is more expensive than the one a pass provokes. Before acting
+   on either, print what the test actually sent.
+13. **Never let a test hold its own copy of something the product also holds.**
+   Two copies of a prompt fragment, a schema or a config will diverge, and the
+   test will keep reporting confidently from the stale one. Render it from the
+   shipping artefact, and make the renderer *raise* rather than fall back — a
+   fallback to the stale copy reinstates the defect silently.
+14. **After an HTTP node, `$input` is a response envelope, not your data.** #6's
    node read `$input.first().json` expecting the accumulated item and got
    `{statusCode, headers, body}`. Every field it wanted was `undefined`. When a
    node follows an HTTP call, reference the upstream node explicitly

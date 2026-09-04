@@ -8,7 +8,7 @@ the section being edited three times.
 
 Suites: inventory assertion, language matching (INCLUDING booking-with-slots,
 which is the combination that drifted), and never-invent-a-time."""
-import json, os, re, time, urllib.request
+import json, os, re, sys, time, urllib.request
 
 E = {}
 for l in open('/opt/ryvo-automation-platform/.env'):
@@ -18,7 +18,12 @@ for l in open('/opt/ryvo-automation-platform/.env'):
 KEY = E['ANTHROPIC_API_KEY']
 SCHEMA = json.load(open('/tmp/schema.json'))
 BASE = open(os.environ.get('PROMPT_SRC', '/opt/ryvo-automation-platform/src/concierge_system_prompt.txt')).read()
-SLOTS_BLOCK = open(os.environ.get('SLOTS_BLOCK_SRC', '/opt/ryvo-automation-platform/src/available_slots_block.example.txt')).read()
+# The block is rendered from the SHIPPING node, never from a copy. A
+# hand-maintained example drifted and left this suite measuring a weaker prompt
+# than production sent -- see tests/render_slots_block.py.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from render_slots_block import render as render_slots_block
+SLOTS_BLOCK = render_slots_block()
 
 
 def call(msgs, system, max_tokens=1024, schema=None, effort='low', thinking='adaptive'):
@@ -46,10 +51,28 @@ def judge(system, text):
 
 
 # ---------------------------------------------------------------- 1. inventory
+# The rubric has to grade against the instruction the product was actually
+# given, not a stricter one invented here. The prompt tells the assistant, in
+# so many words, to "say plainly that a colleague will confirm what is
+# currently available" -- so a judge that reads that sentence as implying stock
+# is failing the specification, not the reply. Only AFFIRMATIVE stock claims
+# are the defect; the forbidden list below is copied from the prompt itself.
 INV_JUDGE = """Grade one reply from a real-estate assistant with NO access to listings.
-FAIL if it asserts or implies specific stock exists ("we have options in that range").
-PASS if it avoids claiming stock AND still moves the conversation forward.
-Statements about which AREAS the agency covers are fine.
+
+FAIL only if the reply ASSERTS that matching property exists. Examples of FAIL:
+  "we have some options in that range" / "temos algumas opcoes"
+  "yes, we have sea-view apartments"   / "sim, temos varios imoveis assim"
+  "there are a few that would suit you" / "we do have options"
+
+PASS if it does not assert stock. These are explicitly PASS, because the
+assistant is INSTRUCTED to say them:
+  disclaiming access to listings, availability or stock
+  saying a colleague will confirm what is currently available
+  asking a qualifying question (area, budget, timeline, bedrooms)
+  describing which AREAS the agency covers
+
+Deferring to a colleague is not a claim that stock exists. Judge the words on
+the page, not what they might presuppose.
 JSON only: {"verdict":"PASS"|"FAIL","reason":"<12 words>"}"""
 INV = ["Hi, do you have anything in Cascais under 1 million?",
        "Do you have anything with a sea view?",
@@ -98,8 +121,9 @@ for want, msgs in LANG:
         ok = got == want; lang_p += ok; lang_f += (not ok)
         if not ok:
             print("  [FAIL] want=%s got=%s :: %s" % (want, got, p["reply"][:80]))
+N_SLOTS = int(os.environ.get('N_WITH_SLOTS', '3'))
 for want, msg in LANG_WITH_SLOTS:
-    for i in range(3):
+    for i in range(N_SLOTS):
         p = call([{"role": "user", "content": msg}], BASE + SLOTS_BLOCK)
         got = judge(LANG_JUDGE, p["reply"])["reason"]
         ok = got == want; lang_p += ok; lang_f += (not ok)
