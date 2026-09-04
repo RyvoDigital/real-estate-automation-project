@@ -490,10 +490,73 @@ must show `operator_notified: false` and `email_alert_ok: true`.
 > produces a recovery notice on the next. That is the design working, not noise
 > to suppress.
 
+### Mail authentication — TWO defects found, and the DMARC decision changes (2026-09-04)
+
+Recovery notices landed in **spam in both mailboxes** while failure alerts
+arrived. An alert in a spam folder is not an alert, so this was treated as a
+defect in the channel rather than a cosmetic issue.
+
+**Two DNS faults, both objective, both RFC-level:**
+
+| Record | Found | Consequence |
+|---|---|---|
+| `ryvodigital.com` TXT (SPF) | **two** `v=spf1` records | RFC 7208 §4.5: more than one SPF record is a **PermError**. Not "the first one wins" |
+| `_dmarc.ryvodigital.com` TXT | **two** `v=DMARC1` records | RFC 7489 §6.6.3: multiple records → receivers **discard them all and apply no policy** |
+
+```
+"v=spf1 include:_spf.google.com ~all"
+"v=spf1 include:dc-aa8e722993._spfm.ryvodigital.com ~all"
+
+"v=DMARC1; p=quarantine; adkim=r; aspf=r; rua=mailto:dmarc_rua@onsecureserver.net;"
+"v=DMARC1; p=none; rua=mailto:hello@ryvodigital.com"
+```
+
+**This changes the deferral decision rather than confirming it.** DMARC was
+deferred to avoid imposing a domain-wide policy on senders that had not been
+enumerated. But a `p=quarantine` record **is already published** — from
+`onsecureserver.net`, presumably a registrar default nobody chose. The risk the
+deferral was protecting against is already live; it is simply not being applied
+because the duplicate makes the whole set unevaluable. Deleting one of the two
+does not maintain the status quo — it *activates* whichever survives. Pick
+deliberately, and pick `p=none` first.
+
+DKIM is fine: a single valid `resend._domainkey` record, and
+`send.ryvodigital.com` carries the SES include Resend uses for the return path.
+
+**What the evidence does and does not show.** The API key is sending-only, so
+the delivery-events endpoint returns `401 restricted_api_key` — Resend's
+dashboard is operator-only for this. The decisive attribution is free and lives
+in the mail itself: open a delivered message and a spam one in Gmail, **Show
+original**, and read the `SPF` / `DKIM` / `DMARC` verdict lines. That
+distinguishes authentication from content in one step; nothing inferred from
+this end can.
+
+**The content half was real too, and is fixed.** Four `Ryvo: recovered`
+messages went out in one afternoon, byte-identical apart from a timestamp,
+while the failure alerts — whose subjects varied — arrived normally. Repetition
+and sameness are deliverability inputs, not cosmetics. Three changes:
+
+- **Debounce.** `FAIL_THRESHOLD=2` consecutive failing runs (~20 min) before
+  alerting. A maintenance restart no longer produces a failure-then-recovery
+  pair at all, which removes most of the volume at source.
+- **No unannounced recoveries.** "Recovered" is sent only if the failure was
+  actually announced. Being told a problem ended that you were never told began
+  is noise by definition.
+- **Subjects name the fault.** `Ryvo: active workflow(s) with NO published
+  version: ryvoInboundConc01 (+1 more)` and `Ryvo: recovered after 40m — all 8
+  checks passing`, rather than one repeated string.
+
 ### DMARC — deliberately deferred, not overlooked (2026-09-04)
 
-SPF and DKIM are in place for `ryvodigital.com` via Resend. **DMARC is not, and
-that is a decision rather than an omission.**
+> **Superseded in part by the section above.** The original reasoning — that a
+> DMARC policy is domain-wide and should not be published as a side effect of
+> setting up alerting — still holds and is still right. What changed on
+> 2026-09-04 is the premise: a `p=quarantine` record turned out to be published
+> already, and duplicate records are what is actually breaking evaluation.
+
+SPF and DKIM are in place for `ryvodigital.com` via Resend. **DMARC is not
+being evaluated**, and until 2026-09-04 that was believed to be because no
+record existed.
 
 A DMARC policy is **domain-wide**: it would apply to Google Workspace mail from
 the same domain, not just to alerts. Publishing one as a side effect of setting
