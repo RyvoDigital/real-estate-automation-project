@@ -21,7 +21,45 @@ file records what is actually deployed right now and what tripped us up.
 
 ---
 
-## 0. Phase 1 — Checkpoint C, Gates C1 + C2 complete (2026-09-04)
+## 0. Phase 1 — Checkpoint C complete (2026-09-04)
+
+**The Concierge proposes real times, books them into a real calendar, and does
+not double-book.** 66 nodes. That makes the pitch document's *"booked directly
+into your calendar"* true.
+
+| Gate | What it added | Proof |
+|---|---|---|
+| C1 | Free/busy, working-hours filter, slot selection, stored proposals | Real slots, stable across unrelated messages, honest about *why* a day is unavailable |
+| C2 | Confirmation matching, re-check, event creation, `viewing_booked` | Event created; replay makes exactly one; reschedule and human-request both escalate |
+| C3 | Double-booking prevention | Two leads raced the same slot 0.4s apart — one booked, one blocked by the re-check |
+
+**Two guards, catching different things.** A slot taken *before* the
+confirmation arrives → apologise and re-propose, no escalation. A slot taken
+inside the ~5s window between the pre-call check and the create → no event,
+reply discarded, escalate. Both proven against the real calendar.
+
+**The find of the checkpoint reached a real lead.** Asked about "sabado dia 12"
+while the supplied list covered the 5th and 7th, the Concierge answered *"tenho
+as 14:00 ou as 15:00"* — times nobody supplied. The never-invent probe scored
+**18/18 throughout C1 and C2**, including the run accepted as C2 evidence,
+because every case in it asked about a day the list *covered*. §9.10 is now a
+deterministic guard in `ParseClaude`, not a prompt instruction with a probe
+behind it. See `engineering-lessons.md` instance 11.
+
+**Carried into D:** the five-second race escalates rather than apologising,
+because the model has already written a confirmation before the conflict is
+known — revisit with the per-language handoff notes.
+
+**Test-calendar note:** `Ryvo Test Client Viewings` now holds operator fixture
+events plus Concierge-created bookings on 7 and 10 September. The operator's
+Google UI appears to display **UTC+2** — events described as 09:00–13:00 are
+returned by free/busy as 08:00–12:00 Lisbon. The system is correct with respect
+to what Google returns; confirm the calendar's timezone setting before reading
+the fixture times as authoritative.
+
+---
+
+## 0a. Phase 1 — Checkpoint C, Gates C1 + C2 (2026-09-04)
 
 **The Concierge books viewings into a real calendar.** 66 nodes. C1 proposes
 real times; C2 matches the confirmation, re-checks, creates the Google event,
