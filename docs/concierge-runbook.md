@@ -236,6 +236,16 @@ Note the ordering trap in #1: `RANK` is `{new:0, nurturing:1, contacted:1,
 qualified:2}`. Permitting the stage without ranking it above `qualified` means
 the no-backwards rule silently blocks every booking.
 
+**Suites after C3:** inventory **15/15**, language incl. booking-with-slots
+**30/30**, never-invent **27/27** (9 with no slots, 9 with slots, 9 asking about
+a day the list does not cover), slot engine + confirmation matcher + day-of-month
+**65/65**, never-invent guard **8/8**.
+
+Read 3c's 9/9 carefully: the model declines to invent a time in all nine probe
+runs, yet did invent one in production. The probe measures a rate; the guard in
+`ParseClaude` determines what may be sent. For a rule that must never break,
+only the guard is a control.
+
 ### Gate C3 — it does not double-book (2026-09-04)
 
 Two guards, and they catch different things. Both were proven against the real

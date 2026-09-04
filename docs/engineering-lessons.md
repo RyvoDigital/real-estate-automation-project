@@ -141,6 +141,20 @@ The guard is unit-tested against the exact reply that shipped, because *"the
 bug is gone"* is not evidence that *"the net catches it"* — the defect and its
 guard have to be demonstrated separately.
 
+**And the new probe case is not the control — the guard is.** Suite 3c, added
+to cover exactly this combination, scores **9/9**: asked about a day the list
+does not cover, the model declines to invent a time. The live defect happened
+anyway. So the failure rate is low but not zero, and a suite that passes 9/9 on
+a defect that has *already occurred in production* is a reminder of what a probe
+can and cannot tell you:
+
+> A probe measures how often the model behaves. A guard determines what the
+> system is allowed to send. For a rule that must never break, only the second
+> one is a control.
+
+Suite 3c stays because it will catch a regression that raises the rate. It is
+not why the rule now holds.
+
 ### #9 runs the pattern backwards, which is why it nearly cost a day
 
 Every other row is a test reporting **success** over a broken thing. #9 is a
