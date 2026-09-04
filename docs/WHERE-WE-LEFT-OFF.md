@@ -49,6 +49,25 @@ Three things C1 got wrong before it got them right, all worth knowing:
 
 See `concierge-runbook.md` → *Booking — how Gate C1 proposes times*.
 
+### ⚠️ Read before C2 — the Concierge went down once, and would not have told anyone
+
+Late in C1 the webhook began returning 404 with *"Active version not found for
+workflow"*, with no deployment in the preceding window. Republishing and
+restarting fixed it. But `workflow_published_version` is **empty right now,
+while the service is working** — and `publish:workflow` ran twice today without
+writing to it. The healthy state is in-memory, established by the last restart,
+over an empty table.
+
+**The next restart may take it down again, and nothing would alert.** The check
+is one line and it is operator-only: publish once from the n8n UI, then
+`select count(*) from workflow_published_version`. If the UI writes the row and
+the CLI does not, every CLI deployment since Checkpoint A has left the instance
+one restart from a silent outage. Full evidence in the runbook.
+
+This is also the strongest argument yet for the Checkpoint D email alert being
+first: three separate silent-failure modes now (Supabase pause, keepalive,
+this), and the only reason any of them surfaced was someone happening to look.
+
 **Next: Gate C2 (it books), then C3 (it doesn't double-book).** Block #1 in the
 runbook's "What Checkpoint C must undo" table is still in place — `MergeLeadFields`
 refuses `viewing_booked` and `RANK` has no entry for it.

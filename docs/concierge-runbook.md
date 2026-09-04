@@ -236,6 +236,35 @@ Note the ordering trap in #1: `RANK` is `{new:0, nurturing:1, contacted:1,
 qualified:2}`. Permitting the stage without ranking it above `qualified` means
 the no-backwards rule silently blocks every booking.
 
+### C1 measured results — the suites, and what they actually measured
+
+| Suite | Result | Note |
+|---|---|---|
+| `slot_engine.test.js` | **41/41** | Includes every `preferDate` guard reporting its real reason, and full-vs-too_soon |
+| Language, incl. booking-with-slots | **50/50** | 32 of those carry a slot list (EN ×3 cases, ES ×1, n=8 each) |
+| Never-invent-a-time | **18/18** | 9 with no slots supplied, 9 with |
+| Inventory assertion | see below | |
+
+**The language leak is not real.** A pre-fix run reported 1 English-in/
+Portuguese-out in 12 with a slot list attached, which looked like the B1 defect
+returning. It was not: `prompt_suites.py` read the slot block from a
+hand-maintained copy that had fallen one sentence behind the node — the missing
+sentence being *"Translate weekday and month names; keep the numbers and the
+timezone label exactly as given"*, added for exactly this. Rendered from the
+shipping node, the same cases score 50/50.
+
+**The inventory dip was the judge, not the product.** Two replies were graded
+FAIL for saying *"não tenho acesso direto ao stock, mas um colega da equipa
+confirma o que está disponível"* — which is instruction #1 of the prompt's own
+inventory block, verbatim. The rubric said FAIL on anything that "implies"
+stock; the prompt says to defer to a colleague. The rubric now grades against
+the instruction the product was actually given: affirmative claims (*"we have
+options in that range"*) fail, deferring to a colleague passes.
+
+> Both findings are the same mistake in different clothes: **the test and the
+> product disagreed about what the product had been told to do.** Check that
+> before changing either.
+
 ### Booking — how Gate C1 proposes times (2026-09-04)
 
 **The workflow chooses the slots. The model only phrases them.** This is not a
@@ -318,6 +347,14 @@ first.
 > the config template. The `messages` table is what `LoadHistory` feeds back to
 > Claude, so a divergence there gives the model a false memory of its own last
 > message.
+
+**What C1 has NOT proven.** The test calendar is empty, so every live run
+returned `busy_intervals: 0`. Busy-overlap filtering is covered by
+`slot_engine.test.js` — including a whole day blocked, and the whole window
+blocked — but it has never removed a slot from a *real* Google response,
+because nothing can write to the calendar until C2. C3's conflict test is what
+closes that gap; treat the busy path as unit-tested, not field-tested, until
+then.
 
 **Latency with the calendar call added:** 5.7–6.8s end to end (inbound webhook
 to outbound row), `claude_ms` 4.0–5.2s. The free/busy round trip costs well
@@ -625,6 +662,55 @@ needs revisiting — it was only ever justified with them in place:
       build scaffold — noted as the eventual shape, not a backlog item.
 
 Changing any of this requires `docker compose --env-file ../.env up -d n8n`.
+
+### ⚠️ OPEN RISK — `workflow_published_version` is empty, and the Concierge died once because of it (2026-09-04)
+
+Mid-session, with no deployment in the preceding window, the webhook started
+returning **404** and the n8n log said:
+
+```
+Error in handling webhook request POST /webhook/twilio-inbound:
+Active version not found for workflow with id "ryvoInboundConc01"
+```
+
+`workflow_entity.active` was `t` for both workflows. The webhook path was
+registered. The workflow was simply not answerable. `publish:workflow` on both
+workflows plus `docker restart` brought it back, and it is serving now.
+
+**What the database actually shows, right now, while it is working:**
+
+| Check | Value |
+|---|---|
+| `select count(*) from workflow_published_version` | **0** |
+| Newest row in `workflow_publish_history` | `deactivated`, **2026-09-03 19:13** — nothing since |
+| Newest row in `workflow_history` for the Concierge | **2026-09-03 19:13** |
+| `workflow_entity.nodes` contains today's C1 code | `t` |
+| Unsigned `POST /webhook/twilio-inbound` | `403` |
+
+Read that table again. Every deployment made on 4 September is live in
+`workflow_entity`, and **none of them produced a published version row**. The
+CLI `publish:workflow` ran twice today and wrote nothing to
+`workflow_published_version`. The service currently works on in-memory state
+established by the last restart, over a table that is empty.
+
+**So the healthy state is not durable.** The same 404 can return, and the only
+thing that noticed last time was a test failing. Nothing alerts on it.
+
+Ruled out by experiment: `export:workflow --all --separate` is **not** the
+trigger — `403` before, `403` after, tested directly.
+
+**What to check next, and it is operator-only:** publish the workflow once from
+the **n8n UI**, then re-run `select count(*) from workflow_published_version`.
+If the UI writes the row and the CLI does not, the deploy procedure below is
+wrong for 2.28.3 and every CLI deployment since Checkpoint A has been leaving
+the instance one restart away from a silent outage.
+
+> **Do not treat `403` as proof the deployment is durable.** A 403 proves the
+> webhook path is registered and the signature check ran. It says nothing about
+> whether a published version exists to serve the *next* request. This is rule
+> 7 again — the adjective (`active=true`), the behaviour (`403`) and the
+> underlying record (`workflow_published_version`) disagreed, and only the
+> record was telling the truth.
 
 ### Deploying a workflow from the CLI: import, **publish**, restart
 
