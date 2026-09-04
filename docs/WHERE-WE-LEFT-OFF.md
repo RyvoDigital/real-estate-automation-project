@@ -21,7 +21,40 @@ file records what is actually deployed right now and what tripped us up.
 
 ---
 
-## 0. Phase 1 — Checkpoint C, Gate C1 complete (2026-09-04)
+## 0. Phase 1 — Checkpoint C, Gates C1 + C2 complete (2026-09-04)
+
+**The Concierge books viewings into a real calendar.** 66 nodes. C1 proposes
+real times; C2 matches the confirmation, re-checks, creates the Google event,
+moves the lead to `viewing_booked` and writes `viewing.booked`.
+
+| | |
+|---|---|
+| Confirmation matched by | the **workflow** (`matchConfirmation`, unit-tested). Ambiguity never books |
+| Decided | **before** the Claude call, so the model is told the outcome rather than asked for it |
+| Double-booking guard | a second free/busy scoped to the single slot, immediately before create |
+| Idempotency | a derived Google event id — a replay collides (409) instead of double-booking |
+| Stored | `leads.qualification.booking` (`event_id`, times, zone), `stage=viewing_booked` |
+
+Measured: offer → confirm → created; replay → `already_booked`, one event;
+"posso mudar para sexta?" → escalates; "marcar e falar com uma pessoa" →
+escalates, nothing booked. **Field proof:** after two bookings Google's
+free/busy returned one merged busy interval and the next offer skipped exactly
+those two hours — the calendar itself confirming the events exist at the right
+times and lengths.
+
+**Next: Gate C3 — it doesn't double-book.** Put real events in
+`Ryvo Test Client Viewings` first so the conflict test has something to collide
+with. Note the test calendar now holds Concierge-created events from C2; clear
+them when convenient (ids are in `qualification.booking.event_id` and the
+`viewing.booked` rows).
+
+**Known, unchanged from B3:** the handoff note is a fixed English config string,
+so a Portuguese lead who asks to reschedule gets an English sentence. Accepted
+at B3; worth revisiting when the second alerting channel lands.
+
+---
+
+## 0a. Phase 1 — Checkpoint C, Gate C1 (2026-09-04)
 
 **The Concierge proposes real times.** 54 nodes; `QueryFreeBusy` and
 `ProposeSlots` sit between `LoadHistory` and `BuildClaudeRequest`, so free/busy
@@ -76,7 +109,7 @@ refuses `viewing_booked` and `RANK` has no entry for it.
 
 ---
 
-## 0a. Phase 1 — Checkpoint B complete (2026-09-03)
+## 0b. Phase 1 — Checkpoint B complete (2026-09-03)
 
 The Concierge now answers, learns, and knows when to stop. **52 nodes**, active
 on `POST /webhook/twilio-inbound`; `supabase_keepalive` is 6 nodes, daily 04:00

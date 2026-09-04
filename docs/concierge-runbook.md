@@ -236,6 +236,82 @@ Note the ordering trap in #1: `RANK` is `{new:0, nurturing:1, contacted:1,
 qualified:2}`. Permitting the stage without ranking it above `qualified` means
 the no-backwards rule silently blocks every booking.
 
+### Booking — how Gate C2 creates the event (2026-09-04)
+
+**The confirmation is matched by the workflow, not the model** — same reason as
+C1, raised a level: an event is about to be created in a real agent's calendar,
+and *"which time did they mean"* has to be answerable from stored data.
+`matchConfirmation()` in `src/slot_engine.js` is unit-tested and the bias is
+one-directional: **when in doubt, do not book.** An ambiguous message costs one
+clarifying question; a wrong match puts a real appointment at a time nobody
+agreed to.
+
+It refuses to match on: a weekday, date or **time we never offered** (that is a
+new request, and C1 owns it); a bare "sim" when more than one slot is on the
+table; a weekday with two slots on it; and the word *"segunda"*, which is both
+"Monday" and "the second one" and is not worth guessing during a booking.
+
+**Why the decision happens before the Claude call.** It keeps the booking turn
+at one model call. By the time Claude writes, the event either exists or it does
+not — so it is *told* the outcome rather than asked for it, and cannot confirm a
+booking that failed.
+
+```
+ProposeSlots -> MatchConfirmation -> BuildClaudeRequest -> ... -> DecideEscalation
+   -> IsBookingReady -yes-> RecheckFreeBusy -> ReadRecheck -> IsStillFree
+                                                  -yes-> CreateEvent -> CreatedBooking ┐
+                                                  -no --> BlockedBooking ──────────────┤
+   -no ------------------> SkipBooking ───────────────────────────────────────────────-┘
+                                                                          -> AfterBooking
+```
+
+**Two free/busy calls on a booking turn, deliberately.** The first (C1's, which
+runs every message) makes the *reply* correct. The second is scoped to the
+single slot and runs with nothing between it and the create — that one is the
+double-booking guard, and a re-check that *failed* is never treated as a
+re-check that passed.
+
+**Idempotency (§9.7) is Google's job, not ours.** The event id is derived —
+`'rv' + leadId hex + startUtc digits` — so a replayed confirmation collides on
+Google's side (409 → `duplicate_replay`) instead of creating a second event.
+Google event ids are **base32hex: `[a-v0-9]` only**. The obvious `ryvo` prefix
+is rejected — `y` is past `v` — with `400 Invalid resource id value`.
+
+**A booking that failed is never reported as confirmed.** The model was told,
+before it wrote, that the slot was free. If the create then fails, its reply
+says *"Confirmado!"* about an appointment that does not exist, and the lead
+turns up to an empty office. So `AfterBooking` sets `promisedButFailed`, forces
+an escalation (`booking_failed:<cause>`), and **discards the model's reply** in
+favour of the handoff note. This is why `AfterBooking`, not `DecideEscalation`,
+is the last word on escalation: a create failure is an escalation that the
+model call could not have known about.
+
+| `booking_result` | Meaning |
+|---|---|
+| `not_attempted` | Not a confirmation, or escalation took priority |
+| `created` | Event created; stage → `viewing_booked`, `viewing.booked` written |
+| `duplicate_replay` | Same confirmation twice; exactly one event exists |
+| `already_booked` | Lead already has a viewing; nothing is created |
+| `slot_taken` | The re-check found it gone; apologise and re-propose |
+| `recheck_failed` | Calendar unreadable; escalates rather than booking blind |
+| `failed` | Create rejected; escalates, reply discarded |
+
+**Measured, 2026-09-04.** Offer → confirm → `created`, `stage=viewing_booked`,
+booking stored, `viewing.booked` written once. Replay → `already_booked`, no
+second event. "Posso mudar para sexta?" after booking → escalated. "Quero marcar
+e falar com uma pessoa" → escalated, nothing booked.
+
+**Field proof the events are real and the right length:** after two bookings at
+10:00 and 11:00, Google's free/busy returned **one merged busy interval**, and
+the next offer for that Thursday skipped exactly 10:00 and 11:00, giving 09:00
+and 12:00. That is the calendar itself confirming both events exist at the right
+times with 60-minute durations. Busy filtering is no longer only unit-tested.
+
+> **Clearing a booking.** Set `leads.stage` back to `qualified` and delete
+> `qualification.booking`; the next message then re-offers. Delete the Google
+> event separately — its id is in `qualification.booking.event_id` and in the
+> `viewing.booked` event row. Nothing reconciles the two yet.
+
 ### C1 measured results — the suites, and what they actually measured
 
 | Suite | Result | Note |

@@ -11,7 +11,7 @@ Append to it. An entry earns its place by having cost real time at least once.
 
 ## 1. Tests that pass while testing the wrong thing
 
-**This has now bitten the project nine times in nine different disguises.** It
+**This has now bitten the project ten times in ten different disguises.** It
 is the single most useful thing in this file.
 
 | # | Incident | What reported success | What was actually true |
@@ -25,6 +25,7 @@ is the single most useful thing in this file.
 | 8 | Keepalive push alert, first verification (3 Sep 2026) | Twin execution `error`, and the only node that throws sits *downstream* of the notify — so the notify "must" have run | **The notify never ran.** An upstream node threw: `neverError` covers non-2xx *responses*, not transport errors, and the twin's host did not resolve. The alert was blind to precisely the failure it exists to catch — a Supabase auto-pause removes the DNS record |
 | 7 | Gate B2's headline proof — four-message conversation, budget and timeline survived an unrelated message (3 Sep 2026) | Green: fields present, `changed=0`, gate passes | **The rule under test was never exercised.** Claude re-states budget/timeline/area from history every turn (0/6 runs returned null), so the fields survived because the *model* re-supplied them, not because the no-backwards rule protected them |
 | 9 | The `AVAILABLE_SLOTS` language suite (4 Sep 2026) | A red result: 1 English-in/Portuguese-out leak in 12, read as a live defect in the shipping Concierge | **The suite was prompting a weaker system than production.** It read the slot block from a hand-maintained `available_slots_block.example.txt`, which had fallen one sentence behind the node — the missing sentence being the "translate weekday and month names" instruction added precisely to stop that leak. The failure belonged to the copy, not to the product |
+| 10 | `AfterBooking` deciding whether the event was created, by checking whether its input *looked like* an HTTP response (4 Sep 2026) | Execution succeeded; the persist step then died on a null slot | **A skipped booking was being read as a created one.** `AfterLead` spreads `upsertStatus`/`statusCode` from an earlier HTTP call all the way down the chain, so the "did CreateEvent run?" sniff was true on *every* turn. Fixed by labelling each branch explicitly (`SkipBooking` / `BlockedBooking` / `CreatedBooking`) instead of inferring it |
 
 ### One caught before it shipped
 
@@ -42,6 +43,18 @@ will treat an empty `busy` as "free".
 
 The pattern is becoming predictive rather than only retrospective, which is the
 point of keeping the table.
+
+### #6 happened again, unchanged, three days later
+
+The `viewing.booked` event silently stopped being written at C2. Same mechanism
+exactly: the insert sent a top-level `lead_id`, `events` has no such column,
+PostgREST returned `PGRST204`, and `neverError` turned the 4xx into a success.
+The node ran. The execution was green. No row existed.
+
+Knowing the pattern was not enough to avoid it — what caught it was checking the
+*table* rather than the execution status. So the rule is now mechanical: **any
+node whose whole purpose is to write a row must have its status surfaced**, and
+`PrepRunAI` now carries `viewing_event_status` for exactly this reason.
 
 ### #9 runs the pattern backwards, which is why it nearly cost a day
 
@@ -195,6 +208,36 @@ that the clever version was never buying anything.
    node follows an HTTP call, reference the upstream node explicitly
    (`$('AfterSend')`), and be suspicious of `neverError`: it converts a 4xx
    into a silent success, which is the entire failure mode of this section.
+
+---
+
+## 1b. Never let the model narrate a future you have not secured
+
+Gate C2's first working version told Claude *"the slot is free and is being
+booked now"*, then created the event after the reply was written. The create
+failed on an invalid id, and the lead was sent:
+
+> "Ficou confirmado! A sua visita está marcada para quinta-feira, 10 de
+> setembro, às 10:00."
+
+There was no appointment. This is the worst output the product can produce —
+worse than inventing a time, because the lead *acts on it* and turns up to an
+empty office.
+
+Two fixes, and the second is the one that generalises:
+
+1. **Order the work so the model is told what happened, not what is about to.**
+   The confirmation is matched and the slot re-checked *before* the model call,
+   so by the time Claude writes, the outcome is known. This also keeps the
+   booking turn at one model call.
+2. **Keep a retraction path for the gap you cannot close.** Something can still
+   fail between the decision and the create. So `AfterBooking` detects
+   "promised but failed", **discards the model's reply**, and escalates. A
+   generated message is not committed until the thing it describes is true.
+
+> Any time a prompt contains a promise about the near future — *"is being
+> booked"*, *"will be sent"*, *"has been reserved"* — there must be a path that
+> throws the reply away if the future does not arrive.
 
 ---
 

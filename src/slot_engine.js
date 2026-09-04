@@ -238,3 +238,122 @@ function computeSlots(opts) {
   return { slots: out, preferDate: prefer,
            preferRequested: preferDate || null, preferStatus };
 }
+
+// ============================================================================
+// Checkpoint C2 — does this message confirm one of the slots we offered?
+//
+// The WORKFLOW decides, for the same reason it chose the slots in C1: an event
+// is about to be created, and "which one did they mean" must be answerable from
+// stored data rather than from a model's paraphrase. The model still phrases
+// the outcome -- it is just told the outcome rather than asked for it.
+//
+// Deciding this before the Claude call, rather than after, is what keeps the
+// booking turn to ONE model call: by the time Claude writes, the event either
+// exists or it does not, so it never confirms a booking that failed.
+//
+// The bias is deliberate and one-directional: when in doubt, do NOT book. An
+// ambiguous message costs the lead one clarifying question. A wrong match puts
+// a real appointment in a real agent's calendar at a time nobody agreed to.
+// ============================================================================
+const AFFIRMATIVE = /\b(sim|yes|si|ok|okay|claro|perfeito|perfect|combinado|pode ser|works|great|otimo|vale|de acuerdo)\b/;
+
+// "segunda" is deliberately absent from the ordinals. In Portuguese it is both
+// "the second one" and "Monday", and a booking is not the place to guess.
+const ORDINALS = [
+  { rx: /\b(primeir[oa]|first|primer[oa]|1o|1a|1º|1ª)\b/, idx: 0 },
+  { rx: /\b(terceir[oa]|third|tercer[oa]|3o|3a)\b/, idx: 2 },
+  { rx: /\b(ultim[oa]|last)\b/, idx: -1 },
+];
+
+function matchConfirmation(text, storedSlots, tz, nowISO) {
+  const out = (status, slot, by) => ({ status, slot: slot || null, matchedBy: by || null });
+  const slots = Array.isArray(storedSlots) ? storedSlots : [];
+  if (!slots.length) return out('no_offer');
+  if (!text) return out('none');
+
+  const t = String(text).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  // Describe each offered slot in the client's zone, so every comparison below
+  // is against what the lead was actually shown.
+  const desc = slots.map((s, i) => {
+    const d = DateTime.fromISO(s.startUtc).setZone(s.zone || tz);
+    return { i, slot: s, weekday: d.weekday, date: d.toFormat('yyyy-LL-dd'),
+             day: d.day, month: d.month, hour: d.hour, minute: d.minute };
+  });
+
+  const signals = [];
+  let pool = desc;
+  const narrow = (fn, name) => {
+    const next = pool.filter(fn);
+    if (next.length) { pool = next; signals.push(name); }
+    return next.length;
+  };
+
+  // --- an explicit clock time: "9h", "09:00", "as 10", "10h30" ---------------
+  const hours = new Set();
+  let m;
+  const explicitRx = /\b(\d{1,2})[:h](\d{2})\b|\b(\d{1,2})\s*h\b|\bas\s+(\d{1,2})\b|\bat\s+(\d{1,2})\b/g;
+  while ((m = explicitRx.exec(t)) !== null) {
+    const h = Number(m[1] || m[3] || m[4] || m[5]);
+    if (h >= 0 && h <= 23) hours.add(h);
+  }
+  if (hours.size) {
+    // Same rule as an unoffered weekday, and it matters more here: with a
+    // single slot on offer, "as 14:00 pode ser?" would otherwise fall through
+    // to the affirmative branch and book the 09:00 nobody asked for.
+    if (!desc.some(x => hours.has(x.hour))) return out('none', null, 'time_not_offered');
+    narrow(x => hours.has(x.hour), 'time');
+  }
+
+  // --- a weekday name -------------------------------------------------------
+  const wanted = new Set();
+  for (const [wd, names] of Object.entries(WEEKDAYS)) {
+    if (names.some(n => t.includes(n))) wanted.add(Number(wd));
+  }
+  if (wanted.size) {
+    // A weekday we never offered is a NEW request, not a confirmation. C1's
+    // preferDate path owns that; booking must keep its hands off it.
+    if (!desc.some(x => wanted.has(x.weekday))) return out('none', null, 'weekday_not_offered');
+    narrow(x => wanted.has(x.weekday), 'weekday');
+  }
+
+  // --- "dia 10", or an explicit 10/09 --------------------------------------
+  const dm = t.match(/\b(\d{1,2})[\/\-.](\d{1,2})\b/);
+  if (dm) {
+    const day = Number(dm[1]), mon = Number(dm[2]);
+    if (!desc.some(x => x.day === day && x.month === mon)) return out('none', null, 'date_not_offered');
+    narrow(x => x.day === day && x.month === mon, 'date');
+  } else {
+    const dia = t.match(/\bdia\s+(\d{1,2})\b/);
+    if (dia) {
+      const day = Number(dia[1]);
+      if (!desc.some(x => x.day === day)) return out('none', null, 'date_not_offered');
+      narrow(x => x.day === day, 'day_of_month');
+    }
+  }
+
+  // --- "a primeira", "the last one" ----------------------------------------
+  if (pool.length > 1) {
+    for (const o of ORDINALS) {
+      if (o.rx.test(t)) {
+        const target = o.idx === -1 ? desc[desc.length - 1] : desc[o.idx];
+        if (target && pool.includes(target)) { pool = [target]; signals.push('ordinal'); }
+        break;
+      }
+    }
+  }
+
+  if (signals.length && pool.length === 1) {
+    return out('matched', pool[0].slot, signals.join('+'));
+  }
+  if (signals.length && pool.length > 1) {
+    return out('ambiguous', null, signals.join('+'));
+  }
+
+  // --- a bare "sim" only works when there is nothing to be ambiguous about ---
+  if (AFFIRMATIVE.test(t)) {
+    if (desc.length === 1) return out('matched', desc[0].slot, 'affirmative_single_offer');
+    return out('ambiguous', null, 'affirmative_multiple_offers');
+  }
+  return out('none');
+}

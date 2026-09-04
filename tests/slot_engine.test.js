@@ -122,3 +122,79 @@ chk('freebusy: a GENUINELY free calendar is still ok', readFreeBusy(genuinelyFre
 
 console.log(`\n  engine + freebusy: ${pass}/${pass+fail} passed`);
 if (fail) process.exit(1);
+
+// ============================================================================
+// C2: confirmation matching. The asymmetry here is the whole point -- failing
+// to match costs one clarifying question, matching wrongly books a real agent
+// into a real slot nobody agreed to. Every ambiguous case below must NOT book.
+// ============================================================================
+console.log('\n  -- confirmation matching (C2)');
+const Z = 'Europe/Lisbon';
+const mk = (iso) => ({ startUtc: iso, endUtc: DateTime.fromISO(iso).plus({hours:1}).toUTC().toISO(),
+                       local: DateTime.fromISO(iso).setZone(Z).toISO(), zone: Z });
+// Offered: Thu 10 Sep 09:00, Thu 10 Sep 10:00, Sat 05 Sep 09:00 (Lisbon, +01)
+const OFFER = [mk('2026-09-10T08:00:00Z'), mk('2026-09-10T09:00:00Z'), mk('2026-09-05T08:00:00Z')];
+const C = (txt, offer) => matchConfirmation(txt, offer || OFFER, Z, NOW);
+const hourOf = (s) => DateTime.fromISO(s.startUtc).setZone(Z).toFormat('ccc HH:mm');
+
+const matches = [
+  ['explicit time picks one',            'as 10:00 por favor',        'Thu 10:00'],
+  ['weekday plus time',                  'quinta-feira as 9 entao',   'Thu 09:00'],
+  ['English weekday plus time',          'Thursday at 10 works',      'Thu 10:00'],
+  ['day of month plus time',             'dia 10 as 9 esta otimo',    'Thu 09:00'],
+  ['explicit date narrows to one day',   '05/09 entao',               'Sat 09:00'],
+  ['ordinal first',                      'a primeira opcao',          'Thu 09:00'],
+  ['ordinal last',                       'a ultima',                  'Sat 09:00'],
+];
+for (const [label, txt, want] of matches) {
+  const r = C(txt);
+  const got = r.slot ? hourOf(r.slot) : r.status;
+  chk(`confirm: ${label}`, r.status==='matched' && got===want, `${r.status} -> ${got} (${r.matchedBy})`);
+}
+
+// Ambiguity must never book.
+const ambiguous = [
+  ['weekday alone with two slots that day', 'quinta-feira'],
+  ['a bare hour shared by two slots',       'pode ser 9h'],
+  ['bare yes with three on offer',          'sim, pode ser'],
+  ['bare ok',                               'ok'],
+];
+for (const [label, txt] of ambiguous) {
+  const r = C(txt);
+  chk(`confirm: ${label} -> ambiguous, no booking`, r.status==='ambiguous' && r.slot===null,
+      `${r.status} (${r.matchedBy})`);
+}
+
+// A day we never offered is a NEW request, not a confirmation.
+for (const [label, txt] of [['a weekday not offered','e na terca-feira?'],
+                            ['a date not offered','pode ser 12/09?']]) {
+  const r = C(txt);
+  chk(`confirm: ${label} -> none, C1 owns it`, r.status==='none' && r.slot===null, `${r.status} (${r.matchedBy})`);
+}
+
+// A time we never offered must not snap to the nearest slot, and must not be
+// rescued by the affirmative in the same sentence. With ONE slot on offer this
+// is the difference between asking a question and booking the wrong hour.
+const wrongTime = C('as 14:00 pode ser?');
+chk('confirm: an unoffered TIME is not a confirmation',
+    wrongTime.status==='none' && wrongTime.matchedBy==='time_not_offered',
+    `${wrongTime.status} (${wrongTime.matchedBy})`);
+const wrongTimeSingle = matchConfirmation('as 14:00 pode ser?', [OFFER[0]], Z, NOW);
+chk('confirm: unoffered time + affirmative + a SINGLE offer still does not book',
+    wrongTimeSingle.status==='none',
+    `${wrongTimeSingle.status} (${wrongTimeSingle.matchedBy})`);
+
+// "segunda" is Monday AND "the second one". Never guess during a booking.
+const segunda = C('a segunda');
+chk('confirm: bare "segunda" never books', segunda.status!=='matched', segunda.status);
+
+// A single-slot offer is the only case where a bare yes is safe.
+const one = [OFFER[0]];
+chk('confirm: bare yes books when exactly one slot was offered',
+    C('sim', one).status==='matched' && hourOf(C('sim', one).slot)==='Thu 09:00');
+chk('confirm: no stored offer -> no_offer, never a match',
+    C('sim', []).status==='no_offer');
+chk('confirm: unrelated question is not a confirmation',
+    C('tem estacionamento?').status==='none');
+chk('confirm: accented input is handled (as quinta as 9)',
+    C('quinta-feira às 9').status==='matched');
