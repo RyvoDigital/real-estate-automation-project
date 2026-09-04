@@ -61,7 +61,7 @@ Two questions catch it every time:
 
 ## 1. Tests that pass while testing the wrong thing
 
-**This has now bitten the project twelve times in twelve different disguises.** It
+**This has now bitten the project thirteen times in thirteen different disguises.** It
 is the single most useful thing in this file.
 
 | # | Incident | What reported success | What was actually true |
@@ -78,6 +78,7 @@ is the single most useful thing in this file.
 | 10 | `AfterBooking` deciding whether the event was created, by checking whether its input *looked like* an HTTP response (4 Sep 2026) | Execution succeeded; the persist step then died on a null slot | **A skipped booking was being read as a created one.** `AfterLead` spreads `upsertStatus`/`statusCode` from an earlier HTTP call all the way down the chain, so the "did CreateEvent run?" sniff was true on *every* turn. Fixed by labelling each branch explicitly (`SkipBooking` / `BlockedBooking` / `CreatedBooking`) instead of inferring it |
 | 11 | The never-invent-a-time probe suite, throughout C1 and C2 (4 Sep 2026) | **18/18**, every run, including the run taken as C2's acceptance evidence | **The shipping Concierge was inventing times.** Asked about "sabado dia 12" while the supplied list covered the 5th and the 7th, it replied "tenho as 14:00 ou as 15:00" — two times nobody supplied. Every case in the suite asked about a day the list *covered*, so the one combination that fails was the one combination absent. Found by a sweep that compared the **reply** against the supplied slots; the sweep's own first version checked only the stored slots and passed 12/12 while the reply was wrong |
 | 12 | `LabelRejected`, the node that marks health-check executions (4 Sep 2026) | Node ran, execution `success`, health check green | **Nothing was written.** `operation` was `set`; the node's only valid value is `save`, and an invalid one silently hides `dataToSave` through `displayOptions` — so the node executes, does nothing, and reports success. Caught by querying `execution_metadata` and finding zero rows, not by reading the run |
+| 13 | The keepalive's new email alert, first drill (4 Sep 2026) | Three failure executions, `EmailKeepaliveFailure` ran in every one, node status `success` | **Zero emails were sent.** The credential had its *header name* set to `Ryvo Resend` instead of `Authorization`, so every request was rejected before leaving n8n: `Header name must be a valid HTTP token`. `onError: continueRegularOutput` — added at B3 so a transport error could not kill the workflow — turned each rejection into a green node with a passthrough item. The tell was `executionTime: 17ms`: too fast to have been an HTTP call |
 
 ### One caught before it shipped
 
@@ -116,6 +117,31 @@ artefact to go and look at.
 So the rule is mechanical rather than attentional: **any node whose whole
 purpose is to write a row must have its status surfaced**, and `PrepRunAI` now
 carries `viewing_event_status` for exactly this reason.
+
+### #13: the fix for one failure mode created another
+
+`onError: continueRegularOutput` exists because of #8 — a transport error threw
+and took the alert down with the thing it was alerting about. It works. It also
+converts *"the request was rejected"* into *"here is an item, carry on"*, which
+is indistinguishable from success unless somebody looks at the response.
+
+So the setting is not wrong, it is **incomplete**. It has to be paired:
+
+> Any node whose purpose is to *deliver* something must have its response
+> asserted downstream. `continueRegularOutput` keeps the workflow alive; it
+> does not tell you the delivery happened. Those are different jobs and they
+> need different nodes.
+
+`AfterNotify` already did this for Twilio, which is why the Twilio leg's
+failures have always been visible. The two new email nodes did not, so the
+first thing the new alert channel did was fail silently — the exact
+class of problem it was built to remove.
+
+Both now assert: the keepalive **throws** with the provider's message (it is
+already failing, and a louder failure costs nothing), and the Concierge
+**records** `email_alert_ok` in the run payload without throwing, because the
+lead has already been handed off and the escalation still has to be written.
+One is queryable, which matters more than either being loud.
 
 ### #11 is #4's shape again, and it reached a real lead
 

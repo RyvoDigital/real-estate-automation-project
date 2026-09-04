@@ -1582,7 +1582,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\nconst j = $('AfterNotify').first().json;\nconst ev = $input.first().json;\nconst lu = $('AfterLeadUpdate').first().json;\nconst notifyFailed = !j.notifyOk;\nreturn [{ json: { run: {\n  client_automation_id: j.clientAutomationId,\n  status: notifyFailed ? 'error' : 'success',\n  started_at: j.startedAt,\n  finished_at: new Date().toISOString(),\n  duration_ms: Math.max(0, new Date() - new Date(j.startedAt)),\n  error_type: notifyFailed ? 'escalation_notify_failed' : null,\n  error_message: notifyFailed ? ('operator not reached: ' + j.notifyErrorCode + ' ' + (j.notifyErrorMessage || '')) : null,\n  payload: { checkpoint: 'B3', escalated: true, reasons: j.escalationReasons,\n             handoff_sent: j.handoffOk, operator_notified: j.notifyOk,\n             was_guard_retry: !!j.wasGuardRetry, events_status: ev.statusCode,\n             model: j.modelUsed || null, claude_ms: j.durationMs || null,\n             stage_after: lu.stageAfter, fields_changed: (lu.changed || []).length,\n             lead_update_ok: lu.leadUpdateOk },\n} } }];\n"
+        "jsCode": "\nconst j = $('AfterNotify').first().json;\nconst ev = $input.first().json;\nconst lu = $('AfterLeadUpdate').first().json;\nconst notifyFailed = !j.notifyOk;\nreturn [{ json: { run: {\n  client_automation_id: j.clientAutomationId,\n  status: notifyFailed ? 'error' : 'success',\n  started_at: j.startedAt,\n  finished_at: new Date().toISOString(),\n  duration_ms: Math.max(0, new Date() - new Date(j.startedAt)),\n  error_type: notifyFailed ? 'escalation_notify_failed' : null,\n  error_message: notifyFailed ? ('operator not reached: ' + j.notifyErrorCode + ' ' + (j.notifyErrorMessage || '')) : null,\n  payload: { checkpoint: 'B3', escalated: true, reasons: j.escalationReasons,\n             email_alert_ok: ea ? ea.emailAlertOk : null,\n             email_alert_error: ea ? ea.emailAlertError : null,\n             handoff_sent: j.handoffOk, operator_notified: j.notifyOk,\n             was_guard_retry: !!j.wasGuardRetry, events_status: ev.statusCode,\n             model: j.modelUsed || null, claude_ms: j.durationMs || null,\n             stage_after: lu.stageAfter, fields_changed: (lu.changed || []).length,\n             lead_update_ok: lu.leadUpdateOk },\n} } }];\n"
       },
       "id": "b3-PrepRunEscalated",
       "name": "PrepRunEscalated",
@@ -1956,6 +1956,90 @@
         460
       ],
       "notes": "Labels every REJECTED request in execution_metadata, so the health check's own traffic can be filtered out when reading real traffic. Storage was fixed by pruning; this fixes the noise. Filter: executions with no metadata row where key='source' and value='healthcheck'. NOTE: operation must be 'save' - it is the node's only valid operation, and an invalid value silently hides dataToSave via displayOptions, so the node runs, the execution succeeds, and nothing is written."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "notify-broken",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.notifyOk }}"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d1-IsNotifyBroken",
+      "name": "IsNotifyBroken",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        8600,
+        340
+      ],
+      "notes": "The operator notification and the lead reply ride the SAME Twilio sandbox, so the alert can die with the thing it is alerting about. When it does, the escalation goes out by email instead - carrying the full detail, because knowing that a notification failed is useless without knowing what it said."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ from: \"alerts@ryvodigital.com\", to: [\"manuel.seixasvale@gmail.com\", \"hello@ryvodigital.com\"], subject: 'Ryvo ALERT: escalation notification FAILED - lead needs a human', text: 'A lead was escalated and the WhatsApp notification to the operator FAILED, so this email is the only record.\\n\\n' + 'Lead: ' + ($('AfterHandoff').first().json.from || 'unknown') + '\\n' + 'Reason: ' + ($('AfterHandoff').first().json.escalationReason || 'unknown') + '\\n' + 'At: ' + new Date().toISOString() + '\\n\\n' + 'Twilio status: ' + ($json.notifyStatus || 'no response') + '\\n' + 'Handoff to the lead sent: ' + ($('AfterHandoff').first().json.handoffOk ? 'yes' : 'NO') + '\\n\\n' + 'The Twilio sandbox session expires every 72 hours - that is the most likely cause.' }) }}",
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "d1-EmailNotifyFailure",
+      "name": "EmailNotifyFailure",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        8820,
+        260
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Bum4hS1iTO90RNKs",
+          "name": "Ryvo Resend"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Carries the escalation detail, not just the fact of failure. This is the last line before a lead who asked for a human is left waiting with nobody told."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Same trap as the keepalive: a rejected send returns an item, not an error.\n// This one must NOT throw -- the lead has already been handed off and the\n// escalation still needs recording -- so the outcome is carried forward and\n// written to the run payload, where it can be queried rather than inferred.\nconst res = $input.first().json;\nconst code = res && res.statusCode;\nconst ok = code >= 200 && code < 300;\nreturn [{ json: { ...$('AfterNotify').first().json,\n  emailAlertAttempted: true,\n  emailAlertOk: ok,\n  emailAlertError: ok ? null\n    : ((res && res.error && res.error.message) || (res && res.body && res.body.message)\n       || ('http_' + (code || 'none'))) } }];\n"
+      },
+      "id": "d1-AfterEmailAlert",
+      "name": "AfterEmailAlert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        9040,
+        260
+      ],
+      "notes": "If BOTH the WhatsApp notify and the email failed, a lead asked for a human and nobody was told by any channel. That is the worst state this workflow can reach, so it is recorded explicitly rather than left to be inferred from a green run."
     }
   ],
   "connections": {
@@ -2546,7 +2630,7 @@
       "main": [
         [
           {
-            "node": "WriteEscalationEvents",
+            "node": "IsNotifyBroken",
             "type": "main",
             "index": 0
           }
@@ -2755,6 +2839,46 @@
         [
           {
             "node": "LabelRejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IsNotifyBroken": {
+      "main": [
+        [
+          {
+            "node": "EmailNotifyFailure",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WriteEscalationEvents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EmailNotifyFailure": {
+      "main": [
+        [
+          {
+            "node": "AfterEmailAlert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AfterEmailAlert": {
+      "main": [
+        [
+          {
+            "node": "WriteEscalationEvents",
             "type": "main",
             "index": 0
           }
