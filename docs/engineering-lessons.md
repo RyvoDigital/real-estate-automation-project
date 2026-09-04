@@ -160,11 +160,30 @@ that the clever version was never buying anything.
    inspection — and a throwaway artefact is worth nothing compared to the one
    diagnostic it carries.
 12. **A red result is a claim too, and it needs the same provenance check as a
-   green one.** #9 reported a language leak that the shipping prompt did not
-   have, because the suite prompted from a hand-maintained copy that had
-   drifted one sentence behind. The reflex a failure provokes — go and change
-   the product — is more expensive than the one a pass provokes. Before acting
-   on either, print what the test actually sent.
+   green one.** Three retractions in this project now came from failures, not
+   passes: the language leak that belonged to a stale prompt copy (#9), the
+   inventory "regression" that was the judge grading against a rule the product
+   was never given, and the deploy-durability alarm below.
+
+   Red is the more dangerous direction, and the reason is asymmetric:
+
+   > A green result invites you to **stop**. A red result invites you to
+   > **change the product** — which costs more, and can install a real defect
+   > while removing an imaginary one.
+
+   A passing test that is wrong wastes the coverage you thought you had. A
+   failing test that is wrong spends effort *and* moves working code. So the
+   burden of proof on a failure is higher, not lower. Before acting on one:
+
+   - **Print what the test actually sent**, and diff it against what the real
+     caller sends. Twice now they differed by a single sentence.
+   - **Ask what the product was told to do.** If the reply is executing its
+     instruction verbatim, the disagreement is between the test and the spec —
+     fix that, not the model.
+   - **Alarming conclusions need more evidence, not less.** The deploy alarm
+     was built from a table whose *name* fit the theory; one `grep` of the
+     function that supposedly writes it would have killed the claim before it
+     was written down. Urgency is the moment the bar should go up.
 13. **Never let a test hold its own copy of something the product also holds.**
    Two copies of a prompt fragment, a schema or a config will diverge, and the
    test will keep reporting confidently from the stale one. Render it from the

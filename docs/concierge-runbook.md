@@ -663,54 +663,68 @@ needs revisiting — it was only ever justified with them in place:
 
 Changing any of this requires `docker compose --env-file ../.env up -d n8n`.
 
-### ⚠️ OPEN RISK — `workflow_published_version` is empty, and the Concierge died once because of it (2026-09-04)
+### Deploy durability — settled by experiment (2026-09-04)
 
-Mid-session, with no deployment in the preceding window, the webhook started
-returning **404** and the n8n log said:
+**A completed CLI deploy IS durable across a restart. A routine kernel reboot
+is safe.** This section previously said the opposite; that was wrong, and the
+retraction is kept rather than deleted because the way it was wrong is the
+useful part.
 
+**The table I raised the alarm over is not the one the runtime uses.**
+`workflow_published_version` is empty and stays empty — nothing in this path
+writes to it. The CLI's `publish:workflow` calls
+`WorkflowRepository.publishVersion()`, whose entire effect is:
+
+```js
+return await this.update({ id: workflowId },
+                         { active: true, activeVersionId: versionIdToPublish });
 ```
-Error in handling webhook request POST /webhook/twilio-inbound:
-Active version not found for workflow with id "ryvoInboundConc01"
-```
 
-`workflow_entity.active` was `t` for both workflows. The webhook path was
-registered. The workflow was simply not answerable. `publish:workflow` on both
-workflows plus `docker restart` brought it back, and it is serving now.
+So the field that decides whether a request can be served is
+**`workflow_entity.activeVersionId`**. When it is `NULL`, a request fails with
+*"Active version not found for workflow"* and the webhook returns **404**.
 
-**What the database actually shows, right now, while it is working:**
+**What each CLI step actually does**, measured on the live instance:
 
-| Check | Value |
-|---|---|
-| `select count(*) from workflow_published_version` | **0** |
-| Newest row in `workflow_publish_history` | `deactivated`, **2026-09-03 19:13** — nothing since |
-| Newest row in `workflow_history` for the Concierge | **2026-09-03 19:13** |
-| `workflow_entity.nodes` contains today's C1 code | `t` |
-| Unsigned `POST /webhook/twilio-inbound` | `403` |
+| Step | `active` | `activeVersionId` | HTTP |
+|---|---|---|---|
+| healthy baseline | `t` | set | **403** |
+| `import:workflow` | **`f`** | **`NULL`** | **404** |
+| `publish:workflow` | `t` | = current `versionId` | **403** |
+| `docker restart` | `t` | unchanged | **403** |
+| `update:workflow --active=true` (instead of publish) | `t` | = current `versionId` | **403** |
 
-Read that table again. Every deployment made on 4 September is live in
-`workflow_entity`, and **none of them produced a published version row**. The
-CLI `publish:workflow` ran twice today and wrote nothing to
-`workflow_published_version`. The service currently works on in-memory state
-established by the last restart, over a table that is empty.
+Two things follow:
 
-**So the healthy state is not durable.** The same 404 can return, and the only
-thing that noticed last time was a test failing. Nothing alerts on it.
+1. **`import:workflow` deactivates the workflow and nulls `activeVersionId`.**
+   Every CLI deployment therefore has a real outage window between import and
+   publish. It is seconds, but it is a genuine 404 window — do not import and
+   then go and read something.
+2. **Either `publish:workflow` or `update:workflow --active=true` closes it**,
+   and the result survives `docker restart`. Verified with an explicit restart
+   in the broken state and in the repaired state.
 
-Ruled out by experiment: `export:workflow --all --separate` is **not** the
-trigger — `403` before, `403` after, tested directly.
+#### What is still unexplained
 
-**What to check next, and it is operator-only:** publish the workflow once from
-the **n8n UI**, then re-run `select count(*) from workflow_published_version`.
-If the UI writes the row and the CLI does not, the deploy procedure below is
-wrong for 2.28.3 and every CLI deployment since Checkpoint A has been leaving
-the instance one restart away from a silent outage.
+The Concierge did return 404 mid-session with **no deploy in the preceding
+window**, and republishing fixed it. Every deploy chain run that day ended in
+either `publish:workflow` or `update:workflow --active=true`, and
+`export:workflow` was ruled out by direct experiment (403 before, 403 after).
+So the trigger is not known. What is known is the failure *shape*:
+`activeVersionId` goes `NULL` and every inbound message 404s silently.
 
-> **Do not treat `403` as proof the deployment is durable.** A 403 proves the
-> webhook path is registered and the signature check ran. It says nothing about
-> whether a published version exists to serve the *next* request. This is rule
-> 7 again — the adjective (`active=true`), the behaviour (`403`) and the
-> underlying record (`workflow_published_version`) disagreed, and only the
-> record was telling the truth.
+**Nothing alerts on it.** That is the actionable part, and it belongs with the
+Checkpoint D alerting work: a health check that asserts
+`activeVersionId IS NOT NULL` and that an unsigned POST returns 403 would catch
+this in minutes instead of whenever someone next runs a test.
+
+> **On the retraction.** The original claim — "the healthy state is in-memory
+> over an empty table, the next restart may take it down" — was built by
+> reasoning from a table name that looked right without checking that the code
+> writes to it. One `grep` of `publishVersion` would have settled it before the
+> claim was made, and the claim was alarming enough that it should have had to
+> clear a higher bar, not a lower one. Same lesson as §1 instance 9, applied to
+> my own conclusions rather than to a test's.
 
 ### Deploying a workflow from the CLI: import, **publish**, restart
 

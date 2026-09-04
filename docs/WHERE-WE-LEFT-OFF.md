@@ -49,24 +49,26 @@ Three things C1 got wrong before it got them right, all worth knowing:
 
 See `concierge-runbook.md` → *Booking — how Gate C1 proposes times*.
 
-### ⚠️ Read before C2 — the Concierge went down once, and would not have told anyone
+### Deploy durability — settled, and the alarm was wrong
 
-Late in C1 the webhook began returning 404 with *"Active version not found for
-workflow"*, with no deployment in the preceding window. Republishing and
-restarting fixed it. But `workflow_published_version` is **empty right now,
-while the service is working** — and `publish:workflow` ran twice today without
-writing to it. The healthy state is in-memory, established by the last restart,
-over an empty table.
+An earlier version of this file said a CLI deploy left the instance one restart
+from a silent outage. **That was wrong.** `workflow_published_version` — the
+empty table the claim rested on — is not used by this path at all. The runtime
+reads `workflow_entity.activeVersionId`, and `publish:workflow` sets it.
 
-**The next restart may take it down again, and nothing would alert.** The check
-is one line and it is operator-only: publish once from the n8n UI, then
-`select count(*) from workflow_published_version`. If the UI writes the row and
-the CLI does not, every CLI deployment since Checkpoint A has left the instance
-one restart from a silent outage. Full evidence in the runbook.
+Measured on the live instance: `import:workflow` sets `active=f` and
+`activeVersionId=NULL` (webhook 404s), and either `publish:workflow` or
+`update:workflow --active=true` restores it. **The repaired state survives
+`docker restart`** — tested explicitly. A routine kernel reboot is safe.
 
-This is also the strongest argument yet for the Checkpoint D email alert being
-first: three separate silent-failure modes now (Supabase pause, keepalive,
-this), and the only reason any of them surfaced was someone happening to look.
+Still unexplained: the Concierge did 404 mid-session with no deploy in the
+window. The trigger is unknown; the shape is known (`activeVersionId` goes
+NULL, every message 404s, nothing alerts). That last clause is the real
+finding, and it belongs to the Checkpoint D alert: assert
+`activeVersionId IS NOT NULL` and that an unsigned POST returns 403.
+
+Full evidence and the retraction in `concierge-runbook.md` → *Deploy
+durability*.
 
 **Next: Gate C2 (it books), then C3 (it doesn't double-book).** Block #1 in the
 runbook's "What Checkpoint C must undo" table is still in place — `MergeLeadFields`
