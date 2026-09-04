@@ -7,6 +7,56 @@ be true after the Concierge, n8n and Supabase have all been replaced.
 
 Append to it. An entry earns its place by having cost real time at least once.
 
+If you read only two things here, read **§0** — a generated message that
+promises a future you have not secured — and **rule 13**: documenting a failure
+mode does not control it, checking the artefact does.
+
+---
+
+## 0. Never let a generated message narrate a future you have not secured
+
+**This is the most serious defect found on this project, and it sits first
+because of what it costs rather than how hard it was to find.** Every other
+failure in this file wasted our time. This one reaches the lead, who acts on
+it — and the damage lands on the client's reputation, not ours.
+
+Gate C2's first working version told Claude *"the slot is free and is being
+booked now"*, then created the event after the reply was written. The create
+failed on an invalid id, and the lead was sent:
+
+> "Ficou confirmado! A sua visita está marcada para quinta-feira, 10 de
+> setembro, às 10:00."
+
+There was no appointment. This is the worst output the product can produce —
+worse than inventing a time, because the lead *acts on it* and turns up to an
+empty office.
+
+Two fixes, and the second is the one that generalises:
+
+1. **Order the work so the model is told what happened, not what is about to.**
+   The confirmation is matched and the slot re-checked *before* the model call,
+   so by the time Claude writes, the outcome is known. This also keeps the
+   booking turn at one model call.
+2. **Keep a retraction path for the gap you cannot close.** Something can still
+   fail between the decision and the create. So `AfterBooking` detects
+   "promised but failed", **discards the model's reply**, and escalates. A
+   generated message is not committed until the thing it describes is true.
+
+> **Any time a generated message contains a promise about the near future —
+> *"is being booked"*, *"will be sent"*, *"has been reserved"*, *"I've applied
+> that"* — there must be a path that throws the message away if the future does
+> not arrive.**
+
+The rule is about generated text, not about calendars. It applies to any
+message committed before the thing it describes is true, whoever writes it.
+Two questions catch it every time:
+
+- **What does this message assert, and is it true yet at the moment we send?**
+- **If the step it describes fails after the text exists, what un-sends it?**
+  If the answer is "nothing", the order of operations is wrong.
+
+---
+
 ---
 
 ## 1. Tests that pass while testing the wrong thing
@@ -51,10 +101,19 @@ exactly: the insert sent a top-level `lead_id`, `events` has no such column,
 PostgREST returned `PGRST204`, and `neverError` turned the 4xx into a success.
 The node ran. The execution was green. No row existed.
 
-Knowing the pattern was not enough to avoid it — what caught it was checking the
-*table* rather than the execution status. So the rule is now mechanical: **any
-node whose whole purpose is to write a row must have its status surfaced**, and
-`PrepRunAI` now carries `viewing_event_status` for exactly this reason.
+**Knowing the pattern did not prevent it.** It is written down, it is the most
+cited entry in this file, and it still recurred verbatim in a fresh node three
+days later. That is worth saying plainly, because it is easy to mistake having
+documented a failure mode for having controlled it.
+
+What caught it — both times — was **checking the artefact rather than the
+execution status**: querying the `events` table instead of reading a green
+execution. That habit is the control. The write-up is only what tells you which
+artefact to go and look at.
+
+So the rule is mechanical rather than attentional: **any node whose whole
+purpose is to write a row must have its status surfaced**, and `PrepRunAI` now
+carries `viewing_event_status` for exactly this reason.
 
 ### #9 runs the pattern backwards, which is why it nearly cost a day
 
@@ -197,47 +256,22 @@ that the clever version was never buying anything.
      was built from a table whose *name* fit the theory; one `grep` of the
      function that supposedly writes it would have killed the claim before it
      was written down. Urgency is the moment the bar should go up.
-13. **Never let a test hold its own copy of something the product also holds.**
+13. **Documenting a failure mode does not control it; checking the artefact
+   does.** #6 recurred unchanged three days after being written up as the most
+   cited entry here. Both times it was caught by querying the table, never by
+   reading the execution status. Ask "what row, file or calendar entry should
+   now exist?" and go and look at it — a green run is not evidence that it does.
+14. **Never let a test hold its own copy of something the product also holds.**
    Two copies of a prompt fragment, a schema or a config will diverge, and the
    test will keep reporting confidently from the stale one. Render it from the
    shipping artefact, and make the renderer *raise* rather than fall back — a
    fallback to the stale copy reinstates the defect silently.
-14. **After an HTTP node, `$input` is a response envelope, not your data.** #6's
+15. **After an HTTP node, `$input` is a response envelope, not your data.** #6's
    node read `$input.first().json` expecting the accumulated item and got
    `{statusCode, headers, body}`. Every field it wanted was `undefined`. When a
    node follows an HTTP call, reference the upstream node explicitly
    (`$('AfterSend')`), and be suspicious of `neverError`: it converts a 4xx
    into a silent success, which is the entire failure mode of this section.
-
----
-
-## 1b. Never let the model narrate a future you have not secured
-
-Gate C2's first working version told Claude *"the slot is free and is being
-booked now"*, then created the event after the reply was written. The create
-failed on an invalid id, and the lead was sent:
-
-> "Ficou confirmado! A sua visita está marcada para quinta-feira, 10 de
-> setembro, às 10:00."
-
-There was no appointment. This is the worst output the product can produce —
-worse than inventing a time, because the lead *acts on it* and turns up to an
-empty office.
-
-Two fixes, and the second is the one that generalises:
-
-1. **Order the work so the model is told what happened, not what is about to.**
-   The confirmation is matched and the slot re-checked *before* the model call,
-   so by the time Claude writes, the outcome is known. This also keeps the
-   booking turn at one model call.
-2. **Keep a retraction path for the gap you cannot close.** Something can still
-   fail between the decision and the create. So `AfterBooking` detects
-   "promised but failed", **discards the model's reply**, and escalates. A
-   generated message is not committed until the thing it describes is true.
-
-> Any time a prompt contains a promise about the near future — *"is being
-> booked"*, *"will be sent"*, *"has been reserved"* — there must be a path that
-> throws the reply away if the future does not arrive.
 
 ---
 

@@ -492,6 +492,24 @@ decision in `concierge-runbook.md` §6. Server fully patched and rebooted
 
 ### Checkpoint D — ordering decided 2026-09-03
 
+**Decided 2026-09-04, in order:**
+
+1. **Second alerting channel (email).** Three silent-failure modes have now
+   surfaced only because somebody happened to look: a paused Supabase, the
+   keepalive alert that never fired, and a webhook serving 404s with
+   `activeVersionId` NULL. Two checks go in with it: assert
+   `activeVersionId IS NOT NULL`, and assert an unsigned POST to the webhook
+   returns 403.
+2. **Per-language handoff notes.** `config.handoff_note` becomes a small map
+   keyed by language rather than one English string, so a Portuguese lead
+   asking to reschedule is not answered in English. **It stays a fixed config
+   string — the model must never render it.** It is the one message that has to
+   still work when the model itself has failed, which is precisely when it is
+   sent.
+3. `metrics_daily` rollups, derived from the `events` log rather than
+   incremented in two places.
+4. Non-text media handling, forced-failure drills.
+
 **The email / second alerting channel is the FIRST item in D**, ahead of
 `metrics_daily`, non-text media handling and the forced-failure drills.
 
