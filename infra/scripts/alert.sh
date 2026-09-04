@@ -44,6 +44,10 @@ ryvo_alert() {
   _alert_log "ALERT: ${subject}"
   _alert_log "       ${body//$'\n'/$'\n'       }"
 
+  # ALERT_EMAIL_TO is a comma-separated list, and the list is the point:
+  # a personal mailbox on an unrelated provider survives a ryvodigital.com or
+  # Workspace failure, and the address actually read every day gets attention.
+  # Survivability and attention are different properties; use both.
   local to="${ALERT_EMAIL_TO:-}"
   local from="${ALERT_EMAIL_FROM:-}"
   local key="${RESEND_API_KEY:-}"
@@ -57,7 +61,8 @@ ryvo_alert() {
   local payload http
   payload=$(TO="${to}" FROM="${from}" SUBJ="${subject}" BODY="${body}" python3 -c '
 import json, os
-print(json.dumps({"from": os.environ["FROM"], "to": [os.environ["TO"]],
+recipients = [a.strip() for a in os.environ["TO"].split(",") if a.strip()]
+print(json.dumps({"from": os.environ["FROM"], "to": recipients,
                   "subject": os.environ["SUBJ"], "text": os.environ["BODY"]}))')
 
   http=$(curl -sS -o /tmp/ryvo-alert-resp.$$ -w '%{http_code}' \

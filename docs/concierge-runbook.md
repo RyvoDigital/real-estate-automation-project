@@ -406,6 +406,69 @@ options in that range"*) fail, deferring to a colleague passes.
 > product disagreed about what the product had been told to do.** Check that
 > before changing either.
 
+### Alerting — the channel, and what it deliberately does not depend on (D1)
+
+**The old alarm had one leg on a 72-hour timer.** It pushed over WhatsApp
+through the Twilio *sandbox*, whose session expires every three days — and it
+shared that transport with the escalation path it had to be able to report on.
+One Twilio problem took out both the product and the ability to say so.
+
+The email channel is a plain HTTPS call to Resend from cron on the box, with
+its own credential. It does not route through **Twilio**, **Supabase** or
+**n8n**, because it has to be able to report that any of them is down.
+
+**`ALERT_EMAIL_TO` is a list of two, and both are deliberate:**
+
+| Recipient | Property it provides |
+|---|---|
+| Personal mailbox, unrelated provider | **Survivability** — still arrives if ryvodigital.com, its DNS or Workspace is what broke |
+| `hello@ryvodigital.com` | **Attention** — the address actually read every day |
+
+Those are different properties and one address cannot supply both. **Do not
+consolidate them for tidiness.** A dedicated `alerts@` folder was considered
+and rejected: an unread folder is the same as no alerting.
+
+> **Residual dependency, known and accepted.** Resend sends *from* a verified
+> `ryvodigital.com` address, so a DNS failure on that domain can still stop the
+> send. Recipient independence covers a mailbox or Workspace failure — not a
+> registrar or DNS one. Accepted because DNS lives at the registrar, outside
+> everything this system runs, and is not a failure the platform can cause.
+
+**Who calls it:** `infra/scripts/alert.sh` is the single implementation.
+`healthcheck.sh` and `backup.sh` source it; n8n reaches the same API with the
+same key via its own credential, so there is one transport and several callers.
+
+`ryvo_alert` **logs before it sends**, so a failed send does not also destroy
+the record of what it was trying to report, and it **returns non-zero when
+nothing was delivered**. Callers must treat that as *"nobody has been told"* —
+`healthcheck.sh` exits `2` for exactly that case, distinct from `1` (checks
+failed, alert delivered).
+
+### The health check — what it asserts, and why it runs outside n8n
+
+Cron on the box, **not** an n8n workflow. A check that needs n8n healthy in
+order to report that n8n is unhealthy tells you nothing on the day it matters.
+
+| Check | Catches |
+|---|---|
+| The three containers are running | The obvious one |
+| Every `active` workflow has `activeVersionId` **NOT NULL** | The unexplained 2026-09-04 outage |
+| Unsigned `POST` to the webhook returns **403** | The same outage, from outside |
+| Newest dump under 30h old, and last backup run exited 0 | A backup that silently stopped |
+| Supabase reachable | The free-tier auto-pause |
+
+**Verified by breaking it, not by reasoning about it.** Nulling
+`activeVersionId` and restarting produced two independent FAILs — *no published
+version* and *webhook returned 404, expected 403* — and `publish` + restart
+cleared both. The backup trap was verified against a forced mid-script `set -e`
+abort, the case a hand-placed alert call gets missed.
+
+Alerts fire on the **transition** into failure, then at most every
+`RENOTIFY_HOURS` (default 6) while it stays broken. An alarm that repeats every
+five minutes gets filtered, and a filtered alarm is the same as no alarm. If a
+send fails, the notification timestamp is **not** recorded, so the next run
+tries again rather than sitting out the re-notify window.
+
 ### Booking — how Gate C1 proposes times (2026-09-04)
 
 **The workflow chooses the slots. The model only phrases them.** This is not a
