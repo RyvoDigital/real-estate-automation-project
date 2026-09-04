@@ -246,6 +246,16 @@ runs, yet did invent one in production. The probe measures a rate; the guard in
 `ParseClaude` determines what may be sent. For a rule that must never break,
 only the guard is a control.
 
+> **Settled, do not re-open: the operator's Google UI reads one hour later than
+> the true Lisbon instant.** The `Ryvo Test Client Viewings` calendar is
+> `Europe/Lisbon`; the operator's Google *account display* timezone is Madrid
+> (GMT+02:00). So an event the operator sees as 09:00–13:00 is returned by
+> free/busy as `08:00–12:00 +01:00`, and both are correct. The code reads the
+> instant Google returns and needs no change. When comparing a calendar
+> screenshot against `busy` output or a `local` field, expect the one-hour
+> difference and check the account's display timezone before treating it as a
+> bug.
+
 ### Gate C3 — it does not double-book (2026-09-04)
 
 Two guards, and they catch different things. Both were proven against the real
