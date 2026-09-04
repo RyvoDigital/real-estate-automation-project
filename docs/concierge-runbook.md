@@ -307,6 +307,18 @@ the next offer for that Thursday skipped exactly 10:00 and 11:00, giving 09:00
 and 12:00. That is the calendar itself confirming both events exist at the right
 times with 60-minute durations. Busy filtering is no longer only unit-tested.
 
+**Suites after the C2 prompt change (§9.11):** inventory **15/15**, language
+incl. booking-with-slots **38/38**, never-invent-a-time **18/18**, slot engine +
+confirmation matcher **60/60**. The prompt gained two rules at C2 — a BOOKING
+note is fact rather than a suggestion, and a viewing is never described as
+booked unless one says so; and moving or cancelling a booked viewing is an
+explicit escalation trigger.
+
+**Not yet exercised:** the `duplicate_replay` path. A replayed confirmation
+takes the `already_booked` branch first, because the lead row already carries
+the booking. `duplicate_replay` only fires if Google has the event and the
+database does not — a defensive path, unit-reasoned but not observed.
+
 > **Clearing a booking.** Set `leads.stage` back to `qualified` and delete
 > `qualification.booking`; the next message then re-offers. Delete the Google
 > event separately — its id is in `qualification.booking.event_id` and in the
