@@ -13,7 +13,7 @@ services:
       - "80:80"
       - "443:443"
     environment:
-      - DOMAIN=${DOMAIN}
+      - DOMAIN=${DOMAIN:?DOMAIN is unset. Run compose from the repo root with --env-file .env, or use infra/scripts/compose.sh}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -25,22 +25,34 @@ services:
     image: docker.n8n.io/n8nio/n8n:2.28.3
     restart: unless-stopped
     environment:
-      - N8N_HOST=n8n.${DOMAIN}
+      - N8N_HOST=n8n.${DOMAIN:?DOMAIN is unset. Run compose from the repo root with --env-file .env, or use infra/scripts/compose.sh}
       - N8N_PROTOCOL=https
       - N8N_PORT=5678
-      - WEBHOOK_URL=https://n8n.${DOMAIN}/
+      - WEBHOOK_URL=https://n8n.${DOMAIN:?DOMAIN is unset. Run compose from the repo root with --env-file .env, or use infra/scripts/compose.sh}/
       # n8n sits behind Caddy; trust the single proxy hop for correct client IPs.
       - N8N_PROXY_HOPS=1
-      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:?N8N_ENCRYPTION_KEY is unset - starting without it makes every stored credential undecryptable}
       - DB_TYPE=postgresdb
       - DB_POSTGRESDB_HOST=postgres
       - DB_POSTGRESDB_PORT=5432
       - DB_POSTGRESDB_DATABASE=${N8N_DB_NAME}
       - DB_POSTGRESDB_USER=${N8N_DB_USER}
-      - DB_POSTGRESDB_PASSWORD=${N8N_DB_PASSWORD}
-      - N8N_USER_MANAGEMENT_JWT_SECRET=${N8N_JWT_SECRET}
+      - DB_POSTGRESDB_PASSWORD=${N8N_DB_PASSWORD:?N8N_DB_PASSWORD is unset}
+      - N8N_USER_MANAGEMENT_JWT_SECRET=${N8N_JWT_SECRET:?N8N_JWT_SECRET is unset}
       - GENERIC_TIMEZONE=Europe/Lisbon
       - N8N_DIAGNOSTICS_ENABLED=false
+      # --- Execution retention (Checkpoint D1) ---
+      # The health check POSTs to the real webhook every 10 minutes, which is
+      # ~144 executions/day of pure noise -- 52k/year in the table that holds
+      # actual execution history. Pruning is off by default in this image;
+      # these three names were confirmed against the 2.28.3 config schema
+      # rather than from memory.
+      #
+      # 14 days is chosen to outlive a fortnight's holiday: the point of
+      # keeping executions is being able to diagnose something reported late.
+      - EXECUTIONS_DATA_PRUNE=true
+      - EXECUTIONS_DATA_MAX_AGE=336
+      - EXECUTIONS_DATA_PRUNE_MAX_COUNT=20000
       # --- Twilio inbound webhook signature verification (Phase 1) ---
       # Verifying X-Twilio-Signature needs HMAC-SHA1 over the request, which
       # means two n8n defaults have to be relaxed. Both were measured, not
@@ -62,7 +74,7 @@ services:
       - NODE_FUNCTION_ALLOW_BUILTIN=crypto
       - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
       - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
-      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN:?TWILIO_AUTH_TOKEN is unset - signature verification would reject every inbound message}
       - TWILIO_WHATSAPP_FROM=${TWILIO_WHATSAPP_FROM}
     volumes:
       - n8n_data:/home/node/.n8n
@@ -78,7 +90,7 @@ services:
     environment:
       - POSTGRES_DB=${N8N_DB_NAME}
       - POSTGRES_USER=${N8N_DB_USER}
-      - POSTGRES_PASSWORD=${N8N_DB_PASSWORD}
+      - POSTGRES_PASSWORD=${N8N_DB_PASSWORD:?N8N_DB_PASSWORD is unset}
     volumes:
       # Postgres 18+ images store data in a major-version subdirectory and expect
       # the mount at /var/lib/postgresql (NOT the old .../data path, which the

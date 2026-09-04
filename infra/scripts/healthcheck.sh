@@ -74,7 +74,8 @@ fi
 # workflow ran. 403 is therefore proof of life; 404 is the failure above
 # reaching the outside world; anything else is its own problem.
 CODE="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 \
-        -X POST "${WEBHOOK_URL}" -d 'Body=healthcheck' 2>/dev/null)" || CODE="000"
+        -X POST "${WEBHOOK_URL}" \
+        -d 'Body=ryvo-healthcheck&RyvoHealthcheck=1' 2>/dev/null)" || CODE="000"
 if [[ "${CODE}" == "403" ]]; then
   pass "webhook rejects an unsigned POST with 403 (signature check ran)"
 else

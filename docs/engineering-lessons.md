@@ -61,7 +61,7 @@ Two questions catch it every time:
 
 ## 1. Tests that pass while testing the wrong thing
 
-**This has now bitten the project eleven times in eleven different disguises.** It
+**This has now bitten the project twelve times in twelve different disguises.** It
 is the single most useful thing in this file.
 
 | # | Incident | What reported success | What was actually true |
@@ -77,6 +77,7 @@ is the single most useful thing in this file.
 | 9 | The `AVAILABLE_SLOTS` language suite (4 Sep 2026) | A red result: 1 English-in/Portuguese-out leak in 12, read as a live defect in the shipping Concierge | **The suite was prompting a weaker system than production.** It read the slot block from a hand-maintained `available_slots_block.example.txt`, which had fallen one sentence behind the node — the missing sentence being the "translate weekday and month names" instruction added precisely to stop that leak. The failure belonged to the copy, not to the product |
 | 10 | `AfterBooking` deciding whether the event was created, by checking whether its input *looked like* an HTTP response (4 Sep 2026) | Execution succeeded; the persist step then died on a null slot | **A skipped booking was being read as a created one.** `AfterLead` spreads `upsertStatus`/`statusCode` from an earlier HTTP call all the way down the chain, so the "did CreateEvent run?" sniff was true on *every* turn. Fixed by labelling each branch explicitly (`SkipBooking` / `BlockedBooking` / `CreatedBooking`) instead of inferring it |
 | 11 | The never-invent-a-time probe suite, throughout C1 and C2 (4 Sep 2026) | **18/18**, every run, including the run taken as C2's acceptance evidence | **The shipping Concierge was inventing times.** Asked about "sabado dia 12" while the supplied list covered the 5th and the 7th, it replied "tenho as 14:00 ou as 15:00" — two times nobody supplied. Every case in the suite asked about a day the list *covered*, so the one combination that fails was the one combination absent. Found by a sweep that compared the **reply** against the supplied slots; the sweep's own first version checked only the stored slots and passed 12/12 while the reply was wrong |
+| 12 | `LabelRejected`, the node that marks health-check executions (4 Sep 2026) | Node ran, execution `success`, health check green | **Nothing was written.** `operation` was `set`; the node's only valid value is `save`, and an invalid one silently hides `dataToSave` through `displayOptions` — so the node executes, does nothing, and reports success. Caught by querying `execution_metadata` and finding zero rows, not by reading the run |
 
 ### One caught before it shipped
 
@@ -312,6 +313,46 @@ that the clever version was never buying anything.
    node follows an HTTP call, reference the upstream node explicitly
    (`$('AfterSend')`), and be suspicious of `neverError`: it converts a 4xx
    into a silent success, which is the entire failure mode of this section.
+
+---
+
+## 1c. A wrong invocation that produces a valid-looking config
+
+`cd infra && docker compose up -d` is the natural thing to type and it took the
+public endpoint down for several minutes on 2026-09-04.
+
+Compose resolves `${VAR}` from a `.env` sitting **next to the compose file**.
+This project's `.env` is at the repo root, so run from `infra/` every variable
+became an empty string. The result was not an error — it was a *valid* config
+for a host called `n8n.`, which Caddy correctly refused a certificate for and
+then restart-looped on.
+
+Three things made it worse than it needed to be:
+
+- **The correct invocation was nowhere in the docs.** It had been typed
+  correctly once, at provisioning, and never written down. An invariant that
+  lives only in someone's shell history is not an invariant.
+- **Compose warned, and the warning was truncated away.** It prints
+  `WARN The "DOMAIN" variable is not set. Defaulting to a blank string.` — and
+  the command piped through `| tail -4` to keep the output tidy. Rule 8 again,
+  self-inflicted: *a warning you have not yet been burned by is invisible*, and
+  trimming output is an excellent way to guarantee it stays that way.
+- **An empty substitution is silent by default.** Compose is happy to build a
+  config from blanks.
+
+The fix is two layers, because documentation alone would have failed the same
+way it already had:
+
+1. `infra/scripts/compose.sh` — always passes `--env-file`, and is the only
+   supported way to run the stack.
+2. `${DOMAIN:?...}` in the compose file itself, so the wrong invocation **fails
+   immediately with an instruction** instead of producing a plausible wrong
+   config. Applied to `N8N_ENCRYPTION_KEY` too, where an empty value would make
+   every stored credential undecryptable — a far quieter and worse outcome than
+   a restart loop.
+
+> Prefer a config that refuses to start over one that starts wrong. A crash
+> loop is a bad afternoon; a silently-empty encryption key is a bad quarter.
 
 ---
 
