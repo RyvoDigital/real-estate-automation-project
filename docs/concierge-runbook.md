@@ -236,6 +236,39 @@ Note the ordering trap in #1: `RANK` is `{new:0, nurturing:1, contacted:1,
 qualified:2}`. Permitting the stage without ranking it above `qualified` means
 the no-backwards rule silently blocks every booking.
 
+### Gate C3 — it does not double-book (2026-09-04)
+
+Two guards, and they catch different things. Both were proven against the real
+`Ryvo Test Client Viewings` calendar, not fixtures.
+
+| Case | Guard | Outcome |
+|---|---|---|
+| Slot taken **before** the confirmation arrives | Guard 1, pre-call (`bookingIntent='taken'`) | Apologise and re-propose. **No escalation.** |
+| Slot taken **inside the ~5s window** between the pre-call check and the create | Guard 2, `RecheckFreeBusy` | No event. Reply discarded, lead escalated |
+
+**The race was run for real.** Two leads confirmed the same slot 0.4s apart.
+Both passed the pre-call check — the slot was genuinely free in both snapshots.
+One created the event; the other's execution ran
+`RecheckFreeBusy → ReadRecheck → IsStillFree(false) → BlockedBooking` with
+`slot_taken_since_offer`, and its already-written *"Confirmado!"* was thrown
+away in favour of the handoff note. **One `viewing.booked` row, one calendar
+event, one lead holding the slot.**
+
+**Deviation from the spec, deliberate.** §9.6 asks for "apology and
+re-proposal" when a slot is taken between proposal and confirmation. That is
+what happens on the common path (guard 1). In the five-second race, the model
+has *already written* a confirmation before the conflict is known, so its reply
+cannot be reused — and composing an apology deterministically runs into the
+same language problem as the handoff note. The race therefore escalates. It is
+rare by construction (two leads confirming the same slot within five seconds),
+and a human being told "two leads just took the same slot" is a reasonable
+outcome. Revisit alongside the per-language handoff notes in Checkpoint D.
+
+**Sweep against the real calendar:** 20/20 offered slots across five requested
+days had no overlap with any busy interval, sat inside 09:00–19:00, and fell on
+a working day — checked against the *same execution's* free/busy data, not a
+separately fetched one.
+
 ### Booking — how Gate C2 creates the event (2026-09-04)
 
 **The confirmation is matched by the workflow, not the model** — same reason as

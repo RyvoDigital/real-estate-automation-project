@@ -67,6 +67,21 @@ function extractPreferredDate(text, tz, nowISO) {
   if (/\b(amanha|tomorrow|manana)\b/.test(t)) {
     return now.plus({ days: 1 }).toFormat('yyyy-LL-dd');
   }
+  // "dia 12", "no dia 12 de setembro". Without this, "sabado dia 12" matched
+  // only the weekday and resolved to the NEXT Saturday -- so a request for the
+  // 12th was answered with slots for the 5th, and the model then invented times
+  // for the day it had been asked about. Checked before the weekday branch for
+  // exactly that reason.
+  const dia = t.match(/\bdia\s+(\d{1,2})\b/);
+  if (dia) {
+    const day = Number(dia[1]);
+    for (let i = 0; i < 400; i++) {
+      const d = now.plus({ days: i });
+      if (d.day === day) return d.toFormat('yyyy-LL-dd');
+    }
+    return null;
+  }
+
   // Explicit dd/mm or dd-mm, year optional.
   const m = t.match(/\b(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{2,4}))?\b/);
   if (m) {

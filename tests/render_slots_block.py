@@ -27,20 +27,29 @@ DEFAULT_LINES = ["Tuesday 8 September 2026 at 10:00 Lisbon time",
 
 
 def render(slot_lines=None, prefer_requested=None, prefer_status='none',
-           min_hours_notice=24):
+           min_hours_notice=24, booking_intent='none', booking_slot=None,
+           existing_booking=None):
     nodes = json.load(open(WF))['nodes']
     js = next(n for n in nodes if n['name'] == 'BuildClaudeRequest')['parameters']['jsCode']
     i = js.index(START)
     frag = js[i:js.index(END, i)]
 
+    # The node reads `mc` (the MatchConfirmation passthrough) as well as `sl`;
+    # BuildClaudeRequest aliases them, so the harness does the same. Luxon is
+    # required because the BOOKING note formats a slot.
     sl = {'slotLines': DEFAULT_LINES if slot_lines is None else slot_lines,
-          'preferRequested': prefer_requested, 'preferStatus': prefer_status}
-    script = ("let system = '';\n"
+          'preferRequested': prefer_requested, 'preferStatus': prefer_status,
+          'bookingIntent': booking_intent, 'bookingSlot': booking_slot,
+          'existingBooking': existing_booking}
+    script = ("const { DateTime } = require('luxon');\n"
+              "let system = '';\n"
               "const cfg = { min_hours_notice: %d };\n"
               "const sl = JSON.parse(process.env.SL);\n"
+              "const mc = sl;\n"
               "%s\n"
               "process.stdout.write(system);" % (min_hours_notice, frag))
     out = subprocess.run(['docker', 'exec', '-i', '-e', 'SL=' + json.dumps(sl),
+                          '-e', 'NODE_PATH=/usr/local/lib/node_modules/n8n/node_modules',
                           CONTAINER, 'node', '-e', script],
                          capture_output=True)
     if out.returncode != 0:

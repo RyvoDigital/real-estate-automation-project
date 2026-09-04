@@ -61,7 +61,7 @@ Two questions catch it every time:
 
 ## 1. Tests that pass while testing the wrong thing
 
-**This has now bitten the project ten times in ten different disguises.** It
+**This has now bitten the project eleven times in eleven different disguises.** It
 is the single most useful thing in this file.
 
 | # | Incident | What reported success | What was actually true |
@@ -76,6 +76,7 @@ is the single most useful thing in this file.
 | 7 | Gate B2's headline proof — four-message conversation, budget and timeline survived an unrelated message (3 Sep 2026) | Green: fields present, `changed=0`, gate passes | **The rule under test was never exercised.** Claude re-states budget/timeline/area from history every turn (0/6 runs returned null), so the fields survived because the *model* re-supplied them, not because the no-backwards rule protected them |
 | 9 | The `AVAILABLE_SLOTS` language suite (4 Sep 2026) | A red result: 1 English-in/Portuguese-out leak in 12, read as a live defect in the shipping Concierge | **The suite was prompting a weaker system than production.** It read the slot block from a hand-maintained `available_slots_block.example.txt`, which had fallen one sentence behind the node — the missing sentence being the "translate weekday and month names" instruction added precisely to stop that leak. The failure belonged to the copy, not to the product |
 | 10 | `AfterBooking` deciding whether the event was created, by checking whether its input *looked like* an HTTP response (4 Sep 2026) | Execution succeeded; the persist step then died on a null slot | **A skipped booking was being read as a created one.** `AfterLead` spreads `upsertStatus`/`statusCode` from an earlier HTTP call all the way down the chain, so the "did CreateEvent run?" sniff was true on *every* turn. Fixed by labelling each branch explicitly (`SkipBooking` / `BlockedBooking` / `CreatedBooking`) instead of inferring it |
+| 11 | The never-invent-a-time probe suite, throughout C1 and C2 (4 Sep 2026) | **18/18**, every run, including the run taken as C2's acceptance evidence | **The shipping Concierge was inventing times.** Asked about "sabado dia 12" while the supplied list covered the 5th and the 7th, it replied "tenho as 14:00 ou as 15:00" — two times nobody supplied. Every case in the suite asked about a day the list *covered*, so the one combination that fails was the one combination absent. Found by a sweep that compared the **reply** against the supplied slots; the sweep's own first version checked only the stored slots and passed 12/12 while the reply was wrong |
 
 ### One caught before it shipped
 
@@ -114,6 +115,31 @@ artefact to go and look at.
 So the rule is mechanical rather than attentional: **any node whose whole
 purpose is to write a row must have its status surfaced**, and `PrepRunAI` now
 carries `viewing_event_status` for exactly this reason.
+
+### #11 is #4's shape again, and it reached a real lead
+
+§4 says two green suites can share a blind spot. #11 is the same thing inside a
+*single* suite: every case asked about a day the slot list covered, so "what if
+the lead asks about a day that is not on the list" belonged to no case at all.
+The suite was not weak — it was complete over the wrong space.
+
+The tell was available and unread: **18/18, every run, for two gates.** A probe
+that never varies is measuring one point, not a property.
+
+Two things followed, and only one of them is a test:
+
+- The root cause was a parser gap — `extractPreferredDate` had no "dia 12", so
+  a request for the 12th resolved to the next Saturday and the model was handed
+  slots for a day it had not been asked about. It invented the rest.
+- **§9.10 is now a deterministic guard**, not a prompt instruction with a probe
+  behind it: `ParseClaude` rejects any reply naming a time absent from the
+  supplied list, and routes into the existing guard-retry. This is the standing
+  ruling applied — when prompt wording cannot hold a line reliably, replace it
+  with a check.
+
+The guard is unit-tested against the exact reply that shipped, because *"the
+bug is gone"* is not evidence that *"the net catches it"* — the defect and its
+guard have to be demonstrated separately.
 
 ### #9 runs the pattern backwards, which is why it nearly cost a day
 

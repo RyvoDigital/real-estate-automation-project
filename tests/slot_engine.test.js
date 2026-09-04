@@ -198,3 +198,17 @@ chk('confirm: unrelated question is not a confirmation',
     C('tem estacionamento?').status==='none');
 chk('confirm: accented input is handled (as quinta as 9)',
     C('quinta-feira às 9').status==='matched');
+
+// ---- "dia N": a day-of-month must beat a bare weekday ---------------------
+// "sabado dia 12" used to resolve to the NEXT Saturday (the 5th), so the lead
+// was offered slots for a different day than the one they named -- and the
+// model then invented times for the day it had been asked about.
+console.log('\n  -- day-of-month extraction');
+const EX = (txt) => extractPreferredDate(txt, 'Europe/Lisbon', NOW);   // NOW = Mon 7 Sep
+chk('dia: "sabado dia 12" -> the 12th, not the next Saturday',
+    EX('e no sabado dia 12?')==='2026-09-12', String(EX('e no sabado dia 12?')));
+chk('dia: "no dia 9" -> the 9th', EX('pode ser no dia 9?')==='2026-09-09', String(EX('pode ser no dia 9?')));
+chk('dia: rolls into next month when the day has passed',
+    EX('dia 3 entao')==='2026-10-03', String(EX('dia 3 entao')));
+chk('dia: a bare weekday still works', EX('na quinta-feira')==='2026-09-10', String(EX('na quinta-feira')));
+chk('dia: an explicit date still wins', EX('12/09')==='2026-09-12', String(EX('12/09')));

@@ -6,6 +6,13 @@
 | `prompt_suites.py` | `src/concierge_system_prompt.txt` — inventory assertion, language matching **including booking-with-slots**, never-invent-a-time | On the server: `python3 tests/prompt_suites.py` (reads `.env`). `N_WITH_SLOTS=8` raises the sample on the booking-with-slots language cases |
 | `render_slots_block.py` | Not a test — renders the `AVAILABLE_SLOTS` block **out of the shipping node** for the two suites above | Imported by `prompt_suites.py`; run directly to eyeball the block |
 
+**§9.10 is now a deterministic guard, not only a probe.** `ParseClaude` and
+`ParseGuardRetry` reject any reply naming a time the workflow did not supply,
+routing into the existing guard-retry and escalating if the retry also fails.
+The probe suite scored 18/18 while the shipping Concierge invented times,
+because every case in it asked about a day the slot list covered — suite 3c
+now covers the day it does not.
+
 **Run `prompt_suites.py` after any prompt change.** A prompt edit has now had an
 effect outside the section being edited three times — Portuguese examples
 changing reply language at B1, and an English slot list doing the same at C1.

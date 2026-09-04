@@ -144,6 +144,16 @@ BOOKING_MSGS = ["Posso visitar na quinta-feira?",
                 "Quero marcar uma visita",
                 "Can I come see it this week?"]
 
+# The case this suite did not own until 2026-09-04: the lead asks about a day
+# that is NOT in the supplied list. Every case above asks about a day the list
+# covers, so the suite scored 18/18 while the shipping Concierge answered
+# "no sabado dia 12 tenho as 14:00 ou as 15:00" -- two times nobody supplied.
+# Same shape as the booking-with-slots language gap: a suite is only evidence
+# about the combinations it actually contains.
+OFF_LIST_MSGS = ["Posso visitar no sabado dia 12?",
+                 "E na sexta-feira dia 11 de manha?",
+                 "Can I come on Sunday instead?"]
+
 print()
 print("=" * 74); print("SUITE 3: never emits a time the workflow did not supply (§9.10)")
 print("=" * 74)
@@ -168,6 +178,17 @@ for m in BOOKING_MSGS:
         print("     [%s] %s :: %s" % ("pass" if ok else "FAIL", m[:26], p["reply"][:76]))
         if bad: print("            NOT on the supplied list: %s" % sorted(bad))
         elif not found: print("            named no time despite slots being available")
+print("  -- 3c. the lead asks about a day the list does NOT cover")
+for m in OFF_LIST_MSGS:
+    for i in range(3):
+        p = call([{"role": "user", "content": m}], WITH_SLOTS)
+        found = set("%d:%s" % (int(a), b) for a, b, c, d in TIME_RE.findall(p["reply"]) if a)
+        bad = found - {"10:00", "15:00", "11:00"}
+        bad = {t for t in bad if t not in {"10:00", "15:00", "11:00"}}
+        ok = not bad
+        no_p += ok; no_f += (not ok)
+        print("     [%s] %s :: %s" % ("pass" if ok else "FAIL", m[:26], p["reply"][:76]))
+        if bad: print("            INVENTED, not on the supplied list: %s" % sorted(bad))
 print("  never-invent: %d/%d" % (no_p, no_p + no_f))
 
 print()
