@@ -444,6 +444,70 @@ nothing was delivered**. Callers must treat that as *"nobody has been told"* —
 `healthcheck.sh` exits `2` for exactly that case, distinct from `1` (checks
 failed, alert delivered).
 
+### Exercising the alert channel without breaking anything real
+
+**An alert channel nobody exercises is the same class of problem as an untested
+restore script.** It has three legs that fail independently, and a green light
+on one says nothing about the others:
+
+| Leg | Fails when | Symptom |
+|---|---|---|
+| **API key** | Revoked, rotated, or wrong header | `401`, or `Header name must be a valid HTTP token` |
+| **Sender domain** | DNS/verification lapses at Resend | `403` / domain-not-verified |
+| **Recipients** | A typo, or a mailbox that starts bouncing | `422 Invalid to field`, or a silent non-delivery |
+
+**Test 1 — the shell leg, safe to run any time.** Sends one real email and
+touches nothing else:
+
+```bash
+cd /opt/ryvo-automation-platform && set -a && . ./.env && set +a
+. infra/scripts/alert.sh
+ryvo_alert "Ryvo: channel test" "Nothing is wrong. Testing the alert path."
+```
+
+`ryvo_alert` returns 0 only if the provider accepted it, and prints the HTTP
+status either way. **Acceptance is not delivery** — confirm both inboxes by
+eye. That is the only evidence that is not inferred.
+
+**Test 2 — the n8n leg**, which uses a different credential and therefore fails
+independently. Do NOT test it by breaking Supabase. Point the keepalive's
+`PingSupabase` at an unresolvable host, set its trigger to a single upcoming
+minute (`<M> * * * *`, not `* * * * *` — that produced three alerts in ninety
+seconds), import, publish, restart, wait, then restore. Confirm from the
+execution, not the status:
+
+```sql
+-- EmailKeepaliveFailure must show statusCode 200 and a Resend id.
+-- An executionTime near 17ms means no HTTP call happened at all.
+```
+
+**Test 3 — the escalation fallback.** Set `client_automations.config.escalate_to`
+to `+000000000000`, send a message that escalates, restore. The run payload
+must show `operator_notified: false` and `email_alert_ok: true`.
+
+> Expect a "Ryvo: recovered" email after any maintenance that restarts n8n —
+> the health check alerts on transitions, so a restart that fails one cycle
+> produces a recovery notice on the next. That is the design working, not noise
+> to suppress.
+
+### DMARC — deliberately deferred, not overlooked (2026-09-04)
+
+SPF and DKIM are in place for `ryvodigital.com` via Resend. **DMARC is not, and
+that is a decision rather than an omission.**
+
+A DMARC policy is **domain-wide**: it would apply to Google Workspace mail from
+the same domain, not just to alerts. Publishing one as a side effect of setting
+up alerting would impose a policy on senders that have not been enumerated —
+and the failure mode of getting it wrong is legitimate mail being rejected,
+which is worse than the problem it solves at this volume.
+
+**Do it properly before real client volume**, in the usual order: publish
+`p=none` with an `rua` reporting address, read the aggregate reports for a few
+weeks until every legitimate sender is accounted for, then tighten to
+`quarantine` and only then `reject`. Deliverability of alerts to the two
+configured recipients is unaffected in the meantime — both were confirmed by
+eye on 2026-09-04.
+
 ### The health check — what it asserts, and why it runs outside n8n
 
 Cron on the box, **not** an n8n workflow. A check that needs n8n healthy in

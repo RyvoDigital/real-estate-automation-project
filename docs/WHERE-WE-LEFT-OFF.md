@@ -21,7 +21,45 @@ file records what is actually deployed right now and what tripped us up.
 
 ---
 
-## 0. Phase 1 — Checkpoint C complete (2026-09-04)
+## 0. Phase 1 — Checkpoint D1 complete: email alerting (2026-09-04)
+
+**The alarm no longer shares a fate with the thing it watches.** The old push
+rode the Twilio *sandbox*, whose session expires every 72 hours, and shared that
+transport with the escalation path it was meant to report on.
+
+| | |
+|---|---|
+| Transport | Resend HTTPS, own credential. Not Twilio, not Supabase, not n8n |
+| Recipients | personal Gmail (**survivability**) + hello@ (**attention**) — different properties, do not consolidate |
+| Health check | cron every 10 min, **outside** n8n, 7 checks |
+| Callers | `healthcheck.sh`, `backup.sh`, keepalive failure, escalation-notify failure |
+
+**All four legs proven by breaking them, not by reasoning:**
+
+- Nulled `activeVersionId` → two independent FAILs, alert raised, `publish` cleared it.
+- Forced a mid-script `set -e` abort in `backup.sh` → EXIT trap fired, status written.
+- Pointed the keepalive at an unresolvable host → email accepted (200 + Resend id, 407ms).
+- Forced `escalate_to` invalid → `operator_notified: false`, `email_alert_ok: true`, lead still got the handoff.
+
+**The find:** the first drill produced three failure executions, the email node
+ran in all three, every node reported `success`, and **zero emails were sent** —
+the credential had its header *name* set to `Ryvo Resend` instead of
+`Authorization`. It was invisible because `onError: continueRegularOutput`,
+added at B3 so a transport error could not kill the workflow, turns "request
+rejected" into "here is an item, carry on". The fix for one failure created the
+conditions for the next. Every delivering node now asserts its response.
+See `engineering-lessons.md` instance 13.
+
+**Deferred deliberately:** DMARC. It is domain-wide and would apply to Workspace
+mail too; do it properly (`p=none` → read reports → tighten) before client
+volume, not as a side effect of alerting.
+
+**Next: D2 — per-language handoff notes.** Fixed config strings keyed by
+language, never model-rendered; the five-second-race apology rides along.
+
+---
+
+## 0a. Phase 1 — Checkpoint C complete (2026-09-04)
 
 **The Concierge proposes real times, books them into a real calendar, and does
 not double-book.** 66 nodes. That makes the pitch document's *"booked directly

@@ -323,17 +323,32 @@ that the clever version was never buying anything.
      was built from a table whose *name* fit the theory; one `grep` of the
      function that supposedly writes it would have killed the claim before it
      was written down. Urgency is the moment the bar should go up.
-13. **Documenting a failure mode does not control it; checking the artefact
+13. **A string-replace patch that half-applies is worse than one that fails.**
+   Twice on 2026-09-04 an edit script made one of two related changes — the
+   anchor for the declaration did not match, the anchor for the *use* did — and
+   shipped `ea is not defined`, breaking every escalation until the next
+   message. Two-line indent differences are enough to do it. **Assert every
+   replacement** (`assert old in s`), and syntax-check the result before
+   deploying: both incidents would have been caught by the `node --check` pass
+   that already existed and was skipped because the edit "was small".
+14. **Documenting a failure mode does not control it; checking the artefact
    does.** #6 recurred unchanged three days after being written up as the most
    cited entry here. Both times it was caught by querying the table, never by
    reading the execution status. Ask "what row, file or calendar entry should
    now exist?" and go and look at it — a green run is not evidence that it does.
-14. **Never let a test hold its own copy of something the product also holds.**
+15. **Never let a test hold its own copy of something the product also holds.**
    Two copies of a prompt fragment, a schema or a config will diverge, and the
    test will keep reporting confidently from the stale one. Render it from the
    shipping artefact, and make the renderer *raise* rather than fall back — a
    fallback to the stale copy reinstates the defect silently.
-15. **After an HTTP node, `$input` is a response envelope, not your data.** #6's
+16. **A positional reference survives only until someone inserts a node.**
+   `NotifyKeepaliveFailure` read `$json.statusCode` to report the ping's
+   result. Inserting the email nodes upstream silently repointed `$json` at the
+   *email provider's* response, so the alert said "keepalive FAILED (200)" —
+   quoting the status of the thing that worked. Reference the node you mean
+   (`$('PingSupabase')`), always. This is the same root cause as rule 17, and
+   it does not announce itself: the expression stays valid and starts lying.
+17. **After an HTTP node, `$input` is a response envelope, not your data.** #6's
    node read `$input.first().json` expecting the accumulated item and got
    `{statusCode, headers, body}`. Every field it wanted was `undefined`. When a
    node follows an HTTP call, reference the upstream node explicitly
