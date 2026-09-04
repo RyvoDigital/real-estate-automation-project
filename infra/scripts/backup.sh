@@ -25,6 +25,37 @@ ENV_FILE="${REPO_ROOT}/.env"
 # DATE is filesystem-only; not security-sensitive.
 DATE="$(date +%Y%m%d)"
 RETENTION_DAYS=14
+STATE_DIR="${STATE_DIR:-/var/lib/ryvo}"
+
+# ---------------------------------------------------------------------------
+# Report the outcome, whatever it is.
+#
+# Until Checkpoint D1 this script exited non-zero on failure and nothing read
+# it: the only record was a line in /var/log/ryvo-backup.log that somebody had
+# to go and look at. A backup whose failure is pull-only is a backup you find
+# out about when you need it.
+#
+# The trap covers EVERY exit path, including `set -e` aborts partway through --
+# which is exactly where a hand-placed alert call gets missed.
+# ---------------------------------------------------------------------------
+# shellcheck source=/dev/null
+. "${SCRIPT_DIR}/alert.sh"
+mkdir -p "${STATE_DIR}" 2>/dev/null || true
+
+_backup_finish() {
+  local rc=$?
+  if (( rc == 0 )); then
+    printf 'ok\n' > "${STATE_DIR}/backup.status" 2>/dev/null || true
+  else
+    printf 'failed:exit_%s\n' "${rc}" > "${STATE_DIR}/backup.status" 2>/dev/null || true
+    ryvo_alert "Ryvo: nightly backup FAILED (exit ${rc})" \
+      "$(printf 'The nightly backup exited %s at %s.\n\nHost: %s\nLog: /var/log/ryvo-backup.log\n\nLast lines:\n%s' \
+         "${rc}" "$(date -Iseconds)" "$(hostname)" \
+         "$(tail -n 15 /var/log/ryvo-backup.log 2>/dev/null)")" || true
+  fi
+  return "${rc}"
+}
+trap _backup_finish EXIT
 
 if [[ ! -f "${ENV_FILE}" ]]; then
   echo "ERROR: ${ENV_FILE} not found. Create it on the server first." >&2
