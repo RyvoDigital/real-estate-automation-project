@@ -7,9 +7,11 @@ be true after the Concierge, n8n and Supabase have all been replaced.
 
 Append to it. An entry earns its place by having cost real time at least once.
 
-If you read only two things here, read **§0** — a generated message that
-promises a future you have not secured — and **rule 13**: documenting a failure
-mode does not control it, checking the artefact does.
+If you read only three things here, read **§0** — a generated message that
+promises a future you have not secured — **§0b**: check-then-act cannot be
+fixed by checking harder, and a nondeterministic test tells you what *can*
+happen, never what *always* does — and **rule 13**: documenting a failure mode
+does not control it, checking the artefact does.
 
 ---
 
@@ -56,6 +58,48 @@ Two questions catch it every time:
   If the answer is "nothing", the order of operations is wrong.
 
 ---
+
+---
+
+## 0b. Check-then-act cannot be fixed by checking harder
+
+Gate C3 guarded against double-booking by re-checking free/busy immediately
+before creating the calendar event. The re-check was placed as late as
+possible, with nothing between it and the write.
+
+It still double-booked. Two leads confirmed the same slot 0.4s apart, both
+re-checks completed before either create, and two real events were written to a
+real agent's calendar with both leads told "confirmed".
+
+> **There is no window small enough that two concurrent actors cannot both
+> observe "free".** Shrinking the gap between the check and the act reduces the
+> probability and changes nothing about the possibility.
+
+The fix is not a better check. It is to let something **arbitrate** — a unique
+constraint, a lock, or a provider-side conflict — and arbitration belongs in
+the system that owns the resource. Here the calendar event id was changed from
+lead-keyed to **slot-keyed**, so two leads booking the same time generate the
+same id and Google rejects the second with `409`. Google cannot double-book
+itself.
+
+A database unique index was the alternative and was rejected for a specific
+reason worth remembering: it arbitrates in a system that does *not* own the
+calendar, leaving a window between claiming the row and the calendar accepting
+the write — the same bug, one layer up.
+
+### The corollary about testing
+
+The race test that found this is the same one that "passed" the day before. It
+is a good test. It ran **once**, one lead was blocked, and that was reported as
+proof.
+
+> A test with a nondeterministic outcome tells you what **can** happen, never
+> what **always** happens. One green run of a race proves the good interleaving
+> exists — which was never in doubt.
+
+Repeat nondeterministic tests and **state the number of runs**. The cost here
+was running an existing script a few more times; the cost of not doing it was
+two prospects arriving at the same viewing.
 
 ---
 
