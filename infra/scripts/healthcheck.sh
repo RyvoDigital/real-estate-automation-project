@@ -105,6 +105,46 @@ if [[ -f "${STATE_DIR}/backup.status" ]]; then
   fi
 fi
 
+# --- 5. mail authentication has not silently duplicated --------------------
+# GoDaddy published a second SPF record (an `_spfm.` wrapper) and a second
+# DMARC record (`p=quarantine`, reporting to @onsecureserver.net). Support
+# called it a system bug, not a feature, and said it will not regenerate. This
+# check is here because "it will not come back" is a claim, not a control:
+# duplicate SPF is a PermError, and duplicate DMARC makes the policy
+# unevaluable, and neither announces itself.
+#
+# QUERIED AUTHORITATIVELY, on purpose. A `dig` from this box reads the local
+# stub resolver's cache: minutes after the records were fixed, this server
+# still returned both pairs with 550s of TTL left while the authoritative
+# servers and 1.1.1.1 both showed the corrected single records. A cached answer
+# is not a fact about DNS, and a check that alarms on stale cache is worse than
+# no check.
+MAIL_DOMAIN="${MAIL_DOMAIN:-ryvodigital.com}"
+dns_txt() {   # dns_txt <name> -- overridable so the parsing can be unit-tested
+  if [[ -n "${DNS_FIXTURE:-}" ]]; then printf '%s\n' "${DNS_FIXTURE}"; return; fi
+  local ns; ns="$(dig +short NS "${MAIL_DOMAIN}" | head -1)"
+  [[ -z "${ns}" ]] && return 1
+  dig +norecurse +short TXT "$1" "@${ns}" 2>/dev/null
+}
+if command -v dig >/dev/null 2>&1; then
+  SPF_TXT="$(dns_txt "${MAIL_DOMAIN}")"; SPF_RC=$?
+  DMARC_TXT="$(dns_txt "_dmarc.${MAIL_DOMAIN}")"; DMARC_RC=$?
+  if (( SPF_RC != 0 || DMARC_RC != 0 )); then
+    log "  skip  mail DNS: no authoritative answer (not treated as a failure)"
+  else
+    SPF_N="$(printf '%s\n' "${SPF_TXT}" | grep -c 'v=spf1')"
+    DMARC_N="$(printf '%s\n' "${DMARC_TXT}" | grep -c 'v=DMARC1')"
+    if (( SPF_N == 1 )); then pass "one SPF record on ${MAIL_DOMAIN}"
+    else fail "${SPF_N} SPF records on ${MAIL_DOMAIN} - more than one is a PermError (RFC 7208)"; fi
+    if (( DMARC_N == 1 )); then
+      POL="$(printf '%s\n' "${DMARC_TXT}" | grep -o 'p=[a-z]*' | head -1)"
+      pass "one DMARC record on ${MAIL_DOMAIN} (${POL})"
+    else
+      fail "${DMARC_N} DMARC records on ${MAIL_DOMAIN} - multiple records mean NO policy is applied (RFC 7489)"
+    fi
+  fi
+fi
+
 # --- 5. Supabase is awake --------------------------------------------------
 # Checked, never depended on. The free tier auto-pauses after ~a week of
 # inactivity and the DNS record disappears, which is exactly the failure the

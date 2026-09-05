@@ -85,6 +85,38 @@ echo "  -> DB dump: ${DUMP_FILE} ($(du -h "${DUMP_FILE}" | cut -f1))"
 # first automation. That must not fail the backup: otherwise cron reports a
 # failure every night and the operator learns to ignore the log. Any OTHER
 # export failure is real and still aborts.
+# ---------------------------------------------------------------------------
+# Pull BEFORE exporting, not after committing.
+#
+# On 2026-09-05 this script failed for the first time in production: commits
+# pushed from the laptop left the server behind origin, so its export commit
+# was rejected non-fast-forward and the night's workflow export never reached
+# GitHub. Pulling after the commit exists means rebasing a fresh export onto
+# remote changes to the same file -- a conflict the script would have to guess
+# its way out of.
+#
+# Pulling first removes the conflict entirely: the tree is brought up to date,
+# THEN the export overwrites workflows/ with what n8n actually holds, which is
+# canonical by definition. A pull that fails is loud and aborts, because
+# committing an export on top of a stale tree is how the two copies diverge.
+# ---------------------------------------------------------------------------
+if git -C "${REPO_ROOT}" rev-parse --git-dir >/dev/null 2>&1; then
+  PULL_BRANCH="$(git -C "${REPO_ROOT}" rev-parse --abbrev-ref HEAD)"
+  if ! git -C "${REPO_ROOT}" diff --quiet || ! git -C "${REPO_ROOT}" diff --cached --quiet; then
+    echo "ERROR: the repo has uncommitted changes; refusing to pull over them." >&2
+    echo "       Reconcile ${REPO_ROOT} by hand, then re-run." >&2
+    exit 1
+  fi
+  if git -C "${REPO_ROOT}" pull --rebase --quiet origin "${PULL_BRANCH}"; then
+    echo "  -> Repo up to date with origin/${PULL_BRANCH}"
+  else
+    git -C "${REPO_ROOT}" rebase --abort 2>/dev/null || true
+    echo "ERROR: could not bring ${REPO_ROOT} up to date with origin." >&2
+    echo "       Not exporting on top of a stale tree." >&2
+    exit 1
+  fi
+fi
+
 mkdir -p "${WORKFLOWS_DIR}"
 EXPORT_RC=0
 EXPORT_OUT="$(compose exec -T n8n n8n export:workflow --all --separate \
