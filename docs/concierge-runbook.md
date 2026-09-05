@@ -490,6 +490,106 @@ must show `operator_notified: false` and `email_alert_ok: true`.
 > produces a recovery notice on the next. That is the design working, not noise
 > to suppress.
 
+### DNS consolidation — the exact edits, and the order they must happen in (2026-09-05)
+
+**Header verdicts settled the spam question first:** a delivered alert and a
+spam one showed *identical* results — `SPF PASS`, `DKIM PASS`, `DMARC FAIL`.
+Same authentication, different sorting, so the spam classification was
+**content**, not authentication. The `DMARC FAIL` is real, applies to every
+message from this domain including delivered ones, and is a standing
+deliverability and spoofing weakness — but it was not the cause.
+
+#### Senders enumerated (2026-09-05)
+
+| Sender | Authenticates via | Sends as |
+|---|---|---|
+| **Google Workspace** | `include:_spf.google.com`, `google._domainkey` | `@ryvodigital.com` |
+| **Resend** | `resend._domainkey` (d=ryvodigital.com); Return-Path on `send.ryvodigital.com`, which has its own `include:amazonses.com` and `feedback-smtp.eu-west-1.amazonses.com` MX | `alerts@ryvodigital.com` |
+| GoDaddy SPF-merge wrapper | `include:dc-aa8e722993._spfm.ryvodigital.com` | *not a sender* |
+
+**The wrapper expands to exactly `v=spf1 include:_spf.google.com ~all`** — the
+same thing the plain record already says. The two SPF records are therefore
+*functionally identical*, which makes removing either one safe. That is worth
+knowing before touching anything: this is not a choice between two different
+sets of authorized senders.
+
+**Resend does not need to be in the apex SPF.** SPF is evaluated against the
+Return-Path (`send.ryvodigital.com`), not the From domain, and that subdomain
+carries its own record — which is why Resend mail already shows `SPF PASS`.
+Under relaxed alignment (`aspf=r`) the subdomain aligns with the organisational
+domain, so DMARC will pass on SPF *and* on DKIM once it is evaluable at all.
+
+#### The edits — order matters, and the obvious order is the dangerous one
+
+DNS is at GoDaddy (`ns31/ns32.domaincontrol.com`).
+
+**Step 1 — delete the `p=quarantine` DMARC record FIRST.**
+
+```
+Name: _dmarc     Type: TXT
+Value: v=DMARC1; p=quarantine; adkim=r; aspf=r; rua=mailto:dmarc_rua@onsecureserver.net;
+```
+
+This one is deleted first, not second, and the reason is the whole trap:
+**deleting a duplicate activates whichever survives.** Remove the `p=none`
+record first and the domain is instantly enforcing quarantine on senders nobody
+has enumerated. Remove the `p=quarantine` first and the domain lands on a
+single, safe `p=none` at every intermediate moment.
+
+**Step 2 — delete the duplicate SPF record.**
+
+```
+Name: @          Type: TXT
+Value: v=spf1 include:dc-aa8e722993._spfm.ryvodigital.com ~all
+```
+
+Keep the plain `v=spf1 include:_spf.google.com ~all`. It is self-describing,
+directly under our control, and costs one fewer DNS lookup against SPF's
+ten-lookup limit — and since the wrapper expands to the identical content,
+nothing loses authorisation.
+
+**Step 3 — edit the surviving `_dmarc` record** to state alignment explicitly:
+
+```
+Name: _dmarc     Type: TXT
+Value: v=DMARC1; p=none; rua=mailto:hello@ryvodigital.com; adkim=r; aspf=r
+```
+
+**Do not touch:** the `google-site-verification` TXT, both `_domainkey`
+records, the apex MX records, or anything on `send.ryvodigital.com`.
+
+#### The thing most likely to undo this
+
+Both managed records — the `_spfm` SPF wrapper and the `p=quarantine` DMARC
+with its `@onsecureserver.net` reporting address — look like they were
+published by a GoDaddy-managed email-security feature rather than typed by
+hand. **If that feature is still switched on, the records will come back**, and
+the domain will be silently duplicated again.
+
+Before making the edits, look through the GoDaddy account for whatever is
+managing them. Exact menu names change, so the reliable tell is the records
+themselves: anything whose reporting address is `@onsecureserver.net`, or whose
+value points at a `_spfm.` hostname, is GoDaddy-generated. Turn the feature off
+rather than only deleting its output. Then **re-check a week later** — a
+duplicate that regenerates quietly is exactly the failure this is fixing.
+
+#### Verify after propagation
+
+```bash
+dig +short TXT ryvodigital.com | grep -c spf1      # must be 1
+dig +short TXT _dmarc.ryvodigital.com              # must be exactly one p=none record
+```
+
+Then send a test alert and re-read `Show original`: `DMARC` should move from
+`FAIL` to `PASS`. **Only tighten to `quarantine` after the `rua` reports have
+come back clean for a few weeks** — the reports are the enumeration, and
+tightening before reading them is the thing the original deferral was right to
+avoid.
+
+> Aggregate reports arrive as daily XML attachments from every large receiver.
+> If `hello@` gets noisy, route them to a parser rather than turning `rua` off —
+> without reports there is no evidence on which to tighten the policy.
+
 ### Mail authentication — TWO defects found, and the DMARC decision changes (2026-09-04)
 
 Recovery notices landed in **spam in both mailboxes** while failure alerts
