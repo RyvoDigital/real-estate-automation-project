@@ -21,7 +21,53 @@ file records what is actually deployed right now and what tripped us up.
 
 ---
 
-## 0. Phase 1 — Checkpoint D1 complete: email alerting (2026-09-04)
+## 0. PHASE 1 COMPLETE — 2026-09-05. Phase 2 is next.
+
+**The Inbound Concierge is built, deployed and proven.** It answers a WhatsApp
+enquiry in about six seconds, qualifies the lead, books a viewing into a real
+Google Calendar, refuses to double-book, escalates to a human when it should,
+and shouts by email when any of its four dependencies breaks.
+
+**Read [`phase-1-completion.md`](phase-1-completion.md) first** — it is written
+for a cold reader and covers what exists, what is proven and how, what is
+known-limited, and what carries forward. Then the runbook for operations, then
+`engineering-lessons.md` for why things are shaped the way they are.
+
+| | |
+|---|---|
+| Workflows | `ryvoInboundConc01` (86 nodes), `ryvoSupaKeepAlv` (8) |
+| Latency | 5.7–6.8s end to end, ~$0.006 per turn |
+| Automated tests | slot engine 66/66, language 31/31, prompt suites 15/15 + 30/30 + 27/27, lint 30 nodes clean |
+| Health checks | 12, every 10 minutes, alerting by email |
+| Cron | backup 03:00, metrics 03:20, health check every 10 min |
+
+**Checkpoints delivered:** A (inbound plumbing), B1–B3 (reply, persistence,
+escalation), C1–C3 (propose, book, do not double-book), **C4** (unplanned — the
+race was not actually closed by C3), D1–D5 (email alerting, per-language system
+messages, non-text inbound, derived metrics, forced-failure drills).
+
+### Before the first real client — blocking
+
+1. **Twilio Sandbox → a production WhatsApp sender.** The sandbox session
+   expires every 72 hours and needs a keyword re-join. Fine for demos,
+   impossible for real leads.
+2. **The Google OAuth app is "Internal"** — only `ryvodigital.com` accounts can
+   authorise it. A client's calendar lives elsewhere.
+3. **Boot n8n against a restored database once.** The restore drill proved the
+   dump restores; nothing has proved n8n runs against the result. Open since
+   Phase 0.
+
+### Next: Phase 2
+
+Reactivation automation (which fills `metrics_daily.reactivations`), the
+cockpit reading Supabase, and weekly client reports (the `reports` table exists
+and is unused). Deferred polish — travel time between viewings, DMARC
+tightening once the `rua` reports are clean, alert-noise handling — is listed
+in `phase-1-completion.md` §5.
+
+---
+
+## 0a. Phase 1 — Checkpoint D1: email alerting (2026-09-04)
 
 **The alarm no longer shares a fate with the thing it watches.** The old push
 rode the Twilio *sandbox*, whose session expires every 72 hours, and shared that
