@@ -256,6 +256,59 @@ only the guard is a control.
 > difference and check the account's display timezone before treating it as a
 > bug.
 
+### Double-booking — how it is ACTUALLY prevented (2026-09-05, supersedes C3)
+
+**C3's re-check did not close the race, and the same test proved it.** Two
+leads confirming the same slot 0.4s apart double-booked: both re-checks
+completed before either create, and two real events were written with both
+leads told "confirmed". C3 had been accepted on a single run of that test where
+one lead happened to lose.
+
+**The event id is now derived from the SLOT, not the lead:**
+
+```
+rv + <calendar_id filtered to [a-v0-9], 16 chars> + <startUtc digits>
+```
+
+Two leads booking the same time therefore generate the **same id**, and Google
+rejects the second create with `409`. That conflict is the lock — atomic,
+server-side, in the system that owns the calendar. **Google cannot double-book
+itself.**
+
+> A Supabase unique index was considered and rejected. It arbitrates in a
+> system that does not own the calendar, leaving a window between claiming the
+> row and Google accepting the write — the same bug one layer up. It stays the
+> fallback if Google's id semantics ever change.
+
+**A 409 has three causes and they need three different answers.** It is
+resolved against the calendar (`GetConflictEvent` → `ResolveConflict`), never
+assumed:
+
+| `conflict` | Meaning | Result |
+|---|---|---|
+| `ours` | Our create landed, the database write did not | `duplicate_replay` — the lead does hold it |
+| `theirs` | Another lead got there first | `slot_taken` — the D2 apology, in their language |
+| `burned_id` | The id belongs to a **deleted** event | `conflict_burned_id` — escalate. The slot may be free but the identifier is reserved, and this must **not** be reported to the lead as "taken" |
+
+Ownership is written onto the event itself as
+`extendedProperties.private.ryvoLeadId`, so `ours` vs `theirs` is read from the
+calendar rather than guessed.
+
+> **Deleting a test event burns its slot identifier.** Google keeps the ids of
+> deleted events reserved, so re-booking that exact slot afterwards returns 409
+> with a cancelled event. That is why `burned_id` exists and why it escalates
+> instead of apologising. If a cleared test slot refuses to book, this is why.
+
+**Evidence the mechanism is the fix and not timing:** execution 327 ran
+`CreateEvent → IsConflict → GetConflictEvent → ResolveConflict` with
+`conflict='theirs'`. The losing lead was stopped by Google's 409, not by
+winning a coin toss on the re-check.
+
+The re-check is **kept**. It is no longer the guard, but it still catches the
+common case — a slot taken minutes earlier — before the model writes a
+confirmation, which produces a much better reply than an apology after the
+fact.
+
 ### Gate C3 — it does not double-book (2026-09-04)
 
 Two guards, and they catch different things. Both were proven against the real
