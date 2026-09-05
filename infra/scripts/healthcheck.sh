@@ -179,6 +179,30 @@ if [[ -n "${SUPABASE_URL:-}" && -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
   fi
 fi
 
+# --- 7. no run has failed recently -----------------------------------------
+# The catch-all, and the one that covers dependencies this script knows nothing
+# about. D5 drill 1 broke the Anthropic credential: every lead escalated
+# correctly and got its handoff note, and NOTHING raised an alert by email --
+# the only signal was a WhatsApp push riding the sandbox that expires every 72
+# hours. Any dependency failure that produces an error run is now an email
+# within ten minutes, independent of Twilio.
+if [[ -n "${SUPABASE_URL:-}" && -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
+  SINCE="$(date -u -d '30 minutes ago' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
+           || date -u -v-30M +%Y-%m-%dT%H:%M:%SZ)"
+  ERRS="$(curl -sS --max-time 20 \
+      -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+      -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+      "${SUPABASE_URL%/}/rest/v1/automation_runs?select=error_type&status=eq.error&created_at=gte.${SINCE}" \
+      2>/dev/null)"
+  NERR="$(printf '%s' "${ERRS}" | grep -o '"error_type"' | wc -l)"
+  if [[ "${NERR}" -eq 0 ]]; then
+    pass "no failed automation runs in the last 30 minutes"
+  else
+    WHAT="$(printf '%s' "${ERRS}" | grep -oE '"error_type":"[^"]*"' | sort -u | head -3 | tr '\n' ' ')"
+    fail "${NERR} failed automation run(s) in the last 30 minutes: ${WHAT}"
+  fi
+fi
+
 # --- verdict ---------------------------------------------------------------
 # State: "<state> <since_epoch> <consecutive_fails> <notified 0|1>"
 #

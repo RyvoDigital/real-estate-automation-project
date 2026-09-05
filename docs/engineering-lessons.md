@@ -105,7 +105,7 @@ two prospects arriving at the same viewing.
 
 ## 1. Tests that pass while testing the wrong thing
 
-**This has now bitten the project fourteen times in fourteen different disguises.** It
+**This has now bitten the project fifteen times in fifteen different disguises.** It
 is the single most useful thing in this file.
 
 | # | Incident | What reported success | What was actually true |
@@ -124,6 +124,7 @@ is the single most useful thing in this file.
 | 12 | `LabelRejected`, the node that marks health-check executions (4 Sep 2026) | Node ran, execution `success`, health check green | **Nothing was written.** `operation` was `set`; the node's only valid value is `save`, and an invalid one silently hides `dataToSave` through `displayOptions` — so the node executes, does nothing, and reports success. Caught by querying `execution_metadata` and finding zero rows, not by reading the run |
 | 13 | The keepalive's new email alert, first drill (4 Sep 2026) | Three failure executions, `EmailKeepaliveFailure` ran in every one, node status `success` | **Zero emails were sent.** The credential had its *header name* set to `Ryvo Resend` instead of `Authorization`, so every request was rejected before leaving n8n: `Header name must be a valid HTTP token`. `onError: continueRegularOutput` — added at B3 so a transport error could not kill the workflow — turned each rejection into a green node with a passthrough item. The tell was `executionTime: 17ms`: too fast to have been an HTTP call |
 | 14 | Gate C3's double-booking race, accepted as proven (4 Sep 2026) | Two leads confirmed the same slot 0.4s apart; one booked, the other was blocked by the re-check with `slot_taken_since_offer`. Reported as the guard working | **The race is not closed, and the same test proved it the next day: run again, BOTH leads booked.** Two distinct Google events at 07 Sep 11:00, both leads told "confirmed". The re-check narrows the window to the few hundred milliseconds between checking and creating; it does not eliminate it. The first run passed on a favourable interleaving, and one favourable interleaving was generalised into a property |
+| 15 | The D5 drills, both findings (5 Sep 2026) | Anthropic broken: every run `status='success'`. Supabase unreachable: execution `success`, and the lead treated as an unknown recipient | **Both times the system already knew and nothing acted on what it knew.** `FlattenClient` had always set `errorType: 'platform_db_unreachable'`, with the reasoning spelled out in a comment, and no downstream node ever read it — so a total database outage silently dropped every lead. The escalation path likewise recorded *that* it escalated but never *why*, so an outage and a busy day of leads asking for a human were the same row |
 
 ### One caught before it shipped
 
@@ -162,6 +163,26 @@ artefact to go and look at.
 So the rule is mechanical rather than attentional: **any node whose whole
 purpose is to write a row must have its status surfaced**, and `PrepRunAI` now
 carries `viewing_event_status` for exactly this reason.
+
+### #15: detection without a consumer is not detection
+
+Both D5 findings had the same shape, and it is a shape worth naming: **the
+condition was computed, correctly, and then discarded.**
+
+`FlattenClient` distinguished "we do not serve this number" from "the platform
+database is down" from Checkpoint A onward. It set an explicit
+`platform_db_unreachable` error type. A comment beside it explained why
+conflating the two would silently drop real leads during an outage. And the
+only consumer, `IsClientKnown`, tested a different field — so both cases took
+the same branch and the concern the comment described happened anyway.
+
+> A value that nothing reads is not a safeguard, it is a note-to-self with
+> better syntax. **Every computed failure signal needs a consumer, and the
+> consumer is the thing to test.**
+
+The practical check is cheap: for each error type, status flag or `ok: false`
+the code can produce, ask *which node branches on this?* If the answer is
+"none", the detection does not exist yet — however carefully it was written.
 
 ### #14: one passing run of a race is not evidence the race is closed
 

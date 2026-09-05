@@ -584,6 +584,63 @@ belongs to that date rather than to the previous UTC one.
 stops gaining rows and nothing else notices. So the health check asserts a row
 exists for yesterday.
 
+### Forced-failure drills — what each dependency does when it breaks (D5, 2026-09-05)
+
+Each dependency was broken, observed, **restored and verified working before
+the next was touched**, so no later result could be confused with an
+unrestored earlier one. The drill harness is `/tmp/drill_lib.py`-style: snapshot
+the deployed workflow, mutate, deploy, probe, restore from the snapshot.
+
+| Broken | Lead | Record | Alert |
+|---|---|---|---|
+| **Anthropic** (nodes repointed at a wrong credential → 401) | handoff note **delivered**, in Portuguese | `error / claude_failed:claude_auth` | email within two health-check cycles |
+| **Twilio** (every send at a dead account SID) | **cannot be reached** — no second channel exists to a WhatsApp lead. Message stored `status=failed`, not a false "sent" | `error / escalation_notify_failed` | **email fallback fired** — operator told by an independent path |
+| **Supabase** (platform DB unreachable) | not answered — nothing can be read or written | execution **error**, with the thrown reason | email carrying **the lead's message verbatim** |
+| **Google Calendar** (API unreachable) | reply delivered, honest, **no invented times** | `error / no_availability:freebusy_http_undefined` | email within two cycles |
+
+**Two real defects were found, and both were the same shape: the system knew,
+and nothing acted on what it knew.**
+
+**1. A dependency outage was logged as `success`.** With Anthropic broken every
+lead escalated correctly and got its handoff note — and every run was written
+`status='success'`. A total model outage was indistinguishable in
+`automation_runs` from a normal day of leads asking for a human, and D4's
+metrics would have shown a healthy day. `PrepRunEscalated` now separates *why*
+it escalated: `needs_human` and `high_value` are successes, while
+`claude_failed`, `bad_reply_twice`, `booking_failed`, `no_availability` and
+`media_unprocessable` are errors.
+
+**2. A database outage was indistinguishable from an unknown recipient.**
+`FlattenClient` had *always* set `errorType: 'platform_db_unreachable'` — with
+the reasoning written in a comment — and **nothing downstream read it.** Both
+cases fell through `IsClientKnown` to a node that logs to the database that is
+down. Every lead arriving during an outage was silently dropped: no reply, no
+record, execution `success`.
+
+Now: `IsDbUnreachable` → `EmailDbOutage` → `ThrowDbOutage`. The email
+**reproduces the lead's message in full**, because the store that would
+normally hold it is the thing that failed, and the throw makes the execution an
+error rather than a quiet success. Verified: the alert arrived carrying *"Ola,
+sou o Manuel e procuro T3 em Cascais ate 800 mil"* verbatim.
+
+**The catch-all.** The health check now asserts **no failed automation run in
+the last 30 minutes**. That covers dependencies the script knows nothing about:
+any failure that produces an error run becomes an email within two cycles,
+independent of Twilio. It is the check that would have caught drill 1 on its
+own.
+
+> **Twilio being down is the one irreducible case.** There is no second channel
+> to a WhatsApp lead, so the lead cannot be reached. The compensating control
+> is that a human is told promptly by an independent path, and the message is
+> recorded as `failed` rather than `sent`. "No lead left in silence" cannot be
+> satisfied when the messaging transport itself is the casualty; the honest
+> goal is that somebody knows within minutes.
+
+**After all four drills, restored:** a full conversation — qualify, offer real
+slots, confirm, book — ran clean end to end, `stage=viewing_booked`, with
+`lead.created`, `lead.qualified` and `viewing.booked` all written. **12 health
+checks passing.**
+
 ### Alerting — the channel, and what it deliberately does not depend on (D1)
 
 **The old alarm had one leg on a 72-hour timer.** It pushed over WhatsApp
