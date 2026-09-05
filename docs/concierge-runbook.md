@@ -459,6 +459,53 @@ options in that range"*) fail, deferring to a colleague passes.
 > product disagreed about what the product had been told to do.** Check that
 > before changing either.
 
+### Non-text inbound — voice notes, images, locations (D3, 2026-09-05)
+
+**A WhatsApp voice note is a plausible way a real prospect sends their
+requirements** — often the most detailed thing they will ever send. "We can't
+process this" is a rejection. The reply is warm, and asks for the one thing
+that unblocks the conversation.
+
+Non-text takes its own branch straight after `LoadHistory`: **no calendar call,
+no Claude call.** The reply has to work when there is nothing to read, which is
+exactly when a model cannot help.
+
+| Arrives as | `mediaKind` | Reply |
+|---|---|---|
+| `audio/*` | `audio` | asks for area, bedrooms and rough budget in text |
+| `image/*`, `video/*`, documents | `image` / `video` / `document` | asks what they'd like to know |
+| `Latitude`/`Longitude` (**not** media — `NumMedia` is 0) | `location` | confirms whether that's the search area |
+| anything else with `NumMedia > 0` | `other` | as visual |
+| a **second** unreadable message | — | hands to a human, emails the operator |
+
+**Language comes from the lead's PREVIOUS messages**, because this one has no
+words. Failing that, `config.default_language`. A caption alongside media does
+count as evidence. Everything is a fixed config string under
+`system_messages.media_*` — same rule as the handoff note.
+
+**Nothing is dropped.** The inbound row stores `storedBody`, so a voice note
+lands as `[voice note]` and a location as `[location: 38.69745,-9.42167]`
+rather than an empty row. A message nobody can see afterwards is the same as
+one that was never received — and those `[...]` markers are also how the
+language detector knows to ignore them as evidence, and how the repeat check
+counts them.
+
+> **`LoadHistory` runs AFTER `InsertMessage`, so the current message is already
+> in the history.** Counting it made the very first voice note look like a
+> repeat and handed the lead to a human without ever asking for text. The
+> filter excludes it by `external_id`, the same way `BuildClaudeRequest` does.
+
+**Asking twice for text that is not coming is a lead going cold**, so the
+second unreadable message marks the lead escalated, writes `lead.escalated`,
+and emails the operator — by email rather than WhatsApp, because the alert must
+not ride the sandbox it is reporting on. The media itself stays on Twilio;
+nothing is downloaded or stored.
+
+Verified live across all six shapes: text baseline, voice note, repeat →
+escalation, location from an English lead, media as the very first contact with
+no prior words (falls back to the configured default), and a document with a
+caption.
+
 ### Alerting — the channel, and what it deliberately does not depend on (D1)
 
 **The old alarm had one leg on a 72-hour timer.** It pushed over WhatsApp
