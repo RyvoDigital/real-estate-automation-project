@@ -161,6 +161,24 @@ if [[ -n "${SUPABASE_URL:-}" && -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
   fi
 fi
 
+# --- 6. yesterday's metrics were derived ------------------------------------
+# A derivation that stops running is silent by construction: the table simply
+# stops gaining rows, and nothing else in the system notices or cares. This is
+# the cheapest possible check that it is still happening.
+if [[ -n "${SUPABASE_URL:-}" && -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
+  YDAY="$(date -d 'yesterday' +%Y-%m-%d 2>/dev/null || date -v-1d +%Y-%m-%d)"
+  MROWS="$(curl -sS --max-time 20 \
+      -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+      -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+      "${SUPABASE_URL%/}/rest/v1/metrics_daily?select=date&date=eq.${YDAY}" 2>/dev/null \
+      | grep -o '"date"' | wc -l)"
+  if [[ "${MROWS}" -ge 1 ]]; then
+    pass "metrics_daily has a row for ${YDAY}"
+  else
+    fail "metrics_daily has NO row for ${YDAY} - the nightly derivation did not run"
+  fi
+fi
+
 # --- verdict ---------------------------------------------------------------
 # State: "<state> <since_epoch> <consecutive_fails> <notified 0|1>"
 #

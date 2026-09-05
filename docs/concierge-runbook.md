@@ -459,6 +459,35 @@ options in that range"*) fail, deferring to a colleague passes.
 > product disagreed about what the product had been told to do.** Check that
 > before changing either.
 
+### Media is NOT downloaded — a deliberate posture, not an omission
+
+**The Concierge never fetches, stores or forwards the media itself.** It reads
+Twilio's metadata (`NumMedia`, `MediaContentType0`, `Latitude`/`Longitude`),
+writes a marker like `[voice note]` to `messages.body`, and leaves the file
+where it is.
+
+This is a decision about **what data this system is responsible for**, not an
+implementation shortcut. Downloading a prospect's voice notes and photographs
+would create a store of personal data belonging to the client's customers, and
+every question that follows becomes ours to answer:
+
+- how long is it retained, and who decided that
+- how is a deletion request honoured, and within what period
+- who is the controller and who the processor, per client
+- which sub-processors hold it, and is that disclosed in the client contract
+- what happens to it when a client leaves
+
+Leaving the media on Twilio — already a disclosed sub-processor for the
+messaging itself — avoids every one of those questions rather than answering
+them. The marker in `messages.body` keeps the transcript honest without keeping
+the content.
+
+> **Do not "improve" this by adding storage.** Transcribing voice notes is a
+> genuinely attractive feature and may well be worth building — but it is a
+> data-protection decision first and a product decision second, and it needs
+> the retention period, the deletion path and the client contract wording
+> agreed *before* the first file is written, not after.
+
 ### Non-text inbound — voice notes, images, locations (D3, 2026-09-05)
 
 **A WhatsApp voice note is a plausible way a real prospect sends their
@@ -505,6 +534,55 @@ Verified live across all six shapes: text baseline, voice note, repeat →
 escalation, location from an English lead, media as the very first contact with
 no prior words (falls back to the configured default), and a document with a
 caption.
+
+### metrics_daily is DERIVED, never incremented (D4, 2026-09-05)
+
+`infra/scripts/metrics_daily.py`, nightly at 03:20 Europe/Lisbon.
+
+**Why derived.** The original spec had the workflow increment
+`viewings_booked` at the moment it booked. **An increment that does not happen
+is unrecoverable** — there is no way to discover later how many were missed,
+because the only record of the miss is the absence of a number. A derivation
+reads the events that actually happened, so a bad run is fixed by running it
+again, and any date can be rebuilt from source at any time.
+
+| Column | Derived from |
+|---|---|
+| `leads_new` | `events` where `type = 'lead.created'` |
+| `leads_qualified` | `events` where `type = 'lead.qualified'` |
+| `viewings_booked` | `events` where `type = 'viewing.booked'` |
+| `messages_sent` | `messages` where `direction = 'outbound'` |
+| `reactivations` | nothing yet — a Phase 2 automation. Written as an explicit `0` so the row means *"none happened"*, not *"we did not look"* |
+
+```bash
+metrics_daily.py                 # yesterday and today
+metrics_daily.py 2026-09-04      # one specific date
+metrics_daily.py --days 30       # backfill a month
+```
+
+**Days are LOCAL days.** The window comes from
+`client_automations.config.timezone`, so a lead arriving at 00:30 in Lisbon
+belongs to that date rather than to the previous UTC one.
+
+**Verified by breaking it**, because "it can be re-run" is a claim until it is:
+
+| Property | Test |
+|---|---|
+| Idempotent | Ran twice → identical numbers, 2 rows not 4 |
+| Self-healing | Row corrupted to `leads_new=999, messages_sent=-5` → re-run restored 3 and 4 |
+| Rebuildable | Row **deleted** → re-run reconstructed it identically from source |
+| Backfillable | An arbitrary past date with no data wrote an explicit zero row |
+| Truthful | After a real booking: `lead.created 1, lead.qualified 1, viewing.booked 1` → row read `new=1 qualified=1 booked=1` |
+
+> **The upsert relies on `unique (client_id, date)` being a PLAIN unique
+> constraint.** PostgREST can use it for `ON CONFLICT`; a **partial** index
+> cannot be used that way and fails `42P10`. That is the defect that cost
+> migration 0003 — see `engineering-lessons.md` §1, instance 3. If anyone ever
+> makes this index partial, the nightly derivation stops writing.
+
+**A derivation that stops running is silent by construction** — the table just
+stops gaining rows and nothing else notices. So the health check asserts a row
+exists for yesterday.
 
 ### Alerting — the channel, and what it deliberately does not depend on (D1)
 
