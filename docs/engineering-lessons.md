@@ -348,7 +348,15 @@ that the clever version was never buying anything.
    quoting the status of the thing that worked. Reference the node you mean
    (`$('PingSupabase')`), always. This is the same root cause as rule 17, and
    it does not announce itself: the expression stays valid and starts lying.
-17. **After an HTTP node, `$input` is a response envelope, not your data.** #6's
+17. **A `dig` from one machine is a cache reading, not a fact about DNS.**
+   Minutes after two duplicate records were removed, the server still returned
+   both stale pairs with 550s of TTL remaining, while the authoritative
+   nameservers and `1.1.1.1` both showed the corrected singles. Reported as-is
+   it would have been a confident claim that the fix had not landed. When
+   checking whether a DNS change is live, query the authoritative server
+   (`dig +norecurse @ns1...`) or a public resolver — and build monitoring the
+   same way, or the check alarms on staleness rather than on the fault.
+18. **After an HTTP node, `$input` is a response envelope, not your data.** #6's
    node read `$input.first().json` expecting the accumulated item and got
    `{statusCode, headers, body}`. Every field it wanted was `undefined`. When a
    node follows an HTTP call, reference the upstream node explicitly

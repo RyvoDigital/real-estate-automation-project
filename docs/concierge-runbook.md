@@ -490,6 +490,63 @@ must show `operator_notified: false` and `email_alert_ok: true`.
 > produces a recovery notice on the next. That is the design working, not noise
 > to suppress.
 
+### Mail DNS — resolved, and now watched (2026-09-05)
+
+**Consolidated and verified.** One SPF record, one DMARC record at `p=none`
+reporting to `hello@ryvodigital.com`. GoDaddy support removed the `_spfm`
+record and described it as **a system bug rather than a feature**, saying it
+will not regenerate.
+
+**That assurance is not a control, so there is a check.** `healthcheck.sh`
+asserts exactly one `v=spf1` at the apex and exactly one `v=DMARC1` at
+`_dmarc`, and reports the policy it finds. Duplicate SPF is a PermError
+(RFC 7208); duplicate DMARC means **no policy is applied at all** (RFC 7489).
+Neither announces itself, and the last one cost an afternoon.
+
+> **The check queries the AUTHORITATIVE nameservers, deliberately.** Minutes
+> after the records were corrected, `dig` on this box still returned both stale
+> pairs with 550s of TTL left, while the authoritative servers and `1.1.1.1`
+> both showed the corrected singles. **A `dig` from one machine is a reading of
+> that machine's cache, not a fact about DNS.** It nearly produced a confident
+> report that the fix had not landed. If you are ever checking whether a DNS
+> change is live, query the authoritative server or a public resolver — never
+> the local stub.
+
+#### The DMARC path from here — do not skip steps
+
+1. **Stay at `p=none`.** It is publishing a policy of "do nothing", which is
+   exactly right while the sender list is still being confirmed by evidence.
+2. **Read the `rua` aggregate reports for a few weeks.** They arrive as daily
+   XML from every large receiver. *The reports are the enumeration* — they are
+   the only thing that will show a legitimate sender nobody remembered.
+3. **Only then consider `p=quarantine`**, and only if the reports show every
+   sending source accounted for and passing.
+
+Tightening before the reports are clean is precisely what the original deferral
+was right to avoid — and the `p=quarantine` record GoDaddy had already
+published is what that mistake looks like when someone else makes it for you.
+
+### The nightly backup pushes to the same branch you do (2026-09-05)
+
+The first production failure of the D1 alert channel was a real one: the 03:00
+backup exited 1 and had been failing for ten hours before anyone looked.
+Commits pushed from the laptop left the server behind `origin`, so its export
+commit was rejected non-fast-forward and that night's workflow export never
+went offsite.
+
+`backup.sh` now **pulls before exporting** rather than after committing.
+Pulling after the commit exists means rebasing a fresh export onto remote
+changes to the same file — a conflict a cron job should never be guessing its
+way out of. Pulling first removes it: the tree is brought up to date, then the
+export overwrites `workflows/` with what n8n actually holds, which is canonical
+by definition. Uncommitted changes, or a pull that fails, now abort loudly
+instead of exporting onto a stale tree.
+
+> **Two writers, one branch.** The laptop and the server both commit to `main`.
+> That is workable, but it means a long editing session on the laptop can leave
+> the server unable to push until it next pulls. If a backup failure alert
+> arrives at 03:00, this is the first thing to check.
+
 ### DNS consolidation — the exact edits, and the order they must happen in (2026-09-05)
 
 **Header verdicts settled the spam question first:** a delivered alert and a
