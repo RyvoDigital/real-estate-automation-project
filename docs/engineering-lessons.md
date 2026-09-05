@@ -61,7 +61,7 @@ Two questions catch it every time:
 
 ## 1. Tests that pass while testing the wrong thing
 
-**This has now bitten the project thirteen times in thirteen different disguises.** It
+**This has now bitten the project fourteen times in fourteen different disguises.** It
 is the single most useful thing in this file.
 
 | # | Incident | What reported success | What was actually true |
@@ -79,6 +79,7 @@ is the single most useful thing in this file.
 | 11 | The never-invent-a-time probe suite, throughout C1 and C2 (4 Sep 2026) | **18/18**, every run, including the run taken as C2's acceptance evidence | **The shipping Concierge was inventing times.** Asked about "sabado dia 12" while the supplied list covered the 5th and the 7th, it replied "tenho as 14:00 ou as 15:00" — two times nobody supplied. Every case in the suite asked about a day the list *covered*, so the one combination that fails was the one combination absent. Found by a sweep that compared the **reply** against the supplied slots; the sweep's own first version checked only the stored slots and passed 12/12 while the reply was wrong |
 | 12 | `LabelRejected`, the node that marks health-check executions (4 Sep 2026) | Node ran, execution `success`, health check green | **Nothing was written.** `operation` was `set`; the node's only valid value is `save`, and an invalid one silently hides `dataToSave` through `displayOptions` — so the node executes, does nothing, and reports success. Caught by querying `execution_metadata` and finding zero rows, not by reading the run |
 | 13 | The keepalive's new email alert, first drill (4 Sep 2026) | Three failure executions, `EmailKeepaliveFailure` ran in every one, node status `success` | **Zero emails were sent.** The credential had its *header name* set to `Ryvo Resend` instead of `Authorization`, so every request was rejected before leaving n8n: `Header name must be a valid HTTP token`. `onError: continueRegularOutput` — added at B3 so a transport error could not kill the workflow — turned each rejection into a green node with a passthrough item. The tell was `executionTime: 17ms`: too fast to have been an HTTP call |
+| 14 | Gate C3's double-booking race, accepted as proven (4 Sep 2026) | Two leads confirmed the same slot 0.4s apart; one booked, the other was blocked by the re-check with `slot_taken_since_offer`. Reported as the guard working | **The race is not closed, and the same test proved it the next day: run again, BOTH leads booked.** Two distinct Google events at 07 Sep 11:00, both leads told "confirmed". The re-check narrows the window to the few hundred milliseconds between checking and creating; it does not eliminate it. The first run passed on a favourable interleaving, and one favourable interleaving was generalised into a property |
 
 ### One caught before it shipped
 
@@ -117,6 +118,30 @@ artefact to go and look at.
 So the rule is mechanical rather than attentional: **any node whose whole
 purpose is to write a row must have its status surfaced**, and `PrepRunAI` now
 carries `viewing_event_status` for exactly this reason.
+
+### #14: one passing run of a race is not evidence the race is closed
+
+C3's race test is genuinely good — two real leads, real calendar, 0.4s apart.
+It ran once, one lead was blocked, and that was reported as proof. Running the
+identical test the next day produced a **double booking**: both re-checks
+completed before either create, so both saw a free slot.
+
+Nothing changed between the runs except scheduling luck.
+
+> A test with a nondeterministic outcome tells you what *can* happen, never
+> what *always* happens. A single green run of a race proves the good
+> interleaving exists — which was never in doubt.
+
+Two things follow, and the second is the real fix:
+
+- **Repeat nondeterministic tests.** Once is an anecdote. The cost here was one
+  extra run of a script that already existed.
+- **Check-then-act cannot be fixed by checking harder.** Moving the re-check
+  closer to the create shrinks the window; it cannot close it, because there is
+  no window size at which two concurrent actors cannot both observe "free".
+  Only something that *arbitrates* closes it — a unique constraint, a lock, or
+  a provider-side conflict. This is §6 in its sharpest form: prefer the boring
+  mechanism the platform already arbitrates.
 
 ### #13: the fix for one failure mode created another
 
