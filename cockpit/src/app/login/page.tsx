@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { isAllowed } from '@/lib/auth'
-import { authClient } from '@/lib/supabase/server'
+import { otpClient } from '@/lib/supabase/otp'
 import { IconLock } from '@/components/Icons'
 
 export const dynamic = 'force-dynamic'
@@ -21,7 +21,9 @@ async function sendLink(formData: FormData) {
   }
 
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
-  const supabase = await authClient()
+  // Not the SSR client: that one is PKCE, which pins the link to the browser
+  // that asked for it. See lib/supabase/otp.ts.
+  const supabase = otpClient()
 
   const { error } = await supabase.auth.signInWithOtp({
     email,

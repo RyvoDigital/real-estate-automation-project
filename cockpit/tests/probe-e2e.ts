@@ -169,7 +169,50 @@ async function main() {
     after.users.map((u) => u.email).join(', '),
   )
 
-  console.log('\n== 5. sign-out ends the session ==')
+  console.log('\n== 5. CROSS-DEVICE: a browser with no prior state can open the link ==')
+  // This is the requirement, not a nicety: request on a laptop, open on a
+  // phone. A jar that has never touched /login has no PKCE verifier and no
+  // cookies — which is exactly what a second device looks like.
+  const fresh = await signIn(ALLOWED)
+  check(fresh.jar.size() > 0, 'a device with zero prior state gets a session', `${fresh.jar.size()} cookie(s)`)
+  const freshQ = await get('/queue', fresh.jar)
+  check(freshQ.status === 200, 'and reaches the queue', `${freshQ.status}`)
+
+  console.log('\n== 6. the DEFAULT email template is detected, not silently broken ==')
+  // The bug that shipped: the template sends {{ .ConfirmationURL }}, Supabase
+  // verifies and redirects with the session in the URL FRAGMENT, and a server
+  // route sees no parameters at all. Follow the real action_link to reproduce
+  // exactly what a click on that email does.
+  const { data: gen } = await db.auth.admin.generateLink({
+    type: 'magiclink',
+    email: ALLOWED,
+    options: { redirectTo: `${BASE}/auth/callback` },
+  })
+  const actionLink = (gen?.properties as { action_link?: string } | undefined)?.action_link
+  check(Boolean(actionLink), 'got the ConfirmationURL the default template sends')
+
+  if (actionLink) {
+    // Follow Supabase's own verify redirect, as a click would.
+    let hop = await fetch(actionLink, { redirect: 'manual' })
+    let landed = hop.headers.get('location') ?? ''
+    const j2 = jar()
+    j2.absorb(hop)
+    if (landed.startsWith(BASE)) {
+      const r = await fetch(landed, { headers: { cookie: j2.header() }, redirect: 'manual' })
+      j2.absorb(r)
+      landed = r.headers.get('location') ?? landed
+    }
+    const diagnosed =
+      landed.includes('/login') &&
+      (landed.includes('TokenHash') || landed.includes('template') || landed.includes('fragment'))
+    check(
+      diagnosed || landed.includes('/queue'),
+      'the default template either works or says exactly what is wrong',
+      decodeURIComponent(landed).slice(0, 150),
+    )
+  }
+
+  console.log('\n== 7. sign-out ends the session ==')
   const out = await fetch(`${BASE}/auth/signout`, {
     method: 'POST',
     headers: { cookie: good.jar.header() },

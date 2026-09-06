@@ -338,8 +338,11 @@ The client form with validation, all-leads, health, weekly report.
 14. Lists paginate and perform against seeded volume, not current volume.
 15. Committed, pushed, deployed; runbook updated.
 16. **System, high-value and lead-initiated escalations are visually distinct, and a Claude outage cannot be mistaken for a busy day.** See §5.1.1.
+17. **A magic link requested on one device opens on another.** Proved by requesting on one device and opening on a second, not by reasoning about the flow. Requesting at a laptop and opening on a phone is the normal working pattern for a phone-first product used between viewings; an auth flow that only works in the browser that asked for the link fails in exactly the situation the cockpit exists for.
 
-Items 2, 6, 13 and 16 are the ones that fail silently — the screen looks fine either way, so nothing will tell you. Weight the testing accordingly.
+    The only Supabase shape that satisfies this is `token_hash` with server-side `verifyOtp`, because it is stateless. PKCE (`?code=`) stores a verifier in the requesting browser and cannot work cross-device by construction. The implicit flow returns the session in the URL **fragment**, which browsers never send to a server, so a server route sees no parameters at all. **This is set by the Supabase email template, not by application code** — so the template and the callback must be verified as matching, never assumed. The callback names whichever wrong shape it receives rather than failing generically.
+
+Items 2, 6, 13, 16 and 17 are the ones that fail silently — the screen looks fine either way, so nothing will tell you. Weight the testing accordingly.
 
 ---
 

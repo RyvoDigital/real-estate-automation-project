@@ -30,6 +30,37 @@ everyone is the quiet, expensive failure; a page that refuses to render is the l
 Supabase also needs `${NEXT_PUBLIC_SITE_URL}/auth/callback` added under
 Authentication → URL Configuration → Redirect URLs, or the magic link will bounce.
 
+## The magic-link email template is not optional
+
+**Authentication → Email Templates → Magic Link** must be:
+
+```html
+<h2>Ryvo Cockpit</h2>
+<p><a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink">Sign in</a></p>
+<p>This link is single-use and expires. If you did not ask for it, ignore it.</p>
+```
+
+The default template sends `{{ .ConfirmationURL }}`, and that **cannot work here**.
+Supabase can deliver a link in three shapes and only one of them survives being
+opened on a different device:
+
+| shape | what happens | cross-device |
+|---|---|---|
+| `?token_hash=…` | verified server-side, stateless | **works** |
+| `?code=…` (PKCE) | needs a `code_verifier` cookie in the browser that *asked* | fails: "code verifier not found in storage" |
+| `#access_token=…` (implicit) | session is in the URL **fragment**, which browsers never send to a server | fails: the route sees no parameters |
+
+Requesting a link on a laptop and opening it on a phone is the normal working
+pattern for this product, so PKCE is disqualified by construction — see
+`src/lib/supabase/otp.ts`, which is why the send path deliberately does not use
+the SSR client. The callback names whichever wrong shape it receives instead of
+failing generically, because the fix is in the template and a generic error
+sends you looking in the application code.
+
+`{{ .SiteURL }}` is the Supabase **Site URL** setting, so set it to the deployed
+origin. Local development then receives production links; use
+`npm run probe:e2e`, which mints its own tokens, rather than clicking emails.
+
 ---
 
 ## Why authorisation is not in the proxy
