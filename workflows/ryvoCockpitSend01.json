@@ -1,5 +1,6 @@
 {
-  "name": "ryvoCockpitSend01",
+  "id": "ryvoCockpitSnd1",
+  "name": "cockpit_send",
   "nodes": [
     {
       "parameters": {
