@@ -1102,3 +1102,72 @@ button {
   .composer__row { flex-direction: column; align-items: stretch; }
   .composer__send { width: 100%; }
 }
+
+.login__or {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0 16px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+.login__or span:first-child,
+.login__or span:last-child { height: 1px; background: var(--hairline); }
+.login__code { display: flex; flex-direction: column; gap: 9px; }
+.btn--ghost {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--hairline-strong);
+  color: var(--ink);
+}
+.btn--ghost:hover { background: rgba(255, 255, 255, 0.1); }
+
+/* --------------------------------------------------------- first paint */
+
+/*
+ * The manifest fixed the white flash; this stops the settled screen
+ * arriving in one frame. Deliberately short — this is opened between
+ * viewings, and an animation you notice twice is an animation that is too
+ * long. Nothing moves more than 8px and nothing takes longer than 260ms.
+ *
+ * Transform and opacity only, so it runs on the compositor and cannot cost
+ * a frame on the queue's first render.
+ */
+@keyframes rise {
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes settle {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.main > * {
+  animation: rise 240ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.nav { animation: settle 180ms ease-out both; }
+
+/* The rows ease in behind each other, oldest first — the same order the
+   eye should read them in. Capped at six so a long queue does not turn
+   into a slow reveal; everything past that simply appears. */
+.stack > * { animation: rise 260ms cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+.stack > *:nth-child(1) { animation-delay: 20ms; }
+.stack > *:nth-child(2) { animation-delay: 55ms; }
+.stack > *:nth-child(3) { animation-delay: 90ms; }
+.stack > *:nth-child(4) { animation-delay: 120ms; }
+.stack > *:nth-child(5) { animation-delay: 145ms; }
+.stack > *:nth-child(n + 6) { animation-delay: 165ms; }
+
+/* The outage banner does not wait its turn. */
+.outage { animation: settle 140ms ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .main > *,
+  .nav,
+  .stack > *,
+  .outage {
+    animation: none;
+  }
+}

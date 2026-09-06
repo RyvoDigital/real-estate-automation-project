@@ -66,6 +66,23 @@ in a deploy will detect a template that has been reset — the login simply stop
 working. `cd cockpit && npm run probe:e2e` has a check that follows the real
 `action_link` and will say which shape is being sent.
 
+### An installed iOS web app has its own cookie jar
+
+A page added to the home screen runs in a **separate cookie store from
+Safari**. Sign in through a magic link — which always opens Safari — and the
+installed app is still signed out, indefinitely. It looks exactly like "the
+session does not persist", and it is not: the session persisted, in the other
+jar.
+
+The cockpit's login therefore offers a **six-digit code** as well as a link, so
+the session can be created inside whichever context will be used. The
+magic-link template must include `{{ .Token }}` alongside the link for that to
+work.
+
+A second reason to prefer the code: Supabase rotates refresh tokens, so two
+contexts holding the same session will eventually race, and the loser is signed
+out with no explanation.
+
 ### Ask what a filter EXCLUDES, not just what it returns
 
 A query that returns the right rows has proved nothing until it has been shown to

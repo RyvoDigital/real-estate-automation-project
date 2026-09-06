@@ -1,4 +1,6 @@
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
+import { createServerClient } from '@supabase/ssr'
 import { isAllowed } from '@/lib/auth'
 import { otpClient } from '@/lib/supabase/otp'
 import { IconLock } from '@/components/Icons'
@@ -38,6 +40,58 @@ async function sendLink(formData: FormData) {
   redirect('/login?sent=1')
 }
 
+/**
+ * Sign in with the six-digit code from the same email.
+ *
+ * This exists because of an iOS platform behaviour, not a preference: a web
+ * app added to the home screen has its OWN cookie jar, separate from
+ * Safari's. A magic link tapped in Mail always opens Safari, so the session
+ * it creates lands in the wrong jar and the installed app still shows the
+ * login screen — which is exactly what "I closed the tab and had to sign in
+ * again" looks like from the outside.
+ *
+ * A code can be typed INSIDE the installed app, so the session is created in
+ * the jar that will be used. It also avoids two contexts racing to rotate the
+ * same refresh token, which logs one of them out.
+ */
+async function enterCode(formData: FormData) {
+  'use server'
+
+  const email = String(formData.get('email') ?? '').trim().toLowerCase()
+  const token = String(formData.get('code') ?? '').replace(/\D/g, '')
+
+  if (!isAllowed(email)) redirect('/login?denied=1')
+  if (token.length < 6) redirect('/login?error=' + encodeURIComponent('That code is too short.'))
+
+  const cookieStore = await cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          for (const { name, value, options } of cookiesToSet) {
+            cookieStore.set(name, value, {
+              ...options,
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+            })
+          }
+        },
+      },
+    },
+  )
+
+  const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' })
+  if (error) redirect('/login?error=' + encodeURIComponent(error.message))
+
+  redirect('/queue')
+}
+
 export default async function LoginPage({
   searchParams,
 }: {
@@ -72,10 +126,45 @@ export default async function LoginPage({
 
         {params.sent && (
           <div className="notice notice--ok">
-            Link sent. It is single-use and expires — open it on the device you want to be signed
-            in on.
+            Sent. The email carries both a link and a six-digit code.
           </div>
         )}
+
+        <div className="login__or">
+          <span />
+          <span>or enter the code</span>
+          <span />
+        </div>
+
+        {/* On a home-screen app, use the code. iOS gives the installed app its
+            own cookie jar and a tapped link always opens Safari, so a link
+            signs you into the wrong one. */}
+        <form action={enterCode} className="login__code">
+          <input
+            className="field"
+            type="email"
+            name="email"
+            required
+            autoComplete="email"
+            placeholder="you@ryvodigital.com"
+            aria-label="Email address for the code"
+          />
+          <input
+            className="field"
+            type="text"
+            name="code"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            pattern="[0-9]*"
+            maxLength={8}
+            required
+            placeholder="123456"
+            aria-label="Six-digit code"
+          />
+          <button className="btn btn--ghost" type="submit">
+            Sign in with code
+          </button>
+        </form>
         {params.denied && (
           <div className="notice notice--bad">
             That address is not on the allowlist, so no link was sent.

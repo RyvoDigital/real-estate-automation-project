@@ -215,6 +215,8 @@ This context is the entire argument for replying here rather than in WhatsApp. O
 
 An explicit action, confirmed, that clears `qualification.escalated` and writes an event. Default state is that the lead stays with the human.
 
+**KNOWN GAP, open and deliberate.** The "handled elsewhere" detection is implemented and correct, and it may never fire. It looks for an outbound message recorded after the escalation that the cockpit did not send — but a message typed into WhatsApp on a phone reaches Twilio, not n8n, so unless Twilio's outbound status callbacks are recorded there is no row to find. This is a *consumer without a producer*, the mirror of instance 15 in `engineering-lessons.md`. Closing it means wiring Twilio status callbacks into a webhook that writes the outbound row, which is its own piece of work and is not in E2.
+
 **Also handle the case where Manuel replied in WhatsApp instead.** He will sometimes just do that. If an outbound message exists for an escalated lead that the cockpit did not send, surface the escalation as "handled elsewhere" rather than leaving it looking untouched. Never a stuck state for doing the obvious thing.
 
 ### 5.4 All leads
@@ -341,8 +343,11 @@ The client form with validation, all-leads, health, weekly report.
 17. **A magic link requested on one device opens on another.** Proved by requesting on one device and opening on a second, not by reasoning about the flow. Requesting at a laptop and opening on a phone is the normal working pattern for a phone-first product used between viewings; an auth flow that only works in the browser that asked for the link fails in exactly the situation the cockpit exists for.
 
     The only Supabase shape that satisfies this is `token_hash` with server-side `verifyOtp`, because it is stateless. PKCE (`?code=`) stores a verifier in the requesting browser and cannot work cross-device by construction. The implicit flow returns the session in the URL **fragment**, which browsers never send to a server, so a server route sees no parameters at all. **This is set by the Supabase email template, not by application code** — so the template and the callback must be verified as matching, never assumed. The callback names whichever wrong shape it receives rather than failing generically.
+18. **The session survives closing the tab, closing Safari, and restarting the device.** Proved by doing all three, not by reading the cookie configuration. If a magic link is needed every time the app is opened, the cockpit is slower than WhatsApp and will not be used — which §9 names as the failure mode that wastes the whole checkpoint.
 
-Items 2, 6, 13, 16 and 17 are the ones that fail silently — the screen looks fine either way, so nothing will tell you. Weight the testing accordingly.
+    Note the platform behaviour this depends on: **iOS gives a home-screen web app its own cookie jar, separate from Safari's**, and a link tapped in Mail always opens Safari. A session created by a link therefore lands in the wrong jar, and the installed app still shows the login screen. The six-digit code exists so the session can be created *inside* the installed app; it also avoids two contexts racing to rotate the same refresh token, which signs one of them out.
+
+Items 2, 6, 13, 16, 17 and 18 are the ones that fail silently — the screen looks fine either way, so nothing will tell you. Weight the testing accordingly.
 
 ---
 

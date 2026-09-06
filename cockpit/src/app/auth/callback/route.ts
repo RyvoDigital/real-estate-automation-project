@@ -74,7 +74,15 @@ export async function GET(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           for (const { name, value, options } of cookiesToSet) {
-            response.cookies.set(name, value, options)
+            response.cookies.set(name, value, {
+              ...options,
+              // The session is never read from JavaScript, so it has no business
+              // being reachable by it. httpOnly closes XSS as a session-theft
+              // route; secure keeps it off any plaintext hop.
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+            })
           }
         },
       },

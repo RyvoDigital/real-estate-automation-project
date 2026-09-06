@@ -27,7 +27,15 @@ export async function authClient() {
       setAll(cookiesToSet) {
         try {
           for (const { name, value, options } of cookiesToSet) {
-            cookieStore.set(name, value, options)
+            cookieStore.set(name, value, {
+              ...options,
+              // The session is never read from JavaScript, so it has no business
+              // being reachable by it. httpOnly closes XSS as a session-theft
+              // route; secure keeps it off any plaintext hop.
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+            })
           }
         } catch {
           // Server Components cannot write cookies. The proxy refreshes the

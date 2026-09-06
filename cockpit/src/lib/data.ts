@@ -135,6 +135,15 @@ export async function getQueue(limit = 100): Promise<QueueRow[]> {
  * Anything else outbound after the escalation was somebody else — either a
  * human elsewhere, or the assistant resuming when it should not have.
  *
+ * EXCEPT the handoff note. When the Concierge escalates it immediately sends
+ * "a colleague will continue the conversation", and StoreHandoffMessage
+ * writes that with ai_generated: false and approved_by_human: null — which is
+ * byte-identical to what a human replying elsewhere would look like, about
+ * 0.6 seconds after the escalation timestamp. Without the grace window below
+ * this fires on EVERY escalated lead, and a marker that is always wrong is
+ * worse than no marker: it teaches you to ignore it. Caught by opening the
+ * screen and seeing the banner on a lead nobody had touched.
+ *
  * KNOWN LIMIT, and it is a real one: this only fires if a row EXISTS. A
  * message typed into WhatsApp on a phone reaches Twilio, not n8n, so unless
  * outbound status callbacks are recorded there is nothing to find. The
@@ -142,6 +151,13 @@ export async function getQueue(limit = 100): Promise<QueueRow[]> {
  * consumer-without-a-producer, the mirror of instance 15. Verified as far as
  * the query goes; NOT verified end to end from a real WhatsApp reply.
  */
+/**
+ * How long after an escalation an outbound message is assumed to be the
+ * assistant's own handoff note rather than a human. The note goes out within
+ * a second; a person picking up their phone takes longer than two minutes.
+ */
+const HANDOFF_GRACE_MS = 120_000
+
 async function getRepliesSinceEscalation(rows: LeadRow[]): Promise<Set<string>> {
   const escalatedAt = new Map<string, string>()
   for (const lead of rows) {
@@ -166,7 +182,7 @@ async function getRepliesSinceEscalation(rows: LeadRow[]): Promise<Set<string>> 
     const at = escalatedAt.get(id)
     if (!at) continue
     if (m.approved_by_human === true) continue // the cockpit sent this one
-    if (Date.parse(m.created_at as string) > Date.parse(at)) out.add(id)
+    if (Date.parse(m.created_at as string) > Date.parse(at) + HANDOFF_GRACE_MS) out.add(id)
   }
   return out
 }
@@ -282,7 +298,7 @@ export async function getLead(id: string): Promise<LeadDetail | null> {
           (m) =>
             m.direction === 'outbound' &&
             !m.approvedByHuman &&
-            Date.parse(m.createdAt) > Date.parse(esc.at as string),
+            Date.parse(m.createdAt) > Date.parse(esc.at as string) + HANDOFF_GRACE_MS,
         )
       : false,
     viewing,
