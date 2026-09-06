@@ -11,6 +11,37 @@ node, and nothing else.
 
 ---
 
+## Standing rules
+
+Read these before doing anything. They are rules rather than advice because
+each one exists to prevent something that already happened, or that was about
+to.
+
+### Never write to the production database without asking first
+
+**Reads are fine. Any write — insert, update, delete — needs the operator's
+explicit go-ahead in the conversation, every time.** This includes writes that
+clean up after themselves.
+
+On 2026-09-06 a probe inserted three test leads and one auth user into the live
+Supabase project to prove a query filter, checked them, and deleted them again in
+a `finally` block with the cleanup verified. Nothing was left behind and nothing
+broke. It was still the wrong call: the database holds real people's names, phone
+numbers and budgets, and whether to touch it is the operator's decision, not the
+implementer's. A self-cleaning write is still a write, and "it worked out" is not
+the standard.
+
+If a check genuinely needs data that does not exist, say so and ask. The answer
+is usually yes and it costs one message.
+
+### Ask what a filter EXCLUDES, not just what it returns
+
+A query that returns the right rows has proved nothing until it has been shown to
+leave something out. See §7 of `engineering-lessons.md` — this has its own entry
+because it produced a real defect while every check was green.
+
+---
+
 ## 0. The Claude call — model, settings, measured baselines
 
 **Checkpoint B in progress (2026-09-02).** These are the pre-build measurements

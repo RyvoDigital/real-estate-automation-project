@@ -11,7 +11,9 @@ If you read only three things here, read **§0** — a generated message that
 promises a future you have not secured — **§0b**: check-then-act cannot be
 fixed by checking harder, and a nondeterministic test tells you what *can*
 happen, never what *always* does — and **rule 13**: documenting a failure mode
-does not control it, checking the artefact does.
+does not control it, checking the artefact does. Then **§7**, which is the
+empty-set pass again — a filter is tested by what it refuses, not by what it
+returns.
 
 ---
 
@@ -604,6 +606,92 @@ produced a perfectly informative silence: no errors, because nothing was asking.
 When adding monitoring, the question is not "will this tell me when it breaks?"
 It is "what breakage would this be blind to?" Answer that one honestly and the
 gap is usually obvious.
+
+---
+
+## 7. A JSON null is not a SQL NULL, and the operator you pick decides which one you are testing
+
+**2026-09-06.** The cockpit's escalation queue selected leads with
+
+```
+.not('qualification->escalated', 'is', null)
+```
+
+It looked obviously correct and it was wrong. `->` returns **jsonb**, so a lead
+carrying `{"escalated": null}` yields jsonb `null` — which is *not* SQL NULL.
+`IS NULL` is false, and the row survives a filter written to exclude exactly it.
+`->>` returns **text**, and the text of a jsonb null *is* SQL NULL, so it
+excludes both the absent key and the explicit null.
+
+Measured through PostgREST, which is what the caller actually uses:
+
+| lead | expected | `->` | `->>` |
+|---|---|---|---|
+| key absent | OUT | OUT | OUT |
+| `{"escalated": null}` | OUT | **IN** | OUT |
+| a real escalation | IN | IN | IN |
+
+Nothing was visibly broken, which is the interesting part. The screen re-parsed
+every row and dropped what did not look escalated, so the render was correct
+while the query was not. **The defect was invisible because a second, redundant
+check was masking it** — and the redundant check is exactly the sort of thing a
+later tidy-up deletes as unnecessary.
+
+Where it would have surfaced is the next checkpoint. Clearing an escalation by
+writing `escalated: null` is the obvious way to hand a lead back to the AI, and
+every *other* consumer of that filter — a count, a health tile, a weekly report —
+would have gone on counting a handled lead for ever, with no screen showing
+anything wrong.
+
+> Whenever a query reaches into JSON, ask which of the three nullish states you
+> mean — key absent, JSON null, SQL NULL — and which one your operator actually
+> tests. They are three different things and the syntax barely distinguishes
+> them.
+
+### The part that generalises: prove what a filter EXCLUDES
+
+The first test of that query passed. It compared the filter's result against a
+ground truth computed independently in JavaScript and reported *"agreed on all 1
+rows"*.
+
+It was worthless. The one lead in the table **was** escalated, so the filter
+returned everything — and a filter that did nothing at all would have produced
+an identical pass. The query had never once been asked to leave a row out.
+
+> A filter is not tested by the rows it returns. It is tested by the rows it
+> **refuses**. Until something has been excluded, `WHERE` might as well not be
+> there.
+
+This is §1's empty-set pass (#4, rule 6) in its third costume, and the third
+occurrence *in a single session* — the first two being a bundle scan that
+searched zero bytes and a differential over one row. Knowing the pattern did not
+prevent any of them. What caught all three was the same mechanical habit, which
+is the only thing that has ever worked here:
+
+> **Make the check fail on purpose before believing it when it passes.**
+
+Concretely, and this is the pattern to copy for any filter added later:
+
+- Force the condition rather than waiting for it. `probe-filter-excludes.ts`
+  inserts a row for each nullish state, asserts which ones the filter returns,
+  and deletes them again — because the data needed to test the query did not
+  exist and was never going to.
+- Assert a negative. The probe fails if the filter excluded *nothing*, whatever
+  else agreed.
+- Carry a positive control. `no-secret-in-bundle.sh` plants a real leak, proves
+  the search finds it, removes it, and only then reports a clean result.
+
+### And a shell footgun worth naming, because it caused one of the three
+
+```bash
+grep -rl "SENTINEL" .next/static/ && echo "the grep works"
+```
+
+This prints *"the grep works"* whether or not the string exists, when a `| head`
+sits in the pipeline: the exit status belongs to the **last** command, not to
+`grep`. A check that reports success by construction is worse than no check,
+because it is filed as evidence. Capture the count (`grep -c`) and branch on the
+number, never on the exit status of a pipeline.
 
 ---
 
