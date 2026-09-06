@@ -8,12 +8,10 @@ import { IconCalendar, IconChat, IconHome, IconPerson, IconPulse, IconWarning } 
  */
 export function Shell({
   children,
-  email,
   active,
   openCount,
 }: {
   children: React.ReactNode
-  email: string
   active: 'overview' | 'escalations' | 'leads' | 'viewings' | 'health'
   openCount: number
 }) {
@@ -40,27 +38,27 @@ export function Shell({
 
         {/* Not built yet. Shown so the shape of the product is legible, and
             labelled so nothing pretends to work. E3. */}
-        <span className="nav__item" aria-disabled>
+        <span className="nav__item nav__item--stub" aria-disabled>
           <IconHome size={17} />
           <span className="nav__label">Overview</span>
           <span className="nav__soon">E3</span>
         </span>
-        <span className="nav__item" aria-disabled>
+        <span className="nav__item nav__item--stub" aria-disabled>
           <IconPerson size={17} />
           <span className="nav__label">Leads</span>
           <span className="nav__soon">E3</span>
         </span>
-        <span className="nav__item" aria-disabled>
+        <span className="nav__item nav__item--stub" aria-disabled>
           <IconCalendar size={17} />
           <span className="nav__label">Viewings</span>
           <span className="nav__soon">E3</span>
         </span>
-        <span className="nav__item" aria-disabled>
+        <span className="nav__item nav__item--stub" aria-disabled>
           <IconPulse size={17} />
           <span className="nav__label">Health</span>
           <span className="nav__soon">E3</span>
         </span>
-        <span className="nav__item" aria-disabled>
+        <span className="nav__item nav__item--stub" aria-disabled>
           <IconChat size={17} />
           <span className="nav__label">Weekly report</span>
           <span className="nav__soon">E3</span>

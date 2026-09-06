@@ -48,7 +48,18 @@ export async function proxy(request: NextRequest) {
   const signedIn = Boolean(data?.claims)
 
   const path = request.nextUrl.pathname
-  const isPublic = path.startsWith('/login') || path.startsWith('/auth')
+
+  // The PWA shell is public. iOS fetches the manifest and the icons outside
+  // any session, so redirecting them to /login gives the home-screen app a
+  // 6-byte body where its icon should be — which is how it was found. None
+  // of these carry data: a name, two colours and a letter R.
+  const isAsset =
+    path === '/manifest.webmanifest' ||
+    path === '/icon' ||
+    path === '/apple-icon' ||
+    path === '/favicon.ico'
+
+  const isPublic = isAsset || path.startsWith('/login') || path.startsWith('/auth')
 
   if (!signedIn && !isPublic) {
     const to = request.nextUrl.clone()

@@ -212,7 +212,37 @@ async function main() {
     )
   }
 
-  console.log('\n== 7. sign-out ends the session ==')
+  console.log('\n== 7. the PWA shell is reachable without a session ==')
+  // iOS fetches these outside any session. If the proxy redirects them the
+  // home-screen app gets a 6-byte login redirect where its icon should be,
+  // and nothing on the phone says so — it just looks generic.
+  // Minimum sizes are per-path: a manifest is a few hundred bytes of JSON,
+  // a PNG is thousands. One threshold for both would either pass a redirect
+  // or fail a healthy manifest — the first draft of this check did the latter.
+  for (const [path, wantType, minBytes] of [
+    ['/manifest.webmanifest', 'json', 200],
+    ['/icon', 'image/png', 2000],
+    ['/apple-icon', 'image/png', 1000],
+  ] as const) {
+    const r = await fetch(`${BASE}${path}`, { redirect: 'manual' })
+    const type = r.headers.get('content-type') ?? ''
+    const bytes = (await r.arrayBuffer()).byteLength
+    check(
+      r.status === 200 && type.includes(wantType) && bytes > minBytes,
+      `${path} is served, not redirected`,
+      `${r.status} ${type} ${bytes}b`,
+    )
+  }
+
+  const man = await (await fetch(`${BASE}/manifest.webmanifest`)).json()
+  check(man.display === 'standalone', 'display: standalone', man.display)
+  check(
+    man.background_color === '#08080a' && man.theme_color === '#08080a',
+    'dark background and theme colour, so iOS does not flash white on launch',
+    `${man.background_color} / ${man.theme_color}`,
+  )
+
+  console.log('\n== 8. sign-out ends the session ==')
   const out = await fetch(`${BASE}/auth/signout`, {
     method: 'POST',
     headers: { cookie: good.jar.header() },

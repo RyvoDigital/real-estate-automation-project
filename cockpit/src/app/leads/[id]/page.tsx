@@ -40,7 +40,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
   const tierClass = `card--t${lead.tier}`
 
   return (
-    <Shell email={operator.email} active="escalations" openCount={queue.length}>
+    <Shell active="escalations" openCount={queue.length}>
       <div className="topbar">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexGrow: 1 }}>
           <Link href="/queue" style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--ink-3)' }}>

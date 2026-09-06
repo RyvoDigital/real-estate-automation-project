@@ -18,7 +18,7 @@ export default async function QueuePage() {
   const oldest = rows[0]
 
   return (
-    <Shell email={operator.email} active="escalations" openCount={rows.length}>
+    <Shell active="escalations" openCount={rows.length}>
       <div className="topbar">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flexGrow: 1 }}>
           <h1 className="topbar__title">Escalations</h1>

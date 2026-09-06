@@ -5,12 +5,18 @@ export const metadata: Metadata = {
   title: 'Ryvo Cockpit',
   description: 'Internal operations cockpit',
   robots: { index: false, follow: false },
+  manifest: '/manifest.webmanifest',
+  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Cockpit' },
 }
 
 export const viewport: Viewport = {
   themeColor: '#08080a',
   width: 'device-width',
   initialScale: 1,
+  // Standalone on an iPhone means the layout runs under the notch and the
+  // home indicator. cover + env(safe-area-inset-*) in globals.css is what
+  // keeps the app bar out from behind the status bar.
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -34,6 +34,38 @@ the standard.
 If a check genuinely needs data that does not exist, say so and ask. The answer
 is usually yes and it costs one message.
 
+### The operator address is manuelvale@ryvodigital.com — no dot
+
+`manuel.vale@ryvodigital.com` **does not exist**. Mail to it bounces, and Resend
+then suppresses the address, so subsequent sends fail quietly rather than
+bouncing again. Anything that hardcodes or allowlists an operator address —
+`COCKPIT_ALLOWED_EMAILS`, alert recipients, a test fixture — uses the undotted
+form. The dotted one existed as a Supabase auth user for a while purely because
+a login was attempted with it; it has been deleted.
+
+### The cockpit's magic-link template is configuration the code depends on
+
+Supabase → Authentication → Email Templates → **Magic Link** must send
+`{{ .TokenHash }}` to the cockpit's callback, not the default
+`{{ .ConfirmationURL }}`:
+
+```html
+<a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink">Sign in</a>
+```
+
+The default template produces either a PKCE `?code=` — which needs a verifier
+cookie in the browser that *asked* for the link, so it cannot survive being
+opened on a second device — or an implicit `#access_token=` fragment, which
+browsers never send to a server, so the callback receives no parameters at all.
+Both were hit on 2026-09-06 and cost an evening. Requesting a link on a laptop
+and opening it on a phone is the normal working pattern here, so this is not a
+preference.
+
+**This lives outside the repository and the repository depends on it.** Nothing
+in a deploy will detect a template that has been reset — the login simply stops
+working. `cd cockpit && npm run probe:e2e` has a check that follows the real
+`action_link` and will say which shape is being sent.
+
 ### Ask what a filter EXCLUDES, not just what it returns
 
 A query that returns the right rows has proved nothing until it has been shown to
