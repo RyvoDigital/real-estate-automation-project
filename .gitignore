@@ -34,3 +34,10 @@ Thumbs.db
 *.swp
 .idea/
 .vscode/
+
+# cockpit
+cockpit/node_modules/
+cockpit/.next/
+cockpit/.env*.local
+cockpit/next-env.d.ts
+cockpit/tsconfig.tsbuildinfo
