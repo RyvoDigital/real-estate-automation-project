@@ -22,6 +22,7 @@ export type QueueRow = {
   primary: EscalationClass
   classes: EscalationClass[]
   lastMessage: string | null
+  handledElsewhere: boolean
 }
 
 type LeadRow = {
@@ -84,6 +85,7 @@ export async function getQueue(limit = 100): Promise<QueueRow[]> {
   const rows = leads as LeadRow[]
   const clientNames = await getClientNames(rows.map((l) => l.client_id))
   const lastMessages = await getLastInboundMessages(rows.map((l) => l.id))
+  const answered = await getRepliesSinceEscalation(rows)
   const now = Date.now()
 
   const out: QueueRow[] = []
@@ -108,6 +110,7 @@ export async function getQueue(limit = 100): Promise<QueueRow[]> {
       primary,
       classes,
       lastMessage: lastMessages.get(lead.id) ?? null,
+      handledElsewhere: answered.has(lead.id),
     })
   }
 
@@ -120,6 +123,51 @@ export async function getQueue(limit = 100): Promise<QueueRow[]> {
     return b.minutes - a.minutes
   })
 
+  return out
+}
+
+/**
+ * Leads that have had an outbound message since they were escalated, which
+ * the cockpit did not send. §5.3: Manuel will sometimes just reply in
+ * WhatsApp, and doing the obvious thing must not leave a stuck row.
+ *
+ * Cockpit sends are identifiable because they set approved_by_human = true.
+ * Anything else outbound after the escalation was somebody else — either a
+ * human elsewhere, or the assistant resuming when it should not have.
+ *
+ * KNOWN LIMIT, and it is a real one: this only fires if a row EXISTS. A
+ * message typed into WhatsApp on a phone reaches Twilio, not n8n, so unless
+ * outbound status callbacks are recorded there is nothing to find. The
+ * detection is correct and may simply never trigger — which is a
+ * consumer-without-a-producer, the mirror of instance 15. Verified as far as
+ * the query goes; NOT verified end to end from a real WhatsApp reply.
+ */
+async function getRepliesSinceEscalation(rows: LeadRow[]): Promise<Set<string>> {
+  const escalatedAt = new Map<string, string>()
+  for (const lead of rows) {
+    const esc = parseEscalated(lead.qualification)
+    if (esc?.at) escalatedAt.set(lead.id, esc.at)
+  }
+  if (escalatedAt.size === 0) return new Set()
+
+  const { data, error } = await admin()
+    .from('messages')
+    .select('lead_id, created_at, approved_by_human, ai_generated')
+    .in('lead_id', [...escalatedAt.keys()])
+    .eq('direction', 'outbound')
+    .order('created_at', { ascending: false })
+    .limit(500)
+
+  if (error) throw new Error(`outbound scan failed: ${error.message}`)
+
+  const out = new Set<string>()
+  for (const m of data ?? []) {
+    const id = m.lead_id as string
+    const at = escalatedAt.get(id)
+    if (!at) continue
+    if (m.approved_by_human === true) continue // the cockpit sent this one
+    if (Date.parse(m.created_at as string) > Date.parse(at)) out.add(id)
+  }
   return out
 }
 
@@ -160,6 +208,7 @@ export type Message = {
   body: string | null
   status: string | null
   aiGenerated: boolean
+  approvedByHuman: boolean
   createdAt: string
 }
 
@@ -181,6 +230,7 @@ export type LeadDetail = {
   primary: EscalationClass
   classes: EscalationClass[]
   messages: Message[]
+  handledElsewhere: boolean
   viewing: { startsAt: string | null; summary: string | null } | null
 }
 
@@ -227,6 +277,14 @@ export async function getLead(id: string): Promise<LeadDetail | null> {
     primary,
     classes,
     messages,
+    handledElsewhere: esc?.at
+      ? messages.some(
+          (m) =>
+            m.direction === 'outbound' &&
+            !m.approvedByHuman &&
+            Date.parse(m.createdAt) > Date.parse(esc.at as string),
+        )
+      : false,
     viewing,
   }
 }
@@ -234,7 +292,7 @@ export async function getLead(id: string): Promise<LeadDetail | null> {
 async function getMessages(leadId: string): Promise<Message[]> {
   const { data, error } = await admin()
     .from('messages')
-    .select('id, direction, body, status, ai_generated, created_at')
+    .select('id, direction, body, status, ai_generated, approved_by_human, created_at')
     .eq('lead_id', leadId)
     .order('created_at', { ascending: true })
     .limit(300)
@@ -247,6 +305,7 @@ async function getMessages(leadId: string): Promise<Message[]> {
     body: (m.body as string) ?? null,
     status: (m.status as string) ?? null,
     aiGenerated: Boolean(m.ai_generated),
+    approvedByHuman: m.approved_by_human === true,
     createdAt: m.created_at as string,
   }))
 }

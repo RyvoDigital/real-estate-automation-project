@@ -695,6 +695,59 @@ number, never on the exit status of a pipeline.
 
 ---
 
+## 6b. Fixing the test instead of the code, and the check that cries wolf
+
+§12 of rule-13's list says a red result needs the same provenance check as a
+green one. This is the failure that lives one step *past* that: you correctly
+establish the test was wrong, you fix the test — and you have now quietly
+lowered the bar, with a green suite to prove everything is fine.
+
+**2026-09-06.** A check asserted that every asset the PWA serves exceeds 500
+bytes, to catch the case where a proxy redirects an icon to the login page and
+the app silently gets a 6-byte redirect body. It failed. The manifest was
+perfectly healthy and 380 bytes, because a manifest *is* a few hundred bytes of
+JSON. The fix was per-path thresholds, which is right.
+
+But notice the shape of the moment. The cheapest edit available was to drop the
+threshold, or delete the assertion, and both would have gone green. One of them
+would also have removed the only thing standing between a redirected icon and
+nobody noticing — which is the exact defect the check had just been written to
+catch, and which had already shipped once.
+
+> Every failing test offers two repairs: make the test right, or make the test
+> quiet. They are indistinguishable in the diff and in the summary line, and
+> only one of them still catches the bug.
+
+The tell is not subtle once you look for it: **ask what the weakened check would
+no longer catch, and whether that thing has ever happened.** If the answer is
+"the thing I am fixing right now", stop.
+
+### The related failure: a check nobody trusts is a check nobody has
+
+A threshold tuned to fire on healthy input does not survive. It gets an
+exception, then a wider bound, then a comment saying it is flaky, then it is
+deleted or skipped — and every one of those steps is locally reasonable. Nothing
+in the history records that coverage was lost, because no commit ever said
+"remove this check"; a sequence of small accommodations did it.
+
+So a false alarm is not a cosmetic problem to be tolerated. It is a slow leak in
+the thing that makes the suite worth running:
+
+- **Calibrate a bound against real healthy input before shipping it**, not
+  against a guess. 500 was a guess; 380 was the fact.
+- **Assert the property, not a proxy for it.** The property was "this was not
+  redirected". Content type and status carry that directly; byte count was a
+  stand-in that happened to be wrong at the small end.
+- **When you loosen a check, say in the commit what it no longer catches.** If
+  that sentence is uncomfortable to write, the loosening is the defect.
+
+This is why the bundle check plants a real leak and the filter probe forces the
+null case: a check with a demonstrated failure mode can be trusted when it
+passes, and a check that has never failed on purpose is a guess with good
+formatting.
+
+---
+
 ## 6. Prefer the boring mechanism the platform already arbitrates
 
 Dedupe was originally specified as workflow logic: look up the message id, and

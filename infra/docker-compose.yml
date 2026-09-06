@@ -76,6 +76,17 @@ services:
       - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
       - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN:?TWILIO_AUTH_TOKEN is unset - signature verification would reject every inbound message}
       - TWILIO_WHATSAPP_FROM=${TWILIO_WHATSAPP_FROM}
+      # --- Cockpit send webhook (Checkpoint E2) ---
+      # Shared secret the cockpit puts in x-ryvo-cockpit-secret. Same class of
+      # secret as TWILIO_AUTH_TOKEN above and subject to the same caveat: with
+      # N8N_BLOCK_ENV_ACCESS_IN_NODE=false any Code node can read it. It has to
+      # be here rather than in a credential because the check is a constant-time
+      # comparison inside a Code node, which cannot reach a credential.
+      #
+      # Unset means the webhook refuses EVERY request rather than accepting
+      # every request: CheckSecret requires a non-empty expected value, so a
+      # missing variable fails closed. §1c -- prefer a config that refuses.
+      - COCKPIT_SEND_SECRET=${COCKPIT_SEND_SECRET:?COCKPIT_SEND_SECRET is unset - the cockpit send webhook would reject every reply}
     volumes:
       - n8n_data:/home/node/.n8n
     depends_on:

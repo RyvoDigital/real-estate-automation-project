@@ -47,6 +47,7 @@ export function QueueCard({ row }: { row: QueueRow }) {
             <span className="tierword">{TIER_WORD[row.tier]}</span>
           </span>
           <span className="card__chips">
+            {row.handledElsewhere && <span className="card__elsewhere">Handled elsewhere</span>}
             {row.classes.map((c) => (
               <Chip key={c} kind={c} />
             ))}

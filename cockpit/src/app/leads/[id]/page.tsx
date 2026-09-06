@@ -5,7 +5,8 @@ import { getLead, getQueue } from '@/lib/data'
 import { TIER_WORD, classOf, formatWait, humanise } from '@/lib/escalation'
 import { Shell, Who } from '@/components/Shell'
 import { Chip } from '@/components/Queue'
-import { IconBack, IconLock, IconWarning } from '@/components/Icons'
+import { Composer, HandBack } from '@/components/Reply'
+import { IconBack, IconWarning } from '@/components/Icons'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -86,6 +87,19 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
             )}
           </div>
 
+          {lead.handledElsewhere && (
+            <div style={{ padding: '14px 22px 0' }}>
+              <div className="elsewhere">
+                <IconWarning size={15} />
+                <span>
+                  Someone already replied to this lead after it escalated, and it was not sent
+                  from here. It is probably handled — hand it back to the AI, or reply again if
+                  it is not.
+                </span>
+              </div>
+            </div>
+          )}
+
           <div className="thread">
             {lead.messages.length === 0 && (
               <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>
@@ -119,14 +133,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
             )}
           </div>
 
-          {/* E1 is read-only by design. Rather than render a reply box that
-              does nothing — which is the shape of instance 6, a control that
-              looks like it worked — the composer is absent and its absence
-              is stated. §11 item 6 arrives with sending, at E2. */}
-          <div className="readonly">
-            <IconLock size={15} />
-            <span>Read-only. Replying and handing back to the AI arrive at E2.</span>
-          </div>
+          <Composer leadId={lead.id} firstName={lead.name.split(' ')[0]} />
         </div>
 
         <aside className="panel learned">
@@ -177,6 +184,8 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
               <span className="learned__none">None booked</span>
             )}
           </div>
+
+          {lead.escalated && <HandBack leadId={lead.id} />}
 
           <hr style={{ border: 'none', height: 1, background: 'var(--hairline)', margin: 0 }} />
 
