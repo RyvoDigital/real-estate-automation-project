@@ -1,0 +1,276 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+  <style>
+    body { margin: 0; background: #08080A; font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #D8CFC9; text-decoration: none; }
+    a:hover { color: #F2F0EE; }
+    * { box-sizing: border-box; }
+  </style>
+</helmet>
+
+<div style="width: 390px; min-height: 1240px; background: #08080A; color: #F2F0EE; display: flex; flex-direction: column;">
+
+  <sc-if value="{{outage}}" hint-placeholder-val="{{true}}">
+    <div style="display: flex; align-items: flex-start; gap: 12px; margin: 14px 14px 0 14px; padding: 15px 16px; border-radius: 18px; background: linear-gradient(135deg, #B32B24 0%, #6B1410 100%); box-shadow: 0 12px 30px rgba(0,0,0,0.6);">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFE9E7" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px;"><path d="M10.3 3.9 1.9 18a2 2 0 0 0 1.7 3h16.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <span style="font-family: 'Space Grotesk', sans-serif; font-size: 15.5px; font-weight: 600; color: #FFFFFF;">The assistant is down</span>
+        <span style="font-size: 13px; line-height: 1.45; color: rgba(255,233,231,0.86);">Three leads escalated by the same fault in four minutes. Read this as an outage, not as demand.</span>
+      </div>
+    </div>
+  </sc-if>
+
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 20px 16px 14px 16px;">
+    <div style="display: flex; flex-direction: column; gap: 2px;">
+      <span style="font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #6E6863;">Waiting on you</span>
+      <span style="font-family: 'Space Grotesk', sans-serif; font-size: 25px; font-weight: 700; letter-spacing: -0.025em; color: #FFFFFF;">Escalations</span>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: center; min-width: 44px; height: 44px; padding: 0 13px; border-radius: 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(184,173,170,0.28); box-shadow: inset 0 1px 0 rgba(255,255,255,0.07);">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600; color: #F2F0EE;">{{count}}</span>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 9px; padding: 0 16px 18px 16px;">
+    <div style="position: relative; height: 36px; border-radius: 12px; background: #0E0F12; border: 1px solid rgba(255,255,255,0.07); overflow: hidden;">
+      <div style="position: absolute; right: 0; top: 0; bottom: 0; width: 20%; background: rgba(255,84,71,0.13); border-left: 1px dashed rgba(255,84,71,0.5);"></div>
+      <sc-for list="{{marks}}" as="mark" hint-placeholder-count="5">
+        <div style="position: absolute; top: 7px; bottom: 7px; left: {{mark.pct}}; width: {{mark.w}}; border-radius: 2px; background: {{mark.color}};"></div>
+      </sc-for>
+    </div>
+    <div style="display: flex; justify-content: space-between;">
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #4A4540;">now</span>
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #4A4540;">1h</span>
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #4A4540;">2h</span>
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #4A4540;">3h</span>
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; font-weight: 600; color: #FF5347;">4h breach</span>
+    </div>
+  </div>
+
+  <div style="display: flex; margin: 0 16px; border-radius: 20px; overflow: hidden; background: {{now.surface}}; border: 1px solid {{now.border}}; box-shadow: 0 14px 34px rgba(0,0,0,0.6);">
+    <div style="width: {{now.spine}}; background: {{now.spineFill}}; flex-shrink: 0;"></div>
+    <div style="display: flex; flex-direction: column; gap: 15px; padding: 18px; flex-grow: 1; min-width: 0;">
+
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+          <span style="font-size: 10px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: {{now.text}};">Longest waiting</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 46px; font-weight: 600; line-height: 0.95; letter-spacing: -0.04em; color: {{now.text}};">{{now.age}}</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 999px; background: {{now.chipBg}}; border: 1px solid {{now.chipBorder}}; flex-shrink: 0;">
+          <sc-if value="{{now.isSystem}}" hint-placeholder-val="{{false}}">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{now.chipText}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.9 18a2 2 0 0 0 1.7 3h16.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+          </sc-if>
+          <sc-if value="{{now.isValue}}" hint-placeholder-val="{{true}}">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{now.chipText}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.6 15 9l6.4.6-4.8 4.3 1.4 6.3L12 17l-6 3.2 1.4-6.3L2.6 9.6 9 9z"></path></svg>
+          </sc-if>
+          <sc-if value="{{now.isPerson}}" hint-placeholder-val="{{false}}">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="{{now.chipText}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M4.5 20a7.5 7.5 0 0 1 15 0"></path></svg>
+          </sc-if>
+          <span style="font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: {{now.chipText}};">{{now.chipLabel}}</span>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; align-items: baseline; gap: 9px; min-width: 0;">
+          <span style="font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 600; color: #FFFFFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{now.name}}</span>
+          <span style="font-size: 12px; color: #6E6863; white-space: nowrap;">{{now.client}}</span>
+        </div>
+        <span style="font-size: 13px; font-weight: 500; color: {{now.text}};">{{now.reason}}</span>
+      </div>
+
+      <div style="padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,0.045); border-left: 2px solid rgba(184,173,170,0.32);">
+        <span style="font-size: 13.5px; line-height: 1.5; color: #C4BDB8;">{{now.msg}}</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; align-items: center; min-height: 48px; padding: 13px 15px; border-radius: 13px; background: #08080A; border: 1px solid rgba(255,255,255,0.10);">
+          <span style="font-size: 14px; color: #5A5550;">Reply to {{now.first}} in Portuguese…</span>
+        </div>
+        <div style="display: flex; gap: 9px;">
+          <button style="flex-grow: 1; height: 48px; border: none; border-radius: 13px; background: #EDE4DC; color: #0B0B0C; font-family: 'IBM Plex Sans', sans-serif; font-size: 15px; font-weight: 600; cursor: pointer;">Send</button>
+          <button style="height: 48px; padding: 0 16px; border-radius: 13px; border: 1px dashed rgba(184,173,170,0.42); background: transparent; color: #A8A29C; font-family: 'IBM Plex Sans', sans-serif; font-size: 13.5px; font-weight: 600; cursor: pointer;">Draft it</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 11px; padding: 24px 16px 12px 16px;">
+    <span style="font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #6E6863;">Behind it</span>
+    <span style="flex-grow: 1; height: 1px; background: rgba(255,255,255,0.07);"></span>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 8px; padding: 0 16px 26px 16px;">
+    <sc-for list="{{rest}}" as="lead" hint-placeholder-count="4">
+      <div style="display: flex; align-items: stretch; border-radius: 16px; overflow: hidden; background: {{lead.surface}}; border: 1px solid {{lead.border}}; background-image: {{lead.hatch}};">
+        <div style="width: {{lead.spine}}; background: {{lead.spineFill}}; flex-shrink: 0;"></div>
+        <div style="display: flex; align-items: center; gap: 13px; padding: 13px 14px; flex-grow: 1; min-width: 0;">
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: {{lead.ageSize}}; font-weight: 600; letter-spacing: -0.02em; color: {{lead.text}}; width: 66px; flex-shrink: 0;">{{lead.age}}</span>
+          <div style="display: flex; flex-direction: column; gap: 3px; flex-grow: 1; min-width: 0;">
+            <div style="display: flex; align-items: baseline; gap: 8px; min-width: 0;">
+              <span style="font-family: 'Space Grotesk', sans-serif; font-size: 14.5px; font-weight: 600; color: #FFFFFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{lead.name}}</span>
+              <span style="font-size: 11.5px; color: #6E6863; white-space: nowrap;">{{lead.client}}</span>
+            </div>
+            <span style="font-size: 12px; color: {{lead.text}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{lead.reason}}</span>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 9px; background: {{lead.chipBg}}; border: 1px solid {{lead.chipBorder}}; flex-shrink: 0;">
+            <sc-if value="{{lead.isSystem}}" hint-placeholder-val="{{true}}">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="{{lead.chipText}}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.9 18a2 2 0 0 0 1.7 3h16.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+            </sc-if>
+            <sc-if value="{{lead.isValue}}" hint-placeholder-val="{{false}}">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="{{lead.chipText}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.6 15 9l6.4.6-4.8 4.3 1.4 6.3L12 17l-6 3.2 1.4-6.3L2.6 9.6 9 9z"></path></svg>
+            </sc-if>
+            <sc-if value="{{lead.isPerson}}" hint-placeholder-val="{{false}}">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="{{lead.chipText}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M4.5 20a7.5 7.5 0 0 1 15 0"></path></svg>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+
+    <sc-if value="{{hasMore}}" hint-placeholder-val="{{false}}">
+      <div style="display: flex; align-items: center; justify-content: center; gap: 8px; height: 48px; border-radius: 16px; background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.07);">
+        <span style="font-size: 13px; font-weight: 500; color: #A8A29C;">{{moreLabel}}</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A8A29C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+      </div>
+    </sc-if>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"minutesElapsed":{"editor":"range","default":0,"min":0,"max":300,"step":5,"unit":"min","section":"Ageing"},"systemFailure":{"editor":"boolean","default":false,"section":"Ageing"},"$preview":{"width":390,"height":1240}}'>
+class Component extends DCLogic {
+  tiers() {
+    return [
+      { word: 'Settled', text: '#8E8480', spine: '3px', spineFill: '#3A3532', surface: '#0E0F12', border: 'rgba(255,255,255,0.07)', ageSize: '15px', mark: '#8E8480' },
+      { word: 'Ageing',  text: '#B08279', spine: '4px', spineFill: '#7A4A44', surface: '#111011', border: 'rgba(176,130,121,0.24)', ageSize: '16px', mark: '#B08279' },
+      { word: 'Late',    text: '#E0665A', spine: '6px', spineFill: '#B33A32', surface: '#171110', border: 'rgba(224,102,90,0.32)', ageSize: '17px', mark: '#E0665A' },
+      { word: 'Breach',  text: '#FF5347', spine: '9px', spineFill: 'linear-gradient(180deg, #FF4438, #8E1A14)', surface: '#1F0F0D', border: 'rgba(255,84,71,0.46)', ageSize: '18px', mark: '#FF4438' }
+    ];
+  }
+
+  classOf(reason) {
+    if (/^(claude_failed|bad_reply_twice|booking_failed|no_availability|media_unprocessable)/.test(reason)) return 'system';
+    if (/^high_value/.test(reason)) return 'value';
+    return 'person';
+  }
+
+  chip(kind) {
+    if (kind === 'system') {
+      return {
+        chipLabel: 'System', chipBg: 'rgba(255,84,71,0.13)', chipBorder: 'rgba(255,84,71,0.42)', chipText: '#FF8078',
+        hatch: 'repeating-linear-gradient(135deg, rgba(255,84,71,0.075) 0 6px, transparent 6px 12px)',
+        isSystem: true, isValue: false, isPerson: false
+      };
+    }
+    if (kind === 'value') {
+      return {
+        chipLabel: 'High value', chipBg: 'rgba(237,228,220,0.13)', chipBorder: 'rgba(237,228,220,0.46)', chipText: '#EDE4DC',
+        hatch: 'none',
+        isSystem: false, isValue: true, isPerson: false
+      };
+    }
+    return {
+      chipLabel: 'Asked for a person', chipBg: 'rgba(255,255,255,0.04)', chipBorder: 'rgba(255,255,255,0.14)', chipText: '#A8A29C',
+      hatch: 'none',
+      isSystem: false, isValue: false, isPerson: true
+    };
+  }
+
+  markColor(kind, tier) {
+    if (kind === 'value') return '#EDE4DC';
+    return tier.mark;
+  }
+
+  human(reason) {
+    const map = {
+      'bad_reply_twice': 'AI reply rejected twice',
+      'no_availability:window_full': 'No free slots in the booking window',
+      'booking_failed:conflict_burned_id': 'Booking failed — calendar id burned',
+      'media_unprocessable:voice_note': 'Voice note — nothing for the AI to read',
+      'high_value:3200000>=1500000': 'Budget €3.2M against a €1.5M threshold',
+      'needs_human:financing for a non-resident buyer': 'Asked for a person — financing'
+    };
+    if (map[reason]) return map[reason];
+    if (/^claude_failed/.test(reason)) return 'AI unavailable — the model call failed';
+    return reason;
+  }
+
+  fmt(m) {
+    const h = Math.floor(m / 60), r = m % 60;
+    return h > 0 ? h + 'h ' + (r < 10 ? '0' : '') + r + 'm' : m + 'm';
+  }
+
+  tierIndex(m) { return m >= 240 ? 3 : m >= 90 ? 2 : m >= 30 ? 1 : 0; }
+
+  base() {
+    return [
+      { name: 'Sofia Marques', client: 'Atlântica Prime', mins: 252, reason: 'high_value:3200000>=1500000', msg: 'Estou interessada na moradia da Rua do Farol. Qual é o valor final e há margem?' },
+      { name: 'Henrik Nilsson', client: 'Marbella Sur', mins: 108, reason: 'needs_human:financing for a non-resident buyer', msg: 'Can I speak with someone about mortgage options for a non-resident buyer?' },
+      { name: 'Ana Ribeiro', client: 'Douro & Co', mins: 52, reason: 'media_unprocessable:voice_note', msg: '[voice note · 0:41]' },
+      { name: 'Tomás Cardoso', client: 'Atlântica Prime', mins: 27, reason: 'booking_failed:conflict_burned_id', msg: 'Sim, quinta-feira às 10:00 fica óptimo para mim.' },
+      { name: 'Lucía Fernández', client: 'Marbella Sur', mins: 14, reason: 'no_availability:window_full', msg: '¿Podría ver la casa este fin de semana?' }
+    ];
+  }
+
+  renderVals() {
+    const off = Number(this.props.minutesElapsed ?? 0);
+    const failing = this.props.systemFailure === true;
+    const tiers = this.tiers();
+
+    let rows = this.base().slice();
+    if (failing) {
+      rows = rows.concat([
+        { name: 'Pedro Antunes', client: 'Douro & Co', mins: 4, reason: 'claude_failed:api_error', msg: 'Boa tarde, vi o anúncio do apartamento na Foz. Ainda está disponível?' },
+        { name: 'Claire Dubois', client: 'Marbella Sur', mins: 3, reason: 'claude_failed:api_error', msg: 'Bonjour, is the villa on Calle Aloe still on the market?' },
+        { name: 'Rui Baptista', client: 'Atlântica Prime', mins: 2, reason: 'claude_failed:api_error', msg: 'Quanto custa a visita ao T3 na Parede?' }
+      ]);
+    }
+
+    const leads = rows
+      .map((r) => {
+        const m = r.mins + off;
+        const t = tiers[this.tierIndex(m)];
+        const kind = this.classOf(r.reason);
+        return Object.assign({}, r, t, this.chip(kind), {
+          mins: m,
+          age: this.fmt(m),
+          reason: this.human(r.reason),
+          first: String(r.name).split(' ')[0],
+          dot: this.markColor(kind, t)
+        });
+      })
+      .sort((a, b) => b.mins - a.mins);
+
+    const now = leads[0];
+    const rest = leads.slice(1, 5);
+    const remaining = leads.length - 1 - rest.length;
+
+    const marks = leads.map((l) => ({
+      pct: (Math.min(l.mins / 300, 1) * 96).toFixed(1) + '%',
+      w: l.mins >= 240 ? '5px' : '3px',
+      color: l.dot
+    }));
+
+    return {
+      count: leads.length,
+      outage: failing,
+      now: now,
+      rest: rest,
+      marks: marks,
+      hasMore: remaining > 0,
+      moreLabel: remaining + ' more waiting'
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "title": "Escalation queue (phone) — live ageing", "x": 0, "y": 0, "w": 390, "h": 1240 },
+    { "file": "Overview.dc.html", "title": "Dashboard overview (desktop)", "x": 510, "y": 0, "w": 1440, "h": 900 },
+    { "file": "LeadDetail.dc.html", "title": "Lead detail and reply (desktop)", "x": 510, "y": 1020, "w": 1440, "h": 900 },
+    { "file": "Tokens.dc.html", "title": "Locked palette", "x": 2070, "y": 0, "w": 1100, "h": 980 }
+  ],
+  "annotations": [
+    {
+      "id": "merged",
+      "x": 0,
+      "y": -330,
+      "w": 1180,
+      "text": "MERGED DIRECTION\n\nFrom A: the sidebar (icon rail plus nav, selected item in a brighter tone), the dashboard graphics, the rounded-corner treatment, and the glass-as-chrome principle — now with more glass than A had, and a red glow behind it for the glass to pick up.\n\nFrom B: the near-black restraint, and the page organisation — pressure bar, the longest-waiting lead carrying its own reply box, everything behind it compressed, and the lead detail with the conversation beside what the AI learned.\n\nDrag \"minutesElapsed\" above the phone board to age the whole queue; flip \"systemFailure\" to inject an outage."
+    },
+    {
+      "id": "red-rule",
+      "x": 2070,
+      "y": -330,
+      "w": 1100,
+      "text": "THE RED RULE\n\nBrand red and state red are the same hue, so they cannot share a screen. The split is by surface: the gradient lives on chrome — logo, selected nav indicator, primary desktop buttons, dashboard graphics — and stops at the escalation queue, where red is reserved for how long someone has waited.\n\nThe queue's brand is carried by bone (#EDE4DC) and warm neutral (#B8ADAA) instead: the Send button, the count pill, the high-value chip.\n\nThe ageing ramp is one hue at rising chroma — warm grey, red-brown, red, full red — so on the queue more red literally means more urgent, with nothing else competing for the meaning."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

@@ -1,0 +1,182 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+  <style>
+    body { margin: 0; background: #08080A; font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #D8CFC9; text-decoration: none; }
+    a:hover { color: #F2F0EE; }
+    * { box-sizing: border-box; }
+  </style>
+</helmet>
+
+<div style="width: 1100px; min-height: 980px; padding: 34px 36px; color: #F2F0EE; background: radial-gradient(760px 420px at 92% -8%, rgba(232,69,60,0.13), transparent 62%), #08080A; display: flex; flex-direction: column; gap: 26px;">
+
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <span style="font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #6E6863;">Ryvo Cockpit</span>
+      <span style="font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700; letter-spacing: -0.03em; color: #FFFFFF;">Locked palette</span>
+    </div>
+    <span style="max-width: 430px; font-size: 12.5px; line-height: 1.55; color: #8A837D;">Black base, red-to-dark-red gradient as the brand accent. The one rule everything else follows: <span style="color: #EDE4DC;">on the escalation queue, red means state and nothing else</span> — so urgency has somewhere to grow.</span>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 13px;">
+    <span style="font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #55504B;">Base and surfaces &middot; solid, never glass, wherever content is read</span>
+    <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px;">
+      <div style="display: flex; flex-direction: column; gap: 8px;"><div style="height: 62px; border-radius: 14px; background: #08080A; border: 1px solid rgba(255,255,255,0.09);"></div><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #C4BDB8;">#08080A</span><span style="font-size: 11px; color: #55504B;">page</span></div>
+      <div style="display: flex; flex-direction: column; gap: 8px;"><div style="height: 62px; border-radius: 14px; background: #0E0F12; border: 1px solid rgba(255,255,255,0.07);"></div><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #C4BDB8;">#0E0F12</span><span style="font-size: 11px; color: #55504B;">card, settled</span></div>
+      <div style="display: flex; flex-direction: column; gap: 8px;"><div style="height: 62px; border-radius: 14px; background: #111011; border: 1px solid rgba(176,130,121,0.24);"></div><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #C4BDB8;">#111011</span><span style="font-size: 11px; color: #55504B;">card, ageing</span></div>
+      <div style="display: flex; flex-direction: column; gap: 8px;"><div style="height: 62px; border-radius: 14px; background: #171110; border: 1px solid rgba(224,102,90,0.32);"></div><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #C4BDB8;">#171110</span><span style="font-size: 11px; color: #55504B;">card, late</span></div>
+      <div style="display: flex; flex-direction: column; gap: 8px;"><div style="height: 62px; border-radius: 14px; background: #1F0F0D; border: 1px solid rgba(255,84,71,0.46);"></div><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #C4BDB8;">#1F0F0D</span><span style="font-size: 11px; color: #55504B;">card, breach</span></div>
+      <div style="display: flex; flex-direction: column; gap: 8px;"><div style="height: 62px; border-radius: 14px; background: linear-gradient(180deg, rgba(255,255,255,0.085), rgba(255,255,255,0.028)); border: 1px solid rgba(255,255,255,0.10); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);"></div><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #C4BDB8;">glass</span><span style="font-size: 11px; color: #55504B;">chrome only</span></div>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px;">
+
+    <div style="display: flex; flex-direction: column; gap: 13px; padding: 20px; border-radius: 20px; background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.018)); border: 1px solid rgba(255,255,255,0.09); box-shadow: inset 0 1px 0 rgba(255,255,255,0.10);">
+      <span style="font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #55504B;">Brand &middot; chrome, sidebar, dashboard</span>
+      <div style="height: 52px; border-radius: 13px; background: linear-gradient(135deg, #E8453C 0%, #7A1A16 100%); box-shadow: 0 10px 26px rgba(232,69,60,0.28);"></div>
+      <div style="display: flex; gap: 10px;">
+        <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1;"><div style="height: 34px; border-radius: 10px; background: #E8453C;"></div><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #8A837D;">#E8453C</span></div>
+        <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1;"><div style="height: 34px; border-radius: 10px; background: #7A1A16;"></div><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #8A837D;">#7A1A16</span></div>
+        <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1;"><div style="height: 34px; border-radius: 10px; background: #EDE4DC;"></div><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #8A837D;">#EDE4DC</span></div>
+        <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1;"><div style="height: 34px; border-radius: 10px; background: #B8ADAA;"></div><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #8A837D;">#B8ADAA</span></div>
+      </div>
+      <span style="font-size: 12px; line-height: 1.55; color: #A8A29C;">The gradient appears on the logo mark, the selected nav indicator, primary desktop buttons and dashboard graphics. <span style="color: #EDE4DC;">Bone #EDE4DC and warm neutral #B8ADAA carry the brand on the queue</span>, where the gradient is not allowed.</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 13px; padding: 20px; border-radius: 20px; background: #0E0F12; border: 1px solid rgba(255,255,255,0.07);">
+      <span style="font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #55504B;">Ink</span>
+      <div style="display: flex; flex-direction: column; gap: 9px;">
+        <div style="display: flex; align-items: center; gap: 12px;"><span style="width: 26px; height: 26px; border-radius: 8px; background: #F2F0EE; flex-shrink: 0;"></span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: #8A837D; width: 74px;">#F2F0EE</span><span style="font-size: 13px; color: #F2F0EE;">Primary — names, numerals</span></div>
+        <div style="display: flex; align-items: center; gap: 12px;"><span style="width: 26px; height: 26px; border-radius: 8px; background: #C4BDB8; flex-shrink: 0;"></span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: #8A837D; width: 74px;">#C4BDB8</span><span style="font-size: 13px; color: #C4BDB8;">Message bodies</span></div>
+        <div style="display: flex; align-items: center; gap: 12px;"><span style="width: 26px; height: 26px; border-radius: 8px; background: #A8A29C; flex-shrink: 0;"></span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: #8A837D; width: 74px;">#A8A29C</span><span style="font-size: 13px; color: #A8A29C;">Secondary</span></div>
+        <div style="display: flex; align-items: center; gap: 12px;"><span style="width: 26px; height: 26px; border-radius: 8px; background: #6E6863; flex-shrink: 0;"></span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: #8A837D; width: 74px;">#6E6863</span><span style="font-size: 13px; color: #6E6863;">Labels, client names</span></div>
+        <div style="display: flex; align-items: center; gap: 12px;"><span style="width: 26px; height: 26px; border-radius: 8px; background: #55504B; flex-shrink: 0;"></span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: #8A837D; width: 74px;">#55504B</span><span style="font-size: 13px; color: #55504B;">Section headings</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 13px; padding: 22px; border-radius: 20px; background: #0E0F12; border: 1px solid rgba(255,255,255,0.07);">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px;">
+      <span style="font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #55504B;">Ageing ramp &middot; one hue, rising chroma &middot; queue only</span>
+      <span style="font-size: 12px; color: #6E6863;">More red literally means more urgent. Nothing else on the queue is red.</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;">
+
+      <div style="display: flex; align-items: stretch; border-radius: 16px; overflow: hidden; background: #0E0F12; border: 1px solid rgba(255,255,255,0.07);">
+        <div style="width: 3px; background: #3A3532; flex-shrink: 0;"></div>
+        <div style="display: flex; flex-direction: column; gap: 5px; padding: 15px;">
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 24px; font-weight: 600; letter-spacing: -0.03em; color: #8E8480;">0–29m</span>
+          <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #8E8480;">Settled</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #55504B;">#8E8480 &middot; 3px</span>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: stretch; border-radius: 16px; overflow: hidden; background: #111011; border: 1px solid rgba(176,130,121,0.24);">
+        <div style="width: 4px; background: #7A4A44; flex-shrink: 0;"></div>
+        <div style="display: flex; flex-direction: column; gap: 5px; padding: 15px;">
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 24px; font-weight: 600; letter-spacing: -0.03em; color: #B08279;">30–89m</span>
+          <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #B08279;">Ageing</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #55504B;">#B08279 &middot; 4px</span>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: stretch; border-radius: 16px; overflow: hidden; background: #171110; border: 1px solid rgba(224,102,90,0.32);">
+        <div style="width: 6px; background: #B33A32; flex-shrink: 0;"></div>
+        <div style="display: flex; flex-direction: column; gap: 5px; padding: 15px;">
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 24px; font-weight: 600; letter-spacing: -0.03em; color: #E0665A;">90–239m</span>
+          <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #E0665A;">Late</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #55504B;">#E0665A &middot; 6px</span>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: stretch; border-radius: 16px; overflow: hidden; background: #1F0F0D; border: 1px solid rgba(255,84,71,0.46);">
+        <div style="width: 9px; background: linear-gradient(180deg, #FF4438, #8E1A14); flex-shrink: 0;"></div>
+        <div style="display: flex; flex-direction: column; gap: 5px; padding: 15px;">
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 24px; font-weight: 600; letter-spacing: -0.03em; color: #FF5347;">240m+</span>
+          <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #FF5347;">Breach</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #55504B;">#FF5347 &middot; 9px</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 13px; padding: 22px; border-radius: 20px; background: #0E0F12; border: 1px solid rgba(255,255,255,0.07);">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px;">
+      <span style="font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #55504B;">Escalation classes &middot; permanent, three of them</span>
+      <span style="font-size: 12px; color: #6E6863;">Read from <span style="font-family: 'IBM Plex Mono', monospace; color: #A8A29C;">qualification.escalated.reasons[]</span>, every entry, not just the first.</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;">
+
+      <div style="display: flex; flex-direction: column; gap: 11px; padding: 17px; border-radius: 16px; background: #111011; border: 1px solid rgba(255,84,71,0.30); background-image: repeating-linear-gradient(135deg, rgba(255,84,71,0.075) 0 6px, transparent 6px 12px);">
+        <span style="display: flex; align-items: center; gap: 7px; align-self: flex-start; padding: 6px 11px; border-radius: 999px; background: rgba(255,84,71,0.13); border: 1px solid rgba(255,84,71,0.42); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #FF8078;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FF8078" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.9 18a2 2 0 0 0 1.7 3h16.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path><path d="M12 9v4M12 17h.01"></path></svg>
+          System
+        </span>
+        <span style="font-size: 12.5px; line-height: 1.55; color: #A8A29C;">Something broke. Hatched as well as red, so it survives sunlight and colourblindness. Clusters raise the outage banner above the list.</span>
+        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; line-height: 1.7; color: #6E6863;">claude_failed:*<br>bad_reply_twice<br>booking_failed:*<br>no_availability:*<br>media_unprocessable:*</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 11px; padding: 17px; border-radius: 16px; background: #111011; border: 1px solid rgba(237,228,220,0.24);">
+        <span style="display: flex; align-items: center; gap: 7px; align-self: flex-start; padding: 6px 11px; border-radius: 999px; background: rgba(237,228,220,0.13); border: 1px solid rgba(237,228,220,0.46); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #EDE4DC;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#EDE4DC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.6 15 9l6.4.6-4.8 4.3 1.4 6.3L12 17l-6 3.2 1.4-6.3L2.6 9.6 9 9z"></path></svg>
+          High value
+        </span>
+        <span style="font-size: 12.5px; line-height: 1.55; color: #A8A29C;">The AI worked perfectly and handed over a lead too valuable to automate. Bone, never red — this is the best row on the screen, not an alarm.</span>
+        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; line-height: 1.7; color: #6E6863;">high_value:&lt;budget&gt;&gt;=&lt;threshold&gt;</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 11px; padding: 17px; border-radius: 16px; background: #0E0F12; border: 1px solid rgba(255,255,255,0.08);">
+        <span style="display: flex; align-items: center; gap: 7px; align-self: flex-start; padding: 6px 11px; border-radius: 999px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.14); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #A8A29C;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#A8A29C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M4.5 20a7.5 7.5 0 0 1 15 0"></path></svg>
+          Asked for a person
+        </span>
+        <span style="font-size: 12.5px; line-height: 1.55; color: #A8A29C;">A normal, healthy handover. Neutral outline. The most common row, and the one that should look calmest.</span>
+        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; line-height: 1.7; color: #6E6863;">needs_human[:&lt;free text&gt;]</span>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px;">
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <span style="font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #55504B;">Type</span>
+      <span style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.025em; color: #F2F0EE;">Space Grotesk — names, headings</span>
+      <span style="font-size: 14px; color: #C4BDB8;">IBM Plex Sans — body, labels, buttons</span>
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 600; color: #C4BDB8;">IBM Plex Mono — 4h 12m, ids, reasons</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <span style="font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #55504B;">Radii and targets</span>
+      <div style="display: flex; align-items: flex-end; gap: 10px;">
+        <div style="width: 54px; height: 54px; border-radius: 22px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10);"></div>
+        <div style="width: 46px; height: 46px; border-radius: 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10);"></div>
+        <div style="width: 38px; height: 38px; border-radius: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10);"></div>
+        <div style="height: 30px; padding: 0 14px; display: flex; align-items: center; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); font-size: 11px; color: #A8A29C;">pill</div>
+      </div>
+      <span style="font-size: 12px; line-height: 1.5; color: #8A837D;">22 panel &middot; 16 card &middot; 14 control &middot; 999 chip. Nothing tappable under 44px.</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <span style="font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #55504B;">Glass, and where it stops</span>
+      <div style="height: 58px; border-radius: 16px; background: linear-gradient(180deg, rgba(255,255,255,0.085), rgba(255,255,255,0.028)); border: 1px solid rgba(255,255,255,0.10); box-shadow: 0 22px 50px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.12);"></div>
+      <span style="font-size: 12px; line-height: 1.5; color: #8A837D;">Rails, nav, dashboard panels. It stops at the escalation queue card, which is solid — that is the daylight answer, and it is not a preference.</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":1100,"height":980}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>
