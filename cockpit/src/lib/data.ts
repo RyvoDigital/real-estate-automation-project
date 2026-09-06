@@ -358,3 +358,145 @@ async function getViewing(leadId: string) {
 
   return { startsAt, summary: (hit.summary as string) ?? null }
 }
+
+// ---------------------------------------------------------------- all leads
+
+export type LeadFilters = {
+  client?: string
+  stage?: string
+  escalated?: 'yes' | 'no'
+  q?: string
+  page?: number
+}
+
+export type LeadListRow = {
+  id: string
+  name: string
+  phone: string | null
+  clientName: string
+  stage: string
+  budget: number | null
+  area: string | null
+  escalated: boolean
+  minutes: number
+  lastContactAt: string | null
+}
+
+export const LEADS_PER_PAGE = 25
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * Every lead, filtered and paginated.
+ *
+ * Paginated in the DATABASE, not in the page. §8: a screen built against
+ * three rows can look fine and fall apart at three hundred, and this is the
+ * only screen whose row count grows without bound. `count: 'exact'` gives
+ * the total so the pager can say where you are.
+ *
+ * The search is a single `or` across name and phone rather than two round
+ * trips. Both operands are escaped: PostgREST's `or` filter is a
+ * comma-separated mini-language, so an unescaped comma or paren in user
+ * input changes the QUERY rather than being searched for.
+ */
+export async function getLeads(f: LeadFilters): Promise<{
+  rows: LeadListRow[]
+  total: number
+  page: number
+  pages: number
+}> {
+  // Apply the same filters to both queries from one place. Two copies of a
+  // filter chain is two chances for the count and the rows to disagree.
+  const applyFilters = <T extends { eq: Function; not: Function; is: Function; or: Function }>(
+    query: T,
+  ): T => {
+    let q2 = query
+    // A client id that is not a uuid reaches Postgres as a bad cast and comes
+    // back as a 500 — from a URL anyone can type. Same class as the
+    // out-of-range page above: hostile input gets ignored, never crashed on.
+    if (f.client && UUID.test(f.client)) q2 = q2.eq('client_id', f.client)
+    if (f.stage) q2 = q2.eq('stage', f.stage)
+    if (f.escalated === 'yes') q2 = q2.not('qualification->>escalated', 'is', null)
+    if (f.escalated === 'no') q2 = q2.is('qualification->>escalated', null)
+
+    const term = (f.q ?? '').trim()
+    if (term) {
+      // PostgREST's `or` filter is a comma-separated mini-language, so an
+      // unescaped comma or paren in user input changes the QUERY rather than
+      // being searched for. Strip the grammar characters.
+      const safe = term.replace(/[,()\\*]/g, ' ').trim()
+      if (safe) q2 = q2.or(`full_name.ilike.*${safe}*,phone.ilike.*${safe}*`)
+    }
+    return q2
+  }
+
+  // Count first, so the page can be CLAMPED. Asking PostgREST for a range
+  // past the end is a 416, which surfaced as a 500 on /leads?page=99 — a URL
+  // anyone can type, and a crash is not an acceptable answer to it.
+  const { count, error: countErr } = await applyFilters(
+    admin().from('leads').select('id', { count: 'exact', head: true }),
+  )
+  if (countErr) throw new Error(`leads count failed: ${countErr.message}`)
+
+  const total = count ?? 0
+  const pages = Math.max(1, Math.ceil(total / LEADS_PER_PAGE))
+  const page = Math.min(Math.max(1, f.page ?? 1), pages)
+  const from = (page - 1) * LEADS_PER_PAGE
+
+  if (total === 0) return { rows: [], total: 0, page: 1, pages: 1 }
+
+  const { data, error } = await applyFilters(
+    admin()
+      .from('leads')
+      .select(
+        'id, full_name, phone, client_id, stage, budget_min, budget_max, area, qualification, last_contact_at',
+      ),
+  )
+    .order('last_contact_at', { ascending: false, nullsFirst: false })
+    .range(from, from + LEADS_PER_PAGE - 1)
+
+  if (error) throw new Error(`leads list failed: ${error.message}`)
+
+  const rows = (data ?? []) as LeadRow[]
+  const names = await getClientNames(rows.map((l) => l.client_id))
+  const now = Date.now()
+
+  return {
+    rows: rows.map((l) => {
+      const esc = parseEscalated(l.qualification)
+      const hi = Math.max(Number(l.budget_max ?? 0), Number(l.budget_min ?? 0))
+      return {
+        id: l.id,
+        name: l.full_name ?? 'Unknown lead',
+        phone: l.phone,
+        clientName: names.get(l.client_id) ?? 'Unknown client',
+        stage: l.stage ?? 'new',
+        budget: hi || null,
+        area: l.area,
+        escalated: Boolean(esc),
+        minutes: esc ? minutesSince(esc.at, now) : 0,
+        lastContactAt: l.last_contact_at,
+      }
+    }),
+    total,
+    page,
+    pages,
+  }
+}
+
+export async function getClients(): Promise<{ id: string; name: string }[]> {
+  const { data, error } = await admin().from('clients').select('id, name').order('name')
+  if (error) throw new Error(`clients failed: ${error.message}`)
+  return (data ?? []).map((c) => ({ id: c.id as string, name: c.name as string }))
+}
+
+export const STAGES = [
+  'new',
+  'contacted',
+  'qualified',
+  'nurturing',
+  'viewing_booked',
+  'won',
+  'lost',
+  'dormant',
+] as const

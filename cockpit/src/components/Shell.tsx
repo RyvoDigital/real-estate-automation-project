@@ -43,11 +43,10 @@ export function Shell({
           <span className="nav__label">Overview</span>
           <span className="nav__soon">E3</span>
         </span>
-        <span className="nav__item nav__item--stub" aria-disabled>
+        <Link href="/leads" className={item('leads')}>
           <IconPerson size={17} />
           <span className="nav__label">Leads</span>
-          <span className="nav__soon">E3</span>
-        </span>
+        </Link>
         <span className="nav__item nav__item--stub" aria-disabled>
           <IconCalendar size={17} />
           <span className="nav__label">Viewings</span>

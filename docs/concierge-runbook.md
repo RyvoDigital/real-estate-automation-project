@@ -83,6 +83,13 @@ A second reason to prefer the code: Supabase rotates refresh tokens, so two
 contexts holding the same session will eventually race, and the loser is signed
 out with no explanation.
 
+**When the code actually matters.** Not day to day. If you add the app to the
+home screen *while already signed in* in Safari, the installed app inherits that
+jar and simply stays signed in — a device restart does not touch it (verified
+2026-09-07). The code is for a **fresh install**, a **second device**, or a
+session that has genuinely expired. Knowing that saves someone hunting for a
+bug the next time the link "just works".
+
 ### Ask what a filter EXCLUDES, not just what it returns
 
 A query that returns the right rows has proved nothing until it has been shown to
