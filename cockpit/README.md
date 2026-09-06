@@ -81,6 +81,13 @@ script searches page HTML and not just `.next/static`.
 
 ---
 
+## Node 22 is required, not preferred
+
+`@supabase/supabase-js` v2.115 throws on construction under Node 20 — *"Node.js
+detected but native WebSocket not found"* — so the app builds fine and then fails
+the moment a request reaches a page that queries. Set the Vercel project to Node 22.
+`engines.node` says `>=22`; Node 20 is not a degraded mode, it is a broken one.
+
 ## Commands
 
 ```
@@ -89,7 +96,15 @@ npm run build            # production build
 npm test                 # escalation vocabulary — 11 tests
 npm run verify:bundle    # §11 item 2, with its own control
 npx tsc --noEmit         # types
+
+npm run probe:queue      # the queue filter vs. an independent ground truth
+npm run probe:excludes   # proves the filter EXCLUDES (writes 3 probe rows, deletes them)
+npm run probe:e2e        # login -> queue -> lead detail against the running app
 ```
+
+The three probes need `.env.local` and a running database. `probe:e2e` needs the app
+running (`npm start`). They are not part of `npm test` because they touch the real
+project — run them deliberately.
 
 ---
 

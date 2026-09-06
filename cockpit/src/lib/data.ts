@@ -47,6 +47,19 @@ type LeadRow = {
  * those contradict, and newest-first pushes exactly that lead off the
  * bottom. §5.1.
  *
+ * The filter uses `->>` and not `->`, and the difference is load-bearing.
+ * `qualification->escalated` yields jsonb, and a stored JSON null is not SQL
+ * NULL, so `{"escalated": null}` SURVIVES `IS NOT NULL` — measured against
+ * the real database in tests/probe-filter-excludes.ts, not assumed. `->>`
+ * yields text, and the text of a jsonb null IS SQL NULL, so both the
+ * missing key and the explicit null are excluded.
+ *
+ * This matters at E2: clearing an escalation by writing `escalated: null` is
+ * the obvious way to implement §5.3's hand-back, and with `->` that lead
+ * would be fetched for ever. The parser would still drop it from the render,
+ * so the screen would look right while the query quietly did the wrong
+ * thing — which is the failure mode this project keeps meeting.
+ *
  * Ordering is done here rather than in the query because the sort key is
  * `qualification->escalated->>at`, a text field: it sorts lexicographically
  * in Postgres, and a row with a missing or malformed `at` would sort to an
@@ -62,7 +75,7 @@ export async function getQueue(limit = 100): Promise<QueueRow[]> {
     .select(
       'id, full_name, phone, client_id, qualification, budget_min, budget_max, timeline, area, stage, lead_type, last_contact_at',
     )
-    .not('qualification->escalated', 'is', null)
+    .not('qualification->>escalated', 'is', null)
     .limit(limit)
 
   if (error) throw new Error(`leads query failed: ${error.message}`)

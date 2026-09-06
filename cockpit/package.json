@@ -9,7 +9,10 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
-    "verify:bundle": "bash tests/no-secret-in-bundle.sh"
+    "verify:bundle": "bash tests/no-secret-in-bundle.sh",
+    "probe:queue": "tsx tests/probe-queue.ts",
+    "probe:excludes": "tsx tests/probe-filter-excludes.ts",
+    "probe:e2e": "tsx tests/probe-e2e.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.6",
@@ -23,10 +26,11 @@
     "@types/node": "^26.4.1",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
+    "node": "^22.23.2",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   }
 }
