@@ -539,3 +539,136 @@ export async function getHealth(): Promise<HealthRun | null> {
     host: (r.host as string) ?? null,
   }
 }
+
+// ---------------------------------------------------------- weekly report
+
+export type DayMetrics = {
+  date: string
+  /**
+   * Three states, not two, because "no row" means different things:
+   *
+   *   derived  a row exists. Zeros here mean nothing happened.
+   *   missing  the day is PAST and has no row — the nightly derivation did
+   *            not run, so any total including it is incomplete.
+   *   future   the day has not happened yet. Not a fault, and flagging it
+   *            red would be a check that alarms on a normal state, which is
+   *            how checks get ignored (§6b).
+   *
+   * Collapsing missing and future into one "no row" case is what the first
+   * version did, and it painted the rest of the current week as a failure.
+   */
+  state: 'derived' | 'missing' | 'future'
+  row: {
+    leadsNew: number
+    leadsQualified: number
+    viewingsBooked: number
+    messagesSent: number
+  } | null
+}
+
+export type WeeklyReport = {
+  clientId: string
+  clientName: string
+  start: string
+  end: string
+  days: DayMetrics[]
+  totals: { leadsNew: number; leadsQualified: number; viewingsBooked: number; messagesSent: number }
+  derivedDays: number
+  missingDays: string[]
+}
+
+/** Monday of the week containing `d`, in ISO date form. */
+export function mondayOf(d: Date): string {
+  const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
+  const dow = (x.getUTCDay() + 6) % 7 // Monday = 0
+  x.setUTCDate(x.getUTCDate() - dow)
+  return x.toISOString().slice(0, 10)
+}
+
+/** The most recent COMPLETE week — the one a Monday report would cover. */
+export function lastCompleteWeekStart(now = new Date()): string {
+  const thisMonday = new Date(`${mondayOf(now)}T00:00:00Z`)
+  thisMonday.setUTCDate(thisMonday.getUTCDate() - 7)
+  return thisMonday.toISOString().slice(0, 10)
+}
+
+/**
+ * A week of numbers for one client.
+ *
+ * EVERY FIGURE COMES FROM metrics_daily AND NOTHING IS RECOMPUTED HERE.
+ * §9: two systems computing the same number differently is a bug generator,
+ * and the client-facing report is the worst possible place to discover that
+ * the cockpit and the nightly derivation disagree. metrics_daily.py derives
+ * from the event log; this function sums its rows and does no counting of
+ * its own.
+ *
+ * Missing days are surfaced rather than summed as zero. A day with a row of
+ * zeros means nothing happened; a day with NO row means the derivation did
+ * not run, and a client told "0 leads" for a day nobody measured is being
+ * told something false. The health check asserts a row exists for yesterday
+ * for exactly this reason.
+ */
+export async function getWeeklyReport(clientId: string, weekStart: string): Promise<WeeklyReport> {
+  const start = new Date(`${weekStart}T00:00:00Z`)
+  const dates: string[] = []
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start)
+    d.setUTCDate(d.getUTCDate() + i)
+    dates.push(d.toISOString().slice(0, 10))
+  }
+  const end = dates[6]
+
+  const [{ data: rows, error }, names] = await Promise.all([
+    admin()
+      .from('metrics_daily')
+      .select('date, leads_new, leads_qualified, viewings_booked, messages_sent')
+      .eq('client_id', clientId)
+      .gte('date', weekStart)
+      .lte('date', end),
+    getClientNames([clientId]),
+  ])
+  if (error) throw new Error(`metrics query failed: ${error.message}`)
+
+  const byDate = new Map<string, Record<string, number>>()
+  for (const r of rows ?? []) byDate.set(r.date as string, r as unknown as Record<string, number>)
+
+  const today = new Date().toISOString().slice(0, 10)
+
+  const days: DayMetrics[] = dates.map((date) => {
+    const r = byDate.get(date)
+    return {
+      date,
+      state: r ? 'derived' : date > today ? 'future' : 'missing',
+      row: r
+        ? {
+            leadsNew: Number(r.leads_new ?? 0),
+            leadsQualified: Number(r.leads_qualified ?? 0),
+            viewingsBooked: Number(r.viewings_booked ?? 0),
+            messagesSent: Number(r.messages_sent ?? 0),
+          }
+        : null,
+    }
+  })
+
+  const totals = days.reduce(
+    (a, d) => ({
+      leadsNew: a.leadsNew + (d.row?.leadsNew ?? 0),
+      leadsQualified: a.leadsQualified + (d.row?.leadsQualified ?? 0),
+      viewingsBooked: a.viewingsBooked + (d.row?.viewingsBooked ?? 0),
+      messagesSent: a.messagesSent + (d.row?.messagesSent ?? 0),
+    }),
+    { leadsNew: 0, leadsQualified: 0, viewingsBooked: 0, messagesSent: 0 },
+  )
+
+  return {
+    clientId,
+    clientName: names.get(clientId) ?? 'Unknown client',
+    start: weekStart,
+    end,
+    days,
+    totals,
+    derivedDays: days.filter((d) => d.state === 'derived').length,
+    // Only PAST days count as missing. A week in progress is not a broken week.
+    missingDays: days.filter((d) => d.state === 'missing').map((d) => d.date),
+  }
+}

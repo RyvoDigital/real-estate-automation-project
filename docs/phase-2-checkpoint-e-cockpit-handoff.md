@@ -243,6 +243,12 @@ Generate from `metrics_daily` for a client and a week: leads captured, qualified
 
 **Nothing sends automatically.** The report is a client-facing artefact and a wrong number in it is worse than a late report.
 
+**No send path is built at all, and that is the decision, not an omission.** The report is generated for review and copied out by hand. Sending client-facing email is a new delivery surface with its own template and its own failure modes; the first reports want hand-editing; and there is no client yet to tell us what they actually want to read. Automating delivery is worth doing once those three are no longer true.
+
+**Two figures §5.7 lists are deliberately absent.** `escalations` is not a column in `metrics_daily`, and counting it in the cockpit would mean two systems computing the same number differently (§9) — it belongs in the nightly derivation first, as `counts.get('lead.escalated', 0)` plus a column. `reactivations` is always zero until the reactivation automation exists, and showing a client a permanent zero implies we tried.
+
+**Three day states, not two.** A day with a row and zeros means nothing happened. A PAST day with no row means the derivation did not run, and any total including it is incomplete. A FUTURE day is neither — flagging the rest of the current week red is a check that alarms on a normal state, which is how checks get ignored (§6b).
+
 ---
 
 ## 6. Sending — one path, not two

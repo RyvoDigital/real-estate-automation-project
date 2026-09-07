@@ -12,7 +12,7 @@ export function Shell({
   openCount,
 }: {
   children: React.ReactNode
-  active: 'overview' | 'escalations' | 'leads' | 'viewings' | 'health' | 'onboarding'
+  active: 'overview' | 'escalations' | 'leads' | 'viewings' | 'health' | 'onboarding' | 'report'
   openCount: number
 }) {
   const item = (key: typeof active) =>
@@ -60,11 +60,10 @@ export function Shell({
           <IconPulse size={17} />
           <span className="nav__label">Health</span>
         </Link>
-        <span className="nav__item nav__item--stub" aria-disabled>
+        <Link href="/report" className={item('report')}>
           <IconChat size={17} />
           <span className="nav__label">Weekly report</span>
-          <span className="nav__soon">E3</span>
-        </span>
+        </Link>
       </nav>
 
       <main className="main">{children}</main>

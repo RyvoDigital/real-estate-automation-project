@@ -13,7 +13,8 @@
     "probe:queue": "tsx tests/probe-queue.ts",
     "probe:excludes": "tsx tests/probe-filter-excludes.ts",
     "probe:e2e": "tsx tests/probe-e2e.ts",
-    "probe:health": "tsx tests/probe-health.ts"
+    "probe:health": "tsx tests/probe-health.ts",
+    "probe:report": "tsx tests/probe-report.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.6",
