@@ -609,6 +609,56 @@ gap is usually obvious.
 
 ---
 
+## 6c. A guard whose boundaries are ASCII stops guarding where it matters most
+
+**2026-09-07.** The draft assistant must never propose a viewing time — the
+workflow owns slots, and a draft has none, so *any* time it names is invented.
+That rule is a guard rather than a prompt instruction, and the guard was a set
+of regexes:
+
+```js
+/\b(?:às|as|at)\s+([01]?\d|2[0-3])\b/i
+/\b(?:amanhã|hoje|tomorrow|mañana)\b/i
+```
+
+It let `"Tenho disponibilidade às 15 horas"` and `"Marcamos para amanhã?"`
+straight through.
+
+**`\b` in JavaScript is ASCII-only.** It treats `à`, `ã`, `ç` and `ñ` as
+non-word characters, so `\bàs` demands a word character immediately before the
+`à`, and `amanhã\b` demands one immediately after the `ã`. Neither is ever
+there. The guard worked perfectly in English and silently did nothing in
+Portuguese and Spanish — the two languages it exists for, since the product
+serves Portugal and Spain.
+
+> A guard that fails on the alphabet of the language it protects has not
+> failed loudly. It has narrowed to the cases nobody needed it for, and it
+> still reports success on every one of them.
+
+The fix is Unicode-aware boundaries with the `u` flag:
+
+```js
+const B = '(?<![\\p{L}\\p{N}])', E = '(?![\\p{L}\\p{N}])'
+new RegExp(B + body + E, 'iu')
+```
+
+Three things generalise past regex:
+
+1. **Test a guard in every language it will meet**, not in the one it was
+   written in. The English cases all passed from the first attempt, which is
+   exactly why the failure was invisible — a suite that is 7/9 green looks like
+   a suite with two edge cases, not like a guard that is off in half the world.
+2. **Any character-class assumption is a locale assumption.** `\b`, `\w`,
+   `[a-z]`, `.toUpperCase()`, naive length checks and `localeCompare` defaults
+   all carry one. Ask which alphabet the code assumes before trusting it on
+   text a human wrote.
+3. This is §1 in a new disguise. The guard *reported success* — it found no
+   violation — and the reason it found none was that it could not see. Same
+   question as always: **what would this look like if the thing it checks were
+   broken?** Identical, which is the tell.
+
+---
+
 ## 7. A JSON null is not a SQL NULL, and the operator you pick decides which one you are testing
 
 **2026-09-06.** The cockpit's escalation queue selected leads with

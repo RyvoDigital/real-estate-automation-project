@@ -202,7 +202,9 @@ async function main() {
     9,
     onb.includes('New client') && valRefused.status === 401 ? 'HUMAN' : 'FAIL',
     'A client created through the form works end to end with no SQL',
-    'form renders and writes clients + client_automations with the config keys the workflow reads (unit-tested). NOT proven end to end: that needs creating a second real client and sending it a WhatsApp message, which is a production write nobody has authorised.',
+    'CLOSED 7 Sep: ZZ TEST — Cascais Demo was created entirely through the form and a real WhatsApp went out through its config (SM18bceb38…). ' +
+      'The INBOUND half is unreachable on the Twilio sandbox — one sender number, already held by Ryvo Test Client, and routing is by that number. ' +
+      'Multi-client inbound stays unproven until there is a real WhatsApp sender.',
   )
   record(
     10,
@@ -238,7 +240,71 @@ async function main() {
   )
 
   // ---- 13. draft assistant ----------------------------------------------
-  record(13, 'N/A', 'The draft assistant never sends, never proposes a time', 'Gate E4. Not built.')
+  const { guardDraft, mustUseFixedReply } = await import('../src/lib/draft')
+
+  // Never proposes a time — in every language the product serves.
+  const timeDrafts = [
+    'Posso marcar para as 10:00.',
+    'Tenho disponibilidade às 15 horas.',
+    'Marcamos para amanhã?',
+    'Would Tuesday at 3pm work?',
+    '¿Le viene bien el martes?',
+  ]
+  const timesCaught = timeDrafts.filter((d) => !guardDraft(d, 'x').ok).length
+
+  // Never invents a figure, but may repeat one the lead gave.
+  const invented = !guardDraft('Temos opções a partir de €750.000.', 'orçamento 900.000').ok
+  const repeated = guardDraft('O seu orçamento de 900.000 euros está registado.', 'orçamento 900.000').ok
+
+  // Never drafts a negotiating position — the model is not called at all.
+  const bypassHighValue = mustUseFixedReply(['high_value:3200000>=1500000'], '').fixed
+  const bypassPrice = mustUseFixedReply(['needs_human:x'], 'Há margem para negociação?').fixed
+  const normalReaches = !mustUseFixedReply(['needs_human:x'], 'Posso falar com alguém?').fixed
+
+  // Never sends: the draft action returns text, and only sendReply calls the
+  // send webhook. Asserted structurally against the source.
+  const actionsSrc = readFileSync(new URL('../src/lib/actions.ts', import.meta.url), 'utf8')
+  const draftFn = actionsSrc.slice(actionsSrc.indexOf('export async function draftReply'))
+  // Assert the PROPERTY — "this function cannot cause a send" — not a
+  // substring that stands in for it. The first version failed on the literal
+  // 'cockpit-send' appearing inside `base.replace(/\/cockpit-send$/, ...)`,
+  // the very line that turns the send URL into the draft URL. Same mistake as
+  // counting hcheck__dot on the health page: measure the thing, not a token
+  // that usually accompanies it.
+  const draftNeverSends =
+    draftFn.includes("'/cockpit-draft'") &&
+    !/\bsendReply\s*\(/.test(draftFn) &&
+    !/from\('messages'\)/.test(draftFn) &&
+    !/revalidatePath/.test(draftFn)
+
+  // Unmistakably a draft, and it stops being one when edited.
+  const replySrc = readFileSync(new URL('../src/components/Reply.tsx', import.meta.url), 'utf8')
+  const marked =
+    replySrc.includes('Draft — not sent') && replySrc.includes('text === draft.draft')
+
+  const ok13 =
+    timesCaught === timeDrafts.length &&
+    invented && repeated &&
+    bypassHighValue && bypassPrice && normalReaches &&
+    draftNeverSends && marked
+  record(
+    13,
+    ok13 ? 'PASS' : 'FAIL',
+    'The draft assistant never sends, never proposes a time, never negotiates, and is unmistakably a draft',
+    // Derived from the booleans, not written as prose. The first version of
+    // this line asserted every sub-check had passed regardless of whether it
+    // had, so the item read like a pass beside a FAIL verdict.
+    [
+      `times ${timesCaught}/${timeDrafts.length}`,
+      `invented-figure refused: ${invented}`,
+      `quoted-figure allowed: ${repeated}`,
+      `high-value bypasses model: ${bypassHighValue}`,
+      `price bypasses model: ${bypassPrice}`,
+      `ordinary reaches model: ${normalReaches}`,
+      `cannot send: ${draftNeverSends}`,
+      `unmistakably a draft: ${marked}`,
+    ].join(' · '),
+  )
 
   // ---- 14. pagination ---------------------------------------------------
   const { count: leadCount } = await db.from('leads').select('*', { count: 'exact', head: true })
@@ -307,6 +373,28 @@ async function main() {
     persistent ? 'HUMAN' : 'FAIL',
     'The session survives closing the tab, closing Safari and a device restart',
     `cookie is persistent (${(attrs.match(/Max-Age=\d+/) ?? ['?'])[0]}), Secure, HttpOnly; refresh of an expired token proven by ageing a real cookie. The device restart was confirmed by the operator on 7 Sep.`,
+  )
+
+  // ---- 19. the form writes keys the workflow reads -----------------------
+  const { toConfig } = await import('../src/lib/onboarding')
+  const wf = readFileSync(new URL('../../workflows/ryvoInboundConc01.json', import.meta.url), 'utf8')
+  const referenced = [...new Set([...wf.matchAll(/cfg\.([a-z_]+)/g)].map((m) => m[1]))]
+  const sample = toConfig({
+    agencyName: 'x', whatsappNumber: '+351912000001', timezone: 'Europe/Lisbon',
+    locale: 'pt-PT', defaultLanguage: 'pt', areas: 'a, b', agentName: 'z',
+    workingHours: 'Mon–Sat 09:30 – 19:30', bookingWindowDays: '14', minHoursNotice: '4',
+    viewingDurationMinutes: '45', highValueThresholdEur: '1500000',
+    escalateTo: '+351912000001', calendarId: 'c@x', handoffPt: 'p', handoffEn: 'e', handoffEs: 's',
+  }) as Record<string, unknown>
+  const unread = referenced.filter((k) => !(k in sample))
+  const smOk = Boolean((sample.system_messages as { handoff?: unknown })?.handoff) &&
+    Boolean(sample.default_language) && Boolean(sample.handoff_note)
+  record(
+    19,
+    unread.length === 0 && smOk && referenced.length > 5 ? 'PASS' : 'FAIL',
+    'Every config key the form writes is read by the workflow',
+    `${referenced.length} cfg.* keys read out of the workflow file, ${unread.length} unwritten; ` +
+      `system_messages.handoff, default_language and handoff_note present — the three the regex cannot see`,
   )
 
   // ---- report -----------------------------------------------------------

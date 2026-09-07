@@ -352,8 +352,13 @@ The client form with validation, all-leads, health, weekly report.
 18. **The session survives closing the tab, closing Safari, and restarting the device.** Proved by doing all three, not by reading the cookie configuration. If a magic link is needed every time the app is opened, the cockpit is slower than WhatsApp and will not be used — which §9 names as the failure mode that wastes the whole checkpoint.
 
     Note the platform behaviour this depends on: **iOS gives a home-screen web app its own cookie jar, separate from Safari's**, and a link tapped in Mail always opens Safari. A session created by a link therefore lands in the wrong jar, and the installed app still shows the login screen. The six-digit code exists so the session can be created *inside* the installed app; it also avoids two contexts racing to rotate the same refresh token, which signs one of them out.
+19. **Every config key the onboarding form writes is read by the workflow, asserted against the workflow file rather than a hand-maintained list.**
 
-Items 2, 6, 13, 16, 17 and 18 are the ones that fail silently — the screen looks fine either way, so nothing will tell you. Weight the testing accordingly.
+    The form wrote `cfg.handoff`; the Concierge reads `cfg.system_messages.handoff` via `systemMessage(cfg, 'handoff', …)`. Nothing read the key the form produced, so a client onboarded through it would have had **no handoff note at all** — and no `default_language`, so a Portuguese lead would have been handed off in English. Both only surface *when the assistant has already failed*, which is the one moment the note is all that stands between a lead and silence.
+
+    A test asserting this already existed and passed, because it carried its own hand-written list of keys and the list contained the wrong one. The list is now **derived by reading `cfg.*` out of `workflows/ryvoInboundConc01.json`**, and raises if it cannot — a test holding its own copy of something the product also holds is lesson 15, and this is what it costs. The three keys `systemMessage()` reaches through its own parameter, which the regex cannot see, are asserted explicitly with the reason recorded.
+
+Items 2, 6, 13, 16, 17, 18 and 19 are the ones that fail silently — the screen looks fine either way, so nothing will tell you. Weight the testing accordingly.
 
 ---
 
