@@ -22,6 +22,7 @@ STATE_DIR="${STATE_DIR:-/var/lib/ryvo}"
 STATE_FILE="${STATE_DIR}/health.state"
 HEALTH_LOG="${HEALTH_LOG:-/var/log/ryvo-health.log}"
 RENOTIFY_HOURS="${RENOTIFY_HOURS:-6}"
+HC_START_MS=$(( $(date +%s%N) / 1000000 ))
 WEBHOOK_URL="${WEBHOOK_URL:-https://n8n.ryvodigital.com/webhook/twilio-inbound}"
 BACKUP_DIR="${BACKUP_DIR:-${REPO_ROOT}/backups}"
 BACKUP_MAX_AGE_HOURS="${BACKUP_MAX_AGE_HOURS:-30}"
@@ -223,6 +224,84 @@ fi
 # An alert in a spam folder is not an alert. Volume and sameness are part of
 # deliverability, not cosmetics.
 NOW=$(date +%s)
+
+# ---------------------------------------------------------------- publish
+#
+# Make the result readable by the cockpit (§5.6). This runs on BOTH paths --
+# before the all-passed branch below, which exits 0 early -- because a health
+# screen that only updates on failure is a health screen that looks broken
+# whenever things are fine.
+#
+# It must never be able to break the check. A monitoring script that dies
+# because its own telemetry POST failed is worse than one that never published:
+# every failure here is swallowed and logged, and the health check's exit code
+# is untouched. Rule 4 in reverse -- the thing that watches must not acquire a
+# new dependency that can take it down.
+#
+# When Supabase is the thing that is broken, this POST fails and the screen
+# simply stops updating. That is the designed behaviour: staleness is the
+# signal, and email remains the channel that does not depend on what it
+# watches.
+publish_health() {
+  [[ -n "${SUPABASE_URL:-}" && -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]] || {
+    log "  publish skipped - no Supabase credentials in the environment"
+    return 0
+  }
+
+  local payload
+  # Built by python3 rather than by string-pasting: a check name contains
+  # quotes, em-dashes and parentheses ("webhook returned HTTP 404 to an
+  # unsigned POST, expected 403"), and hand-rolled JSON would break on the
+  # first one and publish nothing.
+  payload="$(
+    HC_OK="$1" HC_MS="$2" HC_HOST="$(hostname)" \
+    python3 - "${PASSED[@]:-}" --failed-- "${FAILURES[@]:-}" <<'PYEOF'
+import json, os, sys
+args = sys.argv[1:]
+cut = args.index('--failed--') if '--failed--' in args else len(args)
+passed = [a for a in args[:cut] if a]
+failed = [a for a in args[cut + 1:] if a]
+print(json.dumps({
+    "ran_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+    "ok": os.environ["HC_OK"] == "1",
+    "passed": passed,
+    "failed": failed,
+    "duration_ms": int(os.environ["HC_MS"]),
+    "host": os.environ["HC_HOST"],
+}))
+PYEOF
+  )" || { log "  publish skipped - could not build the payload"; return 0; }
+
+  local code
+  code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
+    -X POST "${SUPABASE_URL%/}/rest/v1/health_runs" \
+    -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+    -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+    -H "content-type: application/json" \
+    -H "Prefer: return=minimal" \
+    -d "${payload}" 2>/dev/null)" || code="000"
+
+  # The status is READ, not assumed. A 401 or a 42501 permission error returns
+  # a perfectly ordinary-looking curl exit 0 -- the whole point of #6.
+  if [[ "${code}" =~ ^2 ]]; then
+    log "  published to health_runs (HTTP ${code})"
+  else
+    log "  publish FAILED (HTTP ${code}) - the cockpit's health screen will go stale"
+  fi
+
+  # Every 10 minutes is 144 rows a day. Keep a fortnight; best effort.
+  curl -s -o /dev/null --max-time 10 \
+    -X DELETE "${SUPABASE_URL%/}/rest/v1/health_runs?ran_at=lt.$(date -u -d '14 days ago' +%Y-%m-%dT%H:%M:%SZ)" \
+    -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+    -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" >/dev/null 2>&1 || true
+}
+
+if (( ${#FAILURES[@]} == 0 )); then
+  publish_health 1 "$(( $(date +%s%N) / 1000000 - HC_START_MS ))" || true
+else
+  publish_health 0 "$(( $(date +%s%N) / 1000000 - HC_START_MS ))" || true
+fi
+
 FAIL_THRESHOLD="${FAIL_THRESHOLD:-2}"      # ~20 min at a 10-minute cadence
 PREV_STATE="none"; PREV_AT=0; PREV_N=0; PREV_NOTIFIED=0
 if [[ -f "${STATE_FILE}" ]]; then
