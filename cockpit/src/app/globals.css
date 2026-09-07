@@ -979,53 +979,136 @@ code { font-family: var(--f-mono); font-size: 0.92em; }
 }
 
 /* ================================================================ desktop */
-/* Everything above is the phone. This is the only enhancement, and nothing in
-   it is required for the app to work. */
+/*
+ * Everything above is the phone. This is the enhancement.
+ *
+ * TWO THINGS WENT WRONG HERE THE FIRST TIME, AND THEY ARE DIFFERENT FAULTS.
+ *
+ * 1. SOURCE ORDER WAS DOING LAYOUT WORK. Shell.tsx renders <main> before
+ *    <nav>, which is right: content first for a screen reader, and on a phone
+ *    the bar is `position: fixed` so order cannot affect where it lands. On
+ *    desktop the bar stops being fixed and becomes a flex sibling — at which
+ *    point source order silently becomes VISUAL order, and the sidebar
+ *    appeared on the right. `order: -1` moves the box and leaves the reading
+ *    order alone. This is the one thing that was genuinely unconditional and
+ *    should not have been.
+ *
+ * 2. THE REST WAS NOT A LEAK — IT WAS AN ABSENCE. This block carried 42 of the
+ *    file's 735 declarations. Every value chosen for a 390px column stayed in
+ *    force at 1440px: three stacked filter rows, a 1120px-wide "name or phone"
+ *    field, chat bubbles at 88% of an 840px panel, a full-bleed empty state.
+ *    None of that escaped a breakpoint; the breakpoint simply never said
+ *    anything about it. Mobile-first is not "one small media query" — the base
+ *    is the phone, and the enhancement has to cover every rule whose VALUE was
+ *    a phone decision.
+ */
 @media (min-width: 901px) {
-  :root { --gutter: 32px; --bar-h: 0px; }
+  :root { --gutter: 0px; --bar-h: 0px; }
 
-  .shell { flex-direction: row; gap: 16px; padding: 16px; }
+  /* Centred, not left-hugging. Below 1440 this looks identical; above it, the
+     app stops sitting in the corner of the screen. */
+  .shell {
+    flex-direction: row;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 26px;
+    padding: 26px 32px 48px;
+  }
 
   .tabs {
+    order: -1;                    /* see note 1 */
     position: sticky;
-    top: 16px;
+    top: 26px;
     left: auto;
     right: auto;
     bottom: auto;
-    align-self: flex-start;
+    z-index: 1;
     flex-direction: column;
-    width: 210px;
+    width: 208px;
     flex-shrink: 0;
     gap: 5px;
-    padding: 16px 12px;
+    padding: 14px 11px;
     border: 1px solid var(--hairline-strong);
+    border-top: 1px solid var(--hairline-strong);
     border-radius: var(--r-lg);
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.022));
     box-shadow: 0 22px 50px rgba(0, 0, 0, 0.5);
   }
-  .tab { flex: 0 0 auto; flex-direction: row; justify-content: flex-start; gap: 11px; min-height: 46px; padding: 0 12px; font-size: 14px; }
+  .tab {
+    flex: 0 0 auto;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 11px;
+    min-height: 46px;
+    padding: 0 12px;
+    font-size: 14px;
+  }
   .tab__badge { position: static; transform: none; margin-left: auto; }
 
-  .main { padding: 20px 0; max-width: 1180px; }
+  .main {
+    width: 100%;
+    max-width: 1080px;
+    flex-grow: 0;
+    padding: 0;
+    gap: 20px;
+  }
+
   .head__title { font-size: 40px; }
-  .detail { flex-direction: row; align-items: start; }
+
+  /* A search field is a search field, not a banner. */
+  .searchrow { max-width: 440px; }
+
+  /* On a phone each filter group is a label above its own clipped scroller,
+     which is correct there and cost 250px of vertical chrome here. Inline the
+     label, let the chips wrap, and drop the scroller — there is room. */
+  .filters__group { flex-direction: row; align-items: baseline; gap: 14px; }
+  .filters__label { width: 62px; flex-shrink: 0; text-align: right; }
+  .filters {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    margin: 0;
+    padding: 0;
+    row-gap: 8px;
+  }
+  .fchip { min-height: 38px; padding: 0 14px; font-size: 13px; }
+
+  .empty { padding: 56px 24px; }
+
+  /* The hero is the whole width here; its Reply button should not be. */
+  .hero { padding: 24px 26px; }
+  .hero__age { font-size: 60px; }
+  .hero__actions .btn--primary { flex: 0 0 220px; }
+  .hero__quote { max-width: 68ch; }
+
+  .lead-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+
+  .detail { flex-direction: row; align-items: flex-start; }
   .detail > .panel:first-child { flex: 1 1 0; }
-  .detail > .panel:last-child { width: 320px; flex-shrink: 0; }
-  .detail__head { flex-direction: row; align-items: flex-start; justify-content: space-between; }
+  .detail > .panel:last-child { width: 330px; flex-shrink: 0; position: sticky; top: 26px; }
+  .detail__head { flex-direction: row; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+  .msg { max-width: 560px; }          /* 88% of an 840px panel is not a bubble */
+  .composer__actions .btn { flex: 0 0 auto; }
+  .composer__actions .btn--primary { flex: 0 0 200px; }
+
+  /* The form is a form. Full width made every field 520px wide. */
+  .onb { max-width: 880px; }
+  .steps { flex-wrap: wrap; overflow-x: visible; margin: 0; padding: 0; }
   .ogrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ofield--wide { grid-column: 1 / -1; }
   .osummary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 24px; }
   .ofoot { flex-direction: row; align-items: center; }
   .ofoot__row { flex: 0 0 auto; }
   .ofoot__mid { flex-grow: 1; order: -1; }
+
   .rstats { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
   .rstats > .rstat:last-child:nth-child(odd) { grid-column: auto; }
   .rweek { gap: 10px; }
   .rday__track, .rday__bar--missing { height: 96px; }
+  .ractions { flex-direction: row; align-items: center; gap: 16px; }
+  .ractions .btn { flex: 0 0 200px; }
+
   .hchecks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hstamp { flex-direction: row; align-items: flex-start; justify-content: space-between; gap: 24px; padding: 24px; }
   .hstamp__abs { font-size: 26px; }
-  .composer__actions .btn { flex: 0 0 auto; }
-  .composer__actions .btn--primary { flex: 1 1 0; }
-  .lead-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .hnote, .ractions__note { max-width: 80ch; }
 }

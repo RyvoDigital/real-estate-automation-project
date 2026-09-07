@@ -1,5 +1,6 @@
 /*
- * §11 item 20 — every screen is usable on a phone, checked in a real browser.
+ * §11 item 20 — every screen is usable at the sizes it is actually opened at,
+ * checked in a real browser.
  *
  * WHY A BROWSER AND NOT THE STYLESHEET
  * The cockpit has shipped unusable on a phone twice. Both times the CSS looked
@@ -22,7 +23,14 @@
  *   B. /login?error=<180 unbreakable characters> must not widen the page —
  *      the .notice overflow case, exercised through a real URL
  *
- *   node node_modules/.bin/node node_modules/tsx/dist/cli.mjs tests/probe-mobile.ts
+ * DESKTOP IS HALF OF THIS FILE, and it is here because the mobile-first
+ * rewrite shipped a desktop regression: the sidebar appeared on the RIGHT.
+ * Nothing was wrong with the CSS — Shell.tsx renders <main> before <nav>,
+ * which is correct, and on a phone the bar is `position: fixed` so order
+ * cannot matter. On desktop it becomes a flex sibling and source order
+ * silently becomes visual order. No stylesheet reading catches that either.
+ *
+ *   node node_modules/.bin/node node_modules/tsx/dist/cli.mjs tests/probe-layout.ts
  *   (Node 22+: this uses the global WebSocket. There is no browser dependency
  *   in package.json on purpose — it drives the Chrome already on the machine
  *   over the DevTools protocol.)
@@ -401,6 +409,110 @@ async function main() {
     attempted > 0
       ? `${attempted} shown after Continue`
       : 'nothing appeared, so the check above proves nothing',
+  )
+
+  // ------------------------------------------------------------- desktop
+
+  console.log('\n  Desktop — 1440px')
+  await c.send('Emulation.setDeviceMetricsOverride', {
+    width: 1440,
+    height: 900,
+    deviceScaleFactor: 1,
+    mobile: false,
+  })
+
+  const DESK = `(() => {
+    const de = document.documentElement
+    const box = (s) => { const e = document.querySelector(s); if (!e) return null
+      const r = e.getBoundingClientRect(); return { l: Math.round(r.left), r: Math.round(r.right), w: Math.round(r.width) } }
+    const f = document.querySelector('.filters')
+    return {
+      over: de.scrollWidth - de.clientWidth,
+      limit: de.clientWidth,
+      tabs: box('.tabs'),
+      main: box('.main'),
+      search: box('.searchrow'),
+      msg: box('.msg'),
+      filtersScroll: f ? f.scrollWidth > f.clientWidth + 1 : null,
+    }
+  })()`
+
+  const desk: Record<string, any> = {}
+  for (const route of ROUTES) {
+    await measure(c, `${BASE}${route}`)
+    desk[route] = (await c.send('Runtime.evaluate', { expression: DESK, returnByValue: true }))
+      .result.value
+    check(desk[route].over <= 0, `${route} does not scroll sideways at 1440px`,
+      `${desk[route].limit + desk[route].over}px in ${desk[route].limit}px`)
+  }
+
+  // The regression itself. The sidebar must sit BEFORE the content, not after.
+  const q = desk['/queue']
+  check(
+    q.tabs !== null && q.main !== null && q.tabs.r <= q.main.l,
+    'the sidebar is to the LEFT of the content',
+    q.tabs ? `nav ends at ${q.tabs.r}px, main starts at ${q.main.l}px` : 'no .tabs found',
+  )
+
+  // And the app is centred rather than pinned to the left edge, which only
+  // shows up above the width the layout was designed at.
+  await c.send('Emulation.setDeviceMetricsOverride', {
+    width: 1920,
+    height: 1080,
+    deviceScaleFactor: 1,
+    mobile: false,
+  })
+  const wide = (
+    await c.send('Runtime.evaluate', { expression: DESK, returnByValue: true })
+  ).result.value
+  const leftGap = wide.tabs.l
+  const rightGap = wide.limit - wide.main.r
+  check(
+    Math.abs(leftGap - rightGap) <= 4,
+    'the app is centred at 1920px, not pinned left',
+    `${leftGap}px left, ${rightGap}px right`,
+  )
+
+  // Values chosen for a 390px column that must not survive to 1440px.
+  await c.send('Emulation.setDeviceMetricsOverride', {
+    width: 1440,
+    height: 900,
+    deviceScaleFactor: 1,
+    mobile: false,
+  })
+  check(
+    desk['/leads'].search.w <= 520,
+    'the search field is a field, not a banner',
+    `${desk['/leads'].search.w}px`,
+  )
+  check(
+    desk['/leads'].filtersScroll === false,
+    'filter chips wrap on desktop instead of hiding in a scroller',
+    desk['/leads'].filtersScroll === false ? 'wrapped' : 'still scrolling',
+  )
+  const detailRoute = ROUTES.find((r) => r.startsWith('/leads/'))!
+  check(
+    desk[detailRoute].msg === null || desk[detailRoute].msg.w <= 620,
+    'a chat bubble is capped, not 88% of the panel',
+    desk[detailRoute].msg ? `${desk[detailRoute].msg.w}px` : 'no messages on this lead',
+  )
+
+  // Control for the desktop half: force the old source order back and require
+  // the sidebar check to fail. Without this, "sidebar on the left" would pass
+  // on a page that had no sidebar at all.
+  await measure(c, `${BASE}/queue`)
+  await c.send('Runtime.evaluate', {
+    expression: `document.querySelector('.tabs').style.order = '1'`,
+  })
+  const flipped = (
+    await c.send('Runtime.evaluate', { expression: DESK, returnByValue: true })
+  ).result.value
+  check(
+    flipped.tabs.r > flipped.main.l,
+    'forcing the old source order DOES trip the sidebar check',
+    flipped.tabs.r > flipped.main.l
+      ? `nav moved to ${flipped.tabs.l}px`
+      : 'the check cannot see the bug it exists for',
   )
 
   c.kill()
