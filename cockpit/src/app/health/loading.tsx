@@ -1,5 +1,20 @@
-import { SkeletonShell, Bar } from '@/components/Skeleton'
+import { SkeletonShell } from '@/components/Skeleton'
 
+/**
+ * The health screen's placeholder deliberately shows NO checks.
+ *
+ * Every other skeleton here mirrors the shape of what is coming, because that
+ * stops the layout shifting. This one must not: a row of grey check-shaped
+ * boxes says "here are some checks" before anything has been read, and a
+ * health screen that looks populated while it knows nothing is precisely the
+ * failure §5.6 exists to prevent. It says it has not read yet, and nothing
+ * else.
+ *
+ * It is also why probe:health can keep counting `.hcheck` rows in the served
+ * HTML. A streamed response contains the skeleton AND the real content, so a
+ * placeholder that borrowed the row class would have been counted as a check
+ * that the producer never published.
+ */
 export default function Loading() {
   return (
     <SkeletonShell
@@ -8,28 +23,16 @@ export default function Loading() {
       title="Health"
       note="Reading the last run…"
     >
-      {/*
-        Deliberately NOT a grey box where the last-run stamp goes. A health
-        screen that looks calm while it knows nothing is the exact failure §5.6
-        exists to prevent, so the placeholder says it has no result yet.
-      */}
-      <div className="hstamp" aria-hidden>
+      <div className="hstamp">
         <div className="hstamp__main">
           <span className="eyebrow">Last run</span>
           <span className="hstamp__abs" style={{ color: 'var(--ink-3)' }}>
             Not read yet
           </span>
+          <span className="hstamp__rel">
+            Nothing on this screen has been checked against the database yet.
+          </span>
         </div>
-      </div>
-      <div className="hchecks" aria-hidden>
-        {[0, 1, 2, 3, 4, 5].map((i) => (
-          <div className="hcheck" key={i} style={{ opacity: 1 - i * 0.12 }}>
-            <span className="hcheck__dot" style={{ background: 'var(--ink-4)' }} />
-            <span className="hcheck__text">
-              <Bar w={`${75 - i * 6}%`} h={13} />
-            </span>
-          </div>
-        ))}
       </div>
     </SkeletonShell>
   )
