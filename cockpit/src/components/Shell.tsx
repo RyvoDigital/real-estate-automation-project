@@ -1,85 +1,55 @@
 import Link from 'next/link'
-import { IconCalendar, IconChat, IconDoc, IconHome, IconPerson, IconPulse, IconWarning } from './Icons'
+import { IconChat, IconPerson, IconWarning } from './Icons'
+import { MoreSheet } from './MoreSheet'
+
+export type Tab = 'queue' | 'leads' | 'report' | 'more'
 
 /**
- * The sidebar from direction A: a nav column whose selected item is a
- * BRIGHTER tone rather than a coloured one, with the brand gradient
- * appearing only as the 3px indicator. Chrome, so glass is allowed here.
+ * The app shell.
+ *
+ * The nav is a FIXED BOTTOM TAB BAR, not a row of links at the top. The old
+ * top bar had `flex-shrink: 0` on every item with no wrap and no overflow, so
+ * its used width was its max-content — about 755px — and since `.shell` did
+ * not clip, that widened <body> on every single screen. Four fixed-width tabs
+ * cannot do that.
+ *
+ * Four destinations, because a labelled icon needs ~80px to be comfortable and
+ * 390px does not divide into six of those. Health, Onboarding and Sign out
+ * live in the More sheet.
  */
 export function Shell({
   children,
   active,
   openCount,
+  email,
 }: {
   children: React.ReactNode
-  active: 'overview' | 'escalations' | 'leads' | 'viewings' | 'health' | 'onboarding' | 'report'
+  active: Tab
   openCount: number
+  email: string
 }) {
-  const item = (key: typeof active) =>
-    `nav__item${active === key ? ' nav__item--on' : ''}`
+  const cls = (t: Tab) => `tab${active === t ? ' tab--on' : ''}`
 
   return (
     <div className="shell">
-      <nav className="nav">
-        <div className="nav__brand">
-          <div className="nav__mark">R</div>
-          <div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 600, color: '#fff' }}>
-              Ryvo Cockpit
-            </div>
-          </div>
-        </div>
-
-        <Link href="/queue" className={item('escalations')}>
-          <IconWarning size={17} />
-          <span className="nav__label">Escalations</span>
-          {openCount > 0 && <span className="nav__count">{openCount}</span>}
-        </Link>
-
-        {/* Not built yet. Shown so the shape of the product is legible, and
-            labelled so nothing pretends to work. E3. */}
-        <span className="nav__item nav__item--stub" aria-disabled>
-          <IconHome size={17} />
-          <span className="nav__label">Overview</span>
-          <span className="nav__soon">E3</span>
-        </span>
-        <Link href="/leads" className={item('leads')}>
-          <IconPerson size={17} />
-          <span className="nav__label">Leads</span>
-        </Link>
-        <span className="nav__item nav__item--stub" aria-disabled>
-          <IconCalendar size={17} />
-          <span className="nav__label">Viewings</span>
-          <span className="nav__soon">E3</span>
-        </span>
-        <Link href="/onboarding" className={item('onboarding')}>
-          <IconDoc size={17} />
-          <span className="nav__label">Onboarding</span>
-        </Link>
-        <Link href="/health" className={item('health')}>
-          <IconPulse size={17} />
-          <span className="nav__label">Health</span>
-        </Link>
-        <Link href="/report" className={item('report')}>
-          <IconChat size={17} />
-          <span className="nav__label">Weekly report</span>
-        </Link>
-      </nav>
-
       <main className="main">{children}</main>
-    </div>
-  )
-}
 
-export function Who({ email }: { email: string }) {
-  return (
-    <div className="topbar__who">
-      <span>{email}</span>
-      <form action="/auth/signout" method="post">
-        <button className="signout" type="submit">
-          Sign out
-        </button>
-      </form>
+      <nav className="tabs" aria-label="Sections">
+        <Link href="/queue" className={cls('queue')} aria-current={active === 'queue'}>
+          <IconWarning size={21} />
+          <span>Queue</span>
+          {openCount > 0 && <span className="tab__badge">{openCount}</span>}
+        </Link>
+        <Link href="/leads" className={cls('leads')} aria-current={active === 'leads'}>
+          <IconPerson size={21} />
+          <span>Leads</span>
+        </Link>
+        <Link href="/report" className={cls('report')} aria-current={active === 'report'}>
+          <IconChat size={21} />
+          <span>Report</span>
+        </Link>
+        <MoreSheet active={active === 'more'} email={email} />
+      </nav>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { requireOperator } from '@/lib/auth'
 import { HEALTH_STALE_MINUTES, getHealth, getQueue } from '@/lib/data'
-import { Shell, Who } from '@/components/Shell'
+import { Shell } from '@/components/Shell'
 import { IconWarning } from '@/components/Icons'
 
 export const dynamic = 'force-dynamic'
@@ -28,16 +28,14 @@ export default async function HealthPage() {
   const total = run ? run.passed.length + run.failed.length : 0
 
   return (
-    <Shell active="health" openCount={queue.length}>
-      <div className="topbar">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flexGrow: 1 }}>
-          <h1 className="topbar__title">Health</h1>
-          <span className="topbar__sub">
-            The value here is seeing green. Red is already an email.
-          </span>
+    <Shell active="more" openCount={queue.length} email={operator.email}>
+      <header className="head">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span className="eyebrow">Twelve checks</span>
+          <h1 className="head__title">Health</h1>
         </div>
-        <Who email={operator.email} />
-      </div>
+      </header>
+      <span className="head__sub">The value here is seeing green. Red is already an email.</span>
 
       {/* The last-run stamp is the most important thing on this screen, so it
           is the biggest thing on it — §5.6. A stale health screen is worse
@@ -65,9 +63,9 @@ export default async function HealthPage() {
           {stale && (
             <span className="hstamp__warn">
               <IconWarning size={14} />
-              {run
+              <span>{run
                 ? `No result for ${ageMin} minutes. The check runs every 10, so this screen is not telling you the system is fine — it is telling you nothing.`
-                : 'The check has never published. This screen has no data at all.'}
+                : 'The check has never published. This screen has no data at all.'}</span>
             </span>
           )}
         </div>

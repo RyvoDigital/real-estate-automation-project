@@ -21,54 +21,86 @@ export function Chip({ kind }: { kind: EscalationClass }) {
 }
 
 /**
- * One waiting lead.
+ * The longest-waiting lead, given the whole width.
  *
- * Three things carry the escalation class, not one: the chip colour, the
- * chip ICON, and — for system faults — a hatch across the card. Colour
- * alone fails in sunlight and fails for a colourblind reader, and this is
- * the §11 item 16 distinction, so it does not get to rest on hue.
+ * A triage screen's first job is to answer "who first" without a tap, so the
+ * one at the top gets the age at 54px, the reason in words, what they actually
+ * said, and the route to the reply. Everything behind it is a row.
+ *
+ * The whole card is the link — including the button-shaped element. It is a
+ * span, not a button, because it does exactly what a tap anywhere on the card
+ * does: open the lead. Behaviour is unchanged from the old QueueCard.
  */
-export function QueueCard({ row }: { row: QueueRow }) {
-  const cls = [
-    'card',
-    `card--t${row.tier}`,
-    row.classes.includes('system') ? 'card--system' : '',
-  ]
+export function QueueHero({ row }: { row: QueueRow }) {
+  const cls = ['hero', `hero--t${row.tier}`, row.classes.includes('system') ? 'hero--system' : '']
     .filter(Boolean)
     .join(' ')
 
   return (
     <Link href={`/leads/${row.id}`} className={cls}>
-      <span className="card__spine" />
-      <span className="card__body">
-        <span className="card__head">
-          <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-            <span className="age">{formatWait(row.minutes)}</span>
-            <span className="tierword">{TIER_WORD[row.tier]}</span>
-          </span>
-          <span className="card__chips">
-            {row.handledElsewhere && <span className="card__elsewhere">Handled elsewhere</span>}
-            {row.classes.map((c) => (
-              <Chip key={c} kind={c} />
-            ))}
-          </span>
+      <span className="hero__top">
+        <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span className="hero__word">{TIER_WORD[row.tier]}</span>
+          <span className="hero__age">{formatWait(row.minutes)}</span>
         </span>
-
-        <span style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span className="card__who">
-            <span className="card__name">{row.name}</span>
-            <span className="card__client">{row.clientName}</span>
-          </span>
-
-          {/* Every reason, not reasons[0]. A lead that is both high-value
-              and booking-failed has two, and showing one hides the other. */}
-          {row.reasons.map((r, i) => (
-            <span className="reason" key={`${r}-${i}`}>
-              {humanise(r)}
-            </span>
+        <span className="chips-wrap" style={{ justifyContent: 'flex-end' }}>
+          {row.handledElsewhere && <span className="chip chip--elsewhere">Handled elsewhere</span>}
+          {row.classes.map((c) => (
+            <Chip key={c} kind={c} />
           ))}
+        </span>
+      </span>
 
-          {row.lastMessage && <span className="card__msg">{row.lastMessage}</span>}
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <span className="hero__name">{row.name}</span>
+        <span className="hero__meta">{row.clientName}</span>
+        {/* Every reason, not reasons[0]. A lead that is both high-value and
+            booking-failed has two, and showing one hides the other. */}
+        {row.reasons.map((r, i) => (
+          <span className="hero__meta" key={`${r}-${i}`}>
+            {humanise(r)}
+          </span>
+        ))}
+      </span>
+
+      {row.lastMessage && <span className="hero__quote">{row.lastMessage}</span>}
+
+      <span className="hero__actions">
+        <span className="btn btn--primary">Reply</span>
+      </span>
+    </Link>
+  )
+}
+
+/**
+ * One lead behind the hero.
+ *
+ * Three things carry the escalation class, not one: the mark's colour, the
+ * mark's ICON, and — for system faults — a hatch across the row. Colour alone
+ * fails in sunlight and fails for a colourblind reader, and this is the §11
+ * item 16 distinction, so it does not get to rest on hue.
+ */
+export function QueueRowItem({ row }: { row: QueueRow }) {
+  const Icon =
+    row.primary === 'system' ? IconWarning : row.primary === 'high_value' ? IconStar : IconPerson
+  const cls = ['row', `row--t${row.tier}`, row.classes.includes('system') ? 'row--system' : '']
+    .filter(Boolean)
+    .join(' ')
+
+  return (
+    <Link href={`/leads/${row.id}`} className={cls}>
+      <span className="row__spine" />
+      <span className="row__body">
+        <span className="row__name">{row.name}</span>
+        <span className="row__why">
+          {row.reasons.length ? humanise(row.reasons[0]) : CLASS_LABEL[row.primary]}
+          {row.reasons.length > 1 ? ` +${row.reasons.length - 1}` : ''}
+        </span>
+      </span>
+      <span className="row__end">
+        <span className="row__age">{formatWait(row.minutes)}</span>
+        <span className={`row__mark chip--${row.primary}`}>
+          <Icon size={12} />
         </span>
       </span>
     </Link>
@@ -105,7 +137,7 @@ export function PressureBar({ rows }: { rows: { minutes: number; primary: Escala
         <span>1h</span>
         <span>2h</span>
         <span>3h</span>
-        <b>4h breach</b>
+        <b>4h</b>
       </div>
     </div>
   )

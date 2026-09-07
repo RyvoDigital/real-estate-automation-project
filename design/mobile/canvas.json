@@ -1,0 +1,33 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html",   "title": "A — Command · Queue",  "x": 0,    "y": 0,    "w": 390, "h": 844 },
+    { "file": "A_Leads.dc.html","title": "A — Command · Leads",  "x": 470,  "y": 0,    "w": 390, "h": 844 },
+    { "file": "B_Queue.dc.html","title": "B — Focus · Queue",    "x": 1060, "y": 0,    "w": 390, "h": 844 },
+    { "file": "B_Leads.dc.html","title": "B — Focus · Leads",    "x": 1530, "y": 0,    "w": 390, "h": 844 },
+    { "file": "C_Queue.dc.html","title": "C — Atlas · Queue",    "x": 2120, "y": 0,    "w": 390, "h": 844 },
+    { "file": "C_Leads.dc.html","title": "C — Atlas · Leads",    "x": 2590, "y": 0,    "w": 390, "h": 844 }
+  ],
+  "annotations": [
+    {
+      "id": "how-to-read",
+      "x": 0, "y": -330, "w": 980,
+      "text": "THREE DIRECTIONS, ONE PALETTE\n\nEvery prototype is 390 × 844 — a real iPhone, not a desktop layout shrunk. All three share the locked palette, Instrument Serif for titles and hero numerals, Manrope for UI, and the same four-tab bottom bar. So what you are choosing is LAYOUT AND DENSITY, not colour or type.\n\nWhat is fixed in all three: no horizontal scroll, 44px minimum tap targets, 13px minimum body text, filter rows that scroll inside their own track instead of widening the page."
+    },
+    {
+      "id": "note-a",
+      "x": 0, "y": -196, "w": 860,
+      "text": "A — COMMAND\nMost information per screen. The oldest lead is a hero card with its reply button; everything behind it is a compact row carrying name, reason, age and class icon.\n\nBest if you want to see the whole queue at a glance and triage in one scroll.\nTradeoff: the busiest of the three. On a bad day it is a lot of red at once."
+    },
+    {
+      "id": "note-b",
+      "x": 1060, "y": -196, "w": 860,
+      "text": "B — FOCUS\nOne lead fills the screen, reply box included, so there is nothing between opening the app and sending. Everyone else collapses to a single strip of ages you tap to expand.\n\nBest if the queue is usually short and the job is 'answer the oldest one, now'.\nTradeoff: you cannot see the queue's shape without a second tap. Leads is grouped by what you would act on rather than sorted."
+    },
+    {
+      "id": "note-c",
+      "x": 2120, "y": -196, "w": 860,
+      "text": "C — ATLAS\nEditorial. Serif carries the counts and the names, the pressure bar is typographic rather than a widget, and the leads list is a rule-separated index instead of cards.\n\nBest if you want it to feel like a considered product rather than an admin tool — the one to show an agency.\nTradeoff: the least dense. Fewer leads visible before scrolling."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

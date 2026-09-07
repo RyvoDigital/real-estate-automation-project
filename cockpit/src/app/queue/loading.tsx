@@ -1,55 +1,73 @@
+import { IconChat, IconMenu, IconPerson, IconWarning } from '@/components/Icons'
+
 /**
- * Shown while the queue query runs. Without it the screen sits blank and
- * then pops, which on a phone reads as the app having failed — and the one
- * thing this screen must never be is ambiguous about whether it has loaded.
- * The skeleton mirrors the real layout so nothing shifts when data lands.
+ * Shown while the queue query runs.
+ *
+ * The tab bar is real, not a skeleton: it needs no data, so it paints on the
+ * first frame and the app never looks like it failed to start. Only the part
+ * that is genuinely waiting is drawn as a placeholder, and it mirrors the real
+ * layout so nothing shifts when the data lands.
  */
 export default function Loading() {
   return (
     <div className="shell">
-      <nav className="nav">
-        <div className="nav__brand">
-          <div className="nav__mark">R</div>
-        </div>
-        <span className="nav__item nav__item--on">
-          <span className="nav__label">Escalations</span>
-        </span>
-      </nav>
-
       <main className="main" aria-busy="true" aria-live="polite">
-        <div className="topbar">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexGrow: 1 }}>
-            <h1 className="topbar__title">Escalations</h1>
-            <span className="skeleton" style={{ width: 220, height: 13, borderRadius: 6 }} />
+        <header className="head">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <span className="eyebrow">Waiting on you</span>
+            <h1 className="head__title">Escalations</h1>
           </div>
+        </header>
+
+        <div className="hero hero--t0" aria-hidden>
+          <span className="hero__top">
+            <span style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span className="skeleton" style={{ width: 84, height: 11, borderRadius: 5 }} />
+              <span className="skeleton" style={{ width: 150, height: 46, borderRadius: 10 }} />
+            </span>
+          </span>
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <span className="skeleton" style={{ width: '62%', height: 19, borderRadius: 7 }} />
+            <span className="skeleton" style={{ width: '80%', height: 13, borderRadius: 6 }} />
+          </span>
+          <span className="skeleton" style={{ height: 58, borderRadius: 16 }} />
+          <span className="skeleton" style={{ height: 50, borderRadius: 16 }} />
         </div>
 
-        <div className="skeleton" style={{ height: 36, borderRadius: 12 }} />
-
-        <div className="stack">
+        <div className="rows" aria-hidden>
           {[0, 1].map((i) => (
-            <div key={i} className="card card--t0" style={{ opacity: 1 - i * 0.4 }}>
-              <span className="card__spine" />
-              <span className="card__body">
-                <span className="card__head">
-                  <span style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <span className="skeleton" style={{ width: 96, height: 26, borderRadius: 7 }} />
-                    <span className="skeleton" style={{ width: 54, height: 9, borderRadius: 4 }} />
-                  </span>
-                  <span className="skeleton" style={{ width: 118, height: 26, borderRadius: 999 }} />
-                </span>
-                <span style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <span className="skeleton" style={{ width: '58%', height: 16, borderRadius: 6 }} />
-                  <span className="skeleton" style={{ width: '82%', height: 12, borderRadius: 6 }} />
-                  <span className="skeleton" style={{ width: '70%', height: 12, borderRadius: 6 }} />
-                </span>
+            <div key={i} className="row" style={{ opacity: 1 - i * 0.35 }}>
+              <span className="row__spine" />
+              <span className="row__body" style={{ gap: 7 }}>
+                <span className="skeleton" style={{ width: '55%', height: 14, borderRadius: 6 }} />
+                <span className="skeleton" style={{ width: '38%', height: 11, borderRadius: 5 }} />
               </span>
+              <span className="skeleton" style={{ width: 54, height: 15, borderRadius: 6 }} />
             </div>
           ))}
         </div>
 
-        <span style={{ fontSize: 12, color: 'var(--ink-4)' }}>Loading the queue…</span>
+        <span style={{ fontSize: 13, color: 'var(--ink-4)' }}>Loading the queue…</span>
       </main>
+
+      <nav className="tabs" aria-label="Sections">
+        <span className="tab tab--on">
+          <IconWarning size={21} />
+          <span>Queue</span>
+        </span>
+        <span className="tab">
+          <IconPerson size={21} />
+          <span>Leads</span>
+        </span>
+        <span className="tab">
+          <IconChat size={21} />
+          <span>Report</span>
+        </span>
+        <span className="tab">
+          <IconMenu size={21} />
+          <span>More</span>
+        </span>
+      </nav>
     </div>
   )
 }

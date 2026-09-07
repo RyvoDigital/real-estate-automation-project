@@ -2,8 +2,8 @@ import Link from 'next/link'
 import { requireOperator } from '@/lib/auth'
 import { STAGES, getClients, getLeads, getQueue, type LeadFilters } from '@/lib/data'
 import { formatWait } from '@/lib/escalation'
-import { Shell, Who } from '@/components/Shell'
-import { IconWarning } from '@/components/Icons'
+import { Shell } from '@/components/Shell'
+import { IconSearch, IconWarning } from '@/components/Icons'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -61,40 +61,43 @@ export default async function AllLeadsPage({
   ])
 
   return (
-    <Shell active="leads" openCount={queue.length}>
-      <div className="topbar">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flexGrow: 1 }}>
-          <h1 className="topbar__title">Leads</h1>
-          <span className="topbar__sub">
+    <Shell active="leads" openCount={queue.length} email={operator.email}>
+      <header className="head">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span className="eyebrow">
             {total} across {clients.length} client{clients.length === 1 ? '' : 's'}
-            {total > 0 ? ` · showing ${(page - 1) * 25 + 1}–${Math.min(page * 25, total)}` : ''}
           </span>
+          <h1 className="head__title">Leads</h1>
         </div>
-        <Who email={operator.email} />
-      </div>
+      </header>
 
-      <form className="filters" action="/leads" method="get">
+      <form className="searchrow" action="/leads" method="get">
         {filters.client && <input type="hidden" name="client" value={filters.client} />}
         {filters.stage && <input type="hidden" name="stage" value={filters.stage} />}
         {filters.escalated && <input type="hidden" name="escalated" value={filters.escalated} />}
         <input
-          className="filters__search"
+          className="field"
           type="search"
           name="q"
           defaultValue={filters.q ?? ''}
           placeholder="Name or phone"
           aria-label="Search leads"
         />
-        <button className="btn-ghost" type="submit">
-          Search
+        <button className="btn btn--ghost btn--icon" type="submit" aria-label="Search">
+          <IconSearch size={18} />
         </button>
       </form>
 
-      <div className="filters__rows">
-        <div className="chips">
-          <span className="chips__label">Client</span>
+      {/*
+        Each chip row is its own contained scroller: `.filters` carries both
+        overflow-x and min-width: 0, because one without the other lets the
+        content set the page width instead of the track's.
+      */}
+      <div className="filters__group">
+        <span className="filters__label">Client</span>
+        <div className="filters">
           <Link className={`fchip${!filters.client ? ' fchip--on' : ''}`} href={href(filters, { client: undefined })}>
-            All
+            All clients
           </Link>
           {clients.map((c) => (
             <Link
@@ -106,9 +109,11 @@ export default async function AllLeadsPage({
             </Link>
           ))}
         </div>
+      </div>
 
-        <div className="chips">
-          <span className="chips__label">Stage</span>
+      <div className="filters__group">
+        <span className="filters__label">Stage</span>
+        <div className="filters">
           <Link className={`fchip${!filters.stage ? ' fchip--on' : ''}`} href={href(filters, { stage: undefined })}>
             Any
           </Link>
@@ -122,9 +127,11 @@ export default async function AllLeadsPage({
             </Link>
           ))}
         </div>
+      </div>
 
-        <div className="chips">
-          <span className="chips__label">Waiting</span>
+      <div className="filters__group">
+        <span className="filters__label">Waiting</span>
+        <div className="filters">
           <Link className={`fchip${!filters.escalated ? ' fchip--on' : ''}`} href={href(filters, { escalated: undefined })}>
             Any
           </Link>
@@ -143,34 +150,31 @@ export default async function AllLeadsPage({
           <p>Nothing here fits those filters. Clear one and try again.</p>
         </div>
       ) : (
-        <div className="table">
-          <div className="table__head">
-            <span>Lead</span>
-            <span>Client</span>
-            <span>Stage</span>
-            <span>Budget</span>
-            <span>Area</span>
-            <span>Last contact</span>
-          </div>
+        <div className="rows lead-grid">
           {rows.map((r) => (
-            <Link key={r.id} href={`/leads/${r.id}`} className="table__row">
-              <span className="table__lead">
-                <span className="table__name">{r.name}</span>
-                {r.phone && <span className="table__sub">{r.phone}</span>}
+            <Link key={r.id} href={`/leads/${r.id}`} className="lead-card">
+              <span className={`lead-card__av${r.escalated ? ' lead-card__av--esc' : ''}`}>
+                {r.name.trim().charAt(0).toUpperCase() || '?'}
               </span>
-              <span className="table__cell">{r.clientName}</span>
-              <span className="table__cell">
-                <span className="pill pill--sm">{r.stage.replace(/_/g, ' ')}</span>
+              <span className="lead-card__body">
+                <span className="lead-card__name">{r.name}</span>
+                <span className="lead-card__sub">
+                  {r.clientName}
+                  {r.area ? ` · ${r.area}` : ''}
+                </span>
+                <span className="lead-card__sub">
+                  {r.phone ? `${r.phone} · ` : ''}
+                  {ago(r.lastContactAt)}
+                </span>
               </span>
-              <span className="table__cell mono">{money(r.budget)}</span>
-              <span className="table__cell">{r.area ?? '—'}</span>
-              <span className="table__cell">
+              <span className="lead-card__end">
+                <span className="lead-card__budget">{money(r.budget)}</span>
                 {r.escalated ? (
-                  <span className="table__waiting">
-                    <IconWarning size={12} /> {formatWait(r.minutes)}
+                  <span className="pill pill--waiting">
+                    <IconWarning size={11} /> {formatWait(r.minutes)}
                   </span>
                 ) : (
-                  ago(r.lastContactAt)
+                  <span className="pill">{r.stage.replace(/_/g, ' ')}</span>
                 )}
               </span>
             </Link>
@@ -181,7 +185,7 @@ export default async function AllLeadsPage({
       {pages > 1 && (
         <div className="pager">
           {page > 1 ? (
-            <Link className="btn-ghost" href={href(filters, { page: page - 1 })}>
+            <Link className="btn btn--ghost" href={href(filters, { page: page - 1 })}>
               Previous
             </Link>
           ) : (
@@ -191,7 +195,7 @@ export default async function AllLeadsPage({
             Page {page} of {pages}
           </span>
           {page < pages ? (
-            <Link className="btn-ghost" href={href(filters, { page: page + 1 })}>
+            <Link className="btn btn--ghost" href={href(filters, { page: page + 1 })}>
               Next
             </Link>
           ) : (

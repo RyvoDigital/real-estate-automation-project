@@ -67,14 +67,16 @@ export function Report({ report }: { report: WeeklyReport }) {
     <div className="report">
       {r.missingDays.length > 0 && (
         <div className="notice notice--bad">
+          <span>
           {r.missingDays.length} of 7 days have no row in <code>metrics_daily</code> (
           {r.missingDays.join(', ')}). The nightly derivation did not run for those days, so
           these totals are incomplete — do not send this until it has.
+          </span>
         </div>
       )}
 
       <div className="rsheet">
-        <div className="rsheet__head">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span className="eyebrow">Weekly summary</span>
           <h2>{r.clientName}</h2>
           <span className="rsheet__dates">
@@ -142,7 +144,7 @@ export function Report({ report }: { report: WeeklyReport }) {
 
       <div className="ractions">
         <button
-          className="btn-solid"
+          className="btn btn--primary"
           type="button"
           onClick={async () => {
             try {

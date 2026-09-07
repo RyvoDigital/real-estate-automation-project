@@ -102,14 +102,14 @@ export default async function LoginPage({
   return (
     <div className="login">
       <div className="login__box">
-        <div className="nav__mark">R</div>
+        <div className="login__mark">R</div>
         <h1 className="login__title">Ryvo Cockpit</h1>
         <p className="login__sub">
           Internal. A one-time link is sent to addresses on the allowlist; there is no password
           and no sign-up.
         </p>
 
-        <form action={sendLink}>
+        <form action={sendLink} className="login__code">
           <input
             className="field"
             type="email"
@@ -119,14 +119,14 @@ export default async function LoginPage({
             placeholder="you@ryvodigital.com"
             aria-label="Email address"
           />
-          <button className="btn" type="submit">
+          <button className="btn btn--primary" type="submit">
             Send me a link
           </button>
         </form>
 
         {params.sent && (
           <div className="notice notice--ok">
-            Sent. The email carries both a link and a six-digit code.
+            <span>Sent. The email carries both a link and a six-digit code.</span>
           </div>
         )}
 
@@ -150,7 +150,7 @@ export default async function LoginPage({
             aria-label="Email address for the code"
           />
           <input
-            className="field"
+            className="field mono"
             type="text"
             name="code"
             inputMode="numeric"
@@ -165,23 +165,19 @@ export default async function LoginPage({
             Sign in with code
           </button>
         </form>
+
         {params.denied && (
           <div className="notice notice--bad">
-            That address is not on the allowlist, so no link was sent.
+            <span>That address is not on the allowlist, so no link was sent.</span>
           </div>
         )}
-        {params.error && <div className="notice notice--bad">{params.error}</div>}
+        {params.error && (
+          <div className="notice notice--bad">
+            <span className="wrap-any">{params.error}</span>
+          </div>
+        )}
 
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            marginTop: 20,
-            fontSize: 11.5,
-            color: 'var(--ink-4)',
-          }}
-        >
+        <div className="login__foot">
           <IconLock size={13} />
           <span>This screen shows prospects&rsquo; personal data once you are through it.</span>
         </div>

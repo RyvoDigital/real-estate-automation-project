@@ -61,43 +61,41 @@ export function Composer({ leadId, firstName }: { leadId: string; firstName: str
         </div>
       )}
 
-      <div className="composer__row">
-        <textarea
-          className="composer__field"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder={`Reply to ${firstName}…`}
-          rows={2}
-          maxLength={1500}
+      <textarea
+        className="composer__field"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder={`Reply to ${firstName}…`}
+        rows={3}
+        maxLength={1500}
+        disabled={pending}
+        aria-label="Reply text"
+      />
+      <div className="composer__actions">
+        <button
+          className="btn btn--ghost"
+          type="button"
           disabled={pending}
-          aria-label="Reply text"
-        />
-        <div className="composer__buttons">
-          <button
-            className="composer__draft"
-            type="button"
-            disabled={pending}
-            onClick={() =>
-              start(async () => {
-                setResult(null)
-                const d = await draftReply(leadId)
-                setDraft(d)
-                if (d.ok) setText(d.draft)
-                else setResult({ ok: false, message: d.message })
-              })
-            }
-          >
-            {pending ? '…' : 'Draft it'}
-          </button>
-          <button
-            className={`composer__send${isUntouchedDraft ? ' composer__send--draft' : ''}`}
-            onClick={submit}
-            disabled={pending || !text.trim()}
-            type="button"
-          >
-            {pending ? 'Sending…' : isUntouchedDraft ? 'Send this draft' : 'Send'}
-          </button>
-        </div>
+          onClick={() =>
+            start(async () => {
+              setResult(null)
+              const d = await draftReply(leadId)
+              setDraft(d)
+              if (d.ok) setText(d.draft)
+              else setResult({ ok: false, message: d.message })
+            })
+          }
+        >
+          {pending ? '…' : 'Draft it'}
+        </button>
+        <button
+          className={`btn btn--primary${isUntouchedDraft ? ' btn--draft' : ''}`}
+          onClick={submit}
+          disabled={pending || !text.trim()}
+          type="button"
+        >
+          {pending ? 'Sending…' : isUntouchedDraft ? 'Send this draft' : 'Send'}
+        </button>
       </div>
       <span className="composer__hint">
         Sends through the same WhatsApp path the assistant uses, and is recorded in the
@@ -130,7 +128,7 @@ export function HandBack({ leadId }: { leadId: string }) {
       )}
 
       {!confirming ? (
-        <button className="btn-ghost" type="button" onClick={() => setConfirming(true)}>
+        <button className="btn btn--ghost" type="button" onClick={() => setConfirming(true)}>
           Hand back to the AI
         </button>
       ) : (
@@ -141,7 +139,7 @@ export function HandBack({ leadId }: { leadId: string }) {
           </span>
           <div className="handback__actions">
             <button
-              className="btn-ghost"
+              className="btn btn--ghost"
               type="button"
               onClick={() => setConfirming(false)}
               disabled={pending}
@@ -149,7 +147,7 @@ export function HandBack({ leadId }: { leadId: string }) {
               Cancel
             </button>
             <button
-              className="btn-solid"
+              className="btn btn--primary"
               type="button"
               disabled={pending}
               onClick={() =>

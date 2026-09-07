@@ -83,9 +83,15 @@ export async function getQueue(limit = 100): Promise<QueueRow[]> {
   if (!leads || leads.length === 0) return []
 
   const rows = leads as LeadRow[]
-  const clientNames = await getClientNames(rows.map((l) => l.client_id))
-  const lastMessages = await getLastInboundMessages(rows.map((l) => l.id))
-  const answered = await getRepliesSinceEscalation(rows)
+  // Three independent lookups keyed off the same lead set. They were awaited
+  // one after another, which cost three serial round trips to Supabase for no
+  // reason: none of them reads the others' output. Same queries, same results,
+  // timing only.
+  const [clientNames, lastMessages, answered] = await Promise.all([
+    getClientNames(rows.map((l) => l.client_id)),
+    getLastInboundMessages(rows.map((l) => l.id)),
+    getRepliesSinceEscalation(rows),
+  ])
   const now = Date.now()
 
   const out: QueueRow[] = []

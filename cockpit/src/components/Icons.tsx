@@ -113,3 +113,37 @@ export function IconDoc({ size = 17, className }: P) {
     </svg>
   )
 }
+
+export function IconMenu({ size = 20, className }: P) {
+  return (
+    <svg {...base(size)} strokeWidth={1.9} className={className} aria-hidden>
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
+  )
+}
+
+export function IconSignOut({ size = 19, className }: P) {
+  return (
+    <svg {...base(size)} strokeWidth={1.8} className={className} aria-hidden>
+      <path d="M15 17v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v2" />
+      <path d="M10 12h11M18 9l3 3-3 3" />
+    </svg>
+  )
+}
+
+export function IconSearch({ size = 18, className }: P) {
+  return (
+    <svg {...base(size)} strokeWidth={1.9} className={className} aria-hidden>
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" />
+    </svg>
+  )
+}
+
+export function IconCheck({ size = 16, className }: P) {
+  return (
+    <svg {...base(size)} strokeWidth={2.2} className={className} aria-hidden>
+      <path d="m4 12.5 5 5L20 6.5" />
+    </svg>
+  )
+}

@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { requireOperator } from '@/lib/auth'
 import { getClients, getQueue, getWeeklyReport, lastCompleteWeekStart, mondayOf } from '@/lib/data'
-import { Shell, Who } from '@/components/Shell'
+import { Shell } from '@/components/Shell'
 import { Report } from '@/components/Report'
 
 export const dynamic = 'force-dynamic'
@@ -26,13 +26,10 @@ export default async function ReportPage({
 
   if (clients.length === 0) {
     return (
-      <Shell active="report" openCount={queue.length}>
-        <div className="topbar">
-          <div style={{ flexGrow: 1 }}>
-            <h1 className="topbar__title">Weekly report</h1>
-          </div>
-          <Who email={operator.email} />
-        </div>
+      <Shell active="report" openCount={queue.length} email={operator.email}>
+        <header className="head">
+          <h1 className="head__title">Weekly report</h1>
+        </header>
         <div className="empty">
           <h2>No clients yet</h2>
           <p>Onboard one first — there is nothing to report on.</p>
@@ -51,21 +48,18 @@ export default async function ReportPage({
   const href = (c: string, w: string) => `/report?client=${c}&week=${w}`
 
   return (
-    <Shell active="report" openCount={queue.length}>
-      <div className="topbar">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flexGrow: 1 }}>
-          <h1 className="topbar__title">Weekly report</h1>
-          <span className="topbar__sub">
-            Every figure comes from <code>metrics_daily</code>. Nothing is counted here.
-          </span>
+    <Shell active="report" openCount={queue.length} email={operator.email}>
+      <header className="head">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span className="eyebrow">From metrics_daily only</span>
+          <h1 className="head__title">Weekly report</h1>
         </div>
-        <Who email={operator.email} />
-      </div>
+      </header>
 
-      <div className="filters__rows">
-        {clients.length > 1 && (
-          <div className="chips">
-            <span className="chips__label">Client</span>
+      {clients.length > 1 && (
+        <div className="filters__group">
+          <span className="filters__label">Client</span>
+          <div className="filters">
             {clients.map((c) => (
               <Link
                 key={c.id}
@@ -76,20 +70,23 @@ export default async function ReportPage({
               </Link>
             ))}
           </div>
-        )}
-        <div className="chips">
-          <span className="chips__label">Week</span>
+        </div>
+      )}
+
+      <div className="filters__group">
+        <span className="filters__label">Week</span>
+        <div className="filters">
           <Link className="fchip" href={href(clientId, shift(week, -1))}>
             ← Earlier
           </Link>
-          <Link className="fchip fchip--on" href={href(clientId, week)}>
+          <Link className="fchip fchip--on mono" href={href(clientId, week)}>
             {week}
           </Link>
           <Link className="fchip" href={href(clientId, shift(week, 1))}>
             Later →
           </Link>
           <Link className="fchip" href={href(clientId, lastCompleteWeekStart())}>
-            Last complete week
+            Last complete
           </Link>
         </div>
       </div>
@@ -97,7 +94,7 @@ export default async function ReportPage({
       <Report report={report} />
 
       <p className="hnote">
-        <strong>Handed to a human</strong> is derived by <code>metrics_daily.py</code> from
+        <strong>Handed to a human</strong> is derived by <code>metrics_daily.py</code> from{' '}
         <code>lead.escalated</code>, not counted here — §9. Escalations that were later handled
         are not subtracted: one that happened still happened, and a number that falls when you do
         your job is a number nobody can reason about.{' '}

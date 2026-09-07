@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+  <style>
+    body { margin: 0; background: #08080A; font-family: 'Manrope', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #C4BDB8; text-decoration: none; } a:hover { color: #F2F0EE; }
+    * { box-sizing: border-box; min-width: 0; }
+  </style>
+</helmet>
+
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #08080A; color: #F2F0EE; display: flex; flex-direction: column;">
+  <div style="position: absolute; right: -70px; top: -70px; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, rgba(232,69,60,0.22), transparent 68%); filter: blur(30px); pointer-events: none;"></div>
+
+  <div style="position: relative; display: flex; flex-direction: column; gap: 20px; padding: 60px 22px 0 22px; flex-grow: 1; overflow: hidden;">
+
+    <div style="display: flex; flex-direction: column; gap: 5px;">
+      <span style="font-size: 11.5px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: #6E6863;">Across two clients</span>
+      <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 40px; line-height: 1.06; color: #FFFFFF;">Everyone</span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 11px; height: 52px; padding: 0 18px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10);">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6E6863" stroke-width="1.9" stroke-linecap="round" style="flex-shrink: 0;"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+      <span style="font-size: 15px; color: #55504B;">Search by name or phone</span>
+    </div>
+
+    <div style="display: flex; gap: 9px; overflow-x: auto; min-width: 0; margin: 0 -22px; padding: 0 22px;">
+      <span style="display: flex; align-items: center; height: 44px; padding: 0 18px; border-radius: 999px; background: #EDE4DC; font-size: 13.5px; font-weight: 700; color: #0B0B0C; white-space: nowrap; flex-shrink: 0;">All</span>
+      <span style="display: flex; align-items: center; height: 44px; padding: 0 18px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); font-size: 13.5px; color: #A8A29C; white-space: nowrap; flex-shrink: 0;">Escalated</span>
+      <span style="display: flex; align-items: center; height: 44px; padding: 0 18px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); font-size: 13.5px; color: #A8A29C; white-space: nowrap; flex-shrink: 0;">Viewing booked</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 0;">
+      <sc-for list="{{leads}}" as="lead" hint-placeholder-count="4">
+        <div style="display: flex; align-items: center; gap: 15px; padding: 18px 2px; border-bottom: 1px solid rgba(255,255,255,0.06);">
+          <div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1; min-width: 0;">
+            <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 21px; line-height: 1.1; color: #FFFFFF; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{lead.name}}</span>
+            <span style="font-size: 12.5px; color: #6E6863; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{lead.client}} &middot; {{lead.stage}}</span>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0;">
+            <span style="font-family: 'Instrument Serif', Georgia, serif; font-size: 22px; line-height: 1; color: {{lead.tone}};">{{lead.budget}}</span>
+            <span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #55504B;">{{lead.meta}}</span>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: stretch; gap: 4px; padding: 10px 14px 30px 14px; background: rgba(8,8,10,0.92); border-top: 1px solid rgba(255,255,255,0.07); flex-shrink: 0;">
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; flex: 1 1 0; min-height: 52px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6E6863" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.9 18a2 2 0 0 0 1.7 3h16.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path><path d="M12 9v4M12 17h.01"></path></svg>
+      <span style="font-size: 10.5px; font-weight: 600; color: #6E6863;">Queue</span>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; flex: 1 1 0; min-height: 52px; border-radius: 18px; background: linear-gradient(140deg, rgba(232,69,60,0.26), rgba(122,26,22,0.20)); border: 1px solid rgba(232,69,60,0.42);">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF7A70" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M4.5 20a7.5 7.5 0 0 1 15 0"></path></svg>
+      <span style="font-size: 10.5px; font-weight: 700; color: #FF7A70;">Leads</span>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; flex: 1 1 0; min-height: 52px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6E6863" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"></path></svg>
+      <span style="font-size: 10.5px; font-weight: 600; color: #6E6863;">Report</span>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; flex: 1 1 0; min-height: 52px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6E6863" stroke-width="1.9" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+      <span style="font-size: 10.5px; font-weight: 600; color: #6E6863;">More</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { leads: [
+      { name: 'Sofia Marques', client: 'Atlântica Prime', stage: 'escalated', budget: '€3.2M', meta: '4h 12m', tone: '#FF5347' },
+      { name: 'Manuel Vale', client: 'Ryvo Test Client', stage: 'viewing booked', budget: '€900k', meta: 'today', tone: '#F2F0EE' },
+      { name: 'Henrik Nilsson', client: 'Marbella Sur', stage: 'qualified', budget: '€1.4M', meta: '2d ago', tone: '#C4BDB8' },
+      { name: 'Lucía Fernández', client: 'Marbella Sur', stage: 'new', budget: '€780k', meta: '5d ago', tone: '#C4BDB8' },
+    ] }
+  }
+}
+</script>
+</body>
+</html>

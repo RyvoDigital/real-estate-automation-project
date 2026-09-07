@@ -358,7 +358,17 @@ The client form with validation, all-leads, health, weekly report.
 
     A test asserting this already existed and passed, because it carried its own hand-written list of keys and the list contained the wrong one. The list is now **derived by reading `cfg.*` out of `workflows/ryvoInboundConc01.json`**, and raises if it cannot — a test holding its own copy of something the product also holds is lesson 15, and this is what it costs. The three keys `systemMessage()` reaches through its own parameter, which the regex cannot see, are asserted explicitly with the reason recorded.
 
-Items 2, 6, 13, 16, 17, 18 and 19 are the ones that fail silently — the screen looks fine either way, so nothing will tell you. Weight the testing accordingly.
+20. **Every screen is usable on a phone, measured in a browser at the widths real phones actually have.**
+
+    Asserted per route as `document.documentElement.scrollWidth <= clientWidth` at **360px** (the common Android width), **390px** (iPhone 12–15) and **430px** (iPhone Pro Max), plus a smallest-rendered-type floor of 11px and a smallest-tap-target floor of 44px. `npm run probe:mobile` drives the Chrome on the machine over the DevTools protocol; there is no browser dependency in `package.json`.
+
+    Three things about how it is written matter more than the numbers:
+
+    - **The widths are devices, not round numbers.** The previous attempt wrote `@media (max-width: 380px)`, which sits in the gap between 360 and 390 and therefore never fired on any phone anyone owns. A breakpoint written at a round number is untested by construction.
+    - **It measures the rendered page, not the stylesheet.** The cockpit shipped unusable on a phone twice, and both times the CSS read as correct. Reading CSS cannot catch a flex child that refuses to shrink; measuring can.
+    - **The probe carries its own controls**, because a check that cannot fail is not a check (§6b). It plants a 2000px element and requires the measurement to report it — which is also what proves nothing is quietly clipping `html`/`body`, since clipping would make every other assertion pass unconditionally. It loads `/login?error=<180 unbreakable characters>` and requires `.notice` to hold it. And it asserts the onboarding form shows **no** field errors before anything is touched, then presses Continue and requires the same errors to appear — the second half being the control on the first.
+
+Items 2, 6, 13, 16, 17, 18, 19 and 20 are the ones that fail silently — the screen looks fine either way, so nothing will tell you. Weight the testing accordingly.
 
 ---
 

@@ -609,6 +609,60 @@ gap is usually obvious.
 
 ---
 
+## 6d. A breakpoint written at a round number is untested by construction
+
+**2026-09-07.** The cockpit shipped unusable on a phone twice. The second time,
+the stylesheet contained this:
+
+```css
+@media (max-width: 380px) { /* ... */ }
+```
+
+It has never fired on any device anyone owns. Phones are **360px** (the common
+Android width), **390px** (iPhone 12 through 15) and **430px** (Pro Max). 380
+sits in the gap between two of them. The rules inside that block were correct
+CSS, reviewed and shipped, and they were dead on arrival — not wrong, just
+never reached.
+
+> A number chosen because it is round is a number chosen because it is not a
+> measurement. It looks like a decision and behaves like an omission.
+
+The same file also held `@media (max-width: 900px)`, which is a real
+enhancement boundary rather than a device, and worked fine. The distinction is
+whether the number describes a *device* the code must survive or a *layout*
+the code chooses to change. Device numbers are facts you look up; layout
+numbers are yours to pick.
+
+Three things generalise:
+
+1. **When a constant stands for a physical thing, write the physical thing
+   down.** `360 / 390 / 430` with the device names beside them is checkable by
+   anyone; `380` is not, and nobody could have caught it by reading.
+2. **A dead branch reports success exactly like a passing one.** This is §1
+   again. Nothing failed — the block simply never executed, so nothing could
+   report on it. The tell is the same question: what would this look like if it
+   were broken? Identical.
+3. **Verify at the values, not near them.** The mobile probe now measures at
+   360, 390 and 430 rather than at "mobile", which is why a 380px rule would
+   now be caught: none of the three widths would see it.
+
+The related mechanism, since it caused every symptom that made the screens
+unusable: **a flex or grid child's `min-width` defaults to `auto`**, so it
+refuses to shrink below its content's min-content width, and that refusal
+propagates up to `<body>`. One `white-space: nowrap` label, one fixed px grid
+track, or one unbreakable string — a Twilio sid, a Google calendar id — was
+enough to widen the whole page. The old stylesheet had 82 flex/grid containers
+and 4 declarations of `min-width: 0`.
+
+The fix is one rule, `* { min-width: 0 }`, and it is deliberately **not** paired
+with `overflow-x: clip` on `html`/`body`. Clipping would hide the symptom and
+make the probe pass unconditionally, which is §6b: a check that cannot fail is
+not a check. The probe therefore plants a 2000px element and requires the
+measurement to report it, so a future `overflow-x: clip` would break the
+control rather than silence the alarm.
+
+---
+
 ## 6c. A guard whose boundaries are ASCII stops guarding where it matters most
 
 **2026-09-07.** The draft assistant must never propose a viewing time — the
