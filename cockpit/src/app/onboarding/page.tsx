@@ -1,5 +1,5 @@
 import { requireOperator } from '@/lib/auth'
-import { getQueue } from '@/lib/data'
+import { getOpenCount } from '@/lib/data'
 import { Shell } from '@/components/Shell'
 import { Onboarding } from '@/components/Onboarding'
 
@@ -7,10 +7,10 @@ export const dynamic = 'force-dynamic'
 
 export default async function OnboardingPage() {
   const operator = await requireOperator()
-  const queue = await getQueue()
+  const openCount = await getOpenCount()
 
   return (
-    <Shell active="more" openCount={queue.length} email={operator.email}>
+    <Shell active="more" openCount={openCount} email={operator.email}>
       <header className="head">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <span className="eyebrow">Onboarding</span>

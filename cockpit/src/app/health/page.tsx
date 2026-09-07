@@ -1,5 +1,5 @@
 import { requireOperator } from '@/lib/auth'
-import { HEALTH_STALE_MINUTES, getHealth, getQueue } from '@/lib/data'
+import { HEALTH_STALE_MINUTES, getHealth, getOpenCount } from '@/lib/data'
 import { Shell } from '@/components/Shell'
 import { IconWarning } from '@/components/Icons'
 
@@ -8,7 +8,7 @@ export const revalidate = 0
 
 export default async function HealthPage() {
   const operator = await requireOperator()
-  const [run, queue] = await Promise.all([getHealth(), getQueue()])
+  const [run, openCount] = await Promise.all([getHealth(), getOpenCount()])
 
   // Computed at render, and the ABSOLUTE time is printed beside it. A
   // relative time on a page left open overnight says "5 minutes ago" for
@@ -28,7 +28,7 @@ export default async function HealthPage() {
   const total = run ? run.passed.length + run.failed.length : 0
 
   return (
-    <Shell active="more" openCount={queue.length} email={operator.email}>
+    <Shell active="more" openCount={openCount} email={operator.email}>
       <header className="head">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <span className="eyebrow">Twelve checks</span>

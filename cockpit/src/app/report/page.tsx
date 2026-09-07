@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { requireOperator } from '@/lib/auth'
-import { getClients, getQueue, getWeeklyReport, lastCompleteWeekStart, mondayOf } from '@/lib/data'
+import { getClients, getOpenCount, getWeeklyReport, lastCompleteWeekStart, mondayOf } from '@/lib/data'
 import { Shell } from '@/components/Shell'
 import { Report } from '@/components/Report'
 
@@ -22,11 +22,11 @@ export default async function ReportPage({
 }) {
   const operator = await requireOperator()
   const sp = await searchParams
-  const [clients, queue] = await Promise.all([getClients(), getQueue()])
+  const [clients, openCount] = await Promise.all([getClients(), getOpenCount()])
 
   if (clients.length === 0) {
     return (
-      <Shell active="report" openCount={queue.length} email={operator.email}>
+      <Shell active="report" openCount={openCount} email={operator.email}>
         <header className="head">
           <h1 className="head__title">Weekly report</h1>
         </header>
@@ -48,7 +48,7 @@ export default async function ReportPage({
   const href = (c: string, w: string) => `/report?client=${c}&week=${w}`
 
   return (
-    <Shell active="report" openCount={queue.length} email={operator.email}>
+    <Shell active="report" openCount={openCount} email={operator.email}>
       <header className="head">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <span className="eyebrow">From metrics_daily only</span>

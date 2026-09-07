@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { requireOperator } from '@/lib/auth'
-import { STAGES, getClients, getLeads, getQueue, type LeadFilters } from '@/lib/data'
+import { STAGES, getClients, getLeads, getOpenCount, type LeadFilters } from '@/lib/data'
 import { formatWait } from '@/lib/escalation'
 import { Shell } from '@/components/Shell'
 import { IconSearch, IconWarning } from '@/components/Icons'
@@ -54,14 +54,14 @@ export default async function AllLeadsPage({
     page: sp.page ? Number(sp.page) : 1,
   }
 
-  const [{ rows, total, page, pages }, clients, queue] = await Promise.all([
+  const [{ rows, total, page, pages }, clients, openCount] = await Promise.all([
     getLeads(filters),
     getClients(),
-    getQueue(),
+    getOpenCount(),
   ])
 
   return (
-    <Shell active="leads" openCount={queue.length} email={operator.email}>
+    <Shell active="leads" openCount={openCount} email={operator.email}>
       <header className="head">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <span className="eyebrow">

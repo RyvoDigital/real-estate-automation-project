@@ -1,55 +1,44 @@
-/**
- * Shown while the queue query runs. Without it the screen sits blank and
- * then pops, which on a phone reads as the app having failed — and the one
- * thing this screen must never be is ambiguous about whether it has loaded.
- * The skeleton mirrors the real layout so nothing shifts when data lands.
- */
+import { SkeletonShell, Bar } from '@/components/Skeleton'
+
 export default function Loading() {
   return (
-    <div className="shell">
-      <nav className="nav">
-        <div className="nav__brand">
-          <div className="nav__mark">R</div>
-        </div>
-        <span className="nav__item nav__item--on">
-          <span className="nav__label">Escalations</span>
-        </span>
-      </nav>
-
-      <main className="main" aria-busy="true" aria-live="polite">
-        <div className="topbar">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexGrow: 1 }}>
-            <h1 className="topbar__title">Escalations</h1>
-            <span className="skeleton" style={{ width: 220, height: 13, borderRadius: 6 }} />
+    <SkeletonShell
+      active="queue"
+      eyebrow="Loading"
+      title="Lead"
+      note="Loading the conversation…"
+    >
+      <div className="detail" aria-hidden>
+        <div className="panel">
+          <div className="detail__head">
+            <Bar w="60%" h={30} r={8} />
+            <Bar w="45%" h={13} />
+          </div>
+          <div className="thread">
+            {[
+              ['in', '62%'],
+              ['out', '86%'],
+              ['in', '48%'],
+              ['out', '74%'],
+            ].map(([side, w], i) => (
+              <div className={`msg msg--${side}`} key={i} style={{ width: w }}>
+                <Bar h={52} r={18} />
+              </div>
+            ))}
           </div>
         </div>
-
-        <div className="skeleton" style={{ height: 36, borderRadius: 12 }} />
-
-        <div className="stack">
-          {[0, 1].map((i) => (
-            <div key={i} className="card card--t0" style={{ opacity: 1 - i * 0.4 }}>
-              <span className="card__spine" />
-              <span className="card__body">
-                <span className="card__head">
-                  <span style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <span className="skeleton" style={{ width: 96, height: 26, borderRadius: 7 }} />
-                    <span className="skeleton" style={{ width: 54, height: 9, borderRadius: 4 }} />
-                  </span>
-                  <span className="skeleton" style={{ width: 118, height: 26, borderRadius: 999 }} />
-                </span>
-                <span style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <span className="skeleton" style={{ width: '58%', height: 16, borderRadius: 6 }} />
-                  <span className="skeleton" style={{ width: '82%', height: 12, borderRadius: 6 }} />
-                  <span className="skeleton" style={{ width: '70%', height: 12, borderRadius: 6 }} />
-                </span>
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <span style={{ fontSize: 12, color: 'var(--ink-4)' }}>Loading the queue…</span>
-      </main>
-    </div>
+        <aside className="panel">
+          <div className="learned">
+            <span className="eyebrow">What the AI learned</span>
+            {[0, 1, 2, 3].map((i) => (
+              <div className="learned__row" key={i} style={{ gap: 7 }}>
+                <Bar w={72} h={10} r={4} />
+                <Bar w="58%" h={16} />
+              </div>
+            ))}
+          </div>
+        </aside>
+      </div>
+    </SkeletonShell>
   )
 }

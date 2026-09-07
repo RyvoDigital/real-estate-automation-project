@@ -108,6 +108,39 @@ async function main() {
   check(!html.includes('Nobody is waiting'), 'the empty state is NOT showing')
   check(html.includes('longest waiting first'), 'sort order is stated on screen')
 
+  /*
+   * The Queue tab badge on every OTHER screen is produced by getOpenCount(),
+   * a deliberately cheaper query than getQueue() — no client names, no last
+   * message, no replies-since-escalation, because a badge is one integer and
+   * those three round trips were being thrown away.
+   *
+   * Cheaper is only allowed if it is also IDENTICAL. A badge that disagrees
+   * with the list it points at is worse than a slow badge, so the two are
+   * compared through the app rather than by re-implementing either predicate
+   * here (lesson 15). Both render the same element, from different code.
+   */
+  const badge = (s: string) => {
+    const m = s.match(/class="tab__badge"[^>]*>(\d+)</)
+    return m ? Number(m[1]) : 0
+  }
+  const leadsHtml = await (await get('/leads', good.jar)).text()
+  const bq = badge(html)
+  const bl = badge(leadsHtml)
+  if (bq === 0 && bl === 0) {
+    // Two zeros agreeing is not evidence that two functions agree. Say so
+    // rather than banking a green tick nothing earned (§6b).
+    console.log(
+      '   INCONCLUSIVE  the tab badge agrees with the queue it points at' +
+        '  — both are 0 because nothing is escalated; escalate a lead and re-run',
+    )
+  } else {
+    check(
+      bq === bl,
+      'the tab badge agrees with the queue it points at',
+      `queue=${bq} (getQueue) vs leads=${bl} (getOpenCount)`,
+    )
+  }
+
   console.log('\n== 3. lead detail renders the real conversation ==')
   const leadId = (leads ?? [])[0]?.id as string | undefined
   if (!leadId) {

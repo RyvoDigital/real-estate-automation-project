@@ -68,6 +68,32 @@ type LeadRow = {
  * definition — if that ever stops being true, the fix is an indexed
  * `escalated_at` column, not a cleverer string sort.
  */
+/**
+ * How many leads are waiting — the number on the Queue tab, and nothing else.
+ *
+ * Every screen renders that badge, so every screen was running the full
+ * getQueue(): client names, last inbound message per lead, and a
+ * replies-since-escalation scan, all thrown away to produce one integer. On
+ * /leads and /report that ran alongside three more round trips to a database
+ * on another continent.
+ *
+ * IT MUST COUNT EXACTLY WHAT getQueue() WOULD RETURN, so it uses the same
+ * predicate AND the same parseEscalated() — including the belt-and-braces skip
+ * for a row whose `escalated` key is present but unreadable. A `count: exact`
+ * head query would have been one fewer byte and a different number.
+ * tests/probe-queue.ts asserts the two agree.
+ */
+export async function getOpenCount(limit = 100): Promise<number> {
+  const { data, error } = await admin()
+    .from('leads')
+    .select('qualification')
+    .not('qualification->>escalated', 'is', null)
+    .limit(limit)
+
+  if (error) throw new Error(`open count query failed: ${error.message}`)
+  return (data ?? []).filter((l) => parseEscalated(l.qualification)).length
+}
+
 export async function getQueue(limit = 100): Promise<QueueRow[]> {
   const db = admin()
 

@@ -16,7 +16,8 @@
     "probe:health": "tsx tests/probe-health.ts",
     "probe:report": "tsx tests/probe-report.ts",
     "probe:dod": "tsx tests/probe-dod.ts",
-    "probe:layout": "tsx tests/probe-layout.ts"
+    "probe:layout": "tsx tests/probe-layout.ts",
+    "probe:timing": "tsx tests/probe-timing.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.6",

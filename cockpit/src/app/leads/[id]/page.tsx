@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { requireOperator } from '@/lib/auth'
-import { getLead, getQueue } from '@/lib/data'
+import { getLead, getOpenCount } from '@/lib/data'
 import { TIER_WORD, classOf, formatWait, humanise } from '@/lib/escalation'
 import { Shell } from '@/components/Shell'
 import { Chip } from '@/components/Queue'
@@ -34,13 +34,13 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
   const operator = await requireOperator()
   const { id } = await params
 
-  const [lead, queue] = await Promise.all([getLead(id), getQueue()])
+  const [lead, openCount] = await Promise.all([getLead(id), getOpenCount()])
   if (!lead) notFound()
 
   const budget = money(lead.budgetMin, lead.budgetMax)
 
   return (
-    <Shell active="queue" openCount={queue.length} email={operator.email}>
+    <Shell active="queue" openCount={openCount} email={operator.email}>
       <Link href="/queue" className="backlink">
         <IconBack size={15} />
         Escalations
