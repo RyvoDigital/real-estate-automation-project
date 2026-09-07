@@ -200,7 +200,9 @@ Black base, with a red-to-dark-red gradient as the brand accent.
 
 So the split is **by surface, not by shade**:
 
-- The gradient appears on the logo mark, the selected nav indicator, primary desktop buttons and dashboard graphics.
+- The gradient appears on the logo mark, the **desktop sidebar's** selected row, primary desktop buttons and dashboard graphics.
+- It **never** appears on the mobile bottom bar, because on a phone that surface *is* the escalation queue. (Amended 8 Sep 2026. As first written this line said "the selected nav indicator", and that was compatible with the rule below it for as long as the nav was a separate column beside the content. The moment the nav became a bar floating over the queue, "gradient on the selected nav indicator" and "never on the escalation queue" became the same surface and contradicted each other — on the one screen the ageing ramp exists for. The split was always by surface; the mobile bar changed which surface it was on. The desktop sidebar keeps the gradient, because there it still is a separate column.)
+- The mobile bar therefore carries its active state **without hue at all** — a filled shape and a step of lightness, not a colour. Red inside the bar is reserved for the waiting count, which is state.
 - It **never** appears on the escalation queue. There, red means *how long someone has waited* and nothing else.
 - The queue's brand is carried by bone and warm neutral instead — the Send button, the count pill, the high-value chip.
 - Even on the dashboard, flat red is reserved for state. The chart's bars are bone; the gradient rides the chrome and the secondary series. Flat red next to data reads as a status, and the escalations card sits in that same row.
