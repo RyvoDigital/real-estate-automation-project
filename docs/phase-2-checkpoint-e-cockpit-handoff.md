@@ -64,6 +64,44 @@ Secondary reasons: n8n's UI primitives are built for simple data collection, not
 
 **Do not build a new send path.** See §6 — this is the most important architectural constraint in the document.
 
+### 2.0a How the cockpit actually deploys — `git push` does NOT deploy it
+
+**2026-09-07.** Pushing to `main` does not put anything live. The GitHub
+integration on the `ryvo-cockpit` Vercel project clones the repo and runs
+`next build` at the repo root, where there is no `app/` directory, so every
+git-triggered build fails in about six seconds with:
+
+> Couldn't find any `pages` or `app` directory. Please create one under the project root
+
+Those failures sit in the deployment list beside the successful ones and look
+like noise. They are not noise — they are every push since the project was set
+up, and the reason the deployed build can silently lag the repo.
+
+**Production deploys are CLI deploys from the repo ROOT:**
+
+```bash
+cd ~/ryvo-automation-platform      # the repo root, NOT cockpit/
+vercel --prod --yes
+```
+
+The project's Root Directory setting is `cockpit`, so it must be run from the
+directory that *contains* `cockpit`. Running it from inside `cockpit/` fails
+with *The specified Root Directory "cockpit" does not exist* — the uploaded
+tree would need a `cockpit/cockpit`. The `.vercel/` link therefore belongs at
+the repo root; a `cockpit/.vercel/` link is the trap.
+
+**Always confirm what is live rather than assuming the push did it.** A marker
+in the served HTML is enough and takes one command:
+
+```bash
+curl -s https://ryvo-cockpit.vercel.app/login | grep -c login__mark   # 2 = current
+vercel ls                                                            # Ready vs Error
+```
+
+The standing fix, when someone wants it: set the project's Root Directory so
+the GitHub integration builds `cockpit/`, and pushes become deploys. Until
+then, push and deploy are two separate acts and the second one is manual.
+
 ### 2.1 Visual direction — `/design` is a slash command, not a skill
 
 **This document specifies what the cockpit must do. It deliberately says nothing about how it should look.** That is the operator's call, and it was made separately — see §2.2 for the outcome.

@@ -42,3 +42,4 @@ cockpit/.env*.local
 cockpit/next-env.d.ts
 cockpit/tsconfig.tsbuildinfo
 cockpit/.vercel/
+.vercel
