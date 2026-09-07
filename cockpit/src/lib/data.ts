@@ -563,6 +563,7 @@ export type DayMetrics = {
     leadsQualified: number
     viewingsBooked: number
     messagesSent: number
+    escalations: number
   } | null
 }
 
@@ -572,7 +573,13 @@ export type WeeklyReport = {
   start: string
   end: string
   days: DayMetrics[]
-  totals: { leadsNew: number; leadsQualified: number; viewingsBooked: number; messagesSent: number }
+  totals: {
+    leadsNew: number
+    leadsQualified: number
+    viewingsBooked: number
+    messagesSent: number
+    escalations: number
+  }
   derivedDays: number
   missingDays: string[]
 }
@@ -621,7 +628,7 @@ export async function getWeeklyReport(clientId: string, weekStart: string): Prom
   const [{ data: rows, error }, names] = await Promise.all([
     admin()
       .from('metrics_daily')
-      .select('date, leads_new, leads_qualified, viewings_booked, messages_sent')
+      .select('date, leads_new, leads_qualified, viewings_booked, messages_sent, escalations')
       .eq('client_id', clientId)
       .gte('date', weekStart)
       .lte('date', end),
@@ -645,6 +652,7 @@ export async function getWeeklyReport(clientId: string, weekStart: string): Prom
             leadsQualified: Number(r.leads_qualified ?? 0),
             viewingsBooked: Number(r.viewings_booked ?? 0),
             messagesSent: Number(r.messages_sent ?? 0),
+            escalations: Number(r.escalations ?? 0),
           }
         : null,
     }
@@ -656,8 +664,9 @@ export async function getWeeklyReport(clientId: string, weekStart: string): Prom
       leadsQualified: a.leadsQualified + (d.row?.leadsQualified ?? 0),
       viewingsBooked: a.viewingsBooked + (d.row?.viewingsBooked ?? 0),
       messagesSent: a.messagesSent + (d.row?.messagesSent ?? 0),
+      escalations: a.escalations + (d.row?.escalations ?? 0),
     }),
-    { leadsNew: 0, leadsQualified: 0, viewingsBooked: 0, messagesSent: 0 },
+    { leadsNew: 0, leadsQualified: 0, viewingsBooked: 0, messagesSent: 0, escalations: 0 },
   )
 
   return {

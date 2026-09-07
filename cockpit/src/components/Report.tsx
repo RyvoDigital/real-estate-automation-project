@@ -26,6 +26,7 @@ function asText(r: WeeklyReport): string {
     `Qualified:          ${r.totals.leadsQualified}`,
     `Viewings booked:    ${r.totals.viewingsBooked}`,
     `Messages sent:      ${r.totals.messagesSent}`,
+    `Handed to a human:  ${r.totals.escalations}`,
   ]
   if (r.totals.leadsNew === 0 && r.totals.messagesSent === 0) {
     lines.push('', 'No enquiries reached the assistant this week.')
@@ -50,7 +51,8 @@ export function Report({ report }: { report: WeeklyReport }) {
     r.totals.leadsNew === 0 &&
     r.totals.leadsQualified === 0 &&
     r.totals.viewingsBooked === 0 &&
-    r.totals.messagesSent === 0
+    r.totals.messagesSent === 0 &&
+    r.totals.escalations === 0
 
   const stat = (label: string, value: number) => (
     <div className="rstat" key={label}>
@@ -85,6 +87,7 @@ export function Report({ report }: { report: WeeklyReport }) {
           {stat('Qualified', r.totals.leadsQualified)}
           {stat('Viewings booked', r.totals.viewingsBooked)}
           {stat('Messages sent', r.totals.messagesSent)}
+          {stat('Handed to a human', r.totals.escalations)}
         </div>
 
         {nothing && r.missingDays.length === 0 && !inProgress && (

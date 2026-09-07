@@ -97,12 +97,12 @@ export default async function ReportPage({
       <Report report={report} />
 
       <p className="hnote">
-        Two figures §5.7 asks for are deliberately absent. <strong>Escalations</strong> is not a
-        column in <code>metrics_daily</code>, and counting it here would mean the cockpit and the
-        nightly derivation computing the same number two different ways — §9. It belongs in the
-        derivation first. <strong>Reactivations</strong> is always zero because nothing produces
-        them until the reactivation automation exists; showing a client a permanent zero would
-        imply we tried.
+        <strong>Handed to a human</strong> is derived by <code>metrics_daily.py</code> from
+        <code>lead.escalated</code>, not counted here — §9. Escalations that were later handled
+        are not subtracted: one that happened still happened, and a number that falls when you do
+        your job is a number nobody can reason about.{' '}
+        <strong>Reactivations</strong> stays absent rather than showing zero, because nothing
+        produces them until that automation exists and a standing zero implies we tried.
       </p>
     </Shell>
   )

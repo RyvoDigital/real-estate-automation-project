@@ -57,18 +57,24 @@ async function main() {
 
   const { data: rows } = await db
     .from('metrics_daily')
-    .select('date, leads_new, leads_qualified, viewings_booked, messages_sent')
+    .select('date, leads_new, leads_qualified, viewings_booked, messages_sent, escalations')
     .eq('client_id', client.id)
     .gte('date', week)
     .lte('date', end)
 
   const sum = (k: string) => (rows ?? []).reduce((a, r) => a + Number((r as Record<string, unknown>)[k] ?? 0), 0)
-  const expected = [sum('leads_new'), sum('leads_qualified'), sum('viewings_booked'), sum('messages_sent')]
+  const expected = [
+    sum('leads_new'),
+    sum('leads_qualified'),
+    sum('viewings_booked'),
+    sum('messages_sent'),
+    sum('escalations'),
+  ]
 
   const html = await (await get(`/report?client=${client.id}&week=${week}`)).text()
   const shown = statsFrom(html)
 
-  check(shown.length === 4, 'four figures rendered', `${shown.length}`)
+  check(shown.length === 5, 'five figures rendered', `${shown.length}`)
   check(
     JSON.stringify(shown) === JSON.stringify(expected),
     'the page agrees with a direct sum of metrics_daily',
