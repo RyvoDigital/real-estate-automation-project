@@ -1541,3 +1541,59 @@ button {
 }
 .rday--future .rday__track { border: 1px dashed var(--hairline-strong); background: transparent; }
 .rday--future .rday__n, .rday--future .rday__label { color: var(--ink-5); }
+
+/* ---------------------------------------------------------------- draft */
+
+/*
+ * §11 item 13: it must never be possible to mistake an unreviewed suggestion
+ * for something already sent. The marker is deliberately loud and it is tied
+ * to the text being UNCHANGED — edit a character and it disappears, because
+ * from then on the words are yours.
+ */
+.draftmark {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 13px;
+  border-radius: var(--r-card);
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(237, 228, 220, 0.07) 0 8px,
+    transparent 8px 16px
+  );
+  border: 1px dashed rgba(237, 228, 220, 0.42);
+}
+.draftmark__tag {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: var(--bone);
+  color: #0b0b0c;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.draftmark__body { font-size: 12px; line-height: 1.5; color: var(--ink-1); }
+
+.composer__buttons { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+.composer__draft {
+  height: 40px;
+  padding: 0 18px;
+  border-radius: var(--r-control);
+  border: 1px dashed rgba(184, 173, 170, 0.42);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.composer__draft:hover:not(:disabled) { color: var(--ink); border-color: var(--warm); }
+.composer__draft:disabled { opacity: 0.45; cursor: default; }
+/* A draft nobody has edited is sent from a button that says so. */
+.composer__send--draft { background: var(--warm); }
+
+@media (max-width: 900px) {
+  .composer__buttons { flex-direction: row; }
+  .composer__draft, .composer__send { flex: 1 1 0; }
+}

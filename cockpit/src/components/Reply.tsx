@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { handBackToAI, sendReply, type ActionResult } from '@/lib/actions'
+import { draftReply, handBackToAI, sendReply, type ActionResult, type DraftResult } from '@/lib/actions'
 import { IconWarning } from './Icons'
 
 /**
@@ -15,7 +15,20 @@ import { IconWarning } from './Icons'
 export function Composer({ leadId, firstName }: { leadId: string; firstName: string }) {
   const [text, setText] = useState('')
   const [result, setResult] = useState<ActionResult | null>(null)
+  const [draft, setDraft] = useState<DraftResult | null>(null)
   const [pending, start] = useTransition()
+
+  /**
+   * A draft is unmistakable, and it stops being a draft the moment it is
+   * touched. §7 and §11 item 13: it must never be possible to confuse an
+   * unreviewed suggestion with something already sent — the same failure as
+   * instance 6 in a different costume.
+   *
+   * So the banner is tied to the text being UNCHANGED. Edit one character
+   * and the "this is a draft" marker disappears, because from then on the
+   * words are yours.
+   */
+  const isUntouchedDraft = draft !== null && draft.ok && text === draft.draft
 
   const submit = () => {
     if (!text.trim() || pending) return
@@ -36,6 +49,18 @@ export function Composer({ leadId, firstName }: { leadId: string; firstName: str
           {!result.ok && <IconWarning size={14} />} {result.message}
         </div>
       )}
+      {isUntouchedDraft && draft && (
+        <div className="draftmark" role="status">
+          <span className="draftmark__tag">Draft — not sent</span>
+          <span className="draftmark__body">
+            {draft.source === 'fixed'
+              ? 'Written by your client’s own handoff note, not by the assistant.'
+              : `Suggested by the assistant in ${draft.language}. Read every word.`}
+            {draft.note ? ` ${draft.note}` : ''}
+          </span>
+        </div>
+      )}
+
       <div className="composer__row">
         <textarea
           className="composer__field"
@@ -47,14 +72,32 @@ export function Composer({ leadId, firstName }: { leadId: string; firstName: str
           disabled={pending}
           aria-label="Reply text"
         />
-        <button
-          className="composer__send"
-          onClick={submit}
-          disabled={pending || !text.trim()}
-          type="button"
-        >
-          {pending ? 'Sending…' : 'Send'}
-        </button>
+        <div className="composer__buttons">
+          <button
+            className="composer__draft"
+            type="button"
+            disabled={pending}
+            onClick={() =>
+              start(async () => {
+                setResult(null)
+                const d = await draftReply(leadId)
+                setDraft(d)
+                if (d.ok) setText(d.draft)
+                else setResult({ ok: false, message: d.message })
+              })
+            }
+          >
+            {pending ? '…' : 'Draft it'}
+          </button>
+          <button
+            className={`composer__send${isUntouchedDraft ? ' composer__send--draft' : ''}`}
+            onClick={submit}
+            disabled={pending || !text.trim()}
+            type="button"
+          >
+            {pending ? 'Sending…' : isUntouchedDraft ? 'Send this draft' : 'Send'}
+          </button>
+        </div>
       </div>
       <span className="composer__hint">
         Sends through the same WhatsApp path the assistant uses, and is recorded in the

@@ -371,3 +371,105 @@ export async function createClient(draft: ClientDraft): Promise<CreateResult> {
     message: `${draft.agencyName.trim()} created, with a calendar that answered free/busy.`,
   }
 }
+
+// -------------------------------------------------------- draft assistant
+
+import { fixedReply, guardDraft, mustUseFixedReply, type DraftSource } from '@/lib/draft'
+
+export type DraftResult = {
+  ok: boolean
+  draft: string
+  source: DraftSource
+  language: string
+  /** Why the model was bypassed, or why its draft was thrown away. Shown to
+   *  the operator: a suppressed draft that says nothing about being
+   *  suppressed is indistinguishable from a model that happened to write
+   *  something cautious. */
+  note: string | null
+  message: string
+}
+
+/**
+ * Draft a reply. NEVER sends (§7).
+ *
+ * Three layers, and only the first two are controls:
+ *
+ *   1. For a price or high-value escalation the model is NOT CALLED. §7 names
+ *      that as the most likely draft request and exactly where a drafted
+ *      negotiating position does the most damage; the strongest form of
+ *      "never negotiate" is never giving it the chance.
+ *   2. Whatever comes back is put through guardDraft(), which is deterministic
+ *      and unit-tested. A draft that names a time or invents a figure is
+ *      DISCARDED, not edited — trimming a sentence leaves a plausible
+ *      remainder, and a plausible remainder is what nobody re-reads.
+ *   3. The prompt asks for the same things. That is the layer that will
+ *      eventually fail, which is why it is last.
+ *
+ * A discarded draft falls back to the client's own handoff note — the same
+ * human-written string the Concierge sends when it fails, so there is no
+ * second set of copy to drift.
+ */
+export async function draftReply(leadId: string): Promise<DraftResult> {
+  await requireOperator()
+
+  const base = process.env.N8N_SEND_URL
+  const secret = process.env.N8N_SEND_SECRET
+  const fail = (message: string): DraftResult => ({
+    ok: false, draft: '', source: 'fixed', language: 'pt', note: null, message,
+  })
+
+  if (!base || !secret) return fail('Drafting is not configured.')
+  const url = base.replace(/\/cockpit-send$/, '/cockpit-draft')
+
+  let payload: {
+    ok?: boolean; draft?: string; error?: string | null; language?: string
+    fallbackLanguage?: string; reasons?: string[]; handoff?: Record<string, string>
+    transcript?: string; modelOk?: boolean
+  }
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-ryvo-cockpit-secret': secret },
+      body: JSON.stringify({ leadId }),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(35_000),
+    })
+    if (res.status === 401) return fail('The shared secret was rejected.')
+    payload = await res.json()
+  } catch (e) {
+    return fail(`Could not reach the draft endpoint (${e instanceof Error ? e.message : 'unknown'}).`)
+  }
+
+  const language = payload.language ?? 'pt'
+  const fallbackLanguage = payload.fallbackLanguage ?? 'pt'
+  const reasons = payload.reasons ?? []
+  const transcript = payload.transcript ?? ''
+  const note = fixedReply(payload.handoff, language, fallbackLanguage)
+
+  const useFixed = (why: string): DraftResult =>
+    note
+      ? {
+          ok: true, draft: note, source: 'fixed', language, note: why,
+          message: 'Drafted from the client’s own handoff note.',
+        }
+      : fail(`${why} — and this client has no handoff note for ${language} to fall back on.`)
+
+  // 1. The model is not asked at all.
+  const bypass = mustUseFixedReply(reasons, transcript)
+  if (bypass.fixed) return useFixed(`The assistant was not asked to write this: ${bypass.why}.`)
+
+  if (!payload.modelOk || !payload.draft) {
+    return useFixed('The model call failed, so nothing was drafted')
+  }
+
+  // 2. The deterministic guard decides whether what came back may be shown.
+  const verdict = guardDraft(payload.draft, transcript)
+  if (!verdict.ok) {
+    return useFixed(`The suggestion was discarded because ${verdict.detail}`)
+  }
+
+  return {
+    ok: true, draft: payload.draft.trim(), source: 'model', language, note: null,
+    message: 'Drafted. Read every word before sending — nothing has been sent.',
+  }
+}
