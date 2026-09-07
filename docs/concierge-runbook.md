@@ -34,6 +34,51 @@ the standard.
 If a check genuinely needs data that does not exist, say so and ask. The answer
 is usually yes and it costs one message.
 
+### ZZ TEST — Cascais Demo must be deleted before a real client goes live
+
+A second client exists in production, created through the onboarding form on
+2026-09-07 to prove §11 item 9. It is kept deliberately: it is the only working
+example of a multi-client setup, and it will be useful when multi-client
+onboarding is built properly.
+
+It is harmless where it is — its WhatsApp number (`+351912000001`) is not the
+Twilio sandbox sender, so it can never receive an inbound message and can never
+book. But it **shares the real booking calendar**, because that is the only
+calendar id that passes free/busy, and it will appear in the client list, the
+all-leads filters and the weekly-report client picker. Delete it before a real
+agency is onboarded.
+
+Cleanup order — `events` does NOT cascade, so delete it explicitly:
+
+```sql
+delete from messages where lead_id = 'e4d8dcc9-b3c8-4a86-ada2-6f956b55ec21';
+delete from events   where data->>'lead_id' = 'e4d8dcc9-b3c8-4a86-ada2-6f956b55ec21';
+delete from events   where client_id = '20e5c7ec-eaa6-4f5d-bf38-49e9ab24fc12';
+delete from clients  where id = '20e5c7ec-eaa6-4f5d-bf38-49e9ab24fc12';
+```
+
+The last statement cascades to `leads`, `client_automations` and
+`metrics_daily`. Confirm with `select count(*) from clients` returning 1.
+
+### Multi-client INBOUND routing is unproven, and cannot be proven on the sandbox
+
+The Concierge resolves which client an inbound message belongs to by matching
+`clients.whatsapp_number` against the `To` number. **The Twilio sandbox has
+exactly one sender number**, already held by `Ryvo Test Client`, so there is no
+way to have two clients receiving on different numbers.
+
+That makes routing-by-number **untested in the one situation it exists for**.
+It is not a design doubt — the query is a plain equality match, now protected by
+a unique index (`0007`) — but it has never once been exercised with two clients,
+and "obviously correct and never run" is the shape this project keeps getting
+caught by.
+
+This is the Phase 1 sandbox blocker biting rather than a new problem. It closes
+when there is a real WhatsApp Business sender and a second number to point at
+it. Until then, state plainly to anyone asking about multi-tenancy: the schema
+is multi-tenant, the outbound path is proven per-client, and **inbound routing
+has only ever run for one client**.
+
 ### The operator address is manuelvale@ryvodigital.com — no dot
 
 `manuel.vale@ryvodigital.com` **does not exist**. Mail to it bounces, and Resend
