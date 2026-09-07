@@ -168,10 +168,35 @@ export function toConfig(draft: ClientDraft) {
     effort: 'low',
     thinking: 'adaptive',
     max_tokens: 1024,
-    handoff: {
-      pt: draft.handoffPt.trim(),
-      en: draft.handoffEn.trim(),
-      es: draft.handoffEs.trim(),
+
+    // The language the handoff note falls back to when detection is unsure.
+    // Without it systemMessage() falls through to `languages[0]` and then to
+    // 'en', so a Portuguese lead would be handed off in English at the exact
+    // moment the assistant had already failed them.
+    default_language: draft.defaultLanguage,
+    languages: ['pt', 'en', 'es'],
+
+    // `system_messages.handoff` — the key the Concierge ACTUALLY reads, via
+    // systemMessage(cfg, 'handoff', leadText). An earlier version of this
+    // function wrote `handoff` at the top level, which nothing reads: a client
+    // onboarded through the form would have had no handoff note at all, and
+    // would have discovered that only when the assistant failed. Found by
+    // comparing a form-made config against the hand-made one, not by a test.
+    system_messages: {
+      handoff: {
+        pt: draft.handoffPt.trim(),
+        en: draft.handoffEn.trim(),
+        es: draft.handoffEs.trim(),
+      },
     },
+
+    // Legacy single-string fallback systemMessage() uses when the per-language
+    // bag misses. Same text as the default language, so it is never empty.
+    handoff_note:
+      draft.defaultLanguage === 'en'
+        ? draft.handoffEn.trim()
+        : draft.defaultLanguage === 'es'
+          ? draft.handoffEs.trim()
+          : draft.handoffPt.trim(),
   }
 }

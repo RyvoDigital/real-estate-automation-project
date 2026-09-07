@@ -1,4 +1,5 @@
 import { test } from 'node:test'
+import { readFileSync } from 'node:fs'
 import assert from 'node:assert/strict'
 import {
   isIanaZone,
@@ -79,26 +80,35 @@ test('numeric bounds', () => {
 })
 
 test('the config uses the keys the Concierge actually reads', () => {
-  const cfg = toConfig(good)
-  // Lifted from cfg.* in ryvoInboundConc01. A key invented here is a key the
-  // workflow silently ignores — which is how a client goes live with a
-  // default booking window nobody chose.
-  for (const k of [
-    'agency_name',
-    'agent_name',
-    'areas',
-    'timezone',
-    'working_hours',
-    'booking_window_days',
-    'min_hours_notice',
-    'viewing_duration_minutes',
-    'high_value_threshold_eur',
-    'escalate_to',
-    'calendar_id',
-    'model',
-  ]) {
-    assert.ok(k in cfg, `config is missing ${k}`)
-  }
+  const cfg = toConfig(good) as Record<string, unknown>
+
+  // DERIVED FROM THE SHIPPING WORKFLOW, not hand-listed. The previous version
+  // of this test carried its own list, and the list happened to contain the
+  // key the form wrote (`handoff`) rather than the key the workflow reads
+  // (`system_messages.handoff`) — so it passed while a client onboarded
+  // through the form would have had no handoff note at all.
+  //
+  // Lesson 15: never let a test hold its own copy of something the product
+  // also holds. Render it from the artefact, and RAISE rather than fall back.
+  const wf = readFileSync(
+    new URL('../../workflows/ryvoInboundConc01.json', import.meta.url),
+    'utf8',
+  )
+  const referenced = [...wf.matchAll(/cfg\.([a-z_]+)/g)].map((m) => m[1])
+  assert.ok(referenced.length > 5, 'could not read cfg.* out of the workflow')
+
+  const missing = [...new Set(referenced)].filter((k) => !(k in cfg))
+  assert.deepEqual(missing, [], `config is missing keys the workflow reads: ${missing}`)
+
+  // systemMessage() reaches these through its own parameter rather than as
+  // `cfg.x`, so the regex above cannot see them. Asserted explicitly, with
+  // the reason, so the next person knows why they are separate.
+  const sm = cfg.system_messages as { handoff?: Record<string, string> }
+  assert.ok(sm?.handoff, 'system_messages.handoff is what systemMessage(cfg, "handoff") reads')
+  assert.equal(sm.handoff!.es, 'Un compañero se pondrá en contacto.')
+  assert.ok(cfg.default_language, 'default_language decides the handoff language when detection is unsure')
+  assert.ok(cfg.handoff_note, 'handoff_note is the legacy single-string fallback systemMessage() uses last')
+
   assert.deepEqual(cfg.areas, ['Marbella', 'Estepona'])
   assert.equal(cfg.booking_window_days, 14, 'numbers are numbers, not strings')
   assert.equal(cfg.escalate_to, '+34600123456', 'stored normalised')
