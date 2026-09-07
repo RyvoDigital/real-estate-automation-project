@@ -104,3 +104,12 @@ export function IconLock({ size = 16, className }: P) {
     </svg>
   )
 }
+
+export function IconDoc({ size = 17, className }: P) {
+  return (
+    <svg {...base(size)} strokeWidth={1.7} className={className} aria-hidden>
+      <path d="M14 3v5h5" />
+      <path d="M19 8v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7Z" />
+    </svg>
+  )
+}

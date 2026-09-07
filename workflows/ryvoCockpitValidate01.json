@@ -1,0 +1,222 @@
+{
+  "id": "ryvoCockpitVal1",
+  "name": "cockpit_validate",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cockpit-validate",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "v-Webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -380,
+        300
+      ],
+      "webhookId": "ryvo-cockpit-validate"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Same gate as the send webhook, same constant-time comparison, same rule\n// about never echoing either value into a retained execution.\nconst crypto = require('crypto');\nconst req = $input.first().json;\nconst given = String((req.headers || {})['x-ryvo-cockpit-secret'] || '');\nconst want  = String($env.COCKPIT_SEND_SECRET || '');\nlet authed = false;\nif (want && given.length === want.length) {\n  authed = crypto.timingSafeEqual(Buffer.from(given), Buffer.from(want));\n}\nconst body = req.body || {};\nreturn [{ json: { authed, calendarId: String(body.calendarId || '').trim(), timezone: String(body.timezone || 'Europe/Lisbon') } }];"
+      },
+      "id": "v-CheckSecret",
+      "name": "CheckSecret",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "v-IsAuthed-c",
+              "leftValue": "={{ $json.authed }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "v-IsAuthed",
+      "name": "IsAuthed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        60,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok:false, error:\"unauthorised\" }) }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "v-Respond401",
+      "name": "Respond401",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        280,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/calendar/v3/freeBusy",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleCalendarOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ timeMin: new Date().toISOString(), timeMax: new Date(Date.now() + 7*86400000).toISOString(), timeZone: $json.timezone, items: [{ id: $json.calendarId }] }) }}",
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "v-FreeBusy",
+      "name": "ProbeFreeBusy",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        280,
+        160
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "0CNoqiQNtevOTCNz",
+          "name": "Ryvo Google Calendar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// THE WHOLE POINT OF THIS ENDPOINT.\n//\n// Google's free/busy returns HTTP 200 with an empty busy list for a calendar\n// it cannot read. A wrong id is therefore byte-identical to a completely free\n// calendar, and a Concierge trusting it would offer every slot in the window\n// as available. That was caught before it shipped by probing with a bad id on\n// purpose; this is the same check, run at onboarding instead of at runtime.\n//\n// So \"valid\" requires all three, not just the status:\n//   1. a 2xx\n//   2. the calendar KEY present in calendars\n//   3. no errors array on it\nconst a = $('CheckSecret').first().json;\nconst res = $input.first().json;\nconst body = res.body || {};\nconst cal = (body.calendars || {})[a.calendarId];\n\nlet ok = false, error = null, busyCount = null;\n\nif (res.statusCode < 200 || res.statusCode >= 300) {\n  error = 'google_http_' + res.statusCode + (body.error && body.error.message ? ':' + body.error.message : '');\n} else if (!cal) {\n  error = 'calendar_absent_from_response';\n} else if (Array.isArray(cal.errors) && cal.errors.length) {\n  error = 'calendar_error:' + cal.errors.map(e => e.reason).join(',');\n} else {\n  ok = true;\n  busyCount = Array.isArray(cal.busy) ? cal.busy.length : 0;\n}\n\nreturn [{ json: { ok, error, busyCount, calendarId: a.calendarId } }];"
+      },
+      "id": "v-AfterProbe",
+      "name": "AfterProbe",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "v-Respond",
+      "name": "RespondResult",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        160
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "CheckSecret",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CheckSecret": {
+      "main": [
+        [
+          {
+            "node": "IsAuthed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IsAuthed": {
+      "main": [
+        [
+          {
+            "node": "ProbeFreeBusy",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond401",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ProbeFreeBusy": {
+      "main": [
+        [
+          {
+            "node": "AfterProbe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AfterProbe": {
+      "main": [
+        [
+          {
+            "node": "RespondResult",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Lisbon"
+  },
+  "staticData": null,
+  "pinData": {}
+}

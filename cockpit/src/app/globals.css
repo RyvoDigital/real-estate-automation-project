@@ -1305,3 +1305,85 @@ button {
   .table__cell:nth-of-type(4) { display: none; }
   .table__cell:nth-of-type(5) { grid-row: 3; grid-column: 1 / -1; font-size: 11.5px; color: var(--ink-4); }
 }
+
+/* ----------------------------------------------------------- onboarding */
+
+.onb { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 32px; align-items: start; }
+
+.orail { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.orail__step { display: flex; gap: 14px; padding-bottom: 20px; position: relative; }
+.orail__step:not(:last-child)::before {
+  content: ''; position: absolute; left: 13px; top: 30px; bottom: 4px;
+  width: 1px; background: var(--hairline-strong);
+}
+.orail__dot {
+  width: 27px; height: 27px; flex-shrink: 0; border-radius: 50%;
+  border: 1px solid var(--hairline-strong); background: var(--surface-0);
+  color: var(--ink-3); font-size: 12px; font-weight: 600; cursor: pointer; z-index: 1;
+}
+.orail__step--on .orail__dot {
+  background: var(--bone); color: #0b0b0c; border-color: var(--bone);
+  box-shadow: 0 0 0 4px rgba(237, 228, 220, 0.12);
+}
+.orail__text { display: flex; flex-direction: column; gap: 2px; }
+.orail__title { font-size: 14px; font-weight: 600; color: var(--ink-2); }
+.orail__step--on .orail__title { color: #fff; }
+.orail__hint { font-size: 11.5px; line-height: 1.4; color: var(--ink-4); }
+
+.opanel {
+  display: flex; flex-direction: column; gap: 22px; padding: 26px 28px;
+  border-radius: var(--r-panel); background: var(--surface-0); border: 1px solid var(--hairline);
+}
+.opanel__head { display: flex; flex-direction: column; gap: 4px; }
+.opanel__head h2 {
+  margin: 0; font-family: var(--font-display); font-size: 21px; font-weight: 700;
+  letter-spacing: -0.02em; color: #fff;
+}
+.opanel__head span { font-size: 12.5px; color: var(--ink-3); }
+
+.ogrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.ospan { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 12px; }
+.ofield { display: flex; flex-direction: column; gap: 7px; }
+.ofield__label {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--ink-4);
+}
+.ofield__err { font-size: 11.5px; line-height: 1.45; color: var(--t3); }
+.field--bad { border-color: rgba(255, 84, 71, 0.5); }
+.ocal { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.onote {
+  grid-column: 1 / -1; margin: 0; font-size: 12px; line-height: 1.55; color: var(--ink-3);
+}
+
+.oreview { display: flex; flex-direction: column; gap: 16px; }
+.osummary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; margin: 0; }
+.osummary div { display: flex; flex-direction: column; gap: 2px; }
+.osummary dt { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-4); }
+.osummary dd { margin: 0; font-size: 13.5px; color: var(--ink); word-break: break-word; }
+
+.ofoot {
+  display: flex; align-items: center; gap: 16px; padding-top: 20px;
+  border-top: 1px solid var(--hairline);
+}
+.ofoot__mid { flex-grow: 1; font-size: 12px; color: var(--ink-4); }
+
+.odone {
+  display: flex; flex-direction: column; gap: 12px; align-items: flex-start;
+  padding: 28px; border-radius: var(--r-panel);
+  background: rgba(111, 191, 138, 0.08); border: 1px solid rgba(111, 191, 138, 0.3);
+}
+.odone h2 { margin: 0; font-family: var(--font-display); font-size: 19px; color: #8fd8a9; }
+.odone p { margin: 0; max-width: 56ch; font-size: 13px; line-height: 1.55; color: var(--ink-2); }
+
+@media (max-width: 900px) {
+  .onb { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .orail { flex-direction: row; overflow-x: auto; gap: 8px; padding-bottom: 4px; }
+  .orail__step { padding-bottom: 0; flex-shrink: 0; }
+  .orail__step:not(:last-child)::before { display: none; }
+  .orail__text { display: none; }
+  .orail__step--on .orail__text { display: flex; }
+  .ogrid, .osummary { grid-template-columns: minmax(0, 1fr); }
+  .opanel { padding: 20px 16px; }
+  .ofoot { flex-wrap: wrap; }
+  .ofoot__mid { order: 3; flex-basis: 100%; }
+}

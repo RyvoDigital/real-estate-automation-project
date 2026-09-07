@@ -165,3 +165,180 @@ export async function handBackToAI(leadId: string): Promise<ActionResult> {
   }
   return { ok: true, message: 'Handed back. The AI will answer the next message.' }
 }
+
+// ------------------------------------------------------------- onboarding
+
+import { toConfig, validate, type ClientDraft, type FieldError } from '@/lib/onboarding'
+
+export type CalendarProbe = { ok: boolean; error: string | null; busyCount: number | null }
+
+/**
+ * Ask n8n to probe the calendar with free/busy.
+ *
+ * The cockpit has no Google credential and must not grow one: the OAuth
+ * credential lives in n8n, encrypted at rest, and a second integration would
+ * be a second thing to rotate and a second thing to drift. Same reasoning as
+ * §6's one send path.
+ *
+ * What is being checked is not "did Google answer". Google returns HTTP 200
+ * with an empty busy list for a calendar it cannot read, so a wrong id is
+ * byte-identical to a completely free one — and a Concierge trusting that
+ * would offer every slot in the window. n8n applies the real rule: 2xx, the
+ * calendar key present, and no errors array.
+ */
+export async function validateCalendar(
+  calendarId: string,
+  timezone: string,
+): Promise<CalendarProbe> {
+  await requireOperator()
+
+  const base = process.env.N8N_SEND_URL
+  const secret = process.env.N8N_SEND_SECRET
+  if (!base || !secret) {
+    return { ok: false, error: 'validation_not_configured', busyCount: null }
+  }
+  const url = base.replace(/\/cockpit-send$/, '/cockpit-validate')
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-ryvo-cockpit-secret': secret },
+      body: JSON.stringify({ calendarId, timezone }),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(20_000),
+    })
+    if (res.status === 401) return { ok: false, error: 'unauthorised', busyCount: null }
+    const p = (await res.json()) as CalendarProbe
+    return { ok: p.ok === true, error: p.error ?? null, busyCount: p.busyCount ?? null }
+  } catch (e) {
+    return {
+      ok: false,
+      error: `unreachable:${e instanceof Error ? e.message : 'unknown'}`,
+      busyCount: null,
+    }
+  }
+}
+
+export type CreateResult =
+  | { ok: true; clientId: string; message: string }
+  | { ok: false; errors: FieldError[]; message: string }
+
+/**
+ * Create the client and its automation config.
+ *
+ * Replaces hand-written SQL, which is how the `--env-file` invariant was
+ * lost: a ritual typed correctly once and never written down. Everything the
+ * Concierge reads comes from here.
+ *
+ * The calendar is re-probed server-side at save. The form probes too, for
+ * feedback, but a value can change between the probe and the submit and the
+ * browser's word for it is not evidence.
+ */
+export async function createClient(draft: ClientDraft): Promise<CreateResult> {
+  await requireOperator()
+
+  const errors = validate(draft)
+  if (errors.length) {
+    return { ok: false, errors, message: `${errors.length} field(s) need fixing.` }
+  }
+
+  const probe = await validateCalendar(draft.calendarId, draft.timezone)
+  if (!probe.ok) {
+    return {
+      ok: false,
+      errors: [
+        {
+          field: 'calendarId',
+          message:
+            `Free/busy did not confirm this calendar (${probe.error}). Saving it would ` +
+            `make every slot in the window look available.`,
+        },
+      ],
+      message: 'The calendar could not be confirmed, so nothing was saved.',
+    }
+  }
+
+  const db = admin()
+
+  const { data: client, error: clientErr } = await db
+    .from('clients')
+    .insert({
+      name: draft.agencyName.trim(),
+      agency_name: draft.agencyName.trim(),
+      whatsapp_number: draft.whatsappNumber.replace(/[\s()-]/g, ''),
+      timezone: draft.timezone.trim(),
+      locale: draft.locale.trim(),
+      status: 'active',
+    })
+    .select('id')
+    .single()
+
+  if (clientErr || !client) {
+    return { ok: false, errors: [], message: `Could not create the client: ${clientErr?.message}` }
+  }
+
+  const { data: automation } = await db
+    .from('automations')
+    .select('id')
+    .eq('key', 'inbound_concierge')
+    .maybeSingle()
+
+  if (!automation) {
+    return {
+      ok: false,
+      errors: [],
+      message:
+        'The client row was created, but the inbound_concierge automation is missing from ' +
+        'the catalogue, so no config was written. Fix that before going live.',
+    }
+  }
+
+  const { error: caErr } = await db.from('client_automations').insert({
+    client_id: client.id,
+    automation_id: automation.id,
+    enabled: true,
+    config: toConfig(draft),
+    health: 'unknown',
+  })
+
+  if (caErr) {
+    return {
+      ok: false,
+      errors: [],
+      message: `The client was created but its config was not: ${caErr.message}`,
+    }
+  }
+
+  // Read it back. A green insert is not evidence the row exists — rule 14,
+  // and #6 twice over.
+  const { data: check } = await db
+    .from('client_automations')
+    .select('id, config')
+    .eq('client_id', client.id)
+    .maybeSingle()
+
+  if (!check?.config) {
+    return {
+      ok: false,
+      errors: [],
+      message: 'The config row did not read back after insert. Check client_automations.',
+    }
+  }
+
+  await db.from('events').insert({
+    client_id: client.id,
+    type: 'client.created',
+    severity: 'info',
+    summary: `${draft.agencyName.trim()} onboarded from the cockpit`,
+    data: { source: 'cockpit', calendar_busy_intervals: probe.busyCount },
+  })
+
+  revalidatePath('/leads')
+  revalidatePath('/onboarding')
+
+  return {
+    ok: true,
+    clientId: client.id as string,
+    message: `${draft.agencyName.trim()} created, with a calendar that answered free/busy.`,
+  }
+}

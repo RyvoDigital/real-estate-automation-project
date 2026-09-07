@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { IconCalendar, IconChat, IconHome, IconPerson, IconPulse, IconWarning } from './Icons'
+import { IconCalendar, IconChat, IconDoc, IconHome, IconPerson, IconPulse, IconWarning } from './Icons'
 
 /**
  * The sidebar from direction A: a nav column whose selected item is a
@@ -12,7 +12,7 @@ export function Shell({
   openCount,
 }: {
   children: React.ReactNode
-  active: 'overview' | 'escalations' | 'leads' | 'viewings' | 'health'
+  active: 'overview' | 'escalations' | 'leads' | 'viewings' | 'health' | 'onboarding'
   openCount: number
 }) {
   const item = (key: typeof active) =>
@@ -52,6 +52,10 @@ export function Shell({
           <span className="nav__label">Viewings</span>
           <span className="nav__soon">E3</span>
         </span>
+        <Link href="/onboarding" className={item('onboarding')}>
+          <IconDoc size={17} />
+          <span className="nav__label">Onboarding</span>
+        </Link>
         <span className="nav__item nav__item--stub" aria-disabled>
           <IconPulse size={17} />
           <span className="nav__label">Health</span>
