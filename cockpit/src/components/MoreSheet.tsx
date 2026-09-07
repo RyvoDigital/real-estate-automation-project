@@ -16,7 +16,7 @@ export function MoreSheet({ active, email }: { active: boolean; email: string })
     <>
       <button
         type="button"
-        className={`tab${active ? ' tab--on' : ''}`}
+        className={`tab tab--more${active ? ' tab--on' : ''}`}
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
         aria-expanded={open}

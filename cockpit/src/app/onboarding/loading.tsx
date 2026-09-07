@@ -3,7 +3,7 @@ import { SkeletonShell, Bar } from '@/components/Skeleton'
 export default function Loading() {
   return (
     <SkeletonShell
-      active="more"
+      active="onboarding"
       eyebrow="Onboarding"
       title="New client"
       note="Opening the form…"

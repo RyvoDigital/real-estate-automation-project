@@ -28,7 +28,7 @@ export default async function HealthPage() {
   const total = run ? run.passed.length + run.failed.length : 0
 
   return (
-    <Shell active="more" openCount={openCount} email={operator.email}>
+    <Shell active="health" openCount={openCount} email={operator.email}>
       <header className="head">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <span className="eyebrow">Twelve checks</span>

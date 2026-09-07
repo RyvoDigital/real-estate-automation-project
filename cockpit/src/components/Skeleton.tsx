@@ -1,5 +1,5 @@
-import { IconChat, IconMenu, IconPerson, IconWarning } from './Icons'
-import type { Tab } from './Shell'
+import { IconChat, IconDoc, IconMenu, IconPerson, IconPulse, IconWarning } from './Icons'
+import { BEHIND_MORE, type Tab } from './Shell'
 
 /**
  * The shell of a screen that has no data yet.
@@ -31,6 +31,7 @@ export function SkeletonShell({
   children: React.ReactNode
 }) {
   const cls = (t: Tab) => `tab${active === t ? ' tab--on' : ''}`
+  const dcls = (t: Tab) => `dtab${active === t ? ' dtab--on' : ''}`
 
   return (
     <div className="shell">
@@ -45,7 +46,14 @@ export function SkeletonShell({
         <span style={{ fontSize: 13, color: 'var(--ink-4)' }}>{note}</span>
       </main>
 
+      {/* Identical markup to Shell's nav, so the chrome does not shift or
+          flicker between the skeleton and the real screen. */}
       <nav className="tabs" aria-label="Sections">
+        <span className="tabs__brand" aria-hidden>
+          <span className="tabs__mark">R</span>
+          Ryvo Cockpit
+        </span>
+
         <span className={cls('queue')}>
           <IconWarning size={21} />
           <span>Queue</span>
@@ -58,9 +66,26 @@ export function SkeletonShell({
           <IconChat size={21} />
           <span>Report</span>
         </span>
-        <span className={cls('more')}>
+        <span className={`tab tab--more${BEHIND_MORE.includes(active) ? ' tab--on' : ''}`}>
           <IconMenu size={21} />
           <span>More</span>
+        </span>
+
+        <span className="dtab__rule" aria-hidden />
+
+        <span className={dcls('health')}>
+          <IconPulse size={19} />
+          <span className="dtab__text">
+            Health
+            <span className="dtab__meta">Twelve checks</span>
+          </span>
+        </span>
+        <span className={dcls('onboarding')}>
+          <IconDoc size={19} />
+          <span className="dtab__text">
+            Onboarding
+            <span className="dtab__meta">New client</span>
+          </span>
         </span>
       </nav>
     </div>

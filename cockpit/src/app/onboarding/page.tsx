@@ -10,7 +10,7 @@ export default async function OnboardingPage() {
   const openCount = await getOpenCount()
 
   return (
-    <Shell active="more" openCount={openCount} email={operator.email}>
+    <Shell active="onboarding" openCount={openCount} email={operator.email}>
       <header className="head">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <span className="eyebrow">Onboarding</span>

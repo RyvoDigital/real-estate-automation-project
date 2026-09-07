@@ -18,7 +18,7 @@ import { SkeletonShell } from '@/components/Skeleton'
 export default function Loading() {
   return (
     <SkeletonShell
-      active="more"
+      active="health"
       eyebrow="Twelve checks"
       title="Health"
       note="Reading the last run…"

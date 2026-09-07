@@ -421,6 +421,14 @@ async function main() {
     mobile: false,
   })
 
+  const NAVSHAPE = `(() => {
+    const vis = (s) => [...document.querySelectorAll(s)].filter((e) => {
+      const r = e.getBoundingClientRect()
+      return r.width > 0 && r.height > 0
+    }).length
+    return { more: vis('.tab--more'), dtab: vis('.dtab'), brand: vis('.tabs__brand'), sheet: vis('.sheet') }
+  })()`
+
   const DESK = `(() => {
     const de = document.documentElement
     const box = (s) => { const e = document.querySelector(s); if (!e) return null
@@ -445,6 +453,49 @@ async function main() {
     check(desk[route].over <= 0, `${route} does not scroll sideways at 1440px`,
       `${desk[route].limit + desk[route].over}px in ${desk[route].limit}px`)
   }
+
+  /*
+   * THE TWO NAVIGATIONS MUST NOT BOTH EXIST.
+   *
+   * Desktop expands the sidebar — Health, Onboarding and Sign out are listed
+   * outright and the More button and its bottom sheet are gone. Those elements
+   * are `display: none` in the base stylesheet and styled only inside the
+   * desktop media query. When that one base rule was briefly missing, the
+   * entire expanded sidebar spilled into the phone's tab bar and overprinted
+   * it. Nothing else would have caught it: the page did not scroll, no target
+   * shrank, and the CSS read as correct.
+   */
+  await c.send('Emulation.setDeviceMetricsOverride', {
+    width: 390, height: 844, deviceScaleFactor: 1, mobile: true,
+  })
+  await measure(c, `${BASE}/health`)
+  const navPhone = (
+    await c.send('Runtime.evaluate', { expression: NAVSHAPE, returnByValue: true })
+  ).result.value
+  check(
+    navPhone.dtab === 0 && navPhone.brand === 0,
+    'the expanded sidebar is absent on a phone',
+    `${navPhone.dtab} expanded row(s), ${navPhone.brand} brand mark(s) visible at 390px`,
+  )
+  check(navPhone.more === 1, 'the phone still has its More button', `${navPhone.more} visible`)
+
+  await c.send('Emulation.setDeviceMetricsOverride', {
+    width: 1440, height: 900, deviceScaleFactor: 1, mobile: false,
+  })
+  await measure(c, `${BASE}/health`)
+  const navDesk = (
+    await c.send('Runtime.evaluate', { expression: NAVSHAPE, returnByValue: true })
+  ).result.value
+  check(
+    navDesk.dtab === 3 && navDesk.brand === 1,
+    'the desktop sidebar is fully expanded',
+    `${navDesk.dtab} expanded row(s), ${navDesk.brand} brand mark(s) at 1440px`,
+  )
+  check(
+    navDesk.more === 0 && navDesk.sheet === 0,
+    'desktop has no More button and no bottom sheet',
+    `more=${navDesk.more} sheet=${navDesk.sheet}`,
+  )
 
   // The regression itself. The sidebar must sit BEFORE the content, not after.
   const q = desk['/queue']

@@ -194,6 +194,22 @@ code { font-family: var(--f-mono); font-size: 0.92em; }
   color: #ff7a70;
   font-weight: 700;
 }
+/*
+ * THE EXPANDED DESKTOP SIDEBAR — ABSENT ON A PHONE.
+ *
+ * These elements are `display: none` here and styled ONLY inside the @media
+ * block at the end, so no rule written for the expanded sidebar can reach the
+ * bottom tab bar. The phone layout is untouchable by construction rather than
+ * by care. (This rule was missing for one build and the whole sidebar spilled
+ * into the tab bar, which is what that guarantee is worth.)
+ */
+.tabs__brand,
+.dtab,
+.dtab__rule,
+.dtab__foot {
+  display: none;
+}
+
 .tab__badge {
   position: absolute;
   top: 6px;
@@ -1040,10 +1056,11 @@ code { font-family: var(--f-mono); font-size: 0.92em; }
     bottom: auto;
     z-index: 1;
     flex-direction: column;
-    width: 208px;
+    width: 250px;
     flex-shrink: 0;
-    gap: 5px;
-    padding: 14px 11px;
+    gap: 3px;
+    padding: 18px 13px 14px;
+    min-height: calc(100dvh - 74px);
     border: 1px solid var(--hairline-strong);
     border-top: 1px solid var(--hairline-strong);
     border-radius: var(--r-lg);
@@ -1057,9 +1074,85 @@ code { font-family: var(--f-mono); font-size: 0.92em; }
     gap: 11px;
     min-height: 46px;
     padding: 0 12px;
-    font-size: 14px;
+    font-size: 14.5px;
+    font-weight: 600;
   }
   .tab__badge { position: static; transform: none; margin-left: auto; }
+
+  /* The mark, and the only place the product says its own name. */
+  .tabs__brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 2px 4px 16px;
+    font-family: var(--f-display);
+    font-variation-settings: var(--f-display-vars);
+    font-weight: 600;
+    font-size: 19px;
+    color: #fff;
+  }
+  .tabs__mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: var(--brand);
+    box-shadow: 0 6px 18px rgba(232, 69, 60, 0.34);
+    font-size: 17px;
+    line-height: 1;
+    color: #fff;
+  }
+
+  /* There is no width budget here, so nothing hides behind a More button —
+     and the sheet it opens is a bottom sheet, which on desktop rendered
+     inside the sidebar column. Both are gone rather than restyled. */
+  .tab--more { display: none; }
+  .sheet { display: none; }
+
+  .dtab__rule {
+    display: block;
+    height: 1px;
+    margin: 14px 12px 12px;
+    background: var(--hairline);
+  }
+
+  .dtab {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+    min-height: 48px;
+    padding: 0 12px;
+    border-radius: 15px;
+    border: 1px solid transparent;
+    background: none;
+    color: var(--ink-3);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+  }
+  .dtab > svg { flex-shrink: 0; }
+  .dtab__text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .dtab__meta { font-size: 11.5px; font-weight: 500; color: var(--ink-4); }
+  .dtab:hover { color: var(--ink-1); background: rgba(255, 255, 255, 0.04); }
+  .dtab--on {
+    background: linear-gradient(140deg, rgba(232, 69, 60, 0.24), rgba(122, 26, 22, 0.18));
+    border-color: rgba(232, 69, 60, 0.4);
+    color: #ff7a70;
+  }
+  .dtab--on .dtab__meta { color: rgba(255, 122, 112, 0.72); }
+
+  /* Sign out sits at the foot, away from the destinations, because it is not
+     one — and the address under it is how you tell which account this window
+     is signed into. */
+  .dtab__foot { display: block; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--hairline); }
+  .dtab--quiet { color: var(--ink-4); }
+  .dtab--quiet:hover { color: var(--ink-2); }
 
   .main {
     width: 100%;
