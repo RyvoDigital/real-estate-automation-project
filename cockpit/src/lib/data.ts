@@ -500,3 +500,42 @@ export const STAGES = [
   'lost',
   'dormant',
 ] as const
+
+// ------------------------------------------------------------------ health
+
+export type HealthRun = {
+  ranAt: string
+  ok: boolean
+  passed: string[]
+  failed: string[]
+  durationMs: number | null
+  host: string | null
+}
+
+/**
+ * Anything older than this and the screen must say so loudly. Cron runs every
+ * 10 minutes, so 25 leaves room for one missed run plus clock skew without
+ * crying wolf — a screen that alarms on a normal gap gets ignored (§6b).
+ */
+export const HEALTH_STALE_MINUTES = Number(process.env.HEALTH_STALE_MINUTES ?? 25)
+
+export async function getHealth(): Promise<HealthRun | null> {
+  const { data, error } = await admin()
+    .from('health_runs')
+    .select('ran_at, ok, passed, failed, duration_ms, host')
+    .order('ran_at', { ascending: false })
+    .limit(1)
+
+  if (error) throw new Error(`health query failed: ${error.message}`)
+  const r = (data ?? [])[0]
+  if (!r) return null
+
+  return {
+    ranAt: r.ran_at as string,
+    ok: Boolean(r.ok),
+    passed: (r.passed as string[]) ?? [],
+    failed: (r.failed as string[]) ?? [],
+    durationMs: (r.duration_ms as number) ?? null,
+    host: (r.host as string) ?? null,
+  }
+}

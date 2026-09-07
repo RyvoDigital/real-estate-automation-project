@@ -56,11 +56,10 @@ export function Shell({
           <IconDoc size={17} />
           <span className="nav__label">Onboarding</span>
         </Link>
-        <span className="nav__item nav__item--stub" aria-disabled>
+        <Link href="/health" className={item('health')}>
           <IconPulse size={17} />
           <span className="nav__label">Health</span>
-          <span className="nav__soon">E3</span>
-        </span>
+        </Link>
         <span className="nav__item nav__item--stub" aria-disabled>
           <IconChat size={17} />
           <span className="nav__label">Weekly report</span>
