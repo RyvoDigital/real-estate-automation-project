@@ -85,6 +85,17 @@ def derive(client_id, date_str, tz_name):
         'leads_new': counts.get('lead.created', 0),
         'leads_qualified': counts.get('lead.qualified', 0),
         'viewings_booked': counts.get('viewing.booked', 0),
+        # §5.7 wants escalations in the weekly report. Derived HERE rather
+        # than counted in the cockpit: two systems computing the same number
+        # differently is a bug generator (§9), and this one is re-runnable, so
+        # a day the nightly job missed can be rebuilt from the event log.
+        #
+        # `lead.escalated` is written by the Concierge on both escalation
+        # paths. `lead.escalation_cleared` is deliberately NOT subtracted --
+        # an escalation that happened and was handled still happened, and a
+        # number that goes down when you do your job is a number nobody can
+        # reason about.
+        'escalations': counts.get('lead.escalated', 0),
         'messages_sent': len(sent),
         # Nothing produces reactivations yet -- that is a Phase 2 automation.
         # Written as 0 explicitly so the row means "none happened", not
@@ -125,9 +136,9 @@ def main():
             rows.append(derive(client_id, d, tz_name))
     upsert(rows)
     for r in rows:
-        print('  %s  %s  new=%d qualified=%d booked=%d sent=%d' % (
+        print('  %s  %s  new=%d qualified=%d booked=%d sent=%d escalated=%d' % (
             r['date'], r['client_id'][:8], r['leads_new'], r['leads_qualified'],
-            r['viewings_booked'], r['messages_sent']))
+            r['viewings_booked'], r['messages_sent'], r['escalations']))
     print('  wrote %d row(s) for %d date(s)' % (len(rows), len(dates)))
 
 
