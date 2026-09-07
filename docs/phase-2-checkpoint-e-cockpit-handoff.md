@@ -64,43 +64,53 @@ Secondary reasons: n8n's UI primitives are built for simple data collection, not
 
 **Do not build a new send path.** See §6 — this is the most important architectural constraint in the document.
 
-### 2.0a How the cockpit actually deploys — `git push` does NOT deploy it
+### 2.0a Deploying, and the six months of failed builds nobody was reading
 
-**2026-09-07.** Pushing to `main` does not put anything live. The GitHub
-integration on the `ryvo-cockpit` Vercel project clones the repo and runs
-`next build` at the repo root, where there is no `app/` directory, so every
-git-triggered build fails in about six seconds with:
+**2026-09-07.** Pushing to `main` did not put anything live. The GitHub
+integration on the `ryvo-cockpit` project cloned the repo and ran `next build`
+at the repo root, where there is no `app/` directory, so every git-triggered
+build failed in about six seconds with:
 
 > Couldn't find any `pages` or `app` directory. Please create one under the project root
 
-Those failures sit in the deployment list beside the successful ones and look
-like noise. They are not noise — they are every push since the project was set
-up, and the reason the deployed build can silently lag the repo.
+Those failures sat in the deployment list beside the successful CLI deploys and
+read as noise. They were not noise. They were every push, and they are why the
+deployed build could silently lag the repo — which is exactly what happened
+when the mobile redesign was pushed: `main` moved, production did not.
 
-**Production deploys are CLI deploys from the repo ROOT:**
+**The Root Directory setting was corrected the same day** (operator, commit
+`7a2a057`), and git-triggered builds now run `npm run build` inside `cockpit/`
+and go Ready in about eighteen seconds. **Pushing deploys again.**
 
-```bash
-cd ~/ryvo-automation-platform      # the repo root, NOT cockpit/
-vercel --prod --yes
-```
+Two things to keep from it:
 
-The project's Root Directory setting is `cockpit`, so it must be run from the
-directory that *contains* `cockpit`. Running it from inside `cockpit/` fails
-with *The specified Root Directory "cockpit" does not exist* — the uploaded
-tree would need a `cockpit/cockpit`. The `.vercel/` link therefore belongs at
-the repo root; a `cockpit/.vercel/` link is the trap.
+- **A manual deploy, if one is ever needed, runs from the repo ROOT**, because
+  the project's Root Directory is `cockpit` and the uploaded tree has to
+  contain it:
 
-**Always confirm what is live rather than assuming the push did it.** A marker
-in the served HTML is enough and takes one command:
+  ```bash
+  cd ~/ryvo-automation-platform      # NOT cockpit/
+  vercel --prod --yes
+  ```
 
-```bash
-curl -s https://ryvo-cockpit.vercel.app/login | grep -c login__mark   # 2 = current
-vercel ls                                                            # Ready vs Error
-```
+  Run from inside `cockpit/` it fails with *The specified Root Directory
+  "cockpit" does not exist*, because that would need a `cockpit/cockpit`. The
+  `.vercel/` link belongs at the repo root; a `cockpit/.vercel/` link is the
+  trap, and running `vercel` from an unlinked root creates a whole new project
+  rather than deploying this one.
 
-The standing fix, when someone wants it: set the project's Root Directory so
-the GitHub integration builds `cockpit/`, and pushes become deploys. Until
-then, push and deploy are two separate acts and the second one is manual.
+- **Confirm what is live rather than inferring it from the push.** One command,
+  and it is the difference between "deployed" and "pushed":
+
+  ```bash
+  curl -s https://ryvo-cockpit.vercel.app/login | grep -c login__mark   # 1 = current build
+  vercel ls                                                            # Ready vs Error
+  ```
+
+  A build that fails six seconds after a push produces no alert and no visible
+  change. The site keeps serving the previous version perfectly, which is the
+  §1 shape again: nothing reported a failure, because the thing that failed was
+  never asked whether it had succeeded.
 
 ### 2.1 Visual direction — `/design` is a slash command, not a skill
 
