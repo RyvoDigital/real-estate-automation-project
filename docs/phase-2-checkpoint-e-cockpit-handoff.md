@@ -143,6 +143,29 @@ Two things to keep from it:
 
 **A design system will emerge from this**, and it is the first one the project has had. Once settled, `/design-sync` can carry it into later work so the client-facing pitch page and anything built afterwards stay visually consistent. Not a task for this checkpoint — worth knowing before choices get made that are hard to reverse.
 
+### 2.2a Type — Bodoni Moda, and the constraint that came with it
+
+**Chosen 7 Sep 2026** from three directions drawn on the real queue rather than as specimens: a Didone (Bodoni Moda + Archivo + DM Mono), a Garalde (Cormorant Garamond + Instrument Sans), and an inscriptional cut (Marcellus + Familjen Grotesk). The Didone won for one reason: **the queue's job is to make you feel the time, and it is the only one of the three that makes a number feel urgent.** Its extreme thick/thin is the reason, and it is also the risk — on a near-black screen in daylight the hairlines are the first thing to go.
+
+So the risk is a **constraint**, not a note:
+
+> **Display face at 30px and up, never in a chip.** Anything smaller uses the body face, or the mono face where it is a figure.
+
+Seven sites were below the line when the face was swapped, and none stayed. Two are worth recording because they are judgements, not mechanical moves:
+
+- **`.outage h2` went to the body face at 700, not to a bigger Didone.** An outage headline is the one line on the screen that has to survive a phone held at arm's length in the sun. A Didone at 20px on red is the opposite of that, and the right answer was plainer and louder rather than larger and elegant.
+- **`.lead-card__budget` went to the mono face with tabular figures.** It was below the floor, and the move turned out to be the better design regardless: budgets are a column of numbers, and they should line up down the list instead of dancing.
+
+Two levers were set on the face itself, both aimed at the hairlines: `font-variation-settings: 'opsz' 11` — counter-intuitively, the **low** optical size is the sturdier cut of a Didone, the one drawn for text — and a weight floor of 600 rather than the 400 default.
+
+**Verified by measurement, not by looking**: `npm run probe:contrast` finds every element actually painted in the display face by reading `--font-display` off `:root` (no hand-kept selector list to go stale), screenshots each at its own bounding box at 390px and device pixel ratio 3, draws the PNG back onto a canvas in the page and reads the pixels. It reports background, peak stroke, nominal and rendered contrast, *reach* (rendered ÷ nominal — do the strokes attain the colour they declare) and ink coverage. It asserts ≥ 4.5:1, deliberately stricter than WCAG's 3:1 allowance for large text, because that allowance assumes weight a Didone does not have.
+
+Result across 17 sites: **lowest 6.35:1, every reach 1.00, smallest size 30px.** Against the outgoing Instrument Serif at the same sizes, ink coverage on headings fell (“Escalations” 26.5% → 17.2%) and on small display figures rose (`learned__big` 3.6% → 6.9%). The headings lost ink because Instrument Serif ships only a 400 and the browser was synthesising bold; the incoming 600 is real.
+
+**The probe produced two false failures before it produced a true pass, and both were the probe** — an element below the fold screenshots as a blank clip without `captureBeyondViewport`, and a blank clip measures as a font with no strokes; and the peak was taken over every pixel in the box, which only sits inside the ink while the glyphs cover more than 1% of it, so a lone “1” in a wide stat card reported the font failing at 34px. Both failed in the direction that looks exactly like the defect being hunted, which is the most expensive kind of wrong. A blank capture is now named as one and never counted as a pass; the peak is taken within the ink. Its controls plant a dim colour and 28%-opacity strokes and require both to be caught.
+
+*(Note on the log: commit `a6eb575` carries this type work under a message about data residency. The residency change it describes lives in `docs/ryvo-operations-and-commercial-reference.md`, which is gitignored, so `git add -A` swept the font files into it and the intended message landed on the wrong content. The reasoning is here instead, which is where it should have been anyway.)*
+
 ### 2.2 The chosen direction, and the palette that is now locked
 
 Three directions were drawn. **The chosen one is a merge of two of them**, recorded here so it is not re-litigated by someone who only sees the result.
