@@ -260,12 +260,41 @@ export async function createClient(draft: ClientDraft): Promise<CreateResult> {
 
   const db = admin()
 
+  // The Concierge resolves a client by `whatsapp_number=eq.<To>&limit=1`, with
+  // no ORDER BY. Two clients on one number means a real client's inbound leads
+  // get answered with someone else's config, and which one wins can change
+  // between messages. Nothing in the schema prevents it (see migration 0007,
+  // which adds the unique index that actually arbitrates); this check exists so
+  // the mistake cannot be made from the form in the meantime.
+  const wa = draft.whatsappNumber.replace(/[\s()-]/g, '')
+  const { data: clash } = await db
+    .from('clients')
+    .select('id, name')
+    .eq('whatsapp_number', wa)
+    .maybeSingle()
+
+  if (clash) {
+    return {
+      ok: false,
+      errors: [
+        {
+          field: 'whatsappNumber',
+          message:
+            `${clash.name} already uses this number. The Concierge routes inbound ` +
+            `messages by it and picks one client arbitrarily, so sharing it would ` +
+            `send that client's leads to this one.`,
+        },
+      ],
+      message: 'That WhatsApp number is already in use, so nothing was saved.',
+    }
+  }
+
   const { data: client, error: clientErr } = await db
     .from('clients')
     .insert({
       name: draft.agencyName.trim(),
       agency_name: draft.agencyName.trim(),
-      whatsapp_number: draft.whatsappNumber.replace(/[\s()-]/g, ''),
+      whatsapp_number: wa,
       timezone: draft.timezone.trim(),
       locale: draft.locale.trim(),
       status: 'active',
