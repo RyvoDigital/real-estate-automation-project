@@ -609,6 +609,59 @@ gap is usually obvious.
 
 ---
 
+## 6e. "Pushed" and "deployed" are two different facts, and only one of them is visible
+
+**2026-09-07.** The cockpit redesign was committed, pushed to `main`, and
+reported as deployed. It was not live. The GitHub integration on the Vercel
+project had no Root Directory set, so every build cloned the repo, ran
+`next build` at the root where there is no `app/` directory, and failed in
+about six seconds:
+
+> Couldn't find any `pages` or `app` directory. Please create one under the project root
+
+This had been happening on **every push since the project was created**. The
+failures sat in the deployment list interleaved with successful CLI deploys and
+read as noise. Nobody was reading them, because nothing asked anyone to: the
+site kept serving the previous version perfectly the whole time.
+
+> A failed deploy is invisible in a way a failed test is not. The test goes
+> red in front of you. The deploy leaves the last good version running, which
+> is the most reassuring possible outcome and the least informative one.
+
+This is §1 in its purest form. Nothing reported a failure because nothing was
+asked whether it had succeeded, and the *absence* of change is indistinguishable
+from the *correctness* of what is already there. It is the same shape as the
+n8n `import`-without-`publish` window in the Phase 0 notes, and the same shape
+as a monitoring check with no consumer (§15).
+
+Three things generalise:
+
+1. **Never infer state from an action.** "I pushed" is a fact about the local
+   repository. "It is live" is a fact about a server, and the only way to know
+   it is to ask the server. One command, and it belongs in the runbook next to
+   the deploy instruction:
+
+   ```bash
+   curl -s https://ryvo-cockpit.vercel.app/login | grep -c login__mark   # a marker only the new build has
+   vercel ls                                                            # Ready vs Error
+   ```
+
+2. **Pick a marker that only the new build carries.** A 200 response proves the
+   site is up, not that it is current — the old build returns 200 all day. The
+   check has to name something the change introduced, which means choosing it
+   deliberately at deploy time rather than hoping for one.
+
+3. **Errors that arrive on a schedule stop being read.** Six-second failures
+   next to twenty-second successes, several a day, became furniture. If a
+   channel produces routine noise, it is no longer a channel. Either make the
+   failure impossible or make it loud; leaving it visible-but-ignorable is the
+   worst of the three.
+
+The Root Directory was corrected the same day and pushes deploy again. The
+runbook entry is `docs/phase-2-checkpoint-e-cockpit-handoff.md` §2.0a.
+
+---
+
 ## 6d. A breakpoint written at a round number is untested by construction
 
 **2026-09-07.** The cockpit shipped unusable on a phone twice. The second time,
