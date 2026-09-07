@@ -1536,6 +1536,23 @@ this in minutes instead of whenever someone next runs a test.
 > clear a higher bar, not a lower one. Same lesson as §1 instance 9, applied to
 > my own conclusions rather than to a test's.
 
+### `compose.sh up -d n8n` does NOT restart n8n if the config is unchanged
+
+Compose recreates a container only when something it manages has changed. After
+`import:workflow` + `publish:workflow` the compose file is identical, so
+`up -d n8n` prints reassuring "Waiting / Healthy" lines, changes nothing, and
+the new webhook is never registered.
+
+Symptom on 2026-09-07: `cockpit_validate` showed `active=t` and published in
+`workflow_entity`, and its row was **absent from `webhook_entity`** — the
+endpoint 404'd. `docker restart infra-n8n-1` fixed it in one step.
+
+So the deploy sequence is import → publish → **`docker restart infra-n8n-1`**,
+and `up -d` is only the right command when an env var or the compose file
+actually changed. Either way, confirm behaviourally afterwards: query
+`webhook_entity`, and curl the path expecting its rejection code rather than a
+404.
+
 ### Deploying a workflow from the CLI: import, **publish**, restart
 
 **`import:workflow` + `active=true` is not enough on n8n 2.28.** A workflow must
