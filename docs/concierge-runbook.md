@@ -34,6 +34,40 @@ the standard.
 If a check genuinely needs data that does not exist, say so and ask. The answer
 is usually yes and it costs one message.
 
+### The operations & commercial reference is gitignored — never edit it from the repo
+
+`docs/ryvo-operations-and-commercial-reference.md` is **deliberately excluded
+from git** (see `.gitignore`). It holds pricing, commercial mechanics and
+client-facing positioning, and it is maintained in a canonical copy outside
+this repository.
+
+**The trap:** the file is present in the working tree, opens normally, and
+accepts edits that appear to save. `git status` never mentions it and
+`git add -A` never picks it up, so an edit looks committed, survives locally,
+and is silently lost on the next fresh clone — with no error at any point. It
+is the same shape as everything else in the lessons file: the failure mode is
+an *absence*, and absences report success.
+
+**It has already happened once.** On 2026-09-07 a data-residency finding — the
+cockpit's compute running in `iad1` while Supabase is in Frankfurt — was written
+into §3 and the change log of that file. The edit existed only in one working
+copy. Worse, `git add -A` in the same breath swept unrelated font files into the
+commit whose message described the residency change, so the log recorded a
+change that was not in it (commit `a6eb575`; the record is corrected in
+`phase-2-checkpoint-e-cockpit-handoff.md` §2.2a).
+
+**The rule:**
+
+1. **Do not edit that file from the repo.** If something belongs in it, write
+   the exact text out and hand it to the operator to paste into the canonical
+   copy.
+2. **Engineering material does not belong in it at all.** Anything an engineer
+   needs to know goes in `docs/` where it is tracked — the runbook, the
+   lessons file, or the relevant handoff. The `.gitignore` comment already says
+   this; this entry is the reason it is worth repeating.
+3. **Check before assuming an edit landed:** `git check-ignore -v <path>` names
+   the rule that is swallowing it.
+
 ### ZZ TEST — Cascais Demo must be deleted before a real client goes live
 
 A second client exists in production, created through the onboarding form on
