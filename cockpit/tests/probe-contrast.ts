@@ -47,6 +47,26 @@ const CHROME =
 const MIN_NOMINAL = 4.5
 const MIN_REACH = 0.9
 
+/*
+ * THE MOBILE BAR'S LUMINANCE LADDER — page, then bar, then active item.
+ *
+ * These floors are MEASURED OFF THE ARTEFACT BEING ADAPTED, not invented. The
+ * reference bar's own steps read 1.13:1 and 1.32:1 out of the operator's
+ * screenshot, sampled with this same code. They are nowhere near WCAG 1.4.11's
+ * 3:1 — and they are not meant to be. That 3:1 governs information *required*
+ * to identify a state, and here the state is carried three ways at once: the
+ * fill step, the label going from ink-2 to ink, and the icon. Asserting 3:1 on
+ * the fill alone would fail a design against a rule that does not apply to it,
+ * and would force a bar bright enough to compete with the breach card, which
+ * is the one thing this screen must never do.
+ *
+ * What does have to hold is that the ladder stays a ladder. A later tidy-up
+ * that flattens the bar into the page, or the active item into the bar, is
+ * what these two catch.
+ */
+const MIN_BAR_OVER_PAGE = 1.1
+const MIN_ACTIVE_OVER_BAR = 1.25
+
 let failures = 0
 const check = (ok: boolean, label: string, detail = '') => {
   console.log(`   ${ok ? 'PASS' : 'FAIL'}  ${label}${detail ? `  — ${detail}` : ''}`)
@@ -359,6 +379,92 @@ async function main() {
     thin.length === 0
       ? 'lowest reach ' + Math.min(...rows.map((r) => r.reach)).toFixed(2)
       : thin.map((r) => `${r.sel} at ${r.size}px reaches ${r.reach.toFixed(2)}`).join(', '),
+  )
+
+  // ------------------------------------------------------ the mobile bar
+
+  console.log('\n  The bottom bar — luminance ladder and labels, 390px @3x\n')
+  await c.send('Emulation.setDeviceMetricsOverride', {
+    width: 390, height: 844, deviceScaleFactor: 3, mobile: true,
+  })
+  {
+    const loaded = (c.send as any).once('Page.loadEventFired')
+    await c.send('Page.navigate', { url: `${BASE}/leads` })
+    await Promise.race([loaded, new Promise((r) => setTimeout(r, 15_000))])
+    await new Promise((r) => setTimeout(r, 900))
+  }
+
+  const geo = (
+    await c.send('Runtime.evaluate', {
+      expression: `(() => {
+        const bar = document.querySelector('.tabs')
+        const on = document.querySelector('.tab--on')
+        const b = bar.getBoundingClientRect(), a = on.getBoundingClientRect()
+        const idleEl = [...bar.querySelectorAll('.tab')].find((e) => !e.classList.contains('tab--on'))
+        const cs = getComputedStyle(on)
+        const chan = (c) => (c.match(/[0-9.]+/g) || []).map(Number).slice(0, 3)
+        const spread = (c) => { const v = chan(c); return v.length === 3 ? Math.max(...v) - Math.min(...v) : 0 }
+        return {
+          bar: { x: b.left + 3, y: b.top + 3, w: b.width - 6, h: 5 },
+          active: { x: a.left + 8, y: a.top + 3, w: a.width - 16, h: 5 },
+          page: { x: 40, y: b.top - 70, w: 140, h: 26 },
+          activeInk: cs.color,
+          idleInk: getComputedStyle(idleEl).color,
+          bg: cs.backgroundColor,
+          spread: Math.max(spread(cs.backgroundColor), spread(cs.color)),
+        }
+      })()`,
+      returnByValue: true,
+    })
+  ).result.value
+
+  const strip = async (clip: any) => {
+    const s = await c.send('Page.captureScreenshot', {
+      format: 'png',
+      clip: {
+        x: Math.round(clip.x), y: Math.round(clip.y),
+        width: Math.max(4, Math.round(clip.w)), height: Math.max(4, Math.round(clip.h)), scale: 1,
+      },
+      captureBeyondViewport: true,
+    })
+    return (
+      await c.send('Runtime.evaluate', {
+        expression: MEASURE(s.data, 'rgb(255,255,255)'),
+        returnByValue: true,
+        awaitPromise: true,
+      })
+    ).result.value.bg as number
+  }
+
+  const pageL = await strip(geo.page)
+  const barL = await strip(geo.bar)
+  const activeL = await strip(geo.active)
+  const ratio = (a: number, b: number) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+  const inkL = (css: string) => {
+    const m = css.match(/[\d.]+/g)!.map(Number)
+    const lin = (v: number) => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) }
+    return 0.2126 * lin(m[0]) + 0.7152 * lin(m[1]) + 0.0722 * lin(m[2])
+  }
+
+  const r1 = ratio(barL, pageL)
+  const r2 = ratio(activeL, barL)
+  console.log(`   bar over page      ${r1.toFixed(2)}:1   (reference 1.13:1)`)
+  console.log(`   active over bar    ${r2.toFixed(2)}:1   (reference 1.32:1)\n`)
+
+  check(r1 >= MIN_BAR_OVER_PAGE, `the bar is a step above the page (>= ${MIN_BAR_OVER_PAGE})`, `${r1.toFixed(2)}:1`)
+  check(r2 >= MIN_ACTIVE_OVER_BAR, `the active item is a step above the bar (>= ${MIN_ACTIVE_OVER_BAR})`, `${r2.toFixed(2)}:1`)
+
+  const idleR = ratio(inkL(geo.idleInk), barL)
+  const activeR = ratio(inkL(geo.activeInk), activeL)
+  check(idleR >= MIN_NOMINAL, `an idle tab label clears ${MIN_NOMINAL}:1 on the bar`, `${idleR.toFixed(2)}:1 (${geo.idleInk})`)
+  check(activeR >= MIN_NOMINAL, `the active tab label clears ${MIN_NOMINAL}:1 on its fill`, `${activeR.toFixed(2)}:1`)
+
+  // §2.2: red inside this bar is reserved for the waiting count, so the active
+  // state must not be carrying hue at all.
+  check(
+    geo.spread <= 12,
+    'the active tab carries no hue — a filled shape, not a colour',
+    `channel spread ${geo.spread} on ${geo.bg} / ${geo.activeInk}`,
   )
 
   /*

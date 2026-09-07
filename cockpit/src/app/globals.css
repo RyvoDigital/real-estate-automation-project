@@ -69,7 +69,7 @@
   --f-body: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   --f-mono: var(--font-mono), ui-monospace, monospace;
 
-  --bar-h: 92px;
+  --bar-h: 88px;   /* 70px bar + 14px float, so the last row clears it */
   --gutter: 20px;
 }
 
@@ -158,18 +158,43 @@ code { font-family: var(--f-mono); font-size: 0.92em; }
 
 /* --- bottom tab bar: four destinations, everything else behind More --- */
 
+/*
+ * A FLOATING OBJECT, NOT THE BOTTOM OF THE PAGE.
+ *
+ * Inset from all three edges with its own hairline and shadow, so the list
+ * scrolls under it and it reads as a control surface. The safe-area inset goes
+ * on the OFFSET, not the padding: a floating bar wants the home indicator
+ * below it, not inside it.
+ *
+ * THE LUMINANCE LADDER. Three steps — page, bar, active item — each one lighter
+ * than the last. This is the mechanism, not a finish: it is what lets the
+ * active state be a filled shape rather than a colour, which is what §2.2
+ * requires here, because on a phone this surface IS the escalation queue and
+ * red on it would leave the ageing ramp nowhere to go.
+ *
+ * The rungs are measured, and measured against the artefact they adapt:
+ * bar over page 1.13:1, active over bar 1.32:1 in the reference. Ours match.
+ * They are NOT 3:1, and they are not meant to be — WCAG 1.4.11's 3:1 is for
+ * information *required* to identify a state, and here the state is carried
+ * three ways at once (the fill step, the label going from ink-2 to ink, and
+ * the icon). tests/probe-contrast.ts asserts the rungs against the reference's
+ * own numbers and the labels against 4.5:1.
+ */
 .tabs {
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  left: 12px;
+  right: 12px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
   z-index: 40;
   display: flex;
   gap: 4px;
-  padding: 10px 12px calc(env(safe-area-inset-bottom, 0px) + 12px);
-  background: rgba(8, 8, 10, 0.93);
-  backdrop-filter: blur(20px);
-  border-top: 1px solid var(--hairline);
+  padding: 7px;
+  border-radius: var(--r-lg);
+  background: rgba(28, 28, 33, 0.82);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
 }
 .tab {
   position: relative;
@@ -177,21 +202,29 @@ code { font-family: var(--f-mono); font-size: 0.92em; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 5px;
   flex: 1 1 0;
-  min-height: 54px;
+  min-height: 56px;
   border-radius: 18px;
   border: 1px solid transparent;
   background: none;
-  color: var(--ink-3);
+  /* ink-3 measured 3.34:1 against the bar — under 4.5:1, and the thing daylight
+     actually kills. ink-2 is 7.27:1. This was wrong in the flush bar too. */
+  color: var(--ink-2);
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
 }
+/* Heavier than the app's 1.8–1.9px line set. The reference's icons are filled
+   or ~3px; 2.2 is as far as ours go before they muddy. CSS wins over the
+   attribute, so this thickens them here and nowhere else. */
+.tab > svg { stroke-width: 2.2; }
+/* The top rung. No hue — §2.2: red inside this bar is reserved for the waiting
+   count, which is state. The label carries the change at the same weight. */
 .tab--on {
-  background: linear-gradient(140deg, rgba(232, 69, 60, 0.26), rgba(122, 26, 22, 0.2));
-  border-color: rgba(232, 69, 60, 0.42);
-  color: #ff7a70;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--ink);
   font-weight: 700;
 }
 /*
@@ -1047,8 +1080,25 @@ code { font-family: var(--f-mono); font-size: 0.92em; }
     padding: 26px 32px 48px;
   }
 
+  /* The sidebar is a separate column, so §2.2's gradient still belongs here —
+     and the mobile bar's float, blur and neutral active state must not follow
+     it. Every property the phone sets is restated or cleared below. */
+  .tab--on {
+    background: linear-gradient(140deg, rgba(232, 69, 60, 0.26), rgba(122, 26, 22, 0.2));
+    border-color: rgba(232, 69, 60, 0.42);
+    color: #ff7a70;
+  }
+  .tab > svg { stroke-width: 1.9; }
+  /* The phone raised idle labels to ink-2 because ink-3 measured 3.34:1 against
+     the floating bar. The sidebar is a different surface and was not part of
+     that change, so it keeps exactly what it had. Whether ink-3 clears 4.5:1
+     against the sidebar's own gradient is a separate question, not this one. */
+  .tab { color: var(--ink-3); }
+
   .tabs {
     order: -1;                    /* see note 1 */
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     position: sticky;
     top: 26px;
     left: auto;
