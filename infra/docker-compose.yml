@@ -87,6 +87,12 @@ services:
       # every request: CheckSecret requires a non-empty expected value, so a
       # missing variable fails closed. §1c -- prefer a config that refuses.
       - COCKPIT_SEND_SECRET=${COCKPIT_SEND_SECRET:?COCKPIT_SEND_SECRET is unset - the cockpit send webhook would reject every reply}
+      # Where the cockpit lives, for the listing-ingest branch to POST an
+      # agent's WhatsApp message to (Automation 03, F2). NOT a `:?` guard: an
+      # unset value breaks only that branch, and taking the whole stack down —
+      # the Concierge with it — would be a far worse blast radius than the
+      # thing being guarded. The workflow node asserts it and fails loudly.
+      - COCKPIT_BASE_URL=${COCKPIT_BASE_URL}
     volumes:
       - n8n_data:/home/node/.n8n
     depends_on:

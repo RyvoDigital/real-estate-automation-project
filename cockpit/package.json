@@ -18,7 +18,8 @@
     "probe:dod": "tsx tests/probe-dod.ts",
     "probe:layout": "tsx tests/probe-layout.ts",
     "probe:timing": "tsx tests/probe-timing.ts",
-    "probe:contrast": "tsx tests/probe-contrast.ts"
+    "probe:contrast": "tsx tests/probe-contrast.ts",
+    "probe:listings": "tsx tests/probe-listing-excludes.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.6",
