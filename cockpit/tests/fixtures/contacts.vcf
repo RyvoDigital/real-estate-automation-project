@@ -1,0 +1,19 @@
+BEGIN:VCARD
+VERSION:3.0
+FN:Sofia Marques
+TEL;TYPE=CELL:+351 916 000 111
+TEL;TYPE=HOME:+351 211 000 111
+EMAIL:sofia@example.com
+NOTE:Wants a garden; would stretch for the right place
+ORG:Atlântica Prime
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+FN:Tomás Ribeiro
+TEL:916000222
+END:VCARD
+BEGIN:VCARD
+VERSION:2.1
+FN:Broken Card
+TEL:not-a-number
+END:VCARD

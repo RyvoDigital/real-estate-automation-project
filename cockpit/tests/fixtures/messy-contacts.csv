@@ -1,0 +1,12 @@
+Nome Completo,Telemóvel,E-mail ,Budget Range,Zona,Tipologia,Notes,Consentimento,Último Contacto
+Maria Santos,+351 912 345 678,maria@example.com,"1,8M - 2M",Cascais,T4,"garden non-negotiable, kids need to walk to school",yes,15/04/2026
+João Silva,00351 912 345 679,joao@example.com,1.500.000,Estoril,T3,wife works in Lisbon 3 days a week,sim,03/02/2026
+Maria Santos,912345678,maria.santos@example.com,1.8M,Cascais,T4,duplicate by phone in another format,yes,15/04/2026
+M. Santos,+351 912 345 999,MARIA@EXAMPLE.COM,2M,Cascais,,duplicate by email in another case,y,
+Henrik Nilsson,+351 913 111 222,henrik@example.com,850k,Sintra,T2,"quiet street, no through traffic, budget is firm",no,20/01/2026
+Bad Row,+351 913 111 333,bad@example.com,1M,Cascais, T3, this address, has an unescaped comma ,yes,01/03/2026
+Sem Contacto,,,900k,Oeiras,T3,no way to reach this person,yes,
+Excel Damage,9.12346E+11,,1.2M,Cascais,T3,Excel turned the phone into science,yes,
+n/a,+351 914 222 333,,1.5,Estoril,T2,name is a placeholder and budget has no scale,maybe,
+Lucía Fernández,+34 600 123 456,lucia@example.es,"800.000 a 1.100.000",Marbella,3 dorm.,"terrace essential, would stretch for the right place",sí,10/03/2026
+Manuel Vale,+351933048230,manuel@example.com,900k,Cascais,T3,already exists as a lead in this client,yes,

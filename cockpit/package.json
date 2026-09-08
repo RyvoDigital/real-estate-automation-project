@@ -23,11 +23,15 @@
   "dependencies": {
     "@supabase/ssr": "^0.12.6",
     "@supabase/supabase-js": "^2.109.0",
+    "@types/papaparse": "^5.5.2",
+    "exceljs": "^4.4.0",
     "libphonenumber-js": "^1.13.12",
     "next": "^16.3.4",
+    "papaparse": "^5.7.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "vcf": "^2.1.2"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",
