@@ -11,7 +11,8 @@ If you read only three things here, read **§0** — a generated message that
 promises a future you have not secured — **§0b**: check-then-act cannot be
 fixed by checking harder, and a nondeterministic test tells you what *can*
 happen, never what *always* does — and **rule 13**: documenting a failure mode
-does not control it, checking the artefact does. Then **§7**, which is the
+does not control it, checking the artefact does. Its twin is **rule 19**:
+a source file is not the artefact either — the running system is. Then **§7**, which is the
 empty-set pass again — a filter is tested by what it refuses, not by what it
 returns.
 
@@ -524,6 +525,18 @@ that the clever version was never buying anything.
    (`$('AfterSend')`), and be suspicious of `neverError`: it converts a 4xx
    into a silent success, which is the entire failure mode of this section.
 
+19. **A source file is not the artefact. The running system is.** This is rule
+   13 one level down, and it earns its place beside it. Building the Code-node
+   failure gate, two questions about n8n's behaviour were answered by reading
+   n8n's own source, carefully, at length. Both answers were wrong — the first
+   would have made the entire design useless, and the second sent the fix in a
+   direction that did not exist. A throwaway container running one four-node
+   workflow settled both in about four minutes, with no contact with production.
+   Reading an implementation tells you what someone wrote; running it tells you
+   what it does, on the version you actually have, with the flags you actually
+   set. When the answer is cheap to observe, never infer it — and a disposable
+   copy of the runtime is almost always cheap.
+
 ---
 
 ## 1c. A wrong invocation that produces a valid-looking config
@@ -793,8 +806,11 @@ runner; a real run showed variables work fine.
 The measurement took four minutes in a disposable container with no contact with
 production. The two readings took considerably longer and were both confidently
 wrong. **Reading an implementation tells you what someone wrote; running it
-tells you what it does.** Rule 13 again, one level down: check the artefact, and
-a source file is not the artefact — the running system is.
+tells you what it does.**
+
+This is rule 13 one level down and carries the same weight, so it is **rule 19**
+in its own right: check the artefact, and a source file is not the artefact —
+the running system is.
 
 ---
 

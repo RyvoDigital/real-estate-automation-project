@@ -331,11 +331,9 @@ conversation in which the assistant never spoke, and the next reply is composed
 as if it had not. That is the D3 `LoadHistory` defect reached from a new
 direction.
 
-The handler now reproduces the exact text in the alert, with its Twilio sid, for
-the same reason `EmailDbOutage` reproduces the inbound message: it exists
-nowhere else. It does **not** write the row itself — `messages` has one writer
-per path and a second one risks duplicating a turn, which is worse than missing
-one. **Whether the handler should write that row is an open decision.**
+The handler reproduces the exact text in the alert, with its Twilio sid, for the
+same reason `EmailDbOutage` reproduces the inbound message: it exists nowhere
+else. **It deliberately does not write the row itself — see §9.**
 
 **2. `$()` inherits the error branch's output index.** Documented as
 `engineering-lessons.md` §1g. The first working version of the handler returned
@@ -350,4 +348,39 @@ records *why* it failed into a `probe` field that travels to the alert.
   follow-up.
 - **Monitoring `execution_entity`.** Would give Zone 1 visibility inside n8n,
   but it lives in the system that failed.
-- **Whether a post-send failure should store the message.** See above.
+
+(The post-send question is closed — §9.)
+
+---
+
+## 9. Decided: the handler does not write the missing message row
+
+**Decision, 2026-09-08. This is settled, not pending.** It is recorded here and
+in `src/catch_internal.js` because it looks like an obvious improvement and is
+not one.
+
+When `AfterSend`, `AfterMediaSend` or `AfterHandoff` throws, the reply has
+reached the lead and `messages` never learns it. The handler *could* write the
+row — it holds the Twilio sid and the body from the send node's response. It
+does not.
+
+`messages` has exactly one writer per path. A second writer racing the first can
+duplicate a turn. The tiebreaker is not which failure is more likely; it is
+**where each one lands**:
+
+| | what happens | who can act on it |
+|---|---|---|
+| **duplicated turn** | the lead is sent something twice | nobody — it has reached the prospect and cannot be taken back |
+| **missing turn** | the model composes the next reply as if it had not spoken | a human, immediately: the alert reproduces the exact text and the sid |
+
+> **Prefer the failure that lands where someone can act on it.**
+
+A missing turn is a real defect with a real cost — it is the D3 `LoadHistory`
+shape, and the next reply will read oddly to the lead. But it is *recoverable by
+a person who has been told*, and the alert tells them, in full. A duplicate
+message is unrecoverable the moment it is sent, which is the same reasoning that
+makes Zone 4 forbid re-sending at all.
+
+If this is ever revisited, the thing to change is not the handler. It is to
+remove the gap entirely by making the send and the store one operation, so there
+is no window for a node to throw between them.

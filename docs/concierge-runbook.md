@@ -962,8 +962,12 @@ five was proven by sabotage to turn a *different* assertion red.
 
 **A post-send failure leaves the lead answered and the record silent.**
 `AfterSend`, `AfterMediaSend` and `AfterHandoff` sit between a send and its
-store. The alert reproduces the text that reached the lead; the row is not
-written, because `messages` has one writer per path.
+store. The alert reproduces the text that reached the lead. The handler
+deliberately does **not** write the row: `messages` has one writer per path, and
+a duplicated turn reaches the prospect and cannot be taken back, while a missing
+turn is recoverable by a human who has been told — and the alert tells them.
+Prefer the failure that lands where someone can act on it. Decided 2026-09-08;
+see §9 of `docs/code-node-failure-handling-spec.md` before "fixing" it.
 
 **Zone 1 stays invisible to the health check**, structurally: no client means no
 legal `automation_runs` row. The email is the only record, as with a database

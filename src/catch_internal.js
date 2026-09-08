@@ -124,11 +124,21 @@ function build() {
   // spoke, and the next reply is composed as if it had not. That is the D3
   // LoadHistory defect's shape, reached a different way.
   //
-  // The handler does not write the row itself: `messages` already has one
-  // writer per path and a second one risks duplicating a turn, which is worse
-  // than a missing one. It reproduces what the lead was told, in the alert,
-  // for the same reason EmailDbOutage reproduces the inbound message -- it
-  // exists nowhere else.
+  // DECIDED, 2026-09-08: the handler does NOT write the message row, and this
+  // is not an oversight waiting to be improved.
+  //
+  // `messages` already has one writer per path; a second one racing it can
+  // duplicate a turn. The tiebreaker is where each failure lands:
+  //
+  //   a DUPLICATED turn  -> the lead is sent something twice. It reaches the
+  //                         prospect, and nobody can take it back.
+  //   a MISSING turn     -> the model composes as if it had not spoken, and
+  //                         the alert below reproduces the text, so a human
+  //                         can see exactly what the lead was told and act.
+  //
+  // Prefer the failure that lands where someone can act on it. The alert
+  // reproduces the reply for the same reason EmailDbOutage reproduces the
+  // inbound message: it exists nowhere else.
   const POST_SEND = { AfterSend: 'SendWhatsApp', AfterMediaSend: 'SendMediaReply',
                       AfterHandoff: 'SendHandoffNote' };
   let unrecordedReply = null;
