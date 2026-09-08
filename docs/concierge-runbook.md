@@ -34,6 +34,76 @@ the standard.
 If a check genuinely needs data that does not exist, say so and ask. The answer
 is usually yes and it costs one message.
 
+### Listing ingestion over WhatsApp — how an agent's message becomes a listing
+
+**Automation 03, gate F2.** An agent sends a property to the same WhatsApp
+number leads use. There is nothing new to log into, which is the delivery model
+the product is sold on.
+
+**How the Concierge decides it is an agent and not a lead.** One IF node,
+`IsAgentSender`, sitting between `FindExistingLead` and `UpsertLead`. It is true
+only when BOTH hold:
+
+1. the sender is in `config.listing_ingest.agent_numbers` for the resolved
+   client (compared on digits only, so formatting does not matter), and
+2. that number is **not already a lead** of that client.
+
+Everything else takes the lead path: an unknown number, a missing config, a
+lead lookup that *failed* rather than returned nothing, or any exception in the
+condition at all.
+
+> ⚠️ **If a number is both an agent and a lead, the LEAD path wins.** This is
+> deliberate: a prospect getting no reply because their number resembled an
+> agent's is far worse than a listing needing to be re-sent. It has been
+> demonstrated live — `+351933048230` is configured as an agent number and is
+> also a lead, and a listing-shaped message from it was answered as a lead.
+>
+> The practical consequence: **an agent's own phone cannot also be a lead of
+> the same client.** If listing ingestion silently does nothing for one agent,
+> that is the first thing to check.
+
+**Where the parsing happens.** n8n forwards the message to the cockpit
+(`POST /api/listings/inbound`, shared secret) rather than parsing it in a code
+node, so the parser exists once, in TypeScript, with tests. That endpoint is
+exempted from the cockpit's auth middleware **by exact path** — it carries its
+own authentication. Do not broaden that to `startsWith('/api')`.
+
+**Statuses.** Only `available` is matched. `reserved`, `under_offer`, `sold`
+and `withdrawn` are not, and the column is CHECK-constrained so a typo fails
+the write rather than creating a listing that has quietly stopped matching.
+Every change is written to `events` as `listing.status_changed`, with who
+changed it and by what channel.
+
+An agent changes one by sending the reference and the new state — "A-1042
+vendido", "A-1042 sob proposta", "A-1042 disponível novamente". **Anything
+ambiguous is answered with a question rather than guessed**, including any
+negation: "not sold" does not mean available.
+
+**Configuring a client for it:**
+
+```
+client_automations.config (automation_key = 'inbound_concierge')
+  listing_ingest:
+    agent_numbers: ['+351...']     # who may send listings
+    areas:         ['Cascais', ...] # the areas the parser will recognise
+```
+
+Areas are per client and never a hardcoded gazetteer — an area not in that list
+is reported as missing rather than guessed at.
+
+**Checking it works** — the deploy chain is import, **publish**, restart, then:
+
+```bash
+# the listing endpoint answers with its own auth, not a redirect
+curl -s -o /dev/null -w '%{http_code}\n' -X POST \
+  https://ryvo-cockpit.vercel.app/api/listings/inbound \
+  -H 'content-type: application/json' -d '{}'     # expect 401, never 307
+```
+
+A 307 there means the auth middleware is catching it again and **no listing
+will ever be created** — which happened once, and was caught only because the
+workflow asserts the response instead of trusting a 2xx.
+
 ### One shared secret now guards two directions — the trigger for splitting it
 
 `COCKPIT_SEND_SECRET` (n8n) / `N8N_SEND_SECRET` (cockpit) is the same value
