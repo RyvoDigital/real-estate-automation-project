@@ -938,6 +938,50 @@ belongs to that date rather than to the previous UTC one.
 stops gaining rows and nothing else notices. So the health check asserts a row
 exists for yesterday.
 
+### What the Concierge does when its own code throws (2026-09-08)
+
+Every Code node except two routes its throw to `CatchInternal`, which classifies
+by **what has already happened to the lead** and acts accordingly. Read this
+alongside the D5 dependency table below; together they cover both halves.
+
+| Zone | When it throws | Lead gets | Record |
+|---|---|---|---|
+| 1 | before the lead is identifiable — `VerifySignature`, `Normalise`, `FlattenClient` | nothing; there is no client, so no configured note to send | **no run row is possible** (NOT NULL FK). The email is the record, and carries the raw inbound message verbatim |
+| 2 | lead known, nothing sent — `ProposeSlots`, `ParseClaude`, `BuildClaudeRequest`, … | the handoff note, in their language, and they are escalated | `error / internal_error:<Node>` |
+| 3 | the booking path, after the model may have written a confirmation — `AfterBooking`, `ResolveConflict`, … | the handoff note; **never a confirmation** | `error / …`, plus the alert names the calendar event that may exist for that slot |
+| 4 | the lead already has their reply — `AfterSend`, `PrepRunAI`, … | nothing further; **never a re-send** | `error / …`, `replied=false` |
+
+**The two exemptions are named in `cockpit/tests/workflow-error-branches.test.ts`,
+never matched by a pattern.** `ThrowDbOutage` throws on purpose, so a database
+outage stays an error execution rather than a quiet success. `CatchInternal` is
+the handler; nothing catches the catcher.
+
+**`npm test` fails if a Code node loses its branch, dangles it, drops out of the
+zone table, or if the spine stops reaching `LogInternalFailure`.** Each of those
+five was proven by sabotage to turn a *different* assertion red.
+
+**A post-send failure leaves the lead answered and the record silent.**
+`AfterSend`, `AfterMediaSend` and `AfterHandoff` sit between a send and its
+store. The alert reproduces the text that reached the lead; the row is not
+written, because `messages` has one writer per path.
+
+**Zone 1 stays invisible to the health check**, structurally: no client means no
+legal `automation_runs` row. The email is the only record, as with a database
+outage.
+
+### Deleting a calendar entry burns that slot for ever
+
+The event id is derived from the **slot**, so Google's 409 is what prevents
+double-booking (see below). The cost is that **deleting an event permanently
+retires that time slot from automated booking** — a recreated event cannot reuse
+the id, and the Concierge escalates with `conflict_burned_id` instead of
+booking. Observed three times in one afternoon of testing, on slots cleaned up
+after earlier runs.
+
+Low impact at current volume; real at scale, and worth knowing before an agency
+starts tidying its calendar by hand. The behaviour is correct — it escalates to
+a human rather than claiming a booking it could not make — but the slot is gone.
+
 ### The drills covered dependencies, not us (open gate, 2026-09-08)
 
 D5 below broke every external dependency and each one now degrades honestly.

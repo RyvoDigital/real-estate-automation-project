@@ -729,6 +729,75 @@ about.
 
 ---
 
+## 1g. A handler that reports "nothing was known" is indistinguishable from its own bug
+
+The failure handler for the Code-node gate was wired to 31 nodes, deployed, and
+drilled. It fired. It correctly named the node that threw, the zone, and the
+error message. And every piece of context it was supposed to gather — client,
+lead, phone, the handoff note — came back `null`.
+
+That output is **completely plausible**. A failure early in the workflow really
+would know none of those things. Zone 1 exists precisely because some failures
+happen before there is a lead to answer. So the handler reporting "I knew
+nothing" looked like the handler working.
+
+It was a bug, and the reason is worth keeping:
+
+```js
+$('AfterLead').first()      // undefined
+$('AfterLead').first(0)     // the item
+```
+
+An item arriving on an **error output** carries `$prevNode.outputIndex = 1`, and
+on n8n 2.28.3 that leaks into the default branch index for every `$()` lookup in
+the receiving node. So `$('AfterLead').all()` asks AfterLead for its *output 1*
+— which does not exist — and returns `[]`. Every context read in the handler was
+quietly asking the wrong output. `all(0)` returns the item.
+
+### The part that generalises
+
+> **A diagnostic path that degrades to "no information" produces the same output
+> when it is broken as when it is working correctly.**
+
+Every other guard in this project fails loudly. This one failed into its own
+legitimate empty state, which is the one failure mode nobody investigates. It
+would have shipped: the branches were wired, the drill "fired", the alert
+arrived. The alert would just have been useless, for ever, and nobody would have
+known there was anything to fix.
+
+The fix was not the `first(0)`. It was making the handler **say why each read
+failed** instead of swallowing it:
+
+```js
+const safe = (label, fn) => {
+  try { const v = fn(); if (!v) { probe.push(label + '=empty'); return null; } return v; }
+  catch (e) { probe.push(label + '=' + e.message); return null; }
+};
+```
+
+One drill later the handler said
+`AfterLead=Cannot read properties of undefined (reading 'json')`, and the cause
+was obvious. **A silent catch inside a diagnostic is a contradiction**: the whole
+purpose of the node is to explain a failure, and the first thing it did was hide
+one. `probe` now travels all the way into the operator's email.
+
+### And the thing that cost the most time
+
+Two hypotheses about this came from *reading n8n's source*, and both were wrong.
+The source said a thrown node sends its input items to output 0, which would
+have made the whole design useless; a real run in a throwaway container showed
+the item arriving on output 1 with `{error: '<message> [line N]'}`. A second
+reading said variable node names (`$(name)`) break static analysis in the task
+runner; a real run showed variables work fine.
+
+The measurement took four minutes in a disposable container with no contact with
+production. The two readings took considerably longer and were both confidently
+wrong. **Reading an implementation tells you what someone wrote; running it
+tells you what it does.** Rule 13 again, one level down: check the artefact, and
+a source file is not the artefact — the running system is.
+
+---
+
 ## 1d. A guard that never sees its own trigger, and the test that passes for the wrong reason
 
 **2026-09-08.** §1 #7 records a rule that did nothing during its own acceptance

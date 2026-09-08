@@ -1,6 +1,8 @@
 # Gate: what the Concierge does when its own code throws
 
-**Status:** specified, not started. A gate before the first real client.
+**Status: BUILT AND PROVEN, 2026-09-08.** All four drills passed, restored and
+verified. See §8 for the results and the two things the drills found that this
+specification did not anticipate.
 **Written:** 2026-09-08, out of the `working_hours` defect.
 **Owner's framing:** *"That is the D5 Supabase failure in a different place:
 silence, with nothing raised."*
@@ -273,3 +275,79 @@ how a later drill reads an earlier drill's damage.
    can see, closing the `LogRun`-is-a-leaf blindness.
 5. The runbook gains a table of what each zone does on failure, in the same
    form as D5's dependency table, so the two can be read together.
+
+---
+
+## 8. What was built, and what the drills found
+
+### Built
+
+Seven nodes, one convergence point. Every wireable Code node's error output goes
+to `CatchInternal`, which classifies by zone and flattens everything downstream
+needs, then:
+
+```
+CatchInternal → LogInternalFailure → NeedsLeadReply ┬ true  → SendInternalHandoff
+                (automation_runs)                    │         → StoreInternalHandoff
+                                                     │         → MarkInternalEscalated ┐
+                                                     └ false ──────────────────────────┴→ EmailInternalFailure
+```
+
+**31 of 33 Code nodes are wired.** Two are named exceptions with reasons, in the
+test rather than in a pattern: `ThrowDbOutage` (throws deliberately; catching it
+would undo D5) and `CatchInternal` (nothing catches the catcher — its whole body
+is one try/catch whose recovery block only builds a literal).
+
+### The drills
+
+Each: snapshot → inject `throw` → deploy → send a real message → observe →
+restore from the golden snapshot → verify. Never two sabotages live at once.
+
+| Zone | Node | Lead received | Record | Alert |
+|---|---|---|---|---|
+| 2 | `ProposeSlots` | the handoff note, in Portuguese, `status=sent` | `error / internal_error:ProposeSlots`, zone 2, `replied=true` | email sent |
+| 3 | `AfterBooking` | the handoff note — **no confirmation** | `error / internal_error:AfterBooking`, no `viewing.booked`, no booking in `qualification` | email carrying the slot warning and the event id to check |
+| 4 | `AfterSend` | their reply, and **no second message** | `error / internal_error:AfterSend`, `replied=false` | email reproducing the unrecorded reply |
+| 1 | `Normalise` | nothing — no client, so no configured note to send | **no run row possible** (`client_automation_id` is NOT NULL); insert returns 400 | email sent, carrying the raw inbound message verbatim |
+
+**The health check now sees three of the four.** Before this gate it saw none of
+the 32. Zone 1 remains structurally invisible to it — with no resolved client
+there is no legal `automation_runs` row and no legal `events` row, because both
+carry a NOT NULL foreign key. Relaxing that constraint to gain visibility would
+weaken a real guarantee; the email is the record, exactly as D5 concluded for
+the database-outage case.
+
+**Acceptance, after all four, restored:** a full conversation — qualify, offer
+real slots, confirm, book — ran clean end to end, `viewing.booked` written,
+three consecutive `success` runs.
+
+### What the drills found that this document did not anticipate
+
+**1. Three nodes sit between a send and its store.** `AfterSend`,
+`AfterMediaSend` and `AfterHandoff` each run after the message has gone to the
+lead and before it is written to `messages`. If one throws, the lead has been
+answered and the record does not know it — so `LoadHistory` feeds the model a
+conversation in which the assistant never spoke, and the next reply is composed
+as if it had not. That is the D3 `LoadHistory` defect reached from a new
+direction.
+
+The handler now reproduces the exact text in the alert, with its Twilio sid, for
+the same reason `EmailDbOutage` reproduces the inbound message: it exists
+nowhere else. It does **not** write the row itself — `messages` has one writer
+per path and a second one risks duplicating a turn, which is worse than missing
+one. **Whether the handler should write that row is an open decision.**
+
+**2. `$()` inherits the error branch's output index.** Documented as
+`engineering-lessons.md` §1g. The first working version of the handler returned
+all-nulls for every context field, which is exactly what a legitimate early
+failure looks like — it would have shipped and been useless for ever. Every
+lookup in `CatchInternal` now names its branch explicitly, and every read
+records *why* it failed into a `probe` field that travels to the alert.
+
+### Still open
+
+- **The other five workflows.** Unchanged; still out of scope, still worth a
+  follow-up.
+- **Monitoring `execution_entity`.** Would give Zone 1 visibility inside n8n,
+  but it lives in the system that failed.
+- **Whether a post-send failure should store the message.** See above.
