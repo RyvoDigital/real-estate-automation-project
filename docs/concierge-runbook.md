@@ -34,6 +34,36 @@ the standard.
 If a check genuinely needs data that does not exist, say so and ask. The answer
 is usually yes and it costs one message.
 
+### The cockpit is cross-tenant on purpose, and that is safe only because clients have no login
+
+`/import` lets the operator pick any client from a dropdown, and `/leads`
+filters across all of them. Every screen in the cockpit can see every client's
+data. **That is correct for the only user the cockpit has**, and it is correct
+because of a decision recorded elsewhere: §1 of the operations & commercial
+reference locks that **clients get no cockpit login** — they receive outcomes
+in their own channels, not access to a dashboard.
+
+So there is no tenant boundary in the cockpit because there is no second
+tenant using it. The safety comes from the product decision, not from the code.
+
+⚠️ **If client access is ever considered, this is one of the things that has to
+change first**, and it is not a small change:
+
+- Every query in `src/lib/data.ts` and `src/lib/import/store.ts` selects by
+  `client_id` supplied by the caller, with nothing checking that the caller is
+  entitled to that client.
+- `import_batches`, `leads`, `messages` and `events` all have RLS enabled with
+  **zero policies** — the service_role key bypasses it entirely, which is fine
+  for one internal operator and is not an authorisation model.
+- The client dropdown on `/import` would become a cross-tenant selector.
+- `COCKPIT_ALLOWED_EMAILS` is a flat allowlist with no notion of which client
+  an address belongs to.
+
+Recorded here rather than left implicit because **a surface that is safe only
+because of a product decision elsewhere should say so.** Nothing in the cockpit
+code would tell you; it looks like an ordinary multi-client admin tool, and
+would keep looking like one right up until the first client was given a login.
+
 ### The operations & commercial reference is gitignored — never edit it from the repo
 
 `docs/ryvo-operations-and-commercial-reference.md` is **deliberately excluded
