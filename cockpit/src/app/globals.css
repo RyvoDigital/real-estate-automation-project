@@ -254,7 +254,10 @@ code { font-family: var(--f-mono); font-size: 0.92em; }
   border-radius: 6px;
   background: #ff4438;
   font-family: var(--f-mono);
-  font-size: 10px;
+  /* 11px is the floor probe:layout enforces, and the badge was the one thing
+     under it on every route that carries the bar. The pill grows sideways
+     (min-width + padding), so the extra pixel costs height nothing. */
+  font-size: 11px;
   font-weight: 600;
   line-height: 18px;
   color: #fff;

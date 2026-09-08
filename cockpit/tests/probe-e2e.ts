@@ -163,7 +163,36 @@ async function main() {
       'every stored message appears in the rendered page',
       `${shown}/${msgs?.length}`,
     )
-    check(dh.includes('Read-only'), 'read-only state is stated, not implied')
+    // This assertion used to read `dh.includes('Read-only')`. That was true at
+    // E1, when the page deliberately had NO composer and said so rather than
+    // rendering a reply box that did nothing (instance 6, a control that looks
+    // like it worked). E2 (ddf4360) built the composer and correctly deleted
+    // the notice — and left this line asserting a state the product no longer
+    // has. It has been red ever since, through every gate, unread.
+    //
+    // Restoring the words would print "Read-only" above a working reply box:
+    // the same defect this file exists to catch, committed by its own probe. So
+    // the PRINCIPLE is kept and re-pointed at the state that does exist — the
+    // page says what you can do with it instead of leaving you to infer it.
+    check(dh.includes('Send'), 'the reply control is present and named, not implied')
+
+    const { data: esc } = await db
+      .from('leads')
+      .select('qualification')
+      .eq('id', leadId)
+      .single()
+    const isEscalated = !!(esc?.qualification as Record<string, unknown> | null)?.escalated
+    if (isEscalated) {
+      check(
+        dh.includes('stopped here and handed over'),
+        'a handed-over lead SAYS it was handed over, rather than implying it',
+      )
+    } else {
+      console.log(
+        '   INCONCLUSIVE  a handed-over lead states the handover' +
+          '  — this lead is not escalated; escalate one and re-run',
+      )
+    }
   }
 
   console.log('\n== 4. a non-allowlisted address is refused ==')
