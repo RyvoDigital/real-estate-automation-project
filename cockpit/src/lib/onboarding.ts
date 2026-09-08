@@ -190,6 +190,28 @@ export function toConfig(draft: ClientDraft) {
       },
     },
 
+    /*
+     * Listing ingestion (Automation 03, F2). The Concierge reads
+     * `cfg.listing_ingest.agent_numbers` to decide whether an inbound message
+     * is an agent sending a property rather than a lead enquiring.
+     *
+     * Written EMPTY rather than left absent. The branch handles an absent key
+     * — it returns false and everything goes down the lead path — so this is
+     * not load-bearing for correctness. It is here because the invariant is
+     * "every key the workflow reads is a key the form writes", and the moment
+     * that invariant gets an exception it stops being checkable. The last time
+     * a key the workflow read was not written by the form, a client would have
+     * been onboarded with no handoff note at all.
+     *
+     * An empty list also reads better to the operator than a missing key: it
+     * says "no agent numbers configured yet", not "this feature does not
+     * exist".
+     */
+    listing_ingest: {
+      agent_numbers: [] as string[],
+      areas: draft.areas.split(',').map((a) => a.trim()).filter(Boolean),
+    },
+
     // Legacy single-string fallback systemMessage() uses when the per-language
     // bag misses. Same text as the default language, so it is never empty.
     handoff_note:
