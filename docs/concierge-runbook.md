@@ -34,6 +34,36 @@ the standard.
 If a check genuinely needs data that does not exist, say so and ask. The answer
 is usually yes and it costs one message.
 
+### One shared secret now guards two directions — the trigger for splitting it
+
+`COCKPIT_SEND_SECRET` (n8n) / `N8N_SEND_SECRET` (cockpit) is the same value
+used in **both** directions:
+
+- cockpit → n8n: `/cockpit-send`, `/cockpit-validate`, `/cockpit-draft`,
+  `/cockpit-map`
+- n8n → cockpit: `POST /api/listings/inbound` (Automation 03, F2)
+
+That is a deliberate concentration, taken because the operator holds all
+secrets and a second one is operator work for no benefit while the two systems
+are the only participants. **A leak of it now exposes both directions**: an
+attacker could send WhatsApp messages as the cockpit *and* create listings as
+n8n.
+
+⚠️ **Split it before either of these is true**, not after:
+
+1. **A second consumer exists** — anything other than the cockpit calling n8n's
+   webhooks, or anything other than n8n calling the cockpit's endpoint. Two
+   callers sharing one secret means revoking it breaks both, so nobody revokes
+   it.
+2. **Any client-facing surface calls either endpoint.** The value currently
+   lives only on our own server and in Vercel's environment. The moment it is
+   needed by something a client touches, the blast radius stops being ours.
+
+Splitting is cheap when it happens: a second env var on each side and a
+one-line change to the header value in each caller. It is only expensive if it
+is discovered during an incident, which is why the trigger is written here
+rather than left to be noticed.
+
 ### The cockpit is cross-tenant on purpose, and that is safe only because clients have no login
 
 `/import` lets the operator pick any client from a dropdown, and `/leads`
