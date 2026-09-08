@@ -105,6 +105,75 @@ two prospects arriving at the same viewing.
 
 ---
 
+## 0c. A confirmation names two things. §0 only secured one of them.
+
+§0 is about the appointment existing. This is about the appointment being *of
+something*, and it took four months to notice because the code was correct.
+
+On 2026-09-05 a real lead asked for a T3 in Cascais. The Concierge answered
+exactly as designed — it has no inventory, so it said a colleague would confirm
+what was available. The lead then asked to visit on Friday. The workflow read
+the real calendar, offered two genuinely free slots, matched the confirmation
+against what it had stored, created the event, and notified the agent. Every
+mechanism in §0 worked. And the lead was sent:
+
+> "A sua visita está confirmada para sexta-feira, dia 11 de setembro, às 10:00."
+
+**There was no property.** Not one had been named by the lead, by an agent, or
+by the Concierge — which could not have named one, because it has no listings.
+It booked a viewing of nothing, and the lead would have found that out standing
+outside a building nobody had chosen.
+
+### The spec was correct and the code implemented it correctly
+
+Phase 1 said: *create the calendar event with the lead's name and phone*. The
+build did precisely that. Nothing in the specification said a property had to
+exist first, so nothing in the code checked, and no reviewer reading the code
+against the spec could have found it. **A specification that gives an action's
+mechanics without its preconditions is implemented exactly and is still wrong.**
+
+That is the part worth carrying: when a spec describes *how* to do something,
+ask what has to be true before doing it is honest. The answer is usually absent,
+and its absence looks like completeness.
+
+### Where the wrongness actually lived
+
+The word *viewing* was hardcoded in three places and derived in none:
+
+- the prompt section was headed BOOKING A VIEWING;
+- the calendar summary was `'Viewing: ' + who`, so the agent read it too;
+- the event row said `Viewing booked for ...`, so the cockpit repeated it.
+
+Nobody decided to claim a property. Everybody assumed one. **An assumption
+spelled into a string literal is indistinguishable from a decision, and it
+survives every review that checks the code against the intent.**
+
+### The fix, and why the truthful version was available all along
+
+Unless a specific property has been named, the appointment is a **first meeting
+with an agent** and is described as one everywhere. That is normal in this
+market and, unlike *visita*, it is true. The honest description was never a
+downgrade — it was simply never written down.
+
+Three properties it has to have, all of them borrowed from §0:
+
+1. **The workflow decides, the model phrases.** Asking the model "was a property
+   discussed?" would make the guard depend on the judgement it exists to distrust.
+2. **The model's own words are not evidence.** It has no inventory, so a
+   reference in its reply is one it invented. Only an inbound message or a human
+   agent's reply counts. Without this the guard authorises itself one layer down.
+3. **Every unknown resolves to the safe side.** A missing field, an
+   unattributable message, an unrecognised phrasing — all of them mean *meeting*.
+   Under-describing a real viewing costs one human message. Inventing a property
+   cannot be taken back, because the lead has already been told.
+
+`appointmentKind !== 'viewing'` rather than `=== 'meeting'` is that third
+property written as an operator: when the field goes missing the guard stays on.
+Guards written the other way round stop running silently, which is how this
+class of defect returns without an announcement.
+
+---
+
 ## 1. Tests that pass while testing the wrong thing
 
 **This has now bitten the project fifteen times in fifteen different disguises.** It

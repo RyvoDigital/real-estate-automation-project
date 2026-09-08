@@ -638,6 +638,64 @@ days had no overlap with any busy interval, sat inside 09:00–19:00, and fell o
 a working day — checked against the *same execution's* free/busy data, not a
 separately fetched one.
 
+### A meeting is not a viewing (2026-09-08)
+
+**Unless a specific property has been named, the Concierge books a FIRST MEETING
+with an agent and says so.** *visita* / *viewing* is reserved for a conversation
+where a property has a name. This is a standing rule, not a Phase 1 detail:
+an agency with contacts in a phone and no listings loaded still books
+appointments, and Automation 03 does not change what happens when there is no
+inventory to match against.
+
+Why: on 2026-09-05 a lead who had never been shown a property was told *"a sua
+visita está confirmada para sexta-feira às 10:00"*. The calendar half was
+correct — real free/busy, real event, agent notified. The claim was not. See
+`engineering-lessons.md` §0c; the short version is that the spec said how to
+create the event and never said what had to be true first, so the word *viewing*
+sat hardcoded in the prompt, the calendar summary and the event row.
+
+**Where the decision is made.** `appointmentKindFor()` in
+`src/appointment_kind.js`, embedded verbatim into `BuildClaudeRequest`, runs
+over the stored conversation before the model is called — the same rule as the
+slots. It returns `viewing` only when a listing reference (`A-1042`,
+`Ref B-2001`) appears in an **inbound** message or in an **outbound message
+marked `ai_generated = false`**, which is a human agent replying from the
+cockpit. This is why `LoadHistory` selects `ai_generated`.
+
+**The Concierge's own words are never evidence.** It has no inventory, so a
+reference in its own reply is one it invented; counting it would let the model
+authorise its own claim one layer down.
+
+**Everything unknown resolves to `meeting`.** A missing `ai_generated` column, an
+address instead of a reference, a reference that has fallen outside
+`history_limit` — all of them book a meeting. Under-describing costs a human one
+message; inventing a property cannot be withdrawn.
+
+**Two layers, and the second is the one that holds.** The prompt is *told*
+`APPOINTMENT: meeting` or `APPOINTMENT: viewing`. Then `viewingClaim()` checks
+the reply in `ParseClaude` **and** `ParseGuardRetry` — both, because a guard on
+one caller is §1e. A viewing claim on a meeting turn routes into the existing
+guard-retry; if the retry claims it again the turn escalates and **no event is
+created**, so a lead ready to book is held by a human rather than told a
+falsehood.
+
+**It shows on every surface, not just the reply**: the calendar event reads
+`First meeting: <lead>` with a description saying plainly that no property was
+named, the `viewing.booked` row carries `data.kind` and `data.property_refs`,
+and the cockpit's lead page labels the row *First meeting* / *Viewing* /
+*Appointment* (the last for rows written before this existed — never defaulted
+to *Viewing*).
+
+`node tests/appointment_kind.test.js` — 39 tests, and it runs inside the
+cockpit's `npm test` so it cannot be green while nobody looks at it.
+
+**Known limit, deliberately accepted.** Only a reference *code* counts. A
+property named by address or by house name ("a moradia na Rua das Flores") is
+not detected and books a meeting. Recognising it would need judgement, and
+judgement here means the model. If that limit ever needs closing, the place to
+close it is a stored field written by whoever named the property — never a
+model reading the transcript.
+
 ### Booking — how Gate C2 creates the event (2026-09-04)
 
 **The confirmation is matched by the workflow, not the model** — same reason as
