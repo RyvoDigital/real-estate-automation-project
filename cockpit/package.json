@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/*.test.ts",
+    "test": "tsc --noEmit && tsx --test tests/*.test.ts",
     "verify:bundle": "bash tests/no-secret-in-bundle.sh",
     "probe:queue": "tsx tests/probe-queue.ts",
     "probe:excludes": "tsx tests/probe-filter-excludes.ts",
