@@ -609,6 +609,64 @@ gap is usually obvious.
 
 ---
 
+## 1d. A guard that never sees its own trigger, and the test that passes for the wrong reason
+
+**2026-09-08.** §1 #7 records a rule that did nothing during its own acceptance
+test because its input never contained the null it exists to reject. This is
+the same shape one level worse: the guard was *wrong*, the test *covered it*,
+and the test passed anyway — because the case it used never reached the guard.
+
+The listing parser must not read a floor area as a price. The guard skipped any
+price candidate containing a size unit, and the test asserted it on
+`"T3 apartamento Estoril 95m2"`.
+
+Both were wrong, in a way that cancelled out:
+
+- `"95m2"` never becomes a price candidate at all, so the guard was never
+  reached and the assertion passed on a path that does not exist.
+- The form that *does* reach it is `"320m²"` — the correct typographic one, and
+  the one a Portuguese agent is more likely to type. The candidate token is
+  `"320m"` with the `²` as the **next character**, so a guard inspecting only
+  the token found nothing wrong and the price was read as **€320,000,000**. In
+  `"Ref A-2, T4 Cascais 320 m², 1.950.000€"` it beat the real price later in the
+  same sentence.
+
+> A test that exercises a case the guard cannot see is not weak coverage. It is
+> **negative** coverage: it occupies the place where the real test would go, and
+> reports that the property holds.
+
+It was found by **deleting the guard and running the suite**. Nothing failed.
+That is the whole technique, and it is cheap:
+
+> **Before believing a guard, remove it.** If no test goes red, the test does
+> not test the guard — whatever its name says.
+
+This is the same instrument as the planted leak in `no-secret-in-bundle.sh` and
+the forced null in `probe-filter-excludes.ts`, pointed at a guard rather than a
+check. It has now caught three things in this project that ordinary review did
+not, and it costs one command.
+
+### And a comment is a claim, so it has to be earned
+
+The same session produced a smaller version with the same root. `statusFromText`
+carried a comment saying it was *"deliberately conservative"* about ambiguous
+phrases, and a test proving one case — `"no longer available"` must not read as
+`available`.
+
+Every other negation was inverted: `"not sold"` → `sold`, `"não está reservado"`
+→ `reserved`, six in total. The comment described an intention; the code
+implemented one special case; the test checked that one case; and the three
+together read as a property being held.
+
+> A comment asserting a property is a **claim about code you have not checked**.
+> It is worth less than nothing, because it stops the next reader checking —
+> and the next reader is usually you.
+
+Where a property matters, write it as a test that enumerates the space (all
+five negations, all five statuses), not as a sentence above the function.
+
+---
+
 ## 6f. A foreign key's ON DELETE behaviour is part of the deletion's blast radius, and `set null` destroys more quietly than `cascade`
 
 **2026-09-08.** Automation 03's import needs to be reversible, so a revert
