@@ -817,6 +817,53 @@ control rather than silence the alarm.
 
 ---
 
+## 6g. A keyboard assumption, which is worse than a locale assumption
+
+**2026-09-08.** §6c records a guard whose regex boundaries were ASCII, so it
+silently stopped working in Portuguese and Spanish. This is the same family and
+it is worse, because it would have failed for **every** lead in every language.
+
+The matching engine decides whether a stated requirement is a hard constraint
+or a preference — the distinction the whole automation exists for. It looks for
+markers:
+
+```js
+"couldn't live without"      // U+0027, a straight apostrophe
+```
+
+**Every phone on earth autocorrects that character to U+2019 (’).** iOS and
+Android both do it by default. A lead typing *"we couldn't live without a
+garden"* on the device they are actually holding produces a string that does
+not contain the marker, so the hard constraint is read as a preference, and the
+engine goes on to show them houses with no garden.
+
+Nothing reports it. There is no error, no empty result, no failed parse — a
+constraint is quietly downgraded and the only symptom is listings the lead
+would not have wanted, which nobody can see is wrong.
+
+> A locale assumption fails for some users. A **keyboard** assumption fails for
+> all of them, and it passes every test written on a laptop — where the
+> developer types the straight apostrophe the source file already contains.
+
+The test that "covered" it was written by typing the phrase into a test file.
+It matched because both sides came from the same keyboard. That is the tell,
+and it generalises past apostrophes:
+
+> **When a test and the code it tests were typed by the same person on the same
+> keyboard, they can agree about a character neither of them will ever receive.**
+
+Anything a human types on a phone arrives transformed: apostrophes and quotes
+become curly, hyphens become en dashes, three dots become an ellipsis, and
+autocorrect capitalises. Normalise before comparing, and write at least one
+fixture using the characters a phone actually emits rather than the ones a
+keyboard produces.
+
+The fix is one `.replace()` over a small set of code points. The cost of not
+having it would have been the product's central feature not working for any
+real lead, while the suite stayed green.
+
+---
+
 ## 6c. A guard whose boundaries are ASCII stops guarding where it matters most
 
 **2026-09-07.** The draft assistant must never propose a viewing time — the

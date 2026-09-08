@@ -143,6 +143,8 @@ So a match is never binary. It is: **fits every hard constraint, misses these tw
 
 Deriving hard-versus-preference from the conversation is the highest-value thing this engine does. Get it wrong and you have rebuilt a CRM filter.
 
+> **Preferences are confidence, not admission.** A missed preference lowers how strongly a match is put forward; it never decides whether the match exists. Conflating the two rebuilds the filter this section exists to beat — and it did, once: an early version of the scorer refused a listing that met every hard constraint because it missed the single preference the lead had mentioned.
+
 ### 4.2 Match on the conversation, not only the fields
 
 The `messages` table holds what every Concierge-captured lead actually said. Use it.
