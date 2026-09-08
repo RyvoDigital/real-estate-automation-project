@@ -1,0 +1,327 @@
+{
+  "id": "ryvoCockpitMap1",
+  "name": "cockpit_map",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cockpit-map",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "n-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -360,
+        0
+      ],
+      "webhookId": "ryvo-cockpit-map"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst req = $input.first().json;\nconst given = String((req.headers || {})['x-ryvo-cockpit-secret'] || '');\nconst want  = String($env.COCKPIT_SEND_SECRET || '');\nlet authed = false;\nif (want && given.length === want.length) {\n  authed = crypto.timingSafeEqual(Buffer.from(given), Buffer.from(want));\n}\nconst body = req.body || {};\nreturn [{ json: {\n  authed,\n  columns: Array.isArray(body.columns) ? body.columns : [],\n} }];"
+      },
+      "id": "n-checksecret",
+      "name": "CheckSecret",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "m-IsAuthed-c",
+              "leftValue": "={{ $json.authed }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "n-isauthed",
+      "name": "IsAuthed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        40,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok:false, error:\"unauthorised\" }) }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "n-respond401",
+      "name": "Respond401",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "/*\n * The model REFINES a proposal the cockpit already made. It never starts from\n * nothing, so an unreachable or nonsense model degrades the quality of the\n * mapping and never the operator's ability to do the import (\u00a72.4).\n *\n * Samples are capped at 5 values per column and truncated at 60 characters.\n * This is a real agency's contact list going to a processor, so it goes in a\n * teaspoon at a time, and the runbook records that it happens at all.\n */\nconst TARGETS = [\"full_name\", \"first_name\", \"last_name\", \"phone\", \"email\", \"budget_min\", \"budget_max\", \"budget_range\", \"area\", \"property_type\", \"bedrooms\", \"timeline\", \"last_contact_at\", \"notes\", \"consent\", \"source\", \"ignore\"];\nconst cols = $json.columns || [];\n\nif (!cols.length) {\n  return [{ json: { loadable: false, why: 'no columns were sent' } }];\n}\n\nconst lines = cols.map((c) => {\n  const samples = (c.samples || []).slice(0, 5).map((s) => String(s).slice(0, 60));\n  return [\n    'column: ' + JSON.stringify(String(c.column || '')),\n    '  our guess: ' + String(c.target || 'ignore') + ' (' + String(c.confidence || 'low') + ') \u2014 ' + String(c.why || ''),\n    '  sample values: ' + (samples.length ? samples.map((s) => JSON.stringify(s)).join(', ') : '(all empty)'),\n  ].join('\\n');\n}).join('\\n\\n');\n\nconst systemPrompt = [\n  'You map the columns of an estate agency contact list onto a fixed set of fields.',\n  '',\n  'The only fields that exist are:',\n  TARGETS.join(', '),\n  '',\n  'Rules:',\n  '1. Reply with JSON only: {\"columns\":[{\"column\":\"<exact source header>\",\"target\":\"<one of the fields>\",\"confidence\":\"high\"|\"low\",\"why\":\"<one short sentence>\"}]}',\n  '2. Use the EXACT source header string you were given. Do not rename, translate or tidy it.',\n  '3. Every target must be one of the listed fields. If a column fits none of them, use \"ignore\".',\n  '4. A guess is already supplied for each column. Keep it unless the sample values contradict it, and when you change one, say what in the samples made you change it.',\n  '5. Free-text columns \u2014 notes, comments, observations, anything holding sentences about what the buyer wants \u2014 are \"notes\". They matter more than they look: they are where a buyer states what they will not compromise on, and a field-only system throws them away.',\n  '6. Several columns may share a target. A first and last name column both map to their own fields; several free-text columns all map to notes.',\n  '7. Do not invent a field, do not add commentary outside the JSON, and do not include a column you were not given.',\n].join('\\n');\n\nconst userPrompt = 'These are the columns, with our guess and real sample values:\\n\\n' + lines;\n\nreturn [{ json: { loadable: true, systemPrompt, userPrompt, given: cols } }];"
+      },
+      "id": "n-buildprompt",
+      "name": "BuildPrompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "m-IsLoadable-c",
+              "leftValue": "={{ $json.loadable }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "n-isloadable",
+      "name": "IsLoadable",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok:false, error: $json.why || \"nothing to map\" }) }}",
+        "options": {
+          "responseCode": 422
+        }
+      },
+      "id": "n-respond422",
+      "name": "Respond422",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        640,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 2000, system: $json.systemPrompt, messages: [{ role: 'user', content: $json.userPrompt }] }) }}",
+        "options": {
+          "timeout": 45000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "n-callclaude",
+      "name": "CallClaude",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        -160
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ryvoAnthropicCrd",
+          "name": "Ryvo Anthropic (x-api-key)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/*\n * The response is ASSERTED, not assumed.\n *\n * `neverError: true` on the HTTP node turns a 4xx into a green node with an\n * item \u2014 lesson #13, which is why the first thing the last new alert channel\n * did was fail silently. So the status is checked before the body is read, and\n * when anything is wrong the DETERMINISTIC proposal is returned unchanged with\n * a note saying the model was not used. Never a silent degradation.\n */\nconst TARGETS = [\"full_name\", \"first_name\", \"last_name\", \"phone\", \"email\", \"budget_min\", \"budget_max\", \"budget_range\", \"area\", \"property_type\", \"bedrooms\", \"timeline\", \"last_contact_at\", \"notes\", \"consent\", \"source\", \"ignore\"];\nconst res = $input.first().json;\nconst given = $('BuildPrompt').first().json.given || [];\n\nconst fallback = (note) => [{ json: { ok: true, by: 'headers', columns: given, note } }];\n\nconst status = Number(res.statusCode || 0);\nif (status < 200 || status >= 300) {\n  return fallback('Claude was not consulted: the API returned ' + status + '. The mapping below is from the column headers and sample values only.');\n}\n\nlet text = '';\ntry {\n  text = (res.body.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');\n} catch (e) {\n  return fallback('Claude was not consulted: the response could not be read (' + e.message + ').');\n}\n\nlet parsed = null;\ntry {\n  const m = text.match(/\\{[\\s\\S]*\\}/);\n  parsed = JSON.parse(m ? m[0] : text);\n} catch (e) {\n  return fallback('Claude replied with something that is not JSON, so it was discarded.');\n}\n\nconst byName = new Map(given.map((g) => [String(g.column), g]));\nconst out = [];\nconst dropped = [];\n\nfor (const c of (parsed.columns || [])) {\n  const name = String(c.column || '');\n  const base = byName.get(name);\n  // A column we did not send back is a column the model invented. Drop it.\n  if (!base) { dropped.push(name + ' (not a column in this file)'); continue; }\n  const target = String(c.target || '');\n  // A target outside our list is a field that does not exist. Keep OUR guess.\n  if (!TARGETS.includes(target)) {\n    dropped.push(name + ' -> \"' + target + '\" (not one of our fields)');\n    out.push(base);\n    byName.delete(name);\n    continue;\n  }\n  out.push({\n    column: name,\n    target,\n    confidence: c.confidence === 'high' ? 'high' : 'low',\n    why: String(c.why || base.why || '').slice(0, 200),\n    samples: base.samples || [],\n    changed: target !== base.target ? base.target : undefined,\n  });\n  byName.delete(name);\n}\n\n// Any column the model did not mention keeps the deterministic guess, so no\n// column can go missing between what was uploaded and what is reviewed.\nfor (const [, base] of byName) out.push(base);\n\nconst order = new Map(given.map((g, i) => [String(g.column), i]));\nout.sort((a, b) => (order.get(String(a.column)) ?? 0) - (order.get(String(b.column)) ?? 0));\n\nconst note = dropped.length\n  ? 'Claude proposed ' + dropped.length + ' thing(s) that were discarded: ' + dropped.join('; ') + '.'\n  : undefined;\n\nreturn [{ json: { ok: true, by: 'headers+model', columns: out, note } }];"
+      },
+      "id": "n-afterclaude",
+      "name": "AfterClaude",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "n-respondmap",
+      "name": "RespondMap",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1040,
+        -160
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "CheckSecret",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CheckSecret": {
+      "main": [
+        [
+          {
+            "node": "IsAuthed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IsAuthed": {
+      "main": [
+        [
+          {
+            "node": "BuildPrompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond401",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BuildPrompt": {
+      "main": [
+        [
+          {
+            "node": "IsLoadable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IsLoadable": {
+      "main": [
+        [
+          {
+            "node": "CallClaude",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond422",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CallClaude": {
+      "main": [
+        [
+          {
+            "node": "AfterClaude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AfterClaude": {
+      "main": [
+        [
+          {
+            "node": "RespondMap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Lisbon"
+  },
+  "staticData": null,
+  "pinData": {}
+}
