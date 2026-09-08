@@ -59,7 +59,23 @@ export async function proxy(request: NextRequest) {
     path === '/apple-icon' ||
     path === '/favicon.ico'
 
-  const isPublic = isAsset || path.startsWith('/login') || path.startsWith('/auth')
+  /*
+   * Machine endpoints carry their OWN authentication and must not be
+   * redirected to a login page.
+   *
+   * /api/listings/inbound is called by n8n with a shared secret and no cookie.
+   * Without this it 307s to /login, which the caller's guard correctly reports
+   * as a non-2xx — so the agent was told their listing had not been saved and
+   * nothing was silently lost. It cost a round of diagnosis rather than a
+   * defect, which is what asserting the response downstream buys you.
+   *
+   * Listed explicitly, one path at a time. `path.startsWith('/api')` would
+   * exempt every future API route from auth by default, and the next one
+   * added might not bring its own.
+   */
+  const isMachineEndpoint = path === '/api/listings/inbound'
+
+  const isPublic = isAsset || isMachineEndpoint || path.startsWith('/login') || path.startsWith('/auth')
 
   if (!signedIn && !isPublic) {
     const to = request.nextUrl.clone()
