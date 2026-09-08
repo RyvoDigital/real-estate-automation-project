@@ -163,7 +163,21 @@ export function scoreListing(input: {
    * The spec's own worked example failed. Preferences are confidence, not
    * admission; conflating them rebuilt the CRM filter §4.1 exists to beat.
    */
-  const matched = hardFailed.length === 0
+  /*
+   * A MATCH NEEDS SOMETHING THAT HAD TO BE TRUE.
+   *
+   * With no hard constraints at all, "every hard constraint held" is
+   * vacuously true and EVERY listing matches. Measured: a lead who said only
+   * "we want four bedrooms" matched a one-bedroom flat as a weak match. §1 —
+   * too loose and the agency spams its own database and stops trusting the
+   * system, which is the failure that cannot be walked back.
+   *
+   * In practice budget and area are hard by default, so this fires only for a
+   * lead we know almost nothing about — and for that lead the honest answer is
+   * that we cannot match them yet, not that everything matches.
+   */
+  const hasSomethingBinding = hard.length > 0
+  const matched = hasSomethingBinding && hardFailed.length === 0
   /*
    * Zero when it is not a match, whatever the preferences say.
    *
@@ -194,6 +208,9 @@ export function scoreListing(input: {
     (fields.bedrooms === null || (listing.bedrooms ?? -1) >= fields.bedrooms)
 
   const reasons: string[] = []
+  if (!hasSomethingBinding) {
+    reasons.push('Nothing this lead said has to be true of a listing, so there is nothing to match on yet.')
+  }
   for (const h of hard.filter((j) => j.met)) reasons.push(`${h.detail}${h.evidence ? ` — they said: “${h.evidence}”` : ''}`)
   for (const p of preferencesMissed) reasons.push(`Misses: ${p.detail}${p.evidence ? ` — “${p.evidence}”` : ''}`)
   for (const h of hardFailed) reasons.push(`Fails: ${h.detail}${h.evidence ? ` — “${h.evidence}”` : ''}`)

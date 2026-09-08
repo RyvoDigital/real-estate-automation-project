@@ -188,7 +188,7 @@ test('geography adjacency comes from config and is explained', () => {
  * Concierge conversation and against hedged phrasings. Every one of them is a
  * defect that was live, not a property that already held.
  */
-import { extractFromMessages } from '../src/lib/matching/extract'
+import { extractForLead, extractFromMessages, isAgentNumber } from '../src/lib/matching/extract'
 
 const AREAS = ['Cascais', 'Estoril', 'Sintra']
 
@@ -243,4 +243,44 @@ test('area is a hard constraint, and adjacency is what gives it flexibility', ()
   assert.equal(at('Faro').matched, false, 'Faro is not Cascais and is not configured as adjacent')
   assert.equal(at('Cascais').matched, true)
   assert.equal(at('Estoril').matched, true, 'adjacency comes from config, not from hedging')
+})
+
+test('an agent is never matched as a buyer', () => {
+  // F2's tie-break puts an agent's listing message on their own lead when the
+  // number is both. Extracting requirements from it made the operator look
+  // like a buyer who wants a property in Estoril.
+  const e = extractForLead({
+    phone: '+351933048230',
+    messages: ['Novo: Ref B-2001, T3 Estoril, 900.000 EUR'],
+    knownAreas: AREAS,
+    agentNumbers: ['+351 933 048 230'],
+  })
+  assert.equal(e.excluded?.excluded, true)
+  assert.equal(e.requirements.length, 0, 'a listing message must not become a buyer’s requirements')
+  assert.match(e.excluded!.reason, /configured as an agent number/)
+
+  // Formatting must not defeat it, and a real lead is untouched.
+  assert.equal(isAgentNumber('+351933048230', ['00351933048230']), true)
+  const lead = extractForLead({ phone: '+351912345678', messages: ['Procuro T3 em Cascais ate 900 mil'], knownAreas: AREAS, agentNumbers: ['+351933048230'] })
+  assert.equal(lead.excluded, undefined)
+  assert.ok(lead.requirements.length > 0)
+})
+
+test('a hedge becomes a floor and a preference above it', () => {
+  const hedged = extractFromMessages(["We'd probably want three bedrooms but four would be better."], AREAS)
+  assert.deepEqual(hedged.requirements.map((r) => [r.strength, r.value]), [['preference', 3], ['preference', 4]])
+
+  // "minimum" is what makes the floor binding — not the word "probably".
+  const floored = extractFromMessages(['Two bedrooms minimum, three if the price works.'], AREAS)
+  assert.deepEqual(floored.requirements.map((r) => [r.strength, r.value]), [['hard', 2], ['preference', 3]])
+})
+
+test('a lead with nothing binding produces no matches at all', () => {
+  // Measured: with no hard constraints, "every hard constraint held" is
+  // vacuously true and a one-bedroom flat matched a lead who asked for four.
+  const e = extractFromMessages(['We want four bedrooms.'], AREAS)
+  const oneBed: Listing = { id: 'X', reference: 'R', area: 'Cascais', price: 800_000, bedrooms: 1, property_type: 'house', features: [], status: 'available' }
+  const r = scoreListing({ requirements: e.requirements, listing: oneBed, thresholds: T, budgetFlexible: false, fields: { budget_max: null, area: null, bedrooms: null } })
+  assert.equal(r.matched, false)
+  assert.match(r.reasons[0], /nothing to match on yet/)
 })

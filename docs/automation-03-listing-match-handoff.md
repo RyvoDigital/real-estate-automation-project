@@ -141,6 +141,12 @@ People say *"we couldn't live without a garden"* and *"it'd be nice if it faced 
 
 So a match is never binary. It is: **fits every hard constraint, misses these two preferences, here is which ones.**
 
+> **Corrected 8 Sep 2026.** As first written this section implied every stated criterion should default to a preference unless the lead marked it otherwise. That is right for a garden and **wrong for a place**. A lead naming a town is defining the search space, not expressing a hope — and treating it as a preference had a measured consequence: a lead who wrote *"T3 em Cascais ate 900 mil"* matched a listing in **Faro** as "possible", 500km away, because the only hard constraint left was the budget.
+>
+> **Area and budget are hard by default. Features and bedroom counts follow what the lead said.** §4.3's configured adjacency is what gives area the flexibility it needs — not a soft strength.
+>
+> And a match requires at least one hard constraint to exist at all. With none, "every hard constraint held" is vacuously true and every listing matches: a lead who said only *"we want four bedrooms"* matched a one-bedroom flat.
+
 Deriving hard-versus-preference from the conversation is the highest-value thing this engine does. Get it wrong and you have rebuilt a CRM filter.
 
 > **Preferences are confidence, not admission.** A missed preference lowers how strongly a match is put forward; it never decides whether the match exists. Conflating the two rebuilds the filter this section exists to beat — and it did, once: an early version of the scorer refused a listing that met every hard constraint because it missed the single preference the lead had mentioned.

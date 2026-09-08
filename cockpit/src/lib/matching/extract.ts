@@ -1,5 +1,6 @@
 import { budgetFlexibility, strengthOf, verifyQuote, type Requirement } from './criteria'
 import { parseBedrooms, parseMoney } from '@/lib/import/normalise'
+import { decomposeBedrooms } from './hedge'
 
 /**
  * Turning a lead's own messages into requirements.
@@ -13,12 +14,51 @@ import { parseBedrooms, parseMoney } from '@/lib/import/normalise'
  * sentence that never mentioned one is worse than one with a blank field.
  */
 
+/**
+ * An agent is not a buyer, and must never be matched as one.
+ *
+ * F2's tie-break sends a listing message down the LEAD path when the sender's
+ * number is also a lead — deliberately, because a prospect getting no reply is
+ * worse than a listing needing re-sending. The consequence showed up here: the
+ * listing text then becomes part of that lead's extracted requirements. The
+ * operator's own number now looks like a buyer who wants a property in Estoril,
+ * because of a test message.
+ *
+ * Excluding the lead entirely is the safer of the two options — flagging it as
+ * test data leaves a real-looking lead in the matching set, and the next person
+ * to add a matching surface has to remember the flag. This one cannot be
+ * forgotten: the extractor refuses and says why.
+ */
+export type AgentExclusion = { excluded: true; reason: string }
+
 export type Extraction = {
   requirements: Requirement[]
   budgetFlexible: boolean
   budgetEvidence: string | null
   /** Sentences that look like a requirement but could not be turned into one. */
   unparsed: string[]
+  /** Set when this lead is an agent and must not be matched at all. */
+  excluded?: AgentExclusion
+}
+
+/**
+ * Digits only, with the international `00` prefix folded away.
+ *
+ * "00351933048230" and "+351933048230" are the same number, and `00` is how
+ * most of Europe writes it — an operator entering the agent number that way
+ * would have found the branch silently never firing. The same comparison lives
+ * in the Concierge's IsAgentSender condition and had the same gap.
+ *
+ * A bare national number ("933048230") is deliberately NOT folded in: resolving
+ * it needs a country, and guessing one could match a different person's number
+ * in another country.
+ */
+const digits = (s: string) => String(s ?? '').replace(/\D/g, '').replace(/^00/, '')
+
+/** Is this lead's own number configured as an agent for their client? */
+export function isAgentNumber(phone: string | null, agentNumbers: string[]): boolean {
+  const p = digits(phone ?? '')
+  return Boolean(p) && agentNumbers.some((n) => digits(n) === p)
 }
 
 /**
@@ -54,6 +94,27 @@ function sentences(text: string): string[] {
     .filter((s) => s.length > 3)
 }
 
+export function extractForLead(input: {
+  phone: string | null
+  messages: string[]
+  knownAreas: string[]
+  agentNumbers: string[]
+}): Extraction {
+  if (isAgentNumber(input.phone, input.agentNumbers)) {
+    return {
+      requirements: [],
+      budgetFlexible: false,
+      budgetEvidence: null,
+      unparsed: [],
+      excluded: {
+        excluded: true,
+        reason: `${input.phone} is configured as an agent number for this client, so its messages are listings, not requirements. An agent is not matched as a buyer.`,
+      },
+    }
+  }
+  return extractFromMessages(input.messages, input.knownAreas)
+}
+
 export function extractFromMessages(leadMessages: string[], knownAreas: string[]): Extraction {
   const requirements: Requirement[] = []
   const unparsed: string[] = []
@@ -77,15 +138,28 @@ export function extractFromMessages(leadMessages: string[], knownAreas: string[]
         })
       }
 
-      const wordBeds = s.match(WORD_NUM_RE)
-      const beds = s.match(/\b[TtVv]\s?\d{1,2}\b/) ?? s.match(/\b\d{1,2}\s*(?:bed|bedroom|quarto|dorm|hab)\w*/i) ?? wordBeds
-      if (beds) {
-        const n = wordBeds && beds === wordBeds
-          ? WORD_NUMBERS[wordBeds[1].toLowerCase()] ?? null
-          : parseBedrooms(beds[0])
-        if (n !== null) {
-          found = true
-          requirements.push({ kind: 'bedrooms', value: n, strength, evidence: evidence ?? s, source: 'conversation', why: `said ${beds[0]}` })
+      /*
+       * A hedged bedroom count is TWO requirements — see hedge.ts. The floor
+       * is only hard when the lead said "minimum" or "pelo menos"; otherwise
+       * both are preferences and the scorer does the rest: a listing at the
+       * floor meets one of two, a listing at the preferred count meets both.
+       */
+      const hedge = decomposeBedrooms(s)
+      if (hedge) {
+        found = true
+        requirements.push({
+          kind: 'bedrooms', value: hedge.floor,
+          strength: hedge.floorIsHard ? 'hard' : strength,
+          evidence: evidence ?? s, source: 'conversation',
+          why: hedge.floorIsHard ? `said at least ${hedge.floor}` : `said ${hedge.floor}`,
+        })
+        if (hedge.preferred !== null && hedge.preferred !== hedge.floor) {
+          requirements.push({
+            kind: 'bedrooms', value: hedge.preferred,
+            strength: 'preference',
+            evidence: evidence ?? s, source: 'conversation',
+            why: `and said ${hedge.preferred} would be better`,
+          })
         }
       }
 

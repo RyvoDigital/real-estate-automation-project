@@ -817,6 +817,76 @@ control rather than silence the alarm.
 
 ---
 
+## 1e. The guard existed. It was written the same day. It was not applied to the second caller.
+
+**2026-09-08.** A negation guard was written for listing status changes so that
+*"not sold"* could not read as `sold`. It was tested, sabotage-verified, and
+shipped.
+
+Hours later, in the same session, the matching engine's hard-versus-preference
+markers were written **without it**:
+
+```
+"O jardim não é obrigatório mas faz muita diferença para nós."
+  -> HARD constraint: garden
+```
+
+The lead said a garden is **not** required. It was recorded as non-negotiable,
+and every listing without one would have been excluded — showing them fewer
+properties, with nothing indicating why.
+
+Same trap, same day, different caller. Knowing the pattern did not prevent it,
+which §1 already says about #6 recurring three days later. What is new here is
+how short the gap was: not months, not a different person — the same person,
+the same afternoon, having just written the fix.
+
+> A rule implemented once and *applied* once is not a rule. It is a local
+> repair that happens to be correct where it was made.
+
+The fix is not vigilance. It is that both callers now import one
+implementation, `src/lib/text/negation.ts`, so a third caller gets the
+behaviour by construction rather than by remembering. This is the same shape as
+the D3 history bug, where two code paths each did their own thing with the
+message window and only one of them was right.
+
+The mechanical question, and it is cheap: **when you write a guard, grep for
+the other places that take the same kind of input.** Not "where else might this
+matter" — that is a judgement and judgement is what just failed. Grep for the
+shape: another regex over lead text, another comparison of a user string, another
+place the same word could appear.
+
+---
+
+## 1f. 105/105 after a sabotage is not a result, it is a smell
+
+**2026-09-08.** The house technique is to remove a guard and confirm a test goes
+red. A sabotage was applied to the area-strength rule and the suite reported
+**105 passed, 0 failed** — the same as before.
+
+The instinct that guard was designed to serve says: *the test does not cover
+this*. The truth was duller and more dangerous: **the sabotage never applied.**
+A shell escape had broken, the string replacement matched nothing, and the file
+was unchanged. The suite was green because the code was still correct.
+
+Either way the number was 105/105, and the two situations are indistinguishable
+from the summary line:
+
+> **A sabotage that changes nothing and a guard that nothing tests produce the
+> same green.** If removing a guard does not turn something red, the first
+> question is not "which test is missing" — it is "did my edit actually land".
+
+So a sabotage needs its own assertion, exactly like the thing it is checking:
+assert the anchor matched before believing the result. `assert old in s` in the
+edit script, or a `grep -c` on the modified file, and only then run the suite.
+Without that, the most reliable check in this project can quietly report the
+opposite of the truth.
+
+That is rule 13 again — a string-replace patch that half-applies is worse than
+one that fails — pointed at the tooling that verifies the tests rather than at
+the product.
+
+---
+
 ## 6g. A keyboard assumption, which is worse than a locale assumption
 
 **2026-09-08.** §6c records a guard whose regex boundaries were ASCII, so it
