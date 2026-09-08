@@ -1,4 +1,4 @@
-import { IconChat, IconDoc, IconMenu, IconPerson, IconPulse, IconWarning } from './Icons'
+import { IconChat, IconDoc, IconMenu, IconPerson, IconPulse, IconUpload, IconWarning } from './Icons'
 import { BEHIND_MORE, type Tab } from './Shell'
 
 /**
@@ -85,6 +85,13 @@ export function SkeletonShell({
           <span className="dtab__text">
             Onboarding
             <span className="dtab__meta">New client</span>
+          </span>
+        </span>
+        <span className={dcls('import')}>
+          <IconUpload size={19} />
+          <span className="dtab__text">
+            Import
+            <span className="dtab__meta">Contact lists</span>
           </span>
         </span>
       </nav>

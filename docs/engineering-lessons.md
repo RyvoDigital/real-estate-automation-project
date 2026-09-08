@@ -609,6 +609,49 @@ gap is usually obvious.
 
 ---
 
+## 6f. A foreign key's ON DELETE behaviour is part of the deletion's blast radius, and `set null` destroys more quietly than `cascade`
+
+**2026-09-08.** Automation 03's import needs to be reversible, so a revert
+deletes the leads it created. The obvious safety rule is "never cascade" — do
+not let removing a lead take its messages with it.
+
+That rule would have been useless here, because `messages.lead_id` is:
+
+```sql
+lead_id uuid references public.leads(id) on delete set null
+```
+
+Deleting a lead does not delete one message. It **nulls the link**. The row
+count is unchanged, nothing is reported as deleted, no cascade fires — and the
+conversation is now evidence with its subject erased. You are left with a
+message whose text says *"I couldn't compromise on the garden"* and no way to
+say who said it.
+
+> `cascade` announces itself: rows disappear and counts move. `set null` is
+> silent by construction — it is a mutation dressed as a no-op, and it is
+> invisible to exactly the check you would write to guard against a cascade.
+
+Three things generalise:
+
+1. **Read the ON DELETE clause of every inbound foreign key before writing a
+   delete.** Not the table you are deleting from — the tables that *point at*
+   it. `cascade`, `set null`, `set default` and `restrict` are four different
+   blast radii, and only one of them stops you.
+2. **"Nothing was deleted" is not the property you want.** The property is
+   "nothing was damaged". A nulled foreign key satisfies the first and violates
+   the second, which is why the audit-trail rule here is written as *refuse the
+   lead*, not *do not cascade*. The refusal is the only thing that actually
+   works.
+3. **The safe-looking behaviour was the destructive one.** `set null` reads as
+   the gentle option next to `cascade` — it preserves rows. It preserves them
+   the way a shredder preserves paper.
+
+Recorded as its own entry rather than under §1 because nothing here reported
+success over a failure. The mechanism is different and worse: it is a
+destructive operation with no failure to report at all.
+
+---
+
 ## 6e. "Pushed" and "deployed" are two different facts, and only one of them is visible
 
 **2026-09-07.** The cockpit redesign was committed, pushed to `main`, and

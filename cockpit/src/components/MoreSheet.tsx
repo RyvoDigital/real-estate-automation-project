@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { IconDoc, IconMenu, IconPulse, IconSignOut } from './Icons'
+import { IconDoc, IconMenu, IconPulse, IconSignOut, IconUpload } from './Icons'
 
 /**
  * The fourth tab. Health and Onboarding are real work but not daily work — a
@@ -46,6 +46,12 @@ export function MoreSheet({ active, email }: { active: boolean; email: string })
               <IconDoc size={19} />
               Onboarding
               <span className="sheet__meta">New client</span>
+            </Link>
+
+            <Link href="/import" className="sheet__item" onClick={() => setOpen(false)}>
+              <IconUpload size={19} />
+              Import
+              <span className="sheet__meta">Contact lists</span>
             </Link>
 
             <form action="/auth/signout" method="post">

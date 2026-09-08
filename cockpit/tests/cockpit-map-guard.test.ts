@@ -106,3 +106,59 @@ test('the order of the operator’s own columns is preserved', () => {
   })) as { columns: { column: string }[] }
   assert.deepEqual(out.columns.map((c) => c.column), ['Coluna1', 'Valor'])
 })
+
+/*
+ * §2.3 + the sub-processor rule: if the operator has excluded a column, its
+ * values must not leave the server. Tested on BuildPrompt — the node that
+ * composes the outgoing request — because that is the last place a bug in the
+ * cockpit can be stopped.
+ */
+function buildPrompt(): (input: unknown) => { json: Record<string, unknown> }[] {
+  const wf = JSON.parse(
+    readFileSync(new URL('../../workflows/ryvoCockpitMap01.json', import.meta.url), 'utf8'),
+  )
+  const node = (wf.nodes as { name: string; parameters: { jsCode?: string } }[]).find(
+    (n) => n.name === 'BuildPrompt',
+  )
+  if (!node?.parameters?.jsCode) {
+    throw new Error('BuildPrompt not found in ryvoCockpitMap01.json')
+  }
+  return new Function('$json', `const $input = null; ${node.parameters.jsCode}`) as never
+}
+
+function build(columns: unknown[]) {
+  return buildPrompt()({ columns })[0].json as {
+    userPrompt: string
+    withheld: string[]
+    loadable: boolean
+  }
+}
+
+test('an operator-excluded column sends NO values', () => {
+  const out = build([
+    { column: 'NIF', target: 'ignore', locked: true, confidence: 'high', why: 'operator excluded it', samples: ['123456789', '987654321'] },
+    { column: 'Nome', target: 'full_name', locked: true, confidence: 'high', why: 'names', samples: ['Maria Santos'] },
+  ])
+  assert.ok(!out.userPrompt.includes('123456789'), 'an excluded column’s values must not leave the server')
+  assert.ok(!out.userPrompt.includes('987654321'))
+  assert.match(out.userPrompt, /withheld — the operator has excluded this column/)
+  assert.deepEqual(out.withheld, ['NIF'])
+  assert.ok(out.userPrompt.includes('Maria Santos'), 'a kept column still sends samples')
+})
+
+test('an `ignore` that is only OUR guess still sends samples — this is how Coluna1 was rescued', () => {
+  const out = build([
+    { column: 'Coluna1', target: 'ignore', confidence: 'low', why: 'nothing recognisable', samples: ['Maria Santos', 'João Silva'] },
+  ])
+  assert.ok(out.userPrompt.includes('Maria Santos'), 'an unconfirmed guess must still be reconsiderable')
+  assert.deepEqual(out.withheld, [])
+})
+
+test('samples stay capped at five and truncated at sixty characters', () => {
+  const out = build([
+    { column: 'Notas', target: 'notes', confidence: 'low', why: 'free text', samples: Array.from({ length: 12 }, (_, i) => `${i}-`.padEnd(120, 'x')) },
+  ])
+  const quoted = out.userPrompt.match(/"[^"]*x{10,}[^"]*"/g) ?? []
+  assert.equal(quoted.length, 5, 'at most five values per column')
+  for (const q of quoted) assert.ok(q.length <= 62, 'each truncated to sixty characters')
+})

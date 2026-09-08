@@ -147,3 +147,12 @@ export function IconCheck({ size = 16, className }: P) {
     </svg>
   )
 }
+
+export function IconUpload({ size = 19, className }: P) {
+  return (
+    <svg {...base(size)} strokeWidth={1.9} className={className} aria-hidden>
+      <path d="M12 16V4M8 8l4-4 4 4" />
+      <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+    </svg>
+  )
+}

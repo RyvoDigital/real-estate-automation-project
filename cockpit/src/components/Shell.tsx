@@ -1,11 +1,11 @@
 import Link from 'next/link'
-import { IconChat, IconDoc, IconPerson, IconPulse, IconSignOut, IconWarning } from './Icons'
+import { IconChat, IconDoc, IconPerson, IconPulse, IconSignOut, IconUpload, IconWarning } from './Icons'
 import { MoreSheet } from './MoreSheet'
 
-export type Tab = 'queue' | 'leads' | 'report' | 'health' | 'onboarding'
+export type Tab = 'queue' | 'leads' | 'report' | 'health' | 'onboarding' | 'import'
 
 /** Health and Onboarding live behind More on a phone; on desktop they do not. */
-export const BEHIND_MORE: Tab[] = ['health', 'onboarding']
+export const BEHIND_MORE: Tab[] = ['health', 'onboarding', 'import']
 
 /**
  * The app shell.
@@ -87,6 +87,13 @@ export function Shell({
           <span className="dtab__text">
             Onboarding
             <span className="dtab__meta">New client</span>
+          </span>
+        </Link>
+        <Link href="/import" className={dcls('import')} aria-current={active === 'import'}>
+          <IconUpload size={19} />
+          <span className="dtab__text">
+            Import
+            <span className="dtab__meta">Contact lists</span>
           </span>
         </Link>
 

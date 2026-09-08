@@ -922,6 +922,48 @@ code { font-family: var(--f-mono); font-size: 0.92em; }
 .hcheck__tag { flex-shrink: 0; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--t3); }
 .hnote { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--ink-4); overflow-wrap: anywhere; }
 
+/* ---------------------------------------------------------------- import */
+
+.maprows { display: flex; flex-direction: column; gap: 10px; }
+.maprow {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 15px;
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--hairline);
+}
+.maprow__col { display: flex; flex-direction: column; gap: 3px; }
+.maprow__name { font-size: 14.5px; font-weight: 600; color: #fff; }
+.maprow__why { font-size: 12.5px; line-height: 1.45; color: var(--ink-3); }
+/* The sample values are the whole reason a header-only mapping is not enough
+   (§2.3), so they are shown to the operator making the decision, not hidden. */
+.maprow__samples {
+  font-family: var(--f-mono);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink-4);
+}
+.maprow__pick { display: flex; flex-direction: column; gap: 6px; }
+
+/* A file input styles nothing like a text input, so it is given its own rules
+   rather than being left to the browser's default 44px-failing button. */
+.field--file { display: flex; align-items: center; padding: 10px 14px; font-size: 14px; }
+.field--file::file-selector-button {
+  margin-right: 12px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 9px;
+  border: 1px solid var(--hairline-strong);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink-1);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 /* ---------------------------------------------------------------- report */
 
 .report { display: flex; flex-direction: column; gap: 16px; }
@@ -1259,6 +1301,9 @@ code { font-family: var(--f-mono); font-size: 0.92em; }
   .ofoot__row { flex: 0 0 auto; }
   .ofoot__mid { flex-grow: 1; order: -1; }
 
+  .maprow { flex-direction: row; align-items: center; justify-content: space-between; gap: 24px; }
+  .maprow__col { flex: 1 1 0; }
+  .maprow__pick { width: 240px; flex-shrink: 0; }
   .rstats { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
   .rstats > .rstat:last-child:nth-child(odd) { grid-column: auto; }
   .rweek { gap: 10px; }

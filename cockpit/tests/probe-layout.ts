@@ -277,7 +277,27 @@ async function main() {
     '/onboarding',
     '/health',
     '/report',
+    '/import',
+    // The batch screen needs a real batch. Passed in rather than invented, and
+    // its ABSENCE is asserted below — a route list that silently lost an entry
+    // is how "all checks passed" gets reported for a screen nobody measured.
+    ...(process.env.PROBE_IMPORT_BATCH ? [`/import/${process.env.PROBE_IMPORT_BATCH}`] : []),
   ]
+
+  /*
+   * THE ROUTE LIST IS ITSELF CHECKED.
+   *
+   * An edit to this list half-applied once — the assertion was skipped, the
+   * anchor did not match, and the probe went on reporting "all checks passed"
+   * for a set of routes that no longer included the screens being added. A
+   * pass over a list you have not verified is an empty-set pass with extra
+   * steps (§1, rule 6).
+   */
+  const MUST_COVER = ['/queue', '/leads', '/report', '/onboarding', '/health', '/import']
+  const missing = MUST_COVER.filter((r) => !ROUTES.includes(r))
+  if (missing.length) {
+    throw new Error(`probe-layout is not covering ${missing.join(', ')} — the route list has drifted`)
+  }
 
   const c = await launch()
   const host = new URL(BASE).hostname
@@ -487,7 +507,7 @@ async function main() {
     await c.send('Runtime.evaluate', { expression: NAVSHAPE, returnByValue: true })
   ).result.value
   check(
-    navDesk.dtab === 3 && navDesk.brand === 1,
+    navDesk.dtab === 4 && navDesk.brand === 1,
     'the desktop sidebar is fully expanded',
     `${navDesk.dtab} expanded row(s), ${navDesk.brand} brand mark(s) at 1440px`,
   )
