@@ -83,6 +83,72 @@ export function languagesFor(draft: ClientDraft): string[] {
   return [...set].filter(Boolean)
 }
 
+/**
+ * The workflow reads `working_hours` as `{start, end, days}` — `computeSlots`
+ * does `String(workingHours.start).split(':')` and `workingHours.days`. This
+ * form has always collected it as free text and `toConfig` wrote that text
+ * through verbatim, so every client onboarded here got a STRING.
+ *
+ * That is not a degraded booking. `cursor.set({hour: NaN})` throws, and
+ * ProposeSlots is on the path for EVERY inbound message with no error branch —
+ * so the execution dies and the lead gets silence, from their first message on.
+ * ZZ TEST carries exactly that row today; it has simply never had traffic.
+ *
+ * `toConfig` already carried the comment "keys match cfg.* in
+ * ryvoInboundConc01 exactly". It did. The key was right and the VALUE SHAPE was
+ * wrong, one level below where the promise was being checked.
+ *
+ * So the free text stays (it is the readable thing to type) and is parsed here
+ * into the shape the engine reads. Anything unparseable is a validation error
+ * rather than a row that reaches the workflow.
+ */
+const DAY_INDEX: Record<string, number> = {
+  mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6, sun: 7,
+  monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6, sunday: 7,
+}
+
+export type WorkingHours = { start: string; end: string; days: number[] }
+
+export function parseWorkingHours(text: string): WorkingHours | null {
+  // Normalise the dashes people actually type: en dash, em dash, hyphen.
+  const t = String(text ?? '').toLowerCase().replace(/[\u2010-\u2015]/g, '-').trim()
+  if (!t) return null
+
+  // Times last, so a day range's own dash is never mistaken for the time dash.
+  const times = t.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})\s*$/)
+  if (!times) return null
+  const [h1, m1, h2, m2] = [+times[1], +times[2], +times[3], +times[4]]
+  if (h1 > 23 || h2 > 23 || m1 > 59 || m2 > 59) return null
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const start = `${pad(h1)}:${pad(m1)}`
+  const end = `${pad(h2)}:${pad(m2)}`
+  // An end at or before the start yields no slots on any day, which would look
+  // like "fully booked" forever rather than like the configuration error it is.
+  if (end <= start) return null
+
+  const dayPart = t.slice(0, times.index).trim().replace(/[,]+$/, '')
+  const days = new Set<number>()
+
+  const range = dayPart.match(/^([a-z]+)\s*-\s*([a-z]+)$/)
+  if (range) {
+    const a = DAY_INDEX[range[1]], b = DAY_INDEX[range[2]]
+    if (a === undefined || b === undefined) return null
+    // Mon–Sat, and also Sat–Mon, which wraps the week rather than being empty.
+    for (let i = 0, d = a; i < 7; i++, d = (d % 7) + 1) {
+      days.add(d)
+      if (d === b) break
+    }
+  } else {
+    for (const tok of dayPart.split(/[\s,]+/).filter(Boolean)) {
+      const d = DAY_INDEX[tok]
+      if (d === undefined) return null
+      days.add(d)
+    }
+  }
+  if (!days.size) return null
+  return { start, end, days: [...days].sort((x, y) => x - y) }
+}
+
 export function validate(draft: ClientDraft): FieldError[] {
   const e: FieldError[] = []
   const need = (field: keyof ClientDraft, label: string) => {
@@ -124,8 +190,14 @@ export function validate(draft: ClientDraft): FieldError[] {
   num('viewingDurationMinutes', 'Viewing length', 15, 240)
   num('highValueThresholdEur', 'High-value threshold', 0, 100_000_000)
 
-  if (!/^\s*\S.*\d{1,2}:\d{2}\s*[–-]\s*\d{1,2}:\d{2}/.test(draft.workingHours)) {
-    e.push({ field: 'workingHours', message: 'Like: Mon–Sat 09:30 – 19:30' })
+  // Validated by PARSING it, not by pattern-matching it. The old regex accepted
+  // anything containing two clock times, which is how a string the workflow
+  // cannot read passed validation and reached a client_automations row.
+  if (!parseWorkingHours(draft.workingHours)) {
+    e.push({
+      field: 'workingHours',
+      message: 'Like: Mon–Sat 09:30 – 19:30 (days first, then the open and close times)',
+    })
   }
 
   // Every language the client can be spoken to in needs its own handoff note.
@@ -157,7 +229,10 @@ export function toConfig(draft: ClientDraft) {
     agent_name: draft.agentName.trim(),
     areas: draft.areas.split(',').map((a) => a.trim()).filter(Boolean),
     timezone: draft.timezone.trim(),
-    working_hours: draft.workingHours.trim(),
+    // The parsed shape, never the raw text: computeSlots reads .start/.end/.days.
+    // validate() has already refused anything unparseable, and the ?? is the
+    // fail-loud rather than fail-silent branch if it is ever called without it.
+    working_hours: parseWorkingHours(draft.workingHours) ?? null,
     booking_window_days: Number(draft.bookingWindowDays),
     min_hours_notice: Number(draft.minHoursNotice),
     viewing_duration_minutes: Number(draft.viewingDurationMinutes),

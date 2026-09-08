@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import { readFileSync } from 'node:fs'
 import assert from 'node:assert/strict'
+import { good } from './fixtures/onboarding-draft'
 import {
   isIanaZone,
   isPlausiblePhone,
@@ -11,25 +12,6 @@ import {
 
 /* Each of these guards a field that has already cost an incident. */
 
-const good: ClientDraft = {
-  agencyName: 'Marbella Sur',
-  whatsappNumber: '+34600123456',
-  timezone: 'Europe/Madrid',
-  locale: 'es-ES',
-  defaultLanguage: 'es',
-  areas: 'Marbella, Estepona',
-  agentName: 'Lucía',
-  workingHours: 'Mon–Sat 09:30 – 19:30',
-  bookingWindowDays: '14',
-  minHoursNotice: '4',
-  viewingDurationMinutes: '45',
-  highValueThresholdEur: '1500000',
-  escalateTo: '+34600123456',
-  calendarId: 'viewings@marbellasur.es',
-  handoffPt: 'Um colega entra em contacto.',
-  handoffEn: 'A colleague will be in touch.',
-  handoffEs: 'Un compañero se pondrá en contacto.',
-}
 
 test('a complete draft passes', () => {
   assert.deepEqual(validate(good), [])
