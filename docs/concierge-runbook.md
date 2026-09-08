@@ -938,6 +938,24 @@ belongs to that date rather than to the previous UTC one.
 stops gaining rows and nothing else notices. So the health check asserts a row
 exists for yesterday.
 
+### The drills covered dependencies, not us (open gate, 2026-09-08)
+
+D5 below broke every external dependency and each one now degrades honestly.
+**It did not break our own code.** Zero of the Concierge's 32 Code nodes have an
+error branch, against 33 of its 35 HTTP nodes, and `LogRun` is a leaf reached at
+the end of every branch — so a throw in any Code node writes **no
+`automation_runs` row at all**, and the catch-all health check at
+`infra/scripts/healthcheck.sh:196` cannot see it. Lead unanswered, operator
+unalerted, every dashboard green.
+
+Not hypothetical: `working_hours` stored as free text made `computeSlots` throw
+inside Luxon, on `ProposeSlots`, which is on the path for every inbound message.
+
+Specified in **`docs/code-node-failure-handling-spec.md`**. It is a gate before
+the first real client. Do not treat the `working_hours` fix as closing it — that
+closed the validation gap, not the fragility that turned a bad value into
+silence.
+
 ### Forced-failure drills — what each dependency does when it breaks (D5, 2026-09-05)
 
 Each dependency was broken, observed, **restored and verified working before

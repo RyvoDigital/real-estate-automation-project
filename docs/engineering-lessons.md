@@ -678,6 +678,57 @@ gap is usually obvious.
 
 ---
 
+## 5b. An empty result is not a fact about the world, but it always gets reported as one
+
+A query returns nothing. There are two reasons, and the system almost always
+picks the wrong one — because the wrong one is the plausible one.
+
+- Zero free slots is reported as **"that day is fully booked"**. It might mean
+  the working hours never parsed.
+- Zero matching listings is reported as **"nothing matches your criteria"**. It
+  might mean the filter is inverted.
+- Zero escalated leads is reported as **"a quiet day"**. It might mean the
+  predicate is reading the wrong column.
+
+Each of those is a claim about the world, asserted from a result that was only
+ever a claim about the query. Nobody investigates, because the answer is
+completely ordinary. That is what makes this expensive: it does not look like a
+bug at any point.
+
+### It shows up as a design rule, not a debugging habit
+
+`parseWorkingHours` refuses a closing time at or before the opening time. Not
+because such a config is malformed in the abstract — it is perfectly
+well-formed — but because of what it would *produce*: zero slots on every day,
+for ever, reported to every lead as "fully booked". The misconfiguration would
+have been indistinguishable from a permanently busy agency, and it would have
+survived indefinitely with everyone reassured.
+
+**So refuse the input that can only produce a misleading empty set.** It is much
+cheaper than detecting the empty set later and asking why, and it is the only
+point at which the true cause is still knowable.
+
+`computeSlots` already had the other half of this and it is worth reading as the
+same lesson twice: it tracks an `eligible` count separately from `free`,
+purely so that "that day is fully booked" and "that day is inside our notice
+period" can be told apart. Two identical empty lists, two different sentences to
+a lead, and picking the wrong one is an invented fact.
+
+### The general form
+
+> When a result can be empty for more than one reason, the system must either
+> **know which reason** or **say that it does not**. Reporting the plausible one
+> is a fabrication with good manners.
+
+This is §7 approached from the other side. There, the rule was to prove what a
+filter *excludes*, because a filter that returns the right rows may be excluding
+nothing. Here it is that a filter returning *no* rows is not evidence of
+anything until you know why. Both come down to the same thing: the empty set is
+the least informative output a system produces and the one it is most confident
+about.
+
+---
+
 ## 1d. A guard that never sees its own trigger, and the test that passes for the wrong reason
 
 **2026-09-08.** §1 #7 records a rule that did nothing during its own acceptance
