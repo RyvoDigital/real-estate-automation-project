@@ -168,7 +168,13 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
             </div>
 
             <div className="learned__row">
-              <span className="learned__k">Viewing</span>
+              <span className="learned__k">
+                {lead.viewing?.kind === 'viewing'
+                  ? 'Viewing'
+                  : lead.viewing?.kind === 'meeting'
+                    ? 'First meeting'
+                    : 'Appointment'}
+              </span>
               {lead.viewing ? (
                 <span className="learned__v">
                   {lead.viewing.startsAt ? clock(lead.viewing.startsAt) : 'Booked'}

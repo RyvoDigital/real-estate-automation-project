@@ -279,7 +279,7 @@ export type LeadDetail = {
   classes: EscalationClass[]
   messages: Message[]
   handledElsewhere: boolean
-  viewing: { startsAt: string | null; summary: string | null } | null
+  viewing: { startsAt: string | null; kind: 'viewing' | 'meeting' | null; summary: string | null } | null
 }
 
 export async function getLead(id: string): Promise<LeadDetail | null> {
@@ -381,6 +381,11 @@ async function getViewing(leadId: string) {
   if (!hit) return null
 
   const d = hit.data as Record<string, unknown>
+  // An appointment is a viewing only when a specific property was named. Older
+  // rows predate the field and are shown as what they honestly are: booked,
+  // kind unknown. Never defaulted to 'viewing' — that default is the defect.
+  const kind: 'viewing' | 'meeting' | null =
+    d.kind === 'viewing' ? 'viewing' : d.kind === 'meeting' ? 'meeting' : null
   const startsAt =
     typeof d.starts_at === 'string'
       ? d.starts_at
@@ -388,7 +393,7 @@ async function getViewing(leadId: string) {
         ? d.slot
         : null
 
-  return { startsAt, summary: (hit.summary as string) ?? null }
+  return { startsAt, kind, summary: (hit.summary as string) ?? null }
 }
 
 // ---------------------------------------------------------------- all leads
