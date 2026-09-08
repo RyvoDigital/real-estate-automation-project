@@ -18,6 +18,8 @@
  * which the agent then repeats to the lead in their own voice.
  */
 
+import { isDismissal, negatedAt, normaliseForMatching } from '@/lib/text/negation'
+
 export type CriterionKind = 'budget' | 'area' | 'bedrooms' | 'property_type' | 'feature'
 
 export type Requirement = {
@@ -81,12 +83,7 @@ const FLEXIBLE_MARKERS = [
  * assumption, and here it is a KEYBOARD assumption. Dashes get the same
  * treatment for the same reason.
  */
-const norm = (s: string) =>
-  s
-    .toLowerCase()
-    .normalize('NFC')
-    .replace(/[\u2018\u2019\u02bc\u00b4`]/g, "'")
-    .replace(/[\u2010-\u2015]/g, '-')
+const norm = normaliseForMatching
 
 /** The sentence a marker appears in — the quote an agent will read. */
 function sentenceAround(text: string, marker: string): string | null {
@@ -114,16 +111,39 @@ function sentenceAround(text: string, marker: string): string | null {
  * unmarked wish as a hard constraint would silently exclude listings the lead
  * would have wanted to see — a CRM's mistake, made by us.
  */
-export function strengthOf(text: string): { strength: 'hard' | 'preference'; evidence: string | null; marker: string | null } {
+export function strengthOf(text: string): {
+  strength: 'hard' | 'preference'
+  evidence: string | null
+  marker: string | null
+  /** The lead is saying they do NOT care about this. Not a requirement at all. */
+  dismissed: boolean
+} {
+  const t = norm(text)
+
+  // "not fussed about a pool" is not a preference for a pool. Recording it as
+  // one means a pool-less listing is scored as missing something the lead
+  // explicitly said they did not want.
+  if (isDismissal(text)) {
+    return { strength: 'preference', evidence: null, marker: null, dismissed: true }
+  }
+
   for (const m of HARD_MARKERS) {
+    const i = t.indexOf(norm(m))
+    if (i === -1) continue
+    // "não é obrigatório" is not a hard constraint — it is the opposite, and
+    // reading it as one excludes every listing without the thing.
+    if (negatedAt(text, i)) continue
     const s = sentenceAround(text, m)
-    if (s) return { strength: 'hard', evidence: s, marker: m }
+    if (s) return { strength: 'hard', evidence: s, marker: m, dismissed: false }
   }
   for (const m of PREFERENCE_MARKERS) {
+    const i = t.indexOf(norm(m))
+    if (i === -1) continue
+    if (negatedAt(text, i)) continue
     const s = sentenceAround(text, m)
-    if (s) return { strength: 'preference', evidence: s, marker: m }
+    if (s) return { strength: 'preference', evidence: s, marker: m, dismissed: false }
   }
-  return { strength: 'preference', evidence: null, marker: null }
+  return { strength: 'preference', evidence: null, marker: null, dismissed: false }
 }
 
 /** Did the lead say their budget has room in it? */

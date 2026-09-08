@@ -180,3 +180,67 @@ test('geography adjacency comes from config and is explained', () => {
   const r2 = scoreListing({ requirements, listing: faro, thresholds: T, budgetFlexible: false, fields: { budget_max: 2_000_000, area: 'Cascais', bedrooms: 4 } })
   assert.equal(r2.matched, false, 'adjacency is a configured list, not a licence to match anywhere')
 })
+
+/* ------------------------------------------------- what real data exposed */
+
+/*
+ * These cases come from running extraction against the database's ONE real
+ * Concierge conversation and against hedged phrasings. Every one of them is a
+ * defect that was live, not a property that already held.
+ */
+import { extractFromMessages } from '../src/lib/matching/extract'
+
+const AREAS = ['Cascais', 'Estoril', 'Sintra']
+
+test('a negated marker is not the marker — "não é obrigatório" is not a hard constraint', () => {
+  // Live defect. The lead said a garden is NOT required and it was recorded as
+  // non-negotiable, which would have excluded every listing without one. The
+  // guard existed — it was written for listing statuses in the same session
+  // and not applied here. Both callers now import the one implementation.
+  const r = strengthOf('O jardim não é obrigatório mas faz muita diferença para nós.')
+  assert.equal(r.strength, 'preference')
+  assert.equal(strengthOf('It is not essential but we would like one.').strength, 'preference')
+  assert.equal(strengthOf('O jardim é obrigatório.').strength, 'hard', 'unnegated, it still reads as hard')
+})
+
+test('indifference is not a preference — "not fussed about a pool" asks for nothing', () => {
+  const r = strengthOf('Not fussed about a pool honestly.')
+  assert.equal(r.dismissed, true)
+  const e = extractFromMessages(['Not fussed about a pool honestly.'], AREAS)
+  assert.equal(e.requirements.length, 0, 'recording it as a preference means a pool-less listing is scored as missing something they said they did not want')
+  assert.match(e.unparsed[0], /indifference/)
+})
+
+test('numbers written as words, which is how people write them', () => {
+  const e = extractFromMessages(['We would want three bedrooms.'], AREAS)
+  assert.deepEqual(e.requirements.map((r) => [r.kind, r.value]), [['bedrooms', 3]])
+  const pt = extractFromMessages(['Queremos três quartos.'], AREAS)
+  assert.deepEqual(pt.requirements.map((r) => [r.kind, r.value]), [['bedrooms', 3]])
+})
+
+test('"900 mil" — the budget the one real lead actually wrote, and it was missed', () => {
+  const e = extractFromMessages(['Ola, procuro T3 em Cascais ate 900 mil'], AREAS)
+  const budget = e.requirements.find((r) => r.kind === 'budget')
+  assert.ok(budget, 'the only real budget in the database must be readable')
+  assert.deepEqual(budget!.value, { min: null, max: 900_000 })
+})
+
+/*
+ * A LEAD WHO NAMED A TOWN MATCHED A LISTING 500km AWAY.
+ *
+ * "An unmarked wish is a preference" is right for a garden and wrong for a
+ * place: naming a town defines the search space, it is not a hope. As a
+ * preference the only hard constraint left was the budget, so a Cascais lead
+ * matched a FARO listing as "possible". §1 — too loose and the agency spams
+ * its own database and stops trusting the system.
+ */
+test('area is a hard constraint, and adjacency is what gives it flexibility', () => {
+  const T2: Thresholds = { ...T, area_adjacency: { Cascais: ['Estoril'] } }
+  const e = extractFromMessages(['Ola, procuro T3 em Cascais ate 900 mil'], AREAS)
+  const mk = (area: string): Listing => ({ id: 'X', reference: 'F-1', area, price: 850_000, bedrooms: 3, property_type: 'apartment', features: [], status: 'available' })
+  const at = (area: string) => scoreListing({ requirements: e.requirements, listing: mk(area), thresholds: T2, budgetFlexible: false, fields: { budget_max: 900_000, area: 'Cascais', bedrooms: 3 } })
+
+  assert.equal(at('Faro').matched, false, 'Faro is not Cascais and is not configured as adjacent')
+  assert.equal(at('Cascais').matched, true)
+  assert.equal(at('Estoril').matched, true, 'adjacency comes from config, not from hedging')
+})

@@ -54,25 +54,7 @@ export const STATUS_MEANS: Record<ListingStatus, string> = {
  * asking, and this is the one place in the automation where the cost of a
  * wrong guess is a lead being told about a house somebody else has bought.
  */
-/**
- * Words that invert whatever follows them. Kept as data rather than baked into
- * each pattern, because the first version handled exactly ONE negation — the
- * "no longer available" idiom — and a test was written for that one case and a
- * comment claimed the parser was conservative. It was not: "not sold" read as
- * `sold`, "não está reservado" as `reserved`, and six others besides. The
- * suite was complete over the wrong space (lessons §4).
- */
-const NEGATORS = [
-  'not', 'no', 'never', "isn't", 'isnt', "aren't",
-  'não', 'nao', 'nem', 'sem',
-  'ni', 'ya no', 'todavía no', 'todavia no',
-]
-
-/** Is the match at `index` preceded, within a few words, by a negation? */
-function negated(text: string, index: number): boolean {
-  const before = text.slice(Math.max(0, index - 28), index)
-  return NEGATORS.some((n) => new RegExp(`(?:^|[^\\p{L}])${n}(?![\\p{L}])`, 'iu').test(before))
-}
+import { negatedAt } from '@/lib/text/negation'
 
 export function statusFromText(raw: string): ListingStatus | null {
   const s = (raw ?? '').toLowerCase().trim()
@@ -101,7 +83,7 @@ export function statusFromText(raw: string): ListingStatus | null {
     // A negated phrase is AMBIGUOUS, not the opposite. "not sold" does not mean
     // available — it means the agent is telling you something this parser
     // should not be inferring a lifecycle change from. Ask instead.
-    if (negated(s, m.index)) return null
+    if (negatedAt(s, m.index)) return null
     return status
   }
   return null
