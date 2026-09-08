@@ -37,7 +37,8 @@
       "position": [
         -660,
         300
-      ]
+      ],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -126,7 +127,8 @@
       "position": [
         0,
         160
-      ]
+      ],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -190,7 +192,8 @@
       "position": [
         440,
         160
-      ]
+      ],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -374,7 +377,8 @@
       "position": [
         1320,
         100
-      ]
+      ],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -609,7 +613,8 @@
         2860,
         100
       ],
-      "notes": "Model/effort/thinking/max_tokens/history_limit all read from client_automations.config."
+      "notes": "Model/effort/thinking/max_tokens/history_limit all read from client_automations.config.",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -746,7 +751,8 @@
         3740,
         100
       ],
-      "notes": "Backstop only - the API already enforces the schema. Still required for refusal / max_tokens."
+      "notes": "Backstop only - the API already enforces the schema. Still required for refusal / max_tokens.",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -846,7 +852,8 @@
         4400,
         20
       ],
-      "notes": "Reads AfterBooking, not DecideEscalation: a create failure is an escalation the model call could not have known about."
+      "notes": "Reads AfterBooking, not DecideEscalation: a create failure is an escalation the model call could not have known about.",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -894,7 +901,8 @@
         6160,
         20
       ],
-      "notes": "No message bodies or PII in payload (spec 4.2)."
+      "notes": "No message bodies or PII in payload (spec 4.2).",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -908,7 +916,8 @@
         2640,
         360
       ],
-      "notes": "Twilio retry - already answered. Must not reply twice."
+      "notes": "Twilio retry - already answered. Must not reply twice.",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -969,7 +978,8 @@
         5060,
         20
       ],
-      "notes": "The no-backwards rule. A populated field never returns to null. Merges, never assigns. Reads AfterBooking, not DecideEscalation: a create failure is an escalation the model call could not have known about."
+      "notes": "The no-backwards rule. A populated field never returns to null. Merges, never assigns. Reads AfterBooking, not DecideEscalation: a create failure is an escalation the model call could not have known about.",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -1035,7 +1045,8 @@
         5500,
         20
       ],
-      "notes": "Reads $('MergeLeadFields') explicitly - $input after an HTTP node is an envelope (lesson 9)."
+      "notes": "Reads $('MergeLeadFields') explicitly - $input after an HTTP node is an envelope (lesson 9).",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -1153,7 +1164,8 @@
         2640,
         420
       ],
-      "notes": "Stored but not answered. No Claude call is made at all - escalation stops spend, not just replies."
+      "notes": "Stored but not answered. No Claude call is made at all - escalation stops spend, not just replies.",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -1246,7 +1258,8 @@
         4620,
         300
       ],
-      "notes": "Same source as ParseClaude, flagged wasGuardRetry so a second rejection cannot loop."
+      "notes": "Same source as ParseClaude, flagged wasGuardRetry so a second rejection cannot loop.",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -1294,7 +1307,8 @@
         5060,
         460
       ],
-      "notes": "Triggers: needs_human, budget >= high_value_threshold_eur, or any Claude/parse/guard failure."
+      "notes": "Triggers: needs_human, budget >= high_value_threshold_eur, or any Claude/parse/guard failure.",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -1446,7 +1460,8 @@
         5940,
         620
       ],
-      "notes": "Reads AfterBooking, not DecideEscalation: a create failure is an escalation the model call could not have known about."
+      "notes": "Reads AfterBooking, not DecideEscalation: a create failure is an escalation the model call could not have known about.",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -1545,7 +1560,8 @@
         6600,
         620
       ],
-      "notes": "escalation_notify_failed at critical severity - the alert must not die silently with the channel."
+      "notes": "escalation_notify_failed at critical severity - the alert must not die silently with the channel.",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -1592,7 +1608,8 @@
       "position": [
         7040,
         620
-      ]
+      ],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -1642,7 +1659,8 @@
         3080,
         260
       ],
-      "notes": "The workflow chooses the slots, not the model - C2 must be able to match a confirmation against exactly what was offered."
+      "notes": "The workflow chooses the slots, not the model - C2 must be able to match a confirmation against exactly what was offered.",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -1656,7 +1674,8 @@
         3300,
         260
       ],
-      "notes": "The workflow decides which slot was accepted, for the same reason it chose the slots in C1 - an event is about to be created and 'which one did they mean' must be answerable from stored data. Ambiguity never books."
+      "notes": "The workflow decides which slot was accepted, for the same reason it chose the slots in C1 - an event is about to be created and 'which one did they mean' must be answerable from stored data. Ambiguity never books.",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -1740,7 +1759,8 @@
         5040,
         160
       ],
-      "notes": "A re-check that FAILED is not a re-check that passed. An unreadable calendar must never fall through to 'free'."
+      "notes": "A re-check that FAILED is not a re-check that passed. An unreadable calendar must never fall through to 'free'.",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -1823,7 +1843,8 @@
         5920,
         260
       ],
-      "notes": "Convergence point for every booking path. Downstream reads $('AfterBooking'), never the HTTP node."
+      "notes": "Convergence point for every booking path. Downstream reads $('AfterBooking'), never the HTTP node.",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -1906,7 +1927,8 @@
         4820,
         420
       ],
-      "notes": "Explicit branch marker. AfterBooking used to infer 'did CreateEvent run?' from the shape of its input, and a statusCode spread down the chain from an earlier HTTP node made a SKIPPED booking look like a created one. Never sniff the envelope - label the branch."
+      "notes": "Explicit branch marker. AfterBooking used to infer 'did CreateEvent run?' from the shape of its input, and a statusCode spread down the chain from an earlier HTTP node made a SKIPPED booking look like a created one. Never sniff the envelope - label the branch.",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -1920,7 +1942,8 @@
         5480,
         340
       ],
-      "notes": "Explicit branch marker. AfterBooking used to infer 'did CreateEvent run?' from the shape of its input, and a statusCode spread down the chain from an earlier HTTP node made a SKIPPED booking look like a created one. Never sniff the envelope - label the branch."
+      "notes": "Explicit branch marker. AfterBooking used to infer 'did CreateEvent run?' from the shape of its input, and a statusCode spread down the chain from an earlier HTTP node made a SKIPPED booking look like a created one. Never sniff the envelope - label the branch.",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -1934,7 +1957,8 @@
         5700,
         160
       ],
-      "notes": "Explicit branch marker. AfterBooking used to infer 'did CreateEvent run?' from the shape of its input, and a statusCode spread down the chain from an earlier HTTP node made a SKIPPED booking look like a created one. Never sniff the envelope - label the branch."
+      "notes": "Explicit branch marker. AfterBooking used to infer 'did CreateEvent run?' from the shape of its input, and a statusCode spread down the chain from an earlier HTTP node made a SKIPPED booking look like a created one. Never sniff the envelope - label the branch.",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -2040,7 +2064,8 @@
         9040,
         260
       ],
-      "notes": "If BOTH the WhatsApp notify and the email failed, a lead asked for a human and nobody was told by any channel. That is the worst state this workflow can reach, so it is recorded explicitly rather than left to be inferred from a green run."
+      "notes": "If BOTH the WhatsApp notify and the email failed, a lead asked for a human and nobody was told by any channel. That is the worst state this workflow can reach, so it is recorded explicitly rather than left to be inferred from a green run.",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -2121,7 +2146,8 @@
         6360,
         80
       ],
-      "notes": "Turns a bare 409 into the three outcomes that need different handling."
+      "notes": "Turns a bare 409 into the three outcomes that need different handling.",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -2169,7 +2195,8 @@
         3080,
         560
       ],
-      "notes": "Warm, deterministic, in the lead's language, chosen from their PREVIOUS words because this message has none."
+      "notes": "Warm, deterministic, in the lead's language, chosen from their PREVIOUS words because this message has none.",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -2232,7 +2259,8 @@
       "position": [
         3520,
         560
-      ]
+      ],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -2417,7 +2445,8 @@
       "position": [
         4840,
         560
-      ]
+      ],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -2586,7 +2615,8 @@
       "position": [
         -1100,
         -900
-      ]
+      ],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -2648,7 +2678,250 @@
       "position": [
         -700,
         -900
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================================\n// Deterministic language detection for SYSTEM messages — Checkpoint D2.\n//\n// WHY THIS IS NOT A MODEL CALL\n// The handoff note is the message sent when the Concierge cannot answer: the\n// model refused, returned unparseable JSON twice, or produced a reply that had\n// to be discarded. It is the one message that must still work *when the model\n// has failed*, which rules out asking a model — either to write it or to say\n// what language to write it in.\n//\n// So: fixed strings from config, keyed by language, chosen by the rules below.\n//\n// This is a classifier for THREE known languages on SHORT messages, not a\n// general-purpose one. It is allowed to be unsure, and being unsure is safe:\n// an undecided result falls back to the client's configured default rather\n// than guessing. Sending Portuguese to a Portuguese lead is the win; sending\n// Spanish to a Portuguese lead because two words matched is worse than the\n// English we send today.\n// ============================================================================\n\n// Accented and punctuation marks that occur in ONE of the three languages and\n// effectively settle it on their own. Checked before normalisation, because\n// stripping diacritics destroys exactly the signal that discriminates pt from\n// es -- the two languages that actually get confused.\nconst HARD_MARKERS = [\n  { lang: 'pt', rx: /[ãõ]/, weight: 6 },          // não, mão, então, opções\n  { lang: 'pt', rx: /ç/, weight: 5 },             // preço, começar\n  { lang: 'es', rx: /ñ/, weight: 6 },             // mañana, año, señor\n  { lang: 'es', rx: /[¿¡]/, weight: 6 },          // inverted punctuation\n];\n\n// Function words and greetings. Deliberately excludes anything the three share\n// (que, para, no, si/sim, por favor, esta) -- a shared word is not evidence.\n// Function words. Only DISCRIMINATING tokens: anything the languages share\n// (que, para, no, casa, como, por favor) is not evidence and is excluded.\n// The pt/es minimal pairs do most of the work here -- com/con, uma/una,\n// quando/cuando, muito/mucho -- because those two are the pair that actually\n// gets confused.\nconst WORD_MARKERS = {\n  pt: ['nao', 'obrigado', 'obrigada', 'ola', 'voce', 'gostaria', 'queria',\n       'muito', 'estou', 'tenho', 'tem', 'quero', 'bom dia', 'boa tarde',\n       'boa noite', 'feira', 'imovel', 'imoveis', 'moradia', 'preciso',\n       'gostava', 'entao', 'onde', 'com', 'uma', 'um', 'quando', 'quanto',\n       'qual', 'mais', 'na', 'nas', 'dos', 'das', 'ate', 'posso', 'pode',\n       'procuro', 'visitar', 'marcar', 'falar', 'pessoa', 'afinal', 'mudar'],\n  es: ['hola', 'gracias', 'quisiera', 'usted', 'tambien', 'buenos dias',\n       'buenas tardes', 'buenas noches', 'vivienda', 'piso', 'necesito',\n       'busco', 'con', 'una', 'cuando', 'cuanto', 'donde', 'ahora', 'manana',\n       'el', 'los', 'las', 'muy', 'mucho', 'estoy', 'tengo', 'puedo',\n       'hablar', 'jueves', 'viernes', 'quiero'],\n  en: ['the', 'and', 'you', 'are', 'is', 'would', 'like', 'hello', 'hi',\n       'thanks', 'thank', 'please', 'can', 'i', 'im', 'looking', 'house',\n       'flat', 'apartment', 'available', 'viewing', 'week', 'time', 'do',\n       'have', 'see', 'come', 'speak', 'person', 'anything', 'something'],\n};\n\nconst SUPPORTED = ['pt', 'en', 'es'];\n\n// detectLanguage(text) -> {lang: 'pt'|'en'|'es'|null, scores, confident}\n// Returns null when the evidence is thin or the top two are close. Callers\n// must treat null as \"use the configured default\", never as a language.\nfunction detectLanguage(text) {\n  const raw = String(text || '');\n  const out = (lang, scores, confident) => ({ lang, scores, confident });\n  if (!raw.trim()) return out(null, { pt: 0, en: 0, es: 0 }, false);\n\n  const lower = raw.toLowerCase();\n  const scores = { pt: 0, en: 0, es: 0 };\n\n  for (const m of HARD_MARKERS) {\n    if (m.rx.test(lower)) scores[m.lang] += m.weight;\n  }\n\n  // Normalise for word matching so \"voce\"/\"você\" and \"manana\"/\"mañana\" both\n  // land, having already banked the diacritic evidence above.\n  const flat = ' ' + lower.normalize('NFD').replace(/[̀-ͯ]/g, '')\n                          .replace(/[^a-z0-9']+/g, ' ').trim() + ' ';\n  for (const lang of SUPPORTED) {\n    for (const w of WORD_MARKERS[lang]) {\n      const needle = w.includes(' ') ? w : ' ' + w + ' ';\n      if (flat.includes(needle)) scores[lang] += 2;\n    }\n  }\n\n  const ranked = SUPPORTED.slice().sort((a, b) => scores[b] - scores[a]);\n  const top = ranked[0], second = ranked[1];\n  // A single weak hit decides nothing, and a near-tie between pt and es is the\n  // case most likely to be wrong. Both fall back rather than guess.\n  // Two ways to be sure, and they cover different shapes of message:\n  //   - unopposed: any evidence at all for exactly one language, none for the\n  //     others. \"Ola, procuro casa em Cascais\" is short but unambiguous.\n  //   - contested: enough evidence AND a clear margin. This is the pt/es case,\n  //     where both score and the winner has to actually win.\n  // Everything else falls back to the configured default rather than guessing.\n  const unopposed = scores[top] >= 2 && scores[second] === 0;\n  const contested = scores[top] >= 4 && (scores[top] - scores[second]) >= 4;\n  const confident = unopposed || contested;\n  return out(confident ? top : null, scores, confident);\n}\n\n// pickMessage(messages, lang, fallbackLang) -> string|null\n//\n// `messages` is the config map, e.g. {pt: '...', en: '...', es: '...'}. Resolution\n// order is: detected language -> the client's configured default -> English ->\n// whatever single string was configured. Every step is a fixed string; nothing\n// here is generated.\nfunction pickMessage(messages, lang, fallbackLang) {\n  if (typeof messages === 'string') return messages;          // legacy single string\n  if (!messages || typeof messages !== 'object') return null;\n  const order = [lang, fallbackLang, 'en', 'pt'];\n  for (const k of order) {\n    if (k && typeof messages[k] === 'string' && messages[k].trim()) return messages[k];\n  }\n  const first = Object.values(messages).find(v => typeof v === 'string' && v.trim());\n  return first || null;\n}\n\n// Convenience: resolve a named system message for a lead's text in one call.\n// `cfg` is client_automations.config.\nfunction systemMessage(cfg, name, leadText) {\n  const c = cfg || {};\n  const det = detectLanguage(leadText);\n  const fallback = c.default_language\n    || (Array.isArray(c.languages) && c.languages.length ? c.languages[0] : 'en');\n  const bag = (c.system_messages || {})[name];\n  const picked = pickMessage(bag, det.lang, fallback);\n  return {\n    text: picked || c.handoff_note || null,\n    lang: det.lang || fallback,\n    detected: det.lang,\n    confident: det.confident,\n    scores: det.scores,\n  };\n}\n\n\n// ============================================================================\n// CatchInternal — the convergence point for every Code node that throws.\n//\n// See docs/code-node-failure-handling-spec.md. The short version: 0 of 32 Code\n// nodes had an error branch, LogRun is a leaf reached at the end of every\n// branch, so a throw wrote no automation_runs row and the 30-minute failed-run\n// health check could not see it. Lead unanswered, operator unalerted, every\n// dashboard green.\n//\n// THIS NODE MUST NOT THROW. It is the handler; nothing catches the catcher. So\n// the whole body is one try/catch whose recovery block does nothing but build a\n// literal object, and every reference to another node goes through safeNode(),\n// because $('X') throws when X has not executed and half the workflow has not.\n//\n// It is one of two Code nodes with no error branch of its own, both named in\n// tests/workflow-error-branches.test.ts with their reasons. The other is\n// ThrowDbOutage, which throws deliberately so the execution is recorded as an\n// error rather than a quiet success -- catching it would undo D5's fix.\n// ============================================================================\n\n// Which zone a node belongs to is decided by WHAT HAS ALREADY HAPPENED TO THE\n// LEAD when it throws. That is the only thing that changes the right response.\nconst ZONES = {\n  // 1 - the lead is not yet identifiable. Nobody to answer; email is the record.\n  VerifySignature: 1, Normalise: 1, FlattenClient: 1,\n  // 2 - lead known, nothing sent. The handoff note is owed and is still possible.\n  AfterLead: 2, AfterListing: 2, AfterAgentReply: 2, MediaReply: 2,\n  ProposeSlots: 2, MatchConfirmation: 2, BuildClaudeRequest: 2,\n  ParseClaude: 2, ParseGuardRetry: 2, DecideEscalation: 2,\n  // 3 - the booking path, after the model may already have written a\n  //     confirmation. Never book, never let a confirmation stand.\n  SkipBooking: 3, ReadRecheck: 3, AfterBooking: 3, BlockedBooking: 3,\n  CreatedBooking: 3, ResolveConflict: 3,\n  // 4 - the lead already has their reply. Record and continue; NEVER re-send.\n  AfterSend: 4, AfterMediaSend: 4, AfterHandoff: 4, AfterNotify: 4,\n  AfterEmailAlert: 4, MergeLeadFields: 4, AfterLeadUpdate: 4,\n  PrepRunAI: 4, PrepRunDuplicate: 4, PrepRunSilenced: 4, PrepRunMedia: 4,\n  PrepRunEscalated: 4,\n};\n\n// Hardcoded rather than read from Normalise, because Normalise is one of the\n// nodes that can be the thing that threw. It is the same constant Normalise\n// carries; if it ever changes, both change.\nconst SUPABASE_URL = 'https://txxkqskhxhwtrhbmwwig.supabase.co';\n\nfunction build() {\n  // Literal node names, one accessor each. A silent catch is how the first\n  // version of this node returned all-nulls and told nobody why, so every\n  // failure is recorded in `probe` and travels to the alert.\n  //\n  // NOTE THE `first(0)`. Without the explicit branch index this returns\n  // undefined for every node, and the handler produces an all-null object that\n  // looks like \"we knew nothing\" rather than like a bug. Measured on n8n\n  // 2.28.3: an item arriving on an error output carries $prevNode.outputIndex\n  // = 1, and that leaks into the DEFAULT branch index for every $() lookup, so\n  // $('AfterLead').all() asks for AfterLead's output 1 -- which does not exist\n  // -- and returns []. all(0) returns the item. Every accessor in this node\n  // therefore names its branch.\n  const probe = [];\n  const safe = (label, fn) => {\n    try {\n      const v = fn();\n      if (!v) { probe.push(label + '=empty'); return null; }\n      return v;\n    } catch (e) {\n      probe.push(label + '=' + String(e && e.message ? e.message : e).slice(0, 60));\n      return null;\n    }\n  };\n\n  // $prevNode is the node that handed us this item -- on an error branch, the\n  // node that threw. This is how the alert names a node instead of saying\n  // \"something threw\", which is not actionable.\n  //\n  // Measured against n8n 2.28.3 in a throwaway container rather than read off\n  // the source: reading workflow-execute.js suggested a thrown node sends its\n  // INPUT items down output 0, which would have made every branch here useless\n  // and passed junk down the happy path. A real run says otherwise -- the item\n  // arrives on output 1 as {error: '<message> [line N]'}, $prevNode.name is the\n  // node that threw, and $prevNode.outputIndex is 1. The success branch does\n  // not run at all.\n  let failedNode = 'unknown', fromErrorOutput = null;\n  try { failedNode = $prevNode.name || 'unknown'; } catch (e) { failedNode = 'unknown'; }\n  try { fromErrorOutput = $prevNode.outputIndex === 1; } catch (e) { fromErrorOutput = null; }\n  const zone = ZONES[failedNode] || 2;   // unknown node: assume the lead is owed a reply\n\n  // n8n puts the thrown message on the item. Take it if it is there -- \"a Code\n  // node threw\" is not an actionable alert and the message usually names the\n  // line. Never trust its shape.\n  let thrown = null;\n  try {\n    const it = $input.first().json;\n    if (it && typeof it.error === 'string') thrown = it.error.slice(0, 300);\n  } catch (e) { thrown = null; }\n\n  // Zone 1's email is the ONLY record there will be, so it has to carry what\n  // arrived. Read from the Webhook itself, which is the one node guaranteed to\n  // have run -- Normalise, the usual source, is one of the nodes that can be\n  // the thing that threw.\n  const hook = safe('Webhook', () => $('Webhook').first(0).json);\n  const raw = (hook && hook.body) || {};\n\n  const norm = safe('Normalise', () => $('Normalise').first(0).json);\n  const flat = safe('FlattenClient', () => $('FlattenClient').first(0).json);\n  const lead = safe('AfterLead', () => $('AfterLead').first(0).json);\n  const ctx  = lead || flat || norm || {};\n\n  const cfg = (ctx.config) || (flat && flat.config) || {};\n  const leadText = ctx.body || (norm && norm.body) || '';\n\n  // The handoff note is a FIXED CONFIG STRING chosen by deterministic language\n  // rules -- no model, no calendar, no network. That is the whole reason it can\n  // be the answer when something upstream has broken.\n  let note = null, lang = null;\n  try {\n    const picked = systemMessage(cfg, 'handoff', leadText);\n    note = picked.text; lang = picked.lang;\n  } catch (e) { note = cfg.handoff_note || null; lang = cfg.default_language || null; }\n\n  // Found by the Zone 4 drill, not by design. AfterSend, AfterMediaSend and\n  // AfterHandoff each sit BETWEEN a send and its store. If one throws, the\n  // message has already gone to the lead and is never written to `messages` --\n  // so LoadHistory feeds the model a conversation in which the assistant never\n  // spoke, and the next reply is composed as if it had not. That is the D3\n  // LoadHistory defect's shape, reached a different way.\n  //\n  // The handler does not write the row itself: `messages` already has one\n  // writer per path and a second one risks duplicating a turn, which is worse\n  // than a missing one. It reproduces what the lead was told, in the alert,\n  // for the same reason EmailDbOutage reproduces the inbound message -- it\n  // exists nowhere else.\n  const POST_SEND = { AfterSend: 'SendWhatsApp', AfterMediaSend: 'SendMediaReply',\n                      AfterHandoff: 'SendHandoffNote' };\n  let unrecordedReply = null;\n  if (POST_SEND[failedNode]) {\n    const r = failedNode === 'AfterSend'\n      ? safe('SendWhatsApp', () => $('SendWhatsApp').first(0).json)\n      : failedNode === 'AfterMediaSend'\n        ? safe('SendMediaReply', () => $('SendMediaReply').first(0).json)\n        : safe('SendHandoffNote', () => $('SendHandoffNote').first(0).json);\n    const b = (r && r.body) || {};\n    unrecordedReply = {\n      sid: b.sid || null,\n      status: r ? r.statusCode : null,\n      text: b.body || null,\n    };\n  }\n\n  // Zone 3 only: an event may already exist for this slot, created before the\n  // throw. The operator has to be told to look, because nothing else will.\n  let slotWarning = null;\n  if (zone === 3) {\n    const mc = safe('MatchConfirmation', () => $('MatchConfirmation').first(0).json) || {};\n    const s = mc.bookingSlot || null;\n    if (s) {\n      slotWarning = 'A calendar event MAY have been created for '\n        + (s.startLocal || s.startUtc) + ' (id ' + (mc.bookingEventId || 'unknown')\n        + '). Check the calendar before replying to this lead.';\n    }\n  }\n\n  const phone = ctx.from || (norm && norm.from) || null;\n  // canReply stays false for zone 1 even though `raw.From` gives us a number:\n  // without a resolved client there is no configured handoff note to send, and\n  // a message we invent is exactly what this project does not do.\n  const canReply = (zone === 2 || zone === 3) && !!phone && !!note;\n\n  return {\n    internalFailure: true,\n    failedNode, zone,\n    errorType: 'internal_error:' + failedNode,\n    errorMessage: thrown || 'a Code node threw; the message did not reach the handler',\n    fromErrorOutput,\n    // Everything the downstream nodes need, flattened, so none of them has to\n    // reach back into a node that may not have run.\n    supabaseUrl: SUPABASE_URL,\n    clientAutomationId: ctx.clientAutomationId || (flat && flat.clientAutomationId) || null,\n    clientId: ctx.clientId || (flat && flat.clientId) || null,\n    leadId: ctx.leadId || null,\n    from: phone || String(raw.From || '').replace(/^whatsapp:/, '') || null,\n    profileName: ctx.profileName || (norm && norm.profileName) || raw.ProfileName || null,\n    messageSid: ctx.messageSid || (norm && norm.messageSid) || raw.MessageSid || null,\n    body: leadText || raw.Body || '',\n    handoffBody: note,\n    handoffLang: lang,\n    canReply,\n    slotWarning,\n    priorQualification: ctx.priorQualification || null,\n    probe: probe.join(' ; ') || 'all context nodes read cleanly',\n    unrecordedReply,\n    startedAt: ctx.startedAt || new Date().toISOString(),\n    at: new Date().toISOString(),\n  };\n}\n\nlet out;\ntry {\n  out = build();\n} catch (e) {\n  // The recovery block constructs a literal and nothing else. If this is ever\n  // reached, the email downstream is the only record there will be, so it\n  // carries the reason this node could not do its job.\n  out = {\n    internalFailure: true, failedNode: 'unknown', zone: 1,\n    errorType: 'internal_error:CatchInternal',\n    errorMessage: 'the failure handler itself failed: ' + (e && e.message ? e.message : 'unknown'),\n    supabaseUrl: SUPABASE_URL,\n    clientAutomationId: null, clientId: null, leadId: null,\n    from: null, profileName: null, messageSid: null, body: '',\n    handoffBody: null, handoffLang: null, canReply: false, slotWarning: null,\n    priorQualification: null,\n    startedAt: new Date().toISOString(), at: new Date().toISOString(),\n  };\n}\nreturn [{ json: out }];\n"
+      },
+      "id": "CatchInternal",
+      "name": "CatchInternal",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1400,
+        2200
       ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.supabaseUrl }}/rest/v1/automation_runs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ client_automation_id: $json.clientAutomationId, status: 'error', started_at: $json.startedAt, finished_at: $json.at, error_type: $json.errorType, error_message: $json.errorMessage, payload: { internal_failure: true, failed_node: $json.failedNode, zone: $json.zone, lead_id: $json.leadId, from: $json.from, message_sid: $json.messageSid, replied_to_lead: $json.canReply, slot_warning: $json.slotWarning } }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "LogInternalFailure",
+      "name": "LogInternalFailure",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1180,
+        2200
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ryvoSupabaseCred",
+          "name": "Ryvo Supabase (service_role)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ $('CatchInternal').first().json.canReply }}",
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "NeedsLeadReply",
+      "name": "NeedsLeadReply",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -960,
+        2200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{ $env.TWILIO_ACCOUNT_SID }}/Messages.json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "twilioApi",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "From",
+              "value": "={{ $env.TWILIO_WHATSAPP_FROM }}"
+            },
+            {
+              "name": "To",
+              "value": "=whatsapp:{{ $('CatchInternal').first().json.from }}"
+            },
+            {
+              "name": "Body",
+              "value": "={{ $('CatchInternal').first().json.handoffBody }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          },
+          "timeout": 20000
+        }
+      },
+      "id": "SendInternalHandoff",
+      "name": "SendInternalHandoff",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -740,
+        2080
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "twilioApi": {
+          "id": "ryvoTwilioCred",
+          "name": "Ryvo Twilio (sandbox)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('CatchInternal').first().json.supabaseUrl }}/rest/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify((() => { const c = $('CatchInternal').first().json; const r = $json; const ok = r.statusCode >= 200 && r.statusCode < 300; return { client_id: c.clientId, lead_id: c.leadId, channel: 'whatsapp', direction: 'outbound', body: c.handoffBody, status: ok ? 'sent' : 'failed', ai_generated: false, approved_by_human: null, external_id: ok && r.body ? r.body.sid : null }; })()) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "StoreInternalHandoff",
+      "name": "StoreInternalHandoff",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -520,
+        2080
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ryvoSupabaseCred",
+          "name": "Ryvo Supabase (service_role)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $('CatchInternal').first().json.supabaseUrl }}/rest/v1/leads",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "=eq.{{ $('CatchInternal').first().json.leadId }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify((() => { const c = $('CatchInternal').first().json; const q = Object.assign({}, c.priorQualification || {}); q.escalated = { at: c.at, reason: c.errorType, reasons: [c.errorType] }; return { qualification: q, updated_at: c.at }; })()) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "MarkInternalEscalated",
+      "name": "MarkInternalEscalated",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -300,
+        2080
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ryvoSupabaseCred",
+          "name": "Ryvo Supabase (service_role)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify((() => { const c = $('CatchInternal').first().json; let logged = null; try { const l = $('LogInternalFailure').first().json; logged = l.statusCode >= 200 && l.statusCode < 300; } catch (e) { logged = null; } const lines = ['A Code node inside the Concierge threw. This is an internal failure, not a dependency outage.', '', '  Node:    ' + c.failedNode + '  (zone ' + c.zone + ')', '  Threw:   ' + c.errorMessage, '  Context: ' + c.probe, '  Lead:    ' + (c.from || 'unknown') + '  ' + (c.profileName || ''), '  Message: ' + (c.body || '(none)'), '  Twilio:  ' + (c.messageSid || 'unknown'), '  At:      ' + c.at, '', c.canReply ? 'The lead WAS sent the handoff note and the lead is escalated.' : 'The lead was NOT replied to' + (c.zone === 4 ? ' by this path, because they had already received their reply before the failure.' : ' - there was no identifiable lead or no configured note.'), '', logged === true ? 'An automation_runs error row was written, so the health check will see this within two cycles.' : 'NO automation_runs row could be written' + (c.clientAutomationId ? ' (the insert was rejected).' : ' - the client was not resolved, so this email is the only record.'), c.slotWarning ? '\\n' + c.slotWarning : '', c.unrecordedReply ? '\\nTHIS REPLY REACHED THE LEAD AND IS NOT IN THE RECORD (' + c.failedNode + ' threw between the send and the store), so the conversation history is missing a turn and the next reply will be composed as if it never happened:\\n\\n  \"' + (c.unrecordedReply.text || '(body unavailable)') + '\"\\n  Twilio sid: ' + (c.unrecordedReply.sid || 'none') + '  status: ' + c.unrecordedReply.status : ''].join('\\n'); return { from: 'alerts@ryvodigital.com', to: ['manuel.seixasvale@gmail.com','hello@ryvodigital.com'], subject: 'Ryvo: internal failure in ' + c.failedNode + (c.canReply ? '' : ' - a lead may be unanswered'), text: lines }; })()) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "EmailInternalFailure",
+      "name": "EmailInternalFailure",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -80,
+        2200
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Bum4hS1iTO90RNKs",
+          "name": "Ryvo Resend"
+        }
+      }
     }
   ],
   "connections": {
@@ -2668,6 +2941,13 @@
         [
           {
             "node": "IsSignatureValid",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CatchInternal",
             "type": "main",
             "index": 0
           }
@@ -2711,6 +2991,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "CatchInternal",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -2730,6 +3017,13 @@
         [
           {
             "node": "IsDbUnreachable",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CatchInternal",
             "type": "main",
             "index": 0
           }
@@ -2781,6 +3075,13 @@
         [
           {
             "node": "InsertMessage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CatchInternal",
             "type": "main",
             "index": 0
           }
@@ -2853,6 +3154,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "CatchInternal",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -2872,6 +3180,13 @@
         [
           {
             "node": "CallClaude",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CatchInternal",
             "type": "main",
             "index": 0
           }
@@ -2926,6 +3241,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "CatchInternal",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -2966,6 +3288,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "CatchInternal",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -2985,6 +3314,13 @@
         [
           {
             "node": "LogRun",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CatchInternal",
             "type": "main",
             "index": 0
           }
@@ -3010,6 +3346,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "CatchInternal",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -3029,6 +3372,13 @@
         [
           {
             "node": "IsNewlyQualified",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CatchInternal",
             "type": "main",
             "index": 0
           }
@@ -3090,6 +3440,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "CatchInternal",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -3130,6 +3487,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "CatchInternal",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -3156,6 +3520,13 @@
         [
           {
             "node": "IsBookingReady",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CatchInternal",
             "type": "main",
             "index": 0
           }
@@ -3210,6 +3581,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "CatchInternal",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -3243,6 +3621,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "CatchInternal",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -3262,6 +3647,13 @@
         [
           {
             "node": "LogRun",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CatchInternal",
             "type": "main",
             "index": 0
           }
@@ -3287,6 +3679,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "CatchInternal",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -3295,6 +3694,13 @@
         [
           {
             "node": "BuildClaudeRequest",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CatchInternal",
             "type": "main",
             "index": 0
           }
@@ -3338,6 +3744,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "CatchInternal",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -3375,6 +3788,13 @@
         [
           {
             "node": "LoadCurrentLead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CatchInternal",
             "type": "main",
             "index": 0
           }
@@ -3418,6 +3838,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "CatchInternal",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -3429,6 +3856,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "CatchInternal",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -3437,6 +3871,13 @@
         [
           {
             "node": "IsConflict",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CatchInternal",
             "type": "main",
             "index": 0
           }
@@ -3491,6 +3932,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "CatchInternal",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -3531,6 +3979,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "CatchInternal",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -3560,6 +4015,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "CatchInternal",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -3579,6 +4041,13 @@
         [
           {
             "node": "StoreMediaOutbound",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CatchInternal",
             "type": "main",
             "index": 0
           }
@@ -3655,6 +4124,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "CatchInternal",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -3724,6 +4200,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "CatchInternal",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -3732,6 +4215,91 @@
         [
           {
             "node": "AfterAgentReply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CatchInternal": {
+      "main": [
+        [
+          {
+            "node": "LogInternalFailure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LogInternalFailure": {
+      "main": [
+        [
+          {
+            "node": "NeedsLeadReply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NeedsLeadReply": {
+      "main": [
+        [
+          {
+            "node": "SendInternalHandoff",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "EmailInternalFailure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SendInternalHandoff": {
+      "main": [
+        [
+          {
+            "node": "StoreInternalHandoff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "StoreInternalHandoff": {
+      "main": [
+        [
+          {
+            "node": "MarkInternalEscalated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MarkInternalEscalated": {
+      "main": [
+        [
+          {
+            "node": "EmailInternalFailure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AfterAgentReply": {
+      "main": [
+        [],
+        [
+          {
+            "node": "CatchInternal",
             "type": "main",
             "index": 0
           }
