@@ -32,6 +32,7 @@
  */
 import { readFileSync } from 'node:fs'
 import { createClient } from '@supabase/supabase-js'
+import { appRoutes } from './lib/routes'
 
 for (const l of readFileSync(new URL('../.env.local', import.meta.url), 'utf8').split('\n')) {
   const m = l.match(/^([A-Z_]+)=(.*)$/)
@@ -78,15 +79,12 @@ async function main() {
   if (!cookie) throw new Error(`no session cookie — is the app running at ${BASE}?`)
 
   const { data: lead } = await db.from('leads').select('id').limit(1)
-  const ROUTES = [
-    '/login',
-    '/queue',
-    '/leads',
-    `/leads/${lead?.[0]?.id}`,
-    '/onboarding',
-    '/health',
-    '/report',
-  ]
+  // Derived from src/app — see tests/lib/routes.ts and the near-miss it exists
+  // for. /login stays first because it is the no-database baseline.
+  const BY_ROUTE: Record<string, string> = { '/leads/[id]': lead?.[0]?.id ?? '' }
+  if (process.env.PROBE_IMPORT_BATCH) BY_ROUTE['/import/[id]'] = process.env.PROBE_IMPORT_BATCH
+  const derived = appRoutes({ byRoute: BY_ROUTE }).filter((r) => !r.startsWith('SKIPPED:'))
+  const ROUTES = ['/login', ...derived.filter((r) => r !== '/login' && r !== '/')]
 
   console.log(`\nNavigation timing — ${BASE}, median of ${SAMPLES}\n`)
   console.log('   route                     first byte      complete      streamed')

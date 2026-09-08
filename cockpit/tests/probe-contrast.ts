@@ -34,6 +34,7 @@ import { spawn } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createClient } from '@supabase/supabase-js'
+import { appRoutes } from './lib/routes'
 
 for (const l of readFileSync(new URL('../.env.local', import.meta.url), 'utf8').split('\n')) {
   const m = l.match(/^([A-Z_]+)=(.*)$/)
@@ -267,15 +268,10 @@ const MEASURE = (b64: string, color: string) => `(async () => {
 async function main() {
   const cookies = await sessionCookies()
   const { data: lead } = await db.from('leads').select('id').limit(1)
-  const ROUTES = [
-    '/login',
-    '/queue',
-    '/leads',
-    `/leads/${lead?.[0]?.id}`,
-    '/onboarding',
-    '/health',
-    '/report',
-  ]
+  // Derived from src/app — see tests/lib/routes.ts.
+  const BY_ROUTE: Record<string, string> = { '/leads/[id]': lead?.[0]?.id ?? '' }
+  if (process.env.PROBE_IMPORT_BATCH) BY_ROUTE['/import/[id]'] = process.env.PROBE_IMPORT_BATCH
+  const ROUTES = appRoutes({ byRoute: BY_ROUTE }).filter((r) => !r.startsWith('SKIPPED:'))
 
   const c = await launch()
   const host = new URL(BASE).hostname

@@ -40,6 +40,7 @@ import { spawn } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createClient } from '@supabase/supabase-js'
+import { splitRoutes } from './lib/routes'
 
 for (const l of readFileSync(new URL('../.env.local', import.meta.url), 'utf8').split('\n')) {
   const m = l.match(/^([A-Z_]+)=(.*)$/)
@@ -269,34 +270,15 @@ async function main() {
   const { data: lead } = await db.from('leads').select('id').limit(1)
   const leadId = lead?.[0]?.id as string
 
-  const ROUTES = [
-    '/login',
-    '/queue',
-    '/leads',
-    `/leads/${leadId}`,
-    '/onboarding',
-    '/health',
-    '/report',
-    '/import',
-    // The batch screen needs a real batch. Passed in rather than invented, and
-    // its ABSENCE is asserted below — a route list that silently lost an entry
-    // is how "all checks passed" gets reported for a screen nobody measured.
-    ...(process.env.PROBE_IMPORT_BATCH ? [`/import/${process.env.PROBE_IMPORT_BATCH}`] : []),
-  ]
+  // Derived from src/app — see tests/lib/routes.ts. A page added under
+  // src/app is measured at 360/390/430/1440/1920 by construction, and a
+  // dynamic route with no id is REPORTED as skipped rather than dropped.
+  const BY_ROUTE: Record<string, string> = { '/leads/[id]': leadId || '' }
+  if (process.env.PROBE_IMPORT_BATCH) BY_ROUTE['/import/[id]'] = process.env.PROBE_IMPORT_BATCH
+  const { usable: ROUTES, skipped } = splitRoutes({ byRoute: BY_ROUTE })
 
-  /*
-   * THE ROUTE LIST IS ITSELF CHECKED.
-   *
-   * An edit to this list half-applied once — the assertion was skipped, the
-   * anchor did not match, and the probe went on reporting "all checks passed"
-   * for a set of routes that no longer included the screens being added. A
-   * pass over a list you have not verified is an empty-set pass with extra
-   * steps (§1, rule 6).
-   */
-  const MUST_COVER = ['/queue', '/leads', '/report', '/onboarding', '/health', '/import']
-  const missing = MUST_COVER.filter((r) => !ROUTES.includes(r))
-  if (missing.length) {
-    throw new Error(`probe-layout is not covering ${missing.join(', ')} — the route list has drifted`)
+  if (skipped.length) {
+    console.log(`   note: ${skipped.join(', ')} skipped — no id supplied\n`)
   }
 
   const c = await launch()

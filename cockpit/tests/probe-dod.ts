@@ -15,6 +15,7 @@
  */
 import { readFileSync } from 'node:fs'
 import { createClient } from '@supabase/supabase-js'
+import { appRoutes } from './lib/routes'
 
 for (const l of readFileSync(new URL('../.env.local', import.meta.url), 'utf8').split('\n')) {
   const m = l.match(/^([A-Z_]+)=(.*)$/)
@@ -58,7 +59,12 @@ async function main() {
   const leadId = anyLead?.[0]?.id as string
   const leadName = (anyLead?.[0]?.full_name as string) ?? ''
 
-  const routes = ['/', '/queue', `/leads/${leadId}`, '/leads', '/onboarding', '/health', '/report']
+  // DERIVED FROM src/app, not hand-listed. A hand-listed set silently stopped
+  // covering /import when that screen was added, and this is the item that
+  // asserts no unauthenticated route exposes lead data — the one place a
+  // missing route matters most. tests/lib/routes.ts raises rather than
+  // returning a short list.
+  const routes = appRoutes({ byRoute: { '/leads/[id]': leadId }, exclude: ['/login'] }).filter((r) => !r.startsWith('SKIPPED:'))
   let leaked = 0
   let notRedirected: string[] = []
   for (const p of routes) {
@@ -82,7 +88,7 @@ async function main() {
   const secret = process.env.SUPABASE_SERVICE_ROLE_KEY!
   let bytes = 0
   let hits = 0
-  const pages = ['/login', '/queue', '/leads', '/onboarding', '/health', '/report', `/leads/${leadId}`]
+  const pages = appRoutes({ byRoute: { '/leads/[id]': leadId } }).filter((r) => !r.startsWith('SKIPPED:'))
   const assets = new Set<string>()
   for (const p of pages) {
     const html = await (await get(p)).text()
