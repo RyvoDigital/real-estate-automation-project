@@ -48,9 +48,14 @@ mkdir -p "${STATE_DIR}" 2>/dev/null || true
 # from a redirect the script cannot see. If stat fails for any reason this
 # stays 0 and the old double-write returns -- a log should fail towards saying
 # something twice, never towards saying it not at all.
+# fd 9 is a copy of the REAL stdout. Do not read /dev/stdout here: command
+# substitution replaces fd 1 with its own capture pipe, so `$(stat /dev/stdout)`
+# describes the pipe and never matches -- which is exactly how the first version
+# of this check silently did nothing while looking correct.
 LOG_IS_STDOUT=0
+exec 9>&1
 if [[ -e "${HEALTH_LOG}" ]]; then
-  _out_id="$(stat -Lc '%d:%i' /dev/stdout 2>/dev/null || true)"
+  _out_id="$(stat -Lc '%d:%i' /dev/fd/9 2>/dev/null || true)"
   _log_id="$(stat -Lc '%d:%i' "${HEALTH_LOG}" 2>/dev/null || true)"
   if [[ -n "${_out_id}" && "${_out_id}" == "${_log_id}" ]]; then LOG_IS_STDOUT=1; fi
 fi
