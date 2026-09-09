@@ -35,12 +35,34 @@ PG_CONTAINER="${PG_CONTAINER:-infra-postgres-1}"
 . "$(dirname "$0")/alert.sh"
 
 mkdir -p "${STATE_DIR}" 2>/dev/null || true
+
+# Is stdout ALREADY this log file? Under cron it is: the crontab entry appends
+# stdout to the same path this script writes to, so every line landed twice --
+# 160 "health check starting" lines for ~80 runs on 2026-09-09, while
+# health_runs held exactly one row per tick. Harmless to read and wrong to
+# count, which is the problem: `grep -c FAILED` over this file returns double,
+# and the day someone counts failures from the log instead of the table they
+# get a number that looks plausible and is not.
+#
+# Compared by device+inode rather than by path, because the duplication comes
+# from a redirect the script cannot see. If stat fails for any reason this
+# stays 0 and the old double-write returns -- a log should fail towards saying
+# something twice, never towards saying it not at all.
+LOG_IS_STDOUT=0
+if [[ -e "${HEALTH_LOG}" ]]; then
+  _out_id="$(stat -Lc '%d:%i' /dev/stdout 2>/dev/null || true)"
+  _log_id="$(stat -Lc '%d:%i' "${HEALTH_LOG}" 2>/dev/null || true)"
+  if [[ -n "${_out_id}" && "${_out_id}" == "${_log_id}" ]]; then LOG_IS_STDOUT=1; fi
+fi
+
 # Never let an unwritable log turn a health check into a wall of tee errors --
 # stdout is what cron captures, and the check itself must still run.
 log() {
   local line; line="$(printf '[%s] %s' "$(date -Iseconds)" "$*")"
   printf '%s\n' "${line}"
-  printf '%s\n' "${line}" >> "${HEALTH_LOG}" 2>/dev/null || true
+  if [[ "${LOG_IS_STDOUT}" -eq 0 ]]; then
+    printf '%s\n' "${line}" >> "${HEALTH_LOG}" 2>/dev/null || true
+  fi
 }
 
 FAILURES=()

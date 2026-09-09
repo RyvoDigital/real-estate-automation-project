@@ -136,6 +136,61 @@ else
   docker cp "${WF_CID}:/tmp/wf-export/." "${WORKFLOWS_DIR}/"
   compose exec -T n8n rm -rf /tmp/wf-export || true
   echo "  -> Workflow export refreshed in ${WORKFLOWS_DIR}"
+
+  # ---------------------------------------------------------------------
+  # Normalise the export to pretty-printed JSON before it is committed.
+  #
+  # n8n exports minified: one workflow, one line. So a one-node change and a
+  # whole workflow being emptied produce the SAME diff -- "1 insertion, 1
+  # deletion" -- and when the repo copy was pretty-printed by hand it lands as
+  # a 4,348-line rewrite instead. Either way the diff carries no information.
+  #
+  # On 2026-09-09 that cost a real investigation: a backup commit showed 4,348
+  # deletions across the Concierge and there was no way to tell content loss
+  # from whitespace without parsing both revisions. It was whitespace. The next
+  # one might not be, and it will look identical.
+  #
+  # This is FORMATTING ONLY. Every file is parsed, re-serialised and re-parsed
+  # to confirm it still means exactly the same thing, and written atomically.
+  # Anything that fails any of those steps is LEFT EXACTLY AS EXPORTED: an ugly
+  # backup is still a backup, a truncated one is not. The step can only ever
+  # make the diff readable, never make the content wrong.
+  # ---------------------------------------------------------------------
+  if python3 - "${WORKFLOWS_DIR}" <<'PYFMT'
+import json, os, sys, tempfile
+
+d = sys.argv[1]
+changed = skipped = 0
+for name in sorted(os.listdir(d)):
+    if not name.endswith('.json'):
+        continue
+    path = os.path.join(d, name)
+    try:
+        with open(path, 'r', encoding='utf-8') as fh:
+            raw = fh.read()
+        obj = json.loads(raw)
+        pretty = json.dumps(obj, indent=2, ensure_ascii=False) + '\n'
+        if pretty == raw:
+            continue
+        # Round-trip: the reformatted text must parse back to the same object.
+        # Without this the check is "it looked fine", which is not a check.
+        if json.loads(pretty) != obj:
+            print('     ! %s: round-trip changed the content, left as exported' % name)
+            skipped += 1
+            continue
+        fd, tmp = tempfile.mkstemp(dir=d, suffix='.tmp')
+        with os.fdopen(fd, 'w', encoding='utf-8') as fh:
+            fh.write(pretty)
+        os.replace(tmp, path)          # atomic; a crash leaves the old file
+        changed += 1
+    except Exception as e:
+        print('     ! %s: %s, left as exported' % (name, e))
+        skipped += 1
+print('  -> Pretty-printed %d workflow file(s), %d left as exported' % (changed, skipped))
+PYFMT
+  then :; else
+    echo "  -> WARNING: could not pretty-print the export; committing it as exported" >&2
+  fi
 fi
 
 # 3. Commit workflow exports (only if something changed).
