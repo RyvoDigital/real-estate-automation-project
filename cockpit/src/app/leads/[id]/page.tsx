@@ -123,7 +123,15 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
             )}
           </div>
 
-          <Composer leadId={lead.id} firstName={lead.name.split(' ')[0]} />
+          <Composer
+            leadId={lead.id}
+            firstName={lead.name.split(' ')[0]}
+            escalated={Boolean(lead.escalated)}
+          />
+          {/* Beside the composer, not at the foot of the side panel: on a
+              phone the panel is below the fold, and the 11 Sept rehearsal
+              concluded there was no way to un-escalate at all. */}
+          {lead.escalated && <HandBack leadId={lead.id} />}
         </div>
 
         <aside className="panel">
@@ -194,13 +202,8 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
               {(!lead.escalated || lead.escalated.reasons.length === 0) && (
                 <span className="learned__none">Not escalated</span>
               )}
-              <span style={{ fontSize: 12, lineHeight: 1.45, color: 'var(--ink-4)' }}>
-                Every entry of reasons[], not just the first.
-              </span>
             </div>
           </div>
-
-          {lead.escalated && <HandBack leadId={lead.id} />}
         </aside>
       </div>
     </Shell>

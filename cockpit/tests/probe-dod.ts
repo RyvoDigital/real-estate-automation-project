@@ -162,7 +162,7 @@ async function main() {
     6,
     refused.status === 401 ? 'PASS' : 'FAIL',
     'A failed send is reported as failed and does not clear the escalation',
-    `bad secret -> ${refused.status}; the UI path reports every non-success in words and clears nothing (sendReply never touches qualification)`,
+    `bad secret -> ${refused.status}; the UI path reports every non-success in words and clears nothing (sendReply returns before the opt-in hand-back on any failure)`,
   )
 
   // ---- 7. hand-back explicit, and it DELETED the key --------------------

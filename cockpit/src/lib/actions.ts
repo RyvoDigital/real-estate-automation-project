@@ -22,8 +22,12 @@ export type ActionResult = { ok: boolean; message: string }
  * resolved by n8n from the lead row, so holding the secret does not let you
  * send a WhatsApp message to an arbitrary number on the client's account.
  */
-export async function sendReply(leadId: string, text: string): Promise<ActionResult> {
-  await requireOperator()
+export async function sendReply(
+  leadId: string,
+  text: string,
+  handBack = false,
+): Promise<ActionResult> {
+  const operator = await requireOperator()
 
   const body = text.trim()
   if (!body) return { ok: false, message: 'Nothing to send.' }
@@ -82,7 +86,34 @@ export async function sendReply(leadId: string, text: string): Promise<ActionRes
 
   revalidatePath(`/leads/${leadId}`)
   revalidatePath('/queue')
-  return { ok: true, message: 'Sent, and recorded in the conversation.' }
+
+  // Hand-back rides on a CONFIRMED send only — a failed send returned above
+  // and cleared nothing. The flag is opt-in per message (decision recorded in
+  // the Phase 2 handoff §5.3): a ticked-and-forgotten default would resume
+  // the AI underneath a human mid-negotiation, which is the failure §5.3
+  // exists to prevent; an unticked-and-forgotten one leaves the AI quiet,
+  // which is visible on the queue and recoverable from the button beside
+  // this composer.
+  if (!handBack) return { ok: true, message: 'Sent, and recorded in the conversation.' }
+
+  const cleared = await clearEscalation(leadId, operator.email, 'cockpit_reply')
+  if (cleared.ok === 'not_escalated') {
+    return { ok: true, message: 'Sent, and recorded in the conversation. The lead was not escalated, so there was nothing to hand back.' }
+  }
+  if (cleared.ok !== true) {
+    // The message DID go. Saying "not sent" here would be instance 6 in
+    // reverse, so the two outcomes are stated separately.
+    return {
+      ok: false,
+      message: `Sent and recorded — but the lead was NOT handed back: ${cleared.message} The AI is still silent on this lead.`,
+    }
+  }
+  return {
+    ok: true,
+    message: cleared.eventFailed
+      ? 'Sent, and handed back to the AI — but the audit event failed to write.'
+      : 'Sent, and handed back. The AI will answer the next message.',
+  }
 }
 
 /**
@@ -102,6 +133,31 @@ export async function sendReply(leadId: string, text: string): Promise<ActionRes
  */
 export async function handBackToAI(leadId: string): Promise<ActionResult> {
   const operator = await requireOperator()
+  const r = await clearEscalation(leadId, operator.email, 'cockpit')
+  if (r.ok === 'not_escalated') return { ok: false, message: 'That lead is not escalated.' }
+  if (r.ok !== true) return { ok: false, message: r.message }
+  if (r.eventFailed) {
+    return { ok: true, message: `Handed back to the AI — but the audit event failed to write (${r.message}).` }
+  }
+  return { ok: true, message: 'Handed back. The AI will answer the next message.' }
+}
+
+type ClearResult =
+  | { ok: true; eventFailed: boolean; message: string }
+  | { ok: 'not_escalated' }
+  | { ok: false; message: string }
+
+/**
+ * The one place the escalation key is removed. Both callers — the explicit
+ * button and the opt-in on send — go through here so there is exactly one
+ * set of rules: delete the key (never null it), read the row back before
+ * believing it, and leave the trail in `events` with the source named.
+ */
+async function clearEscalation(
+  leadId: string,
+  operatorEmail: string,
+  source: 'cockpit' | 'cockpit_reply',
+): Promise<ClearResult> {
   const db = admin()
 
   const { data: lead, error: readErr } = await db
@@ -114,7 +170,7 @@ export async function handBackToAI(leadId: string): Promise<ActionResult> {
   if (!lead) return { ok: false, message: 'That lead no longer exists.' }
 
   const before = parseEscalated(lead.qualification)
-  if (!before) return { ok: false, message: 'That lead is not escalated.' }
+  if (!before) return { ok: 'not_escalated' }
 
   const q = { ...((lead.qualification as Record<string, unknown>) ?? {}) }
   delete q.escalated
@@ -142,28 +198,22 @@ export async function handBackToAI(leadId: string): Promise<ActionResult> {
     client_id: lead.client_id,
     type: 'lead.escalation_cleared',
     severity: 'info',
-    summary: `Escalation cleared by ${operator.email}`,
+    summary: `Escalation cleared by ${operatorEmail}`,
     data: {
       lead_id: leadId,
-      cleared_by: operator.email,
+      cleared_by: operatorEmail,
       cleared_at: new Date().toISOString(),
       // What it was, so the trail survives the key being deleted.
       previous_reasons: before.reasons,
       escalated_at: before.at,
-      source: 'cockpit',
+      source,
     },
   })
 
   revalidatePath(`/leads/${leadId}`)
   revalidatePath('/queue')
 
-  if (eventErr) {
-    return {
-      ok: true,
-      message: `Handed back to the AI — but the audit event failed to write (${eventErr.message}).`,
-    }
-  }
-  return { ok: true, message: 'Handed back. The AI will answer the next message.' }
+  return { ok: true, eventFailed: Boolean(eventErr), message: eventErr?.message ?? '' }
 }
 
 // ------------------------------------------------------------- onboarding

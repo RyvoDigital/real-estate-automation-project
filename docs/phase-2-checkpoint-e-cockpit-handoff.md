@@ -298,6 +298,28 @@ This context is the entire argument for replying here rather than in WhatsApp. O
 
 An explicit action, confirmed, that clears `qualification.escalated` and writes an event. Default state is that the lead stays with the human.
 
+**Decided 2026-09-11, after the rehearsal defect brief (item 1.3).** The brief
+asked for *sending from the cockpit clears the escalation*. That is not what was
+built, and the two documents are not in contradiction — this is the resolution:
+
+- **Sending still does not clear the escalation on its own.** The composer
+  carries a checkbox, *"Hand back to the AI after sending"*, **unticked by
+  default**. A confirmed send with it ticked clears the key and writes
+  `lead.escalation_cleared` with `source: 'cockpit_reply'`; a failed send
+  returns before the hand-back and clears nothing.
+- **Why unticked.** Ticked-and-forgotten reintroduces exactly the failure this
+  section exists to prevent: the AI resuming underneath a human who is mid
+  negotiation, and sending the lead a second handoff note when the next message
+  mentions price. Unticked-and-forgotten means the AI stays quiet — which is
+  visible on the queue and recoverable in one tap. The safe default is the one
+  that is safe when forgotten.
+- **The real defect was discoverability, not capability.** The hand-back button
+  existed since E2 and had worked on 6 September, but it sat at the foot of the
+  side panel — below the fold on a phone — and the rehearsal concluded there
+  was no way to un-escalate at all. It now sits directly beside the composer.
+  Both paths share one `clearEscalation` routine, so there is one set of rules
+  for deleting the key, reading the row back, and writing the event.
+
 **KNOWN GAP, open and deliberate.** The "handled elsewhere" detection is implemented and correct, and it may never fire. It looks for an outbound message recorded after the escalation that the cockpit did not send — but a message typed into WhatsApp on a phone reaches Twilio, not n8n, so unless Twilio's outbound status callbacks are recorded there is no row to find. This is a *consumer without a producer*, the mirror of instance 15 in `engineering-lessons.md`. Closing it means wiring Twilio status callbacks into a webhook that writes the outbound row, which is its own piece of work and is not in E2.
 
 **Also handle the case where Manuel replied in WhatsApp instead.** He will sometimes just do that. If an outbound message exists for an escalated lead that the cockpit did not send, surface the escalation as "handled elsewhere" rather than leaving it looking untouched. Never a stuck state for doing the obvious thing.

@@ -12,8 +12,21 @@ import { IconWarning } from './Icons'
  * in the box so nothing is lost, and does not clear anything — §11 item 6,
  * the one failure in this project that reached a prospect.
  */
-export function Composer({ leadId, firstName }: { leadId: string; firstName: string }) {
+export function Composer({
+  leadId,
+  firstName,
+  escalated,
+}: {
+  leadId: string
+  firstName: string
+  escalated: boolean
+}) {
   const [text, setText] = useState('')
+  // Opt-in per message, UNTICKED by default. Recorded in the Phase 2 handoff
+  // §5.3: ticked-and-forgotten resumes the AI underneath a human mid-
+  // negotiation; unticked-and-forgotten leaves the AI quiet, which is visible
+  // and recoverable. The safe default is the one that is safe when forgotten.
+  const [handBack, setHandBack] = useState(false)
   const [result, setResult] = useState<ActionResult | null>(null)
   const [draft, setDraft] = useState<DraftResult | null>(null)
   const [pending, start] = useTransition()
@@ -34,11 +47,15 @@ export function Composer({ leadId, firstName }: { leadId: string; firstName: str
     if (!text.trim() || pending) return
     setResult(null)
     start(async () => {
-      const r = await sendReply(leadId, text)
+      const r = await sendReply(leadId, text, escalated && handBack)
       setResult(r)
       // Only clear the box on a confirmed send. If it failed, the words the
-      // operator wrote are the last thing that should be thrown away.
-      if (r.ok) setText('')
+      // operator wrote are the last thing that should be thrown away. The
+      // hand-back failure case says "Sent and recorded" in its own words and
+      // arrives as ok=false, so the message is also kept out of the box by
+      // checking what the message says, not only the flag.
+      if (r.ok || r.message.startsWith('Sent')) setText('')
+      if (r.ok) setHandBack(false)
     })
   }
 
@@ -71,6 +88,20 @@ export function Composer({ leadId, firstName }: { leadId: string; firstName: str
         disabled={pending}
         aria-label="Reply text"
       />
+      {escalated && (
+        <label className="composer__handback">
+          <input
+            type="checkbox"
+            checked={handBack}
+            disabled={pending}
+            onChange={(e) => setHandBack(e.target.checked)}
+          />
+          <span>
+            Hand back to the AI after sending — it answers this lead&rsquo;s next message.
+            Leave unticked if you are staying in the conversation.
+          </span>
+        </label>
+      )}
       <div className="composer__actions">
         <button
           className="btn btn--ghost"
@@ -94,7 +125,11 @@ export function Composer({ leadId, firstName }: { leadId: string; firstName: str
           disabled={pending || !text.trim()}
           type="button"
         >
-          {pending ? 'Sending…' : isUntouchedDraft ? 'Send this draft' : 'Send'}
+          {pending
+            ? 'Sending…'
+            : isUntouchedDraft
+              ? handBack ? 'Send draft and hand back' : 'Send this draft'
+              : handBack ? 'Send and hand back' : 'Send'}
         </button>
       </div>
       <span className="composer__hint">
