@@ -25,7 +25,7 @@ const ZONES = {
   VerifySignature: 1, Normalise: 1, FlattenClient: 1,
   // 2 - lead known, nothing sent. The handoff note is owed and is still possible.
   AfterLead: 2, AfterListing: 2, AfterAgentReply: 2, MediaReply: 2,
-  ProposeSlots: 2, MatchConfirmation: 2, BuildClaudeRequest: 2,
+  ProposeSlots: 2, MatchConfirmation: 2, ResolveBooking: 2, BuildClaudeRequest: 2,
   ParseClaude: 2, ParseGuardRetry: 2, DecideEscalation: 2,
   // 3 - the booking path, after the model may already have written a
   //     confirmation. Never book, never let a confirmation stand.

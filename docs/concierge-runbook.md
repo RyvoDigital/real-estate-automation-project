@@ -1008,6 +1008,44 @@ see §9 of `docs/code-node-failure-handling-spec.md` before "fixing" it.
 legal `automation_runs` row. The email is the only record, as with a database
 outage.
 
+### A stored booking is verified before it is asserted (2026-09-11)
+
+The rehearsal's "phantom booking" was a real event. Execution 414 on
+5 September holds Google's response: `calendar#event`, `status: confirmed`, a
+real `htmlLink`. The id is derived locally by design (the slot-keyed 409 lock)
+and read back from `body.id`; `AfterBooking` only says `created` on a 2xx, and
+the lead is written after that. What was missing was everything *after* the
+create: six days later the slot had passed and the event was gone, and every
+message still told the model *"this lead ALREADY has a first meeting booked -
+do not offer times"*. That one stale instruction is also why the English lead
+was never offered a viewing (brief 1.2) and why the stage sat at
+`viewing_booked` through re-qualification (1.4).
+
+**Now, on every message from a lead with a stored booking:**
+
+1. `HasExistingBooking` → `VerifyBooking` does `events.get` on the stored id.
+2. `ResolveBooking` (`src/booking_check.js`, unit-tested) decides:
+   `past` (end time passed - the clock wins, no calendar needed) / `cancelled`
+   (Google says so) / `missing` (404 or 410) → the booking is **retired**:
+   withdrawn before the model is told anything, and archived on the lead as
+   `qualification.past_bookings[]` by `MergeLeadFields`. `confirmed` → as
+   before. `unreadable` (5xx, auth, transport) → **kept**, with the prompt told
+   the calendar could not be checked. The bias when unsure is to keep: retiring
+   a real booking on a transient 503 would let the model offer a second one.
+3. `IsBookingNoteworthy` → `EventBookingCheck` writes `viewing.retired`
+   (`info` for past, `warning` for cancelled/missing) or `viewing.check_failed`
+   (`critical`). The cockpit's lead page reads them: a retired booking is struck
+   through with the reason, an unverified one is flagged in words. A Google
+   outage that silently changed booking behaviour would be the silent-failure
+   pattern again; this is where it becomes visible.
+
+The run payload carries `booking_check`, `booking_check_status`,
+`booking_check_error` and `booking_check_event_status`.
+
+**Still true:** a cancelled event burns its id (next section), so a lead who
+picks the *same* slot again is escalated with `conflict_burned_id` rather than
+rebooked. Stage is not regressed when a booking is retired - that is 1.4.
+
 ### Deleting a calendar entry burns that slot for ever
 
 The event id is derived from the **slot**, so Google's 409 is what prevents

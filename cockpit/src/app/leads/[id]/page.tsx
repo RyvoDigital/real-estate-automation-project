@@ -184,9 +184,29 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
                     : 'Appointment'}
               </span>
               {lead.viewing ? (
-                <span className="learned__v">
-                  {lead.viewing.startsAt ? clock(lead.viewing.startsAt) : 'Booked'}
-                </span>
+                <>
+                  <span
+                    className={lead.viewing.state === 'retired' ? 'learned__none' : 'learned__v'}
+                    style={lead.viewing.state === 'retired' ? { textDecoration: 'line-through' } : undefined}
+                  >
+                    {lead.viewing.startsAt ? clock(lead.viewing.startsAt) : 'Booked'}
+                  </span>
+                  {/* A booking the Concierge has retired or could not verify says
+                      so HERE, where the operator looks — not only in the prompt. */}
+                  {lead.viewing.note && (
+                    <span
+                      className="learned__v"
+                      style={{
+                        fontSize: 13,
+                        color: lead.viewing.state === 'unverified' ? 'var(--t3)' : 'var(--ink-2)',
+                      }}
+                    >
+                      {lead.viewing.state === 'unverified' ? 'Unverified. ' : ''}
+                      {lead.viewing.note}
+                      {lead.viewing.at ? ` (${clock(lead.viewing.at)})` : ''}
+                    </span>
+                  )}
+                </>
               ) : (
                 <span className="learned__none">None booked</span>
               )}

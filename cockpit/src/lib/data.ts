@@ -280,7 +280,7 @@ export type LeadDetail = {
   classes: EscalationClass[]
   messages: Message[]
   handledElsewhere: boolean
-  viewing: { startsAt: string | null; kind: 'viewing' | 'meeting' | null; summary: string | null } | null
+  viewing: Viewing | null
 }
 
 export async function getLead(id: string): Promise<LeadDetail | null> {
@@ -365,17 +365,42 @@ async function getMessages(leadId: string): Promise<Message[]> {
  * calendar entry was created — §1 rule 14 of the lessons file: check the
  * artefact, not the thing that claims the artefact exists.
  */
-async function getViewing(leadId: string) {
-  const { data, error } = await admin()
-    .from('events')
-    .select('type, summary, data, created_at')
-    .eq('type', 'viewing.booked')
-    .order('created_at', { ascending: false })
-    .limit(200)
+export type ViewingState = 'booked' | 'unverified' | 'retired'
 
-  if (error) return null
+export type Viewing = {
+  startsAt: string | null
+  kind: 'viewing' | 'meeting' | null
+  summary: string | null
+  /** booked: the last word from the Concierge is that it exists.
+   *  unverified: it is still asserted, but the last check could not read the
+   *  calendar — a Google outage must be visible here, not only in the prompt.
+   *  retired: its time passed, or it was removed from the calendar. */
+  state: ViewingState
+  /** Why, in words, for the retired and unverified states. */
+  note: string | null
+  at: string | null
+}
 
-  const hit = (data ?? []).find((e) => {
+async function getViewing(leadId: string): Promise<Viewing | null> {
+  const db = admin()
+  const [booked, checks] = await Promise.all([
+    db
+      .from('events')
+      .select('type, summary, data, created_at')
+      .eq('type', 'viewing.booked')
+      .order('created_at', { ascending: false })
+      .limit(200),
+    db
+      .from('events')
+      .select('type, summary, data, created_at')
+      .in('type', ['viewing.retired', 'viewing.check_failed'])
+      .order('created_at', { ascending: false })
+      .limit(200),
+  ])
+
+  if (booked.error) return null
+
+  const hit = (booked.data ?? []).find((e) => {
     const d = e.data as Record<string, unknown> | null
     return d && d.lead_id === leadId
   })
@@ -387,14 +412,51 @@ async function getViewing(leadId: string) {
   // kind unknown. Never defaulted to 'viewing' — that default is the defect.
   const kind: 'viewing' | 'meeting' | null =
     d.kind === 'viewing' ? 'viewing' : d.kind === 'meeting' ? 'meeting' : null
+  // The Concierge writes start_utc (and local). Earlier code read starts_at and
+  // slot, which nothing writes, so every booking rendered as a bare "Booked".
   const startsAt =
-    typeof d.starts_at === 'string'
-      ? d.starts_at
-      : typeof d.slot === 'string'
-        ? d.slot
-        : null
+    typeof d.start_utc === 'string'
+      ? d.start_utc
+      : typeof d.local === 'string'
+        ? d.local
+        : typeof d.starts_at === 'string'
+          ? d.starts_at
+          : null
 
-  return { startsAt, kind, summary: (hit.summary as string) ?? null }
+  // The most recent check on THIS booking, if the Concierge has made one since.
+  // Matched on event_id, so a check on an earlier booking cannot retire a later
+  // one; a check without an id is matched on lead and recency instead.
+  const eventId = typeof d.event_id === 'string' ? d.event_id : null
+  const check = (checks.data ?? []).find((e) => {
+    const c = e.data as Record<string, unknown> | null
+    if (!c || c.lead_id !== leadId) return false
+    if (eventId && typeof c.event_id === 'string') return c.event_id === eventId
+    return Date.parse(e.created_at as string) > Date.parse(hit.created_at as string)
+  })
+
+  let state: ViewingState = 'booked'
+  let note: string | null = null
+  let at: string | null = null
+  if (check) {
+    const c = check.data as Record<string, unknown>
+    at = check.created_at as string
+    if (check.type === 'viewing.check_failed') {
+      state = 'unverified'
+      note = `Still recorded as booked, but the calendar could not be read${
+        typeof c.error === 'string' ? ` (${c.error})` : ''
+      }. Check the calendar by hand.`
+    } else {
+      state = 'retired'
+      note =
+        c.reason === 'past'
+          ? 'Its time has passed.'
+          : c.reason === 'cancelled'
+            ? 'Removed from the calendar. The lead has not been told why.'
+            : 'No longer in the calendar. The lead has not been told why.'
+    }
+  }
+
+  return { startsAt, kind, summary: (hit.summary as string) ?? null, state, note, at }
 }
 
 // ---------------------------------------------------------------- all leads
