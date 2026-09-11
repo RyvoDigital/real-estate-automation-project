@@ -264,7 +264,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ client_id: $json.clientId, lead_id: $json.leadId, channel: 'whatsapp', direction: 'outbound', body: $json.text, status: $json.sendOk ? 'sent' : 'failed', ai_generated: false, approved_by_human: true, external_id: $json.twilioSid }) }}"
+        "jsonBody": "={{ JSON.stringify({ client_id: $json.clientId, lead_id: $json.leadId, channel: 'whatsapp', direction: 'outbound', body: $json.text, status: $json.sendOk ? 'sent' : 'failed', ai_generated: false, approved_by_human: true, origin: 'human', external_id: $json.twilioSid }) }}"
       },
       "id": "e2-StoreOutbound",
       "name": "StoreOutbound",

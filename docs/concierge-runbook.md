@@ -441,14 +441,49 @@ stored and logged with `silenced_escalated_lead: true`, `ai_called: false`.
 > missing `config.escalate_to` is treated the same way rather than passing
 > silently.
 
-**Clearing an escalation** is manual and deliberate — there is no UI yet:
+**Clearing an escalation** is done from the cockpit — the *Hand back to the
+AI* button beside the composer, or the *Hand back after sending* checkbox on a
+reply (unticked by default; Phase 2 handoff §5.3 records why). Both delete the
+key, write `lead.escalation_cleared`, and stamp
+`qualification.escalation_cleared_at` on the lead. The SQL below still works in
+an emergency, but it leaves no stamp, so the transcript gets no hand-back note:
 
 ```sql
--- removes the flag so the AI resumes on the next inbound message
 update public.leads
-   set qualification = qualification - 'escalated', updated_at = now()
+   set qualification = (qualification - 'escalated')
+                       || jsonb_build_object('escalation_cleared_at', now(), 'escalation_cleared_by', 'sql'),
+       updated_at = now()
  where phone = '+3519...';
 ```
+
+### The transcript says who wrote what (2026-09-11)
+
+A handed-back lead re-escalated on *"Qual é o próximo passo?"* with the reason
+"asked to speak to a person and asked about price negotiation" — both from
+earlier in the window, neither in that message. The transcript the model
+received mapped **every outbound row to an assistant turn**: the fixed handoff
+note read as Sofia promising a colleague, the human's cockpit reply read as
+Sofia's own words, and nothing said the request had been handled. Escalating
+again was the consistent reading of the wrong transcript.
+
+Three things changed, all in `BuildClaudeRequest` via `src/transcript.js`:
+
+1. **`messages.origin`** (migration 0010): `lead | ai | human | handoff |
+   system`, set by every writing node. It is a column, **not** a body match
+   against the configured handoff strings — a client customising their note
+   must not silently turn it back into Sofia's words.
+2. **Labels travel with the turn.** Human replies, handoff notes and other
+   system messages are still assistant turns, but each starts with a bracketed
+   label saying it was not written by the assistant.
+3. **A hand-back is a note in the transcript** at the point it happened, read
+   from `qualification.escalation_cleared_at`. The prompt rule is *do not
+   re-escalate what a colleague has already handled* — not *ignore history*.
+   Escalations that build over several turns still count.
+
+`MarkLeadEscalated` also stores `escalated.triggered_by`, the lead message being
+answered when the decision was made, and the cockpit shows it beside the
+reason. A reason that cites something older than that message is now visible
+as wrong rather than read as fact.
 
 ### The reply guard retries before it escalates
 

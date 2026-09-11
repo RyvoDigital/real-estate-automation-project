@@ -6,6 +6,7 @@ import {
   minutesSince,
   parseEscalated,
   tierFor,
+  type Escalated,
   type EscalationClass,
   type Tier,
 } from '@/lib/escalation'
@@ -272,7 +273,7 @@ export type LeadDetail = {
   timeline: string | null
   area: string | null
   qualification: Record<string, unknown>
-  escalated: { at: string | null; reasons: string[] } | null
+  escalated: Escalated | null
   minutes: number
   tier: Tier
   primary: EscalationClass

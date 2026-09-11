@@ -25,6 +25,11 @@ const SYSTEM = /^(claude_failed|bad_reply_twice|booking_failed|no_availability|m
 export type Escalated = {
   at: string | null
   reasons: string[]
+  /** The lead's message that was being answered when the escalation was
+   *  decided. Stored so the reason can be read against the words it claims
+   *  to describe: on 2026-09-11 a reason cited a price question from forty
+   *  minutes earlier as if it were the current message. */
+  triggeredBy: string | null
 }
 
 /**
@@ -53,6 +58,7 @@ export function parseEscalated(qualification: unknown): Escalated | null {
   return {
     at: typeof e.at === 'string' ? e.at : null,
     reasons: list.length > 0 ? list : single,
+    triggeredBy: typeof e.triggered_by === 'string' && e.triggered_by.trim() ? e.triggered_by : null,
   }
 }
 

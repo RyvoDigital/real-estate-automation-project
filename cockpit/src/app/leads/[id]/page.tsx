@@ -202,6 +202,13 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
               {(!lead.escalated || lead.escalated.reasons.length === 0) && (
                 <span className="learned__none">Not escalated</span>
               )}
+              {/* The message the reason claims to describe, so a reason that
+                  cites something older than this is visible as wrong. */}
+              {lead.escalated?.triggeredBy && (
+                <span className="learned__v" style={{ fontSize: 13, color: 'var(--ink-2)' }}>
+                  Lead said: &ldquo;{lead.escalated.triggeredBy}&rdquo;
+                </span>
+              )}
             </div>
           </div>
         </aside>

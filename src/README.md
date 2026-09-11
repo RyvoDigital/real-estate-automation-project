@@ -8,6 +8,8 @@ read them and embed a copy into the workflow at build time.
 |---|---|---|
 | `concierge_system_prompt.txt` | `BuildClaudeRequest` (`SYSTEM_TEMPLATE`) | Placeholders `__AGENT__`, `__AGENCY__`, `__AREAS__` are filled from `client_automations.config` |
 | `slot_engine.js` | `ProposeSlots` (Checkpoint C) | Unit-tested standalone; see the harness in the C1 notes |
+| `appointment_kind.js` | `BuildClaudeRequest`, `ParseClaude`, `ParseGuardRetry` | Meeting vs viewing; `tests/appointment_kind.test.js` loads this file |
+| `transcript.js` | `BuildClaudeRequest` | Who wrote what — origin labels and the hand-back note; `tests/transcript.test.js` loads this file |
 
 **There is deliberately no example of the `AVAILABLE_SLOTS` block here.** There
 was one, `available_slots_block.example.txt`, and it drifted: by 2026-09-04 it

@@ -174,10 +174,18 @@ async function clearEscalation(
 
   const q = { ...((lead.qualification as Record<string, unknown>) ?? {}) }
   delete q.escalated
+  // The hand-back is also stated ON THE LEAD, because the Concierge reads the
+  // lead row on every message and the events table on none. BuildClaudeRequest
+  // turns this into a note in the transcript at the point it happened, so
+  // "a colleague already handled that" is a fact the model is told rather than
+  // something it has to infer from an unlabelled handoff note.
+  const clearedAt = new Date().toISOString()
+  q.escalation_cleared_at = clearedAt
+  q.escalation_cleared_by = operatorEmail
 
   const { error: writeErr } = await db
     .from('leads')
-    .update({ qualification: q, updated_at: new Date().toISOString() })
+    .update({ qualification: q, updated_at: clearedAt })
     .eq('id', leadId)
 
   if (writeErr) return { ok: false, message: `Could not clear the escalation: ${writeErr.message}` }
@@ -202,7 +210,7 @@ async function clearEscalation(
     data: {
       lead_id: leadId,
       cleared_by: operatorEmail,
-      cleared_at: new Date().toISOString(),
+      cleared_at: clearedAt,
       // What it was, so the trail survives the key being deleted.
       previous_reasons: before.reasons,
       escalated_at: before.at,
