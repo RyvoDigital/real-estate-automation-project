@@ -37,6 +37,16 @@ r = resolveBookingCheck(FUTURE, { statusCode: 404, body: {} }, NOW);
 chk('gone from the calendar -> missing, retired', r.check === 'missing' && r.retire === true);
 r = resolveBookingCheck(FUTURE, { statusCode: 410, body: {} }, NOW);
 chk('410 is treated like 404', r.check === 'missing' && r.retire === true);
+r = resolveBookingCheck(FUTURE, { statusCode: 404, body: {} }, NOW, { calendarReadable: true });
+chk('404 with a readable calendar -> missing', r.check === 'missing' && r.retire === true);
+
+console.log('\na 404 is only "gone" when the calendar itself could be read');
+r = resolveBookingCheck(FUTURE, { statusCode: 404, body: {} }, NOW, { calendarReadable: false });
+chk('404 while free/busy also failed -> unreadable, NOT retired', r.check === 'unreadable' && r.retire === false && /calendar_unreadable/.test(r.error));
+r = resolveBookingCheck(FUTURE, ok('cancelled'), NOW, { calendarReadable: false });
+chk('an explicit cancelled still retires even if free/busy failed', r.check === 'cancelled' && r.retire === true);
+r = resolveBookingCheck(PAST, { statusCode: 404, body: {} }, NOW, { calendarReadable: false });
+chk('past still wins over an unreadable calendar', r.check === 'past');
 
 console.log('\nwhen the calendar cannot be read, keep the booking and SAY so');
 r = resolveBookingCheck(FUTURE, { statusCode: 503, body: { error: { message: 'Backend Error' } } }, NOW);

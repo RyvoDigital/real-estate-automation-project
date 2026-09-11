@@ -27,18 +27,25 @@
 // appointment on top of a first one that still exists.
 // ============================================================================
 
-// resolveBookingCheck(existing, httpResponse, nowMs) ->
+// resolveBookingCheck(existing, httpResponse, nowMs, opts) ->
 //   { check, retire, error, googleStatus }
 //
 //   existing      the stored booking: { event_id, startUtc, endUtc, ... }
 //   httpResponse  the events.get envelope { statusCode, body } or null
 //   nowMs         the clock, injected so the tests can move it
+//   opts.calendarReadable
+//                 whether free/busy on the SAME calendar succeeded this turn.
+//                 Google answers 404 both for an event that was purged and for
+//                 a calendar id that is wrong, and only one of those means the
+//                 booking is gone. If the calendar could not be read either,
+//                 a 404 is a read failure, not a missing event.
 //
 //   check   'past' | 'cancelled' | 'missing' | 'confirmed' | 'unreadable'
 //   retire  true when the booking must stop being asserted
 //   error   a short reason string for 'unreadable', else null
-function resolveBookingCheck(existing, httpResponse, nowMs) {
+function resolveBookingCheck(existing, httpResponse, nowMs, opts) {
   const eb = existing || {};
+  const calendarReadable = !(opts && opts.calendarReadable === false);
   const res = httpResponse || {};
   const code = typeof res.statusCode === 'number' ? res.statusCode : null;
   const body = res.body || {};
@@ -56,8 +63,12 @@ function resolveBookingCheck(existing, httpResponse, nowMs) {
     }
     return { check: 'confirmed', retire: false, error: null, googleStatus: code };
   }
-  if (code === 404 || code === 410) {
+  if ((code === 404 || code === 410) && calendarReadable) {
     return { check: 'missing', retire: true, error: null, googleStatus: code };
+  }
+  if (code === 404 || code === 410) {
+    return { check: 'unreadable', retire: false,
+             error: 'events_get_http_' + code + ':calendar_unreadable', googleStatus: code };
   }
   const msg = body.error && body.error.message ? ':' + String(body.error.message).slice(0, 120) : '';
   return { check: 'unreadable', retire: false,
