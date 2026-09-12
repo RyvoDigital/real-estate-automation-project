@@ -6,6 +6,7 @@
 | `prompt_suites.py` | `src/concierge_system_prompt.txt` — inventory assertion, language matching **including booking-with-slots**, never-invent-a-time | On the server: `python3 tests/prompt_suites.py` (reads `.env`). `N_WITH_SLOTS=8` raises the sample on the booking-with-slots language cases |
 | `booking_check.test.js` | `src/booking_check.js` — the clock over the calendar, cancelled/missing retire, unreadable keeps and says so | `node tests/booking_check.test.js`, runs anywhere |
 | `booking_claim.test.js` | `src/booking_claim.js` — assertions caught in pt/es/en, offers, questions and negations pass | `node tests/booking_claim.test.js`, runs anywhere |
+| `event_id.test.js` | `src/event_id.js` — smallest unused generation, racers agree, foreign ids ignored | `node tests/event_id.test.js`, runs anywhere |
 | `transcript.test.js` | `src/transcript.js` — origin fallback, turn labels, hand-back note placement, role alternation; replays the 2026-09-11 re-escalation | `node tests/transcript.test.js`, runs anywhere |
 | `render_slots_block.py` | Not a test — renders the `AVAILABLE_SLOTS` block **out of the shipping node** for the two suites above | Imported by `prompt_suites.py`; run directly to eyeball the block |
 

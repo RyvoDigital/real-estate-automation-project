@@ -1378,3 +1378,22 @@ conversation. The cases that found today's defects are all transitions:
 A suite built on those would replay a conversation, change one fact underneath
 it, and assert what the next turn says — the mirror of `prompt_suites.py`,
 which holds the state still and varies the words.
+
+### 8b. Not properly closed: the cockpit's "the lead was told" is an inference
+
+Logged 2026-09-12, at the operator's request, while rewording the display.
+
+When a booking is retired the lead page now says *"The lead was sent a note
+saying it is no longer in the diary…"*. That sentence is **derived from the
+code path** — the retired-booking note is a fixed string sent on every
+cancelled/missing retirement since the fix landed — not from evidence that the
+message went. It replaced a claim that was false the other way ("has not been
+told why"), so it is less wrong, but it is the same defect class as the rest
+of §8: a display asserting a belief instead of reading a fact.
+
+**The proper close:** derive it from a `messages` row with `origin = 'handoff'`
+and `status = 'sent'`, written for that lead after the `viewing.retired`
+event — and say "no note was sent" when there is none. That is a small change
+to `getViewing()` in the cockpit; it is recorded here rather than made now
+because the retired-note send status is not yet joined to the retirement
+event, and doing it by timestamp proximity would be another inference.

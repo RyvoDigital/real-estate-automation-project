@@ -459,12 +459,17 @@ async function getViewing(leadId: string): Promise<Viewing | null> {
       }. Check the calendar by hand.`
     } else {
       state = 'retired'
+      // NOT properly closed — engineering-lessons §8b. "The lead was told" is
+      // an inference from the retirement having happened after the fixed note
+      // shipped; it should be READ from a messages row with origin=handoff
+      // written after this check, not asserted. Reworded 2026-09-12 because the
+      // previous text ("has not been told why") was false in the other direction.
       note =
         c.reason === 'past'
           ? 'Its time has passed.'
           : c.reason === 'cancelled'
-            ? 'Removed from the calendar. The lead has not been told why.'
-            : 'No longer in the calendar. The lead has not been told why.'
+            ? 'Removed from the calendar. The lead was sent a note saying it is no longer in the diary and that a colleague will be in touch.'
+            : 'No longer in the calendar. The lead was sent a note saying it is no longer in the diary and that a colleague will be in touch.'
     }
   }
 

@@ -1070,18 +1070,30 @@ Vercel runs in UTC; until 2026-09-12 a 09:00 Lisbon booking showed as 08:00.
 picks the *same* slot again is escalated with `conflict_burned_id` rather than
 rebooked. Stage is not regressed when a booking is retired - that is 1.4.
 
-### Deleting a calendar entry burns that slot for ever
+### Deleting a calendar entry no longer burns the slot (2026-09-12)
 
 The event id is derived from the **slot**, so Google's 409 is what prevents
-double-booking (see below). The cost is that **deleting an event permanently
-retires that time slot from automated booking** — a recreated event cannot reuse
-the id, and the Concierge escalates with `conflict_burned_id` instead of
-booking. Observed three times in one afternoon of testing, on slots cleaned up
-after earlier runs.
+double-booking (see below). Until 2026-09-12 the cost was that **deleting an
+event permanently retired that time slot from automated booking** — Google
+keeps every id it has ever seen, free/busy does not see deleted events, so the
+slot was *offered* and then failed at the moment of commitment with
+`conflict_burned_id`. Three slots in the demo week were burned that way, all by
+test cleanup.
 
-Low impact at current volume; real at scale, and worth knowing before an agency
-starts tidying its calendar by hand. The behaviour is correct — it escalates to
-a human rather than claiming a booking it could not make — but the slot is gone.
+**Now the id carries a generation.** Immediately before the create,
+`ListSlotEvents` lists the slot window with `showDeleted=true` and
+`ReadSlotEvents` (`src/event_id.js`, unit-tested) picks the smallest unused
+suffix: the base id if nothing ever used it, else `<base>g1`, `<base>g2`, …
+Two leads racing the same slot list the same calendar, compute the same id,
+and the 409 still arbitrates exactly as before. A deleted event just moves the
+next attempt to a fresh id. Generation 0 *is* the old id, so every id created
+before this change is still matched, verified and retired by its stored value.
+The run payload carries `event_id_generation` and `event_ids_seen`.
+
+A failed listing is **not** permission to create on the base id — it blocks
+the booking like a failed re-check (`recheck_failed`). And if Google ever 409s
+an id the listing did not show, `ResolveConflict`'s `burned_id` path is still
+behind it: escalate, never double-book.
 
 ### The drills covered dependencies, not us (open gate, 2026-09-08)
 

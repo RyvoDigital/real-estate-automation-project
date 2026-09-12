@@ -29,7 +29,7 @@ const ZONES = {
   ParseClaude: 2, ParseGuardRetry: 2, DecideEscalation: 2,
   // 3 - the booking path, after the model may already have written a
   //     confirmation. Never book, never let a confirmation stand.
-  SkipBooking: 3, ReadRecheck: 3, AfterBooking: 3, BlockedBooking: 3,
+  SkipBooking: 3, ReadRecheck: 3, ReadSlotEvents: 3, AfterBooking: 3, BlockedBooking: 3,
   CreatedBooking: 3, ResolveConflict: 3,
   // 4 - the lead already has their reply. Record and continue; NEVER re-send.
   AfterSend: 4, AfterMediaSend: 4, AfterHandoff: 4, AfterNotify: 4,
