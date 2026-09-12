@@ -16,7 +16,15 @@ for l in open('/opt/ryvo-automation-platform/.env'):
     if l and not l.startswith('#') and '=' in l:
         k, v = l.split('=', 1); E[k] = v
 KEY = E['ANTHROPIC_API_KEY']
-SCHEMA = json.load(open('/tmp/schema.json'))
+# The reply schema is read out of the SHIPPING node, never from a hand-kept
+# copy: a copy in /tmp/schema.json drifted out of existence on 2026-09-12 and a
+# copy that survives can drift in content. WORKFLOW_SRC overrides for a laptop.
+_WF = os.environ.get('WORKFLOW_SRC', '/opt/ryvo-automation-platform/workflows/ryvoInboundConc01.json')
+_JS = next(n for n in json.load(open(_WF))['nodes'] if n['name'] == 'BuildClaudeRequest')['parameters']['jsCode']
+_M = re.search(r'const REPLY_SCHEMA = (\{.*?\});\n', _JS)
+if not _M:
+    raise RuntimeError('could not find REPLY_SCHEMA in the shipping BuildClaudeRequest node')
+SCHEMA = json.loads(_M.group(1))
 BASE = open(os.environ.get('PROMPT_SRC', '/opt/ryvo-automation-platform/src/concierge_system_prompt.txt')).read()
 # The block is rendered from the SHIPPING node, never from a copy. A
 # hand-maintained example drifted and left this suite measuring a weaker prompt
