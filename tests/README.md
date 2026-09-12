@@ -8,6 +8,7 @@
 | `booking_claim.test.js` | `src/booking_claim.js` — assertions caught in pt/es/en, offers, questions and negations pass | `node tests/booking_claim.test.js`, runs anywhere |
 | `event_id.test.js` | `src/event_id.js` — smallest unused generation, racers agree, foreign ids ignored | `node tests/event_id.test.js`, runs anywhere |
 | `transcript.test.js` | `src/transcript.js` — origin fallback, turn labels, hand-back note placement, role alternation; replays the 2026-09-11 re-escalation | `node tests/transcript.test.js`, runs anywhere |
+| `lead_stage.test.js` | `src/lead_stage.js` — retirement regresses the stage, cancel-and-rebook in one turn, `lost` from `not_interested` and revival, nurturing suppression, `lead.qualified` fires once | `node tests/lead_stage.test.js`, runs anywhere |
 | `render_slots_block.py` | Not a test — renders the `AVAILABLE_SLOTS` block **out of the shipping node** for the two suites above | Imported by `prompt_suites.py`; run directly to eyeball the block |
 
 **§9.10 is now a deterministic guard, not only a probe.** `ParseClaude` and

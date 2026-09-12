@@ -12,6 +12,7 @@ read them and embed a copy into the workflow at build time.
 | `booking_check.js` | `ResolveBooking` | Is the stored booking still real: past / cancelled / missing / confirmed / unreadable; `tests/booking_check.test.js` loads this file |
 | `booking_claim.js` | `ParseClaude`, `ParseGuardRetry` | Second line of defence: rejects a reply asserting an appointment the workflow does not hold; `tests/booking_claim.test.js` loads this file |
 | `event_id.js` | `ReadSlotEvents` | Generation suffix for the slot-keyed event id, so a deleted event does not burn the slot; `tests/event_id.test.js` loads this file |
+| `lead_stage.js` | `MergeLeadFields` | Stage follows what the workflow holds: a retired booking regresses `viewing_booked` to `qualified`, `not_interested` derives `lost`, forward moves on the model's proposal only; `tests/lead_stage.test.js` loads this file |
 | `transcript.js` | `BuildClaudeRequest` | Who wrote what — origin labels and the hand-back note; `tests/transcript.test.js` loads this file |
 
 **There is deliberately no example of the `AVAILABLE_SLOTS` block here.** There
