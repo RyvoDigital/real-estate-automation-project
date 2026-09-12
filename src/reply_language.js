@@ -68,14 +68,37 @@ function replyLanguageMismatch(leadText, replyText, opts) {
 // lead's language was detected with confidence, or '' when it was not. Stated,
 // not asked for: the model is told which language this reply is in.
 const REPLY_LANG_NAMES = { en: 'English', pt: 'Portuguese', es: 'Spanish' };
-function renderReplyLanguageNote(lang) {
+// 2026-09-13: the lead's stated name is spelled out as DATA, with the same
+// precedent-override the booking status carries. "A name is never translated"
+// held 11/24 on a transcript whose earlier English turns already said "John";
+// the model was continuing its own precedent, exactly as it did with a
+// booking confirmation up the transcript. Spelling the name out took it to
+// 21/24. The booking-status precedent-override sentence was tried here too
+// and scored 18/24 -- within noise, not better -- so it is NOT in the note;
+// the deterministic check (src/reply_name.js) carries the rest.
+function renderReplyLanguageNote(lang, leadName) {
   const name = REPLY_LANG_NAMES[lang];
   if (!name) return '';
+  const full = String(leadName == null ? '' : leadName).trim().replace(/\s+/g, ' ');
+  const first = full.split(' ')[0] || '';
+  const nameRule = full
+    ? 'The lead\'s name is "' + full + '": if you address them, write "' + first + '", with exactly '
+      + 'that spelling. A name has no ' + name + ' form.'
+    : 'A person\'s name is written exactly as recorded, never translated.';
   return '\n\nREPLY LANGUAGE: ' + name + '. The lead\'s most recent message is in ' + name
     + ', so the whole reply is written in ' + name + ' - every sentence, including any '
     + 'explanation of what kind of appointment this is. Words in other languages that appear '
-    + 'in these instructions are examples, not the language to reply in. A person\'s name is '
-    + 'written exactly as recorded, never translated.';
+    + 'in these instructions are examples, not the language to reply in. ' + nameRule;
+}
+
+// retryNameHint(used, storedName) -> the line for the ONE targeted retry after
+// the reply addressed the lead by a name that is not on the row.
+function retryNameHint(used, storedName) {
+  const full = String(storedName == null ? '' : storedName).trim().replace(/\s+/g, ' ');
+  const first = full.split(' ')[0] || full;
+  return '\n\nYOUR PREVIOUS DRAFT WAS REJECTED: it addressed the lead as "' + used + '". The lead\'s '
+    + 'name is "' + full + '": write "' + first + '", exactly that spelling. This outranks any name '
+    + 'used earlier in this conversation, including in your own replies. Keep the same content.';
 }
 
 // retryLanguageHint(leadLang, replyLang) -> the line appended to the system

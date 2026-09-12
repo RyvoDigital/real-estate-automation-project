@@ -274,7 +274,41 @@ for msgs in KNOWN_MSGS:
         if not ok: print("            judge: %s" % v["reason"][:120])
 print("  known-facts: %d/%d" % (kf_p, kf_p + kf_f))
 
+# ------------------------------------------------ 5. the name is never translated
+# 2026-09-12: every English reply to Joao Ferreira said "John", because the
+# model continued its own precedent up the transcript. The note now spells the
+# name out with the booking-status precedent override; nameMismatch() in the
+# parsers is the check behind it. The history here already says "John" twice,
+# which is the hardest transcript in the system.
+def render_reply_language_note_named(text, name):
+    script = (open('/opt/ryvo-automation-platform/src/language.js').read() + "\n"
+              + open('/opt/ryvo-automation-platform/src/reply_language.js').read()
+              + "\nprocess.stdout.write(renderReplyLanguageNote(detectLanguage(process.env.T).lang, process.env.NAME));")
+    out = _sp.run(['docker', 'exec', '-i', '-e', 'T=' + text, '-e', 'NAME=' + name, _C, 'node', '-e', script], capture_output=True)
+    if out.returncode != 0:
+        raise RuntimeError('could not render the shipping reply-language note: ' + out.stderr.decode()[:400])
+    return out.stdout.decode()
+
+JOHN_HISTORY = [{"role": "user", "content": "Ja agora, o meu nome e Joao Ferreira."},
+                {"role": "assistant", "content": "Prazer, Joao! Fico a disposicao."},
+                {"role": "user", "content": "Actually my maximum is 1M."},
+                {"role": "assistant", "content": "Understood, John! I've updated your maximum budget to \u20ac1,000,000."},
+                {"role": "user", "content": "And we could stretch to 1.3M for the right house."},
+                {"role": "assistant", "content": "Noted, John \u2014 up to \u20ac1,300,000 if the right property comes along."}]
+NAME_MSGS = ["Hi, can I book a viewing for next week?", "Sorry, English please. What's the next step?"]
+print()
+print("=" * 74); print("SUITE 5: the stated name is reproduced exactly, against a transcript that says John"); print("=" * 74)
+nm_p = nm_f = 0
+for m in NAME_MSGS:
+    note = render_reply_language_note_named(m, "Jo\u00e3o Ferreira")
+    for i in range(int(os.environ.get('N_NAME', '4'))):
+        p = call(JOHN_HISTORY + [{"role": "user", "content": m}], BASE + KNOWN_BLOCK + note + SLOTS_BLOCK)
+        ok = re.search(r"\bJohn\b", p["reply"]) is None
+        nm_p += ok; nm_f += (not ok)
+        print("     [%s] %s :: %s" % ("pass" if ok else "FAIL", m[:26], p["reply"][:76]))
+print("  name-held: %d/%d" % (nm_p, nm_p + nm_f))
+
 print()
 print("=" * 74)
-print("  inventory %d/%d | language %d/%d | never-invent %d/%d | known-facts %d/%d"
-      % (inv_p, inv_p + inv_f, lang_p, lang_p + lang_f, no_p, no_p + no_f, kf_p, kf_p + kf_f))
+print("  inventory %d/%d | language %d/%d | never-invent %d/%d | known-facts %d/%d | name-held %d/%d"
+      % (inv_p, inv_p + inv_f, lang_p, lang_p + lang_f, no_p, no_p + no_f, kf_p, kf_p + kf_f, nm_p, nm_p + nm_f))

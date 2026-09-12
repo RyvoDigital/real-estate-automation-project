@@ -43,6 +43,9 @@ console.log('\nthe note and the retry hint');
 chk('note names the language and forbids translating a name', /REPLY LANGUAGE: English/.test(renderReplyLanguageNote('en')) && /never translated/.test(renderReplyLanguageNote('en')));
 chk('no note when the language is unknown', renderReplyLanguageNote(null) === '' && renderReplyLanguageNote('de') === '');
 chk('the retry hint names both languages', /written in Portuguese, but the lead wrote in English/.test(retryLanguageHint('en', 'pt')));
+chk('the note spells the stated name out as data (21/24 on the John transcript; the override sentence scored 18/24 and is left out)', /name is "João Ferreira": if you address them, write "João"/.test(renderReplyLanguageNote('en', 'João Ferreira')) && !/outranks any name/.test(renderReplyLanguageNote('en', 'João Ferreira')));
+chk('without a stated name the note keeps the general rule', /never translated/.test(renderReplyLanguageNote('en', null)) && !/outranks any name/.test(renderReplyLanguageNote('en', '')));
+chk('the name retry hint names what was used and what is stored', /addressed the lead as "John"/.test(retryNameHint('John', 'João Ferreira')) && /write "João"/.test(retryNameHint('John', 'João Ferreira')));
 r = replyLanguageMismatch('¿Puedo visitar el jueves?', 'Claro! Posso agendar uma primeira reunião com o nosso colega na quinta-feira às 11:00, hora de Lisboa.');
 chk('Spanish lead, Portuguese reply is a mismatch', r.mismatch === true && r.leadLang === 'es' && r.replyLang === 'pt');
 
