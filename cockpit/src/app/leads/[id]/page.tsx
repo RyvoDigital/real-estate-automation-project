@@ -12,6 +12,18 @@ import { budgetLabel } from '@/lib/money'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
+const FACT_ROWS: ReadonlyArray<readonly [string, string]> = [
+  ['bedrooms', 'Bedrooms'],
+  ['financing', 'Financing'],
+  ['purpose', 'Purpose'],
+]
+
+function factText(v: unknown): string | null {
+  if (v === null || v === undefined) return null
+  const s = String(v).trim()
+  return s ? s : null
+}
+
 /**
  * Always in the CLIENT's timezone, never the server's. The server is Vercel,
  * which runs in UTC; without the zone a 09:00 Lisbon booking rendered as 08:00,
@@ -174,6 +186,19 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
                 {lead.leadType ?? 'Unknown'}
               </span>
             </div>
+
+            {/* Persisted since Checkpoint B, never rendered until 2026-09-12: the
+                11 Sept rehearsal concluded the AI had extracted nothing, when the
+                row held all three. */}
+            {FACT_ROWS.map(([key, label]) => {
+              const v = factText(lead.qualification[key])
+              return (
+                <div className="learned__row" key={key}>
+                  <span className="learned__k">{label}</span>
+                  <span className={v ? 'learned__v' : 'learned__none'}>{v ?? 'Not established'}</span>
+                </div>
+              )
+            })}
 
             <div className="learned__row">
               <span className="learned__k">Stage</span>

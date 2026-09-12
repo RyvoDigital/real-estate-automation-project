@@ -191,7 +191,58 @@ for m in OFF_LIST_MSGS:
         if bad: print("            INVENTED, not on the supplied list: %s" % sorted(bad))
 print("  never-invent: %d/%d" % (no_p, no_p + no_f))
 
+# ------------------------------------------- 4. known facts are not asked again
+# 2026-09-12: a lead with a budget, a timeline and an area on the row was asked
+# for the budget and the timeline again -- the model sees 20 messages and the
+# facts were 80 messages back. BuildClaudeRequest now states what the row holds
+# (src/known_facts.js). The block is rendered from the SHIPPING source inside
+# the n8n container, the same way the slot block is, never from a copy.
+from render_slots_block import CONTAINER
+KF_SRC = os.environ.get('KNOWN_FACTS_SRC', '/opt/ryvo-automation-platform/src/known_facts.js')
+KF_LEAD = {"full_name": "Joao Ferreira", "lead_type": "buyer", "budget_min": 1200000,
+           "budget_max": 1500000, "timeline": "next three months", "area": "Cascais"}
+KF_QUAL = {"name_source": "stated", "bedrooms": 4, "financing": "pre-approved with Millennium",
+           "purpose": "relocation, family home"}
+
+
+def render_known_facts(lead, qual):
+    import subprocess
+    script = open(KF_SRC).read() + "\nprocess.stdout.write(renderKnownFacts(JSON.parse(process.env.LEAD), JSON.parse(process.env.QUAL)));"
+    out = subprocess.run(['docker', 'exec', '-i', '-e', 'LEAD=' + json.dumps(lead),
+                          '-e', 'QUAL=' + json.dumps(qual), CONTAINER, 'node', '-e', script],
+                         capture_output=True)
+    if out.returncode != 0 or not out.stdout:
+        raise RuntimeError('could not render the shipping known-facts block: ' + out.stderr.decode()[:400])
+    return out.stdout.decode()
+
+
+KNOWN_BLOCK = render_known_facts(KF_LEAD, KF_QUAL)
+KNOWN_JUDGE = """Grade one reply from a real-estate assistant. The assistant ALREADY KNOWS the
+lead's budget, timeline (when they want to buy), area, bedrooms, financing and purpose.
+FAIL only if the reply ASKS the lead to provide any of those again -- a question
+about their budget or price range, when they want to buy or move, which area or
+location they are looking in, how many bedrooms, their financing, or whether it is
+to live in or invest. Confirming, restating or refining a known value is NOT asking.
+Asking about anything else (a meeting time, a property type, a preference not
+listed) is NOT asking. JSON only: {"verdict":"PASS"|"FAIL","reason":"..."}"""
+KNOWN_MSGS = [[{"role": "user", "content": "E qual e o proximo passo?"}],
+              [{"role": "user", "content": "What's the next step?"}],
+              [{"role": "user", "content": "Ola, ainda estao ai? Continuo interessado."}],
+              [{"role": "user", "content": "Afinal ainda procuro casa em Cascais, pode ajudar?"}]]
+
+print()
+print("=" * 74); print("SUITE 4: facts the row holds are not asked for again"); print("=" * 74)
+kf_p = kf_f = 0
+for msgs in KNOWN_MSGS:
+    for i in range(3):
+        p = call(msgs, BASE + KNOWN_BLOCK)
+        v = judge(KNOWN_JUDGE, p["reply"])
+        ok = v["verdict"] == "PASS"; kf_p += ok; kf_f += (not ok)
+        print("     [%s] %s :: %s" % ("pass" if ok else "FAIL", msgs[0]["content"][:26], p["reply"][:76]))
+        if not ok: print("            judge: %s" % v["reason"][:120])
+print("  known-facts: %d/%d" % (kf_p, kf_p + kf_f))
+
 print()
 print("=" * 74)
-print("  inventory %d/%d | language %d/%d | never-invent %d/%d"
-      % (inv_p, inv_p + inv_f, lang_p, lang_p + lang_f, no_p, no_p + no_f))
+print("  inventory %d/%d | language %d/%d | never-invent %d/%d | known-facts %d/%d"
+      % (inv_p, inv_p + inv_f, lang_p, lang_p + lang_f, no_p, no_p + no_f, kf_p, kf_p + kf_f))

@@ -3,12 +3,14 @@
 | File | What it covers | How to run |
 |---|---|---|
 | `slot_engine.test.js` | `src/slot_engine.js` — timezones, DST, working hours, `min_hours_notice`, busy overlaps, `preferDate` guards, free/busy response validation | Copy into the n8n container and run with `NODE_PATH` pointed at n8n's `node_modules` (Luxon must be the same one the Code node uses) |
-| `prompt_suites.py` | `src/concierge_system_prompt.txt` — inventory assertion, language matching **including booking-with-slots**, never-invent-a-time | On the server: `python3 tests/prompt_suites.py` (reads `.env`). `N_WITH_SLOTS=8` raises the sample on the booking-with-slots language cases |
+| `prompt_suites.py` | `src/concierge_system_prompt.txt` — inventory assertion, language matching **including booking-with-slots**, never-invent-a-time, and (suite 4) facts the row holds are not asked for again | On the server: `python3 tests/prompt_suites.py` (reads `.env`). `N_WITH_SLOTS=8` raises the sample on the booking-with-slots language cases |
 | `booking_check.test.js` | `src/booking_check.js` — the clock over the calendar, cancelled/missing retire, unreadable keeps and says so | `node tests/booking_check.test.js`, runs anywhere |
 | `booking_claim.test.js` | `src/booking_claim.js` — assertions caught in pt/es/en, offers, questions and negations pass | `node tests/booking_claim.test.js`, runs anywhere |
 | `event_id.test.js` | `src/event_id.js` — smallest unused generation, racers agree, foreign ids ignored | `node tests/event_id.test.js`, runs anywhere |
 | `transcript.test.js` | `src/transcript.js` — origin fallback, turn labels, hand-back note placement, role alternation; replays the 2026-09-11 re-escalation | `node tests/transcript.test.js`, runs anywhere |
 | `budget_range.test.js` | `src/budget_range.js` — the 11 Sep inversion (1.2–1.5M then 1.1M), the mirror case, pass-through, point ranges | `node tests/budget_range.test.js`, runs anywhere |
+| `known_facts.test.js` | `src/known_facts.js` — every fact line, the profile name excluded, budget shapes, empty row renders nothing | `node tests/known_facts.test.js`, runs anywhere |
+| `lead_name.test.js` | `src/lead_name.js` — the 11 Sep refusal, profile vs stated, shorter forms, same tokens in another order | `node tests/lead_name.test.js`, runs anywhere |
 | `lead_stage.test.js` | `src/lead_stage.js` — retirement regresses the stage, cancel-and-rebook in one turn, `lost` from `not_interested` and revival, nurturing suppression, `lead.qualified` fires once | `node tests/lead_stage.test.js`, runs anywhere |
 | `render_slots_block.py` | Not a test — renders the `AVAILABLE_SLOTS` block **out of the shipping node** for the two suites above | Imported by `prompt_suites.py`; run directly to eyeball the block |
 

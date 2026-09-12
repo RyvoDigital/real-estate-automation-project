@@ -13,6 +13,8 @@ read them and embed a copy into the workflow at build time.
 | `booking_claim.js` | `ParseClaude`, `ParseGuardRetry` | Second line of defence: rejects a reply asserting an appointment the workflow does not hold; `tests/booking_claim.test.js` loads this file |
 | `event_id.js` | `ReadSlotEvents` | Generation suffix for the slot-keyed event id, so a deleted event does not burn the slot; `tests/event_id.test.js` loads this file |
 | `budget_range.js` | `MergeLeadFields` | A budget is one fact with two bounds: after the per-column merge the pair must still be a range, or the bound the lead moved this turn pulls the other with it and the old range is archived; `tests/budget_range.test.js` loads this file |
+| `known_facts.js` | `BuildClaudeRequest` | States what the row already holds (name when stated, type, budget, timeline, area, bedrooms, financing, purpose) so the model does not re-ask what a 20-message window cannot see; `tests/known_facts.test.js` loads this file, `prompt_suites.py` suite 4 renders it |
+| `lead_name.js` | `MergeLeadFields` | A stated name beats the WhatsApp profile name whatever the order or length; between stated names a shorter form keeps the stored one; records `qualification.name_source`; `tests/lead_name.test.js` loads this file |
 | `lead_stage.js` | `MergeLeadFields` | Stage follows what the workflow holds: a retired booking regresses `viewing_booked` to `qualified`, `not_interested` derives `lost`, forward moves on the model's proposal only; `tests/lead_stage.test.js` loads this file |
 | `transcript.js` | `BuildClaudeRequest` | Who wrote what — origin labels and the hand-back note; `tests/transcript.test.js` loads this file |
 

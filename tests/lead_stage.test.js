@@ -59,15 +59,17 @@ r = nextStage({ before: 'qualified', proposed: 'qualified', intent: 'not_interes
 chk('a lead asking for a time is not lost', r.stage === 'qualified');
 r = nextStage({ before: 'qualified', proposed: 'qualified', intent: 'not_interested', booked: true });
 chk('an event created this turn is not lost', r.stage === 'viewing_booked');
-r = nextStage({ before: 'lost', proposed: 'qualified', intent: 'question', at: AT });
-chk('a lost lead who writes back is revived to what the model sees', r.stage === 'qualified' && r.signals[0].revived === 'qualified');
+r = nextStage({ before: 'lost', proposed: 'contacted', intent: 'question', factsQualified: true, at: AT });
+chk('a revived lead with budget, timeline and area on the row is qualified, whatever the model says', r.stage === 'qualified' && r.signals[0].revived === 'qualified' && /on the row/.test(r.signals[0].basis));
 chk('revival into qualified fires lead.qualified', r.becameQualified === true);
-r = nextStage({ before: 'lost', proposed: 'contacted' });
-chk('revival can land below qualified', r.stage === 'contacted' && r.becameQualified === false);
+r = nextStage({ before: 'lost', proposed: 'qualified', factsQualified: false });
+chk('without those facts a revived lead is contacted, whatever the model says', r.stage === 'contacted' && r.becameQualified === false);
+r = nextStage({ before: 'lost', proposed: null, intent: 'other', factsQualified: false });
+chk('revival needs no proposal at all', r.stage === 'contacted');
 r = nextStage({ before: 'lost', proposed: null, intent: 'not_interested' });
 chk('lost stays lost, silently', r.stage === 'lost' && r.signals.length === 0);
-r = nextStage({ before: 'lost', proposed: 'nurturing' });
-chk('revival to nurturing is not suppressed', r.stage === 'nurturing');
+r = nextStage({ before: 'lost', proposed: null, booked: true, factsQualified: false });
+chk('an event created this turn revives straight to viewing_booked', r.stage === 'viewing_booked');
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -26,7 +26,9 @@
 //     saying not_interested -- and from nothing else. The spec's stage enum
 //     never contained it, so the model cannot propose it. It is entered from
 //     anywhere and left the moment the lead engages again: a false 'lost'
-//     costs one message, a lead stuck in 'lost' costs the lead.
+//     costs one message, a lead stuck in 'lost' costs the lead. A revived
+//     lead lands where the row's facts put them (budget + timeline + area =
+//     qualified), because the facts did not leave when the lead did.
 //
 // Every decision is returned as a signal so the trail is on the row.
 // ============================================================================
@@ -43,6 +45,8 @@ const STAGE_RANK = { lost: -1, new: 0, nurturing: 1, contacted: 1, qualified: 2,
 //                       is not lost whatever else they said
 //   input.booked        an event was CREATED this turn
 //   input.retired       the booking retired this turn ({retired_reason}), or null
+//   input.factsQualified the merged row holds a budget, a timeline and an area:
+//                       what a revived lead is judged by
 //   input.at            ISO timestamp for the signals (injected for tests)
 //
 //   stage            what to store
@@ -73,14 +77,23 @@ function nextStage(input) {
   if (inp.intent === 'not_interested' && !inp.wantsBooking) proposed = 'lost';
   if (inp.booked) proposed = 'viewing_booked';
 
-  if (proposed && proposed !== stage) {
+  if (stage === 'lost' && proposed !== 'lost') {
+    // The lead wrote back and did not withdraw again: that alone revives them,
+    // whether or not the model proposed a stage.
+      // The lead came back. What they are now is what the ROW supports, not
+      // what a model seeing twenty messages guesses: the facts survived the
+      // withdrawal, so a lead with budget, timeline and area is qualified.
+      const revived = proposed === 'viewing_booked' ? 'viewing_booked'
+                    : (inp.factsQualified ? 'qualified' : 'contacted');
+      signals.push({ revived, from: 'lost', at,
+                     basis: proposed === 'viewing_booked' ? 'event created this turn'
+                          : (inp.factsQualified ? 'budget, timeline and area on the row'
+                                                : 'row lacks budget, timeline or area') });
+      stage = revived;
+  } else if (proposed && proposed !== stage) {
     if (proposed === 'lost') {
       signals.push({ signal: 'lost', from: stage, at });
       stage = 'lost';
-    } else if (stage === 'lost') {
-      // The lead came back. Whatever they are now, they are not lost.
-      signals.push({ revived: proposed, from: 'lost', at });
-      stage = proposed;
     } else if (proposed === 'nurturing') {
       if (rank(stage) >= STAGE_RANK.qualified) {
         signals.push({ signal: 'nurturing', suppressed_from: stage, at });
