@@ -4,15 +4,10 @@ import { STAGES, getClients, getLeads, getOpenCount, type LeadFilters } from '@/
 import { formatWait } from '@/lib/escalation'
 import { Shell } from '@/components/Shell'
 import { IconSearch, IconWarning } from '@/components/Icons'
+import { budgetLabel } from '@/lib/money'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
-
-function money(n: number | null): string {
-  if (!n) return '—'
-  if (n >= 1_000_000) return `€${(Math.round((n / 1_000_000) * 10) / 10).toString().replace(/\.0$/, '')}M`
-  return `€${Math.round(n / 1000)}k`
-}
 
 function ago(iso: string | null): string {
   if (!iso) return '—'
@@ -168,7 +163,7 @@ export default async function AllLeadsPage({
                 </span>
               </span>
               <span className="lead-card__end">
-                <span className="lead-card__budget">{money(r.budget)}</span>
+                <span className="lead-card__budget">{budgetLabel(r.budgetMin, r.budgetMax) ?? '—'}</span>
                 {r.escalated ? (
                   <span className="pill pill--waiting">
                     <IconWarning size={11} /> {formatWait(r.minutes)}

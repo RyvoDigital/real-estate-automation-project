@@ -492,7 +492,8 @@ export type LeadListRow = {
   phone: string | null
   clientName: string
   stage: string
-  budget: number | null
+  budgetMin: number | null
+  budgetMax: number | null
   area: string | null
   escalated: boolean
   minutes: number
@@ -581,14 +582,14 @@ export async function getLeads(f: LeadFilters): Promise<{
   return {
     rows: rows.map((l) => {
       const esc = parseEscalated(l.qualification)
-      const hi = Math.max(Number(l.budget_max ?? 0), Number(l.budget_min ?? 0))
       return {
         id: l.id,
         name: l.full_name ?? 'Unknown lead',
         phone: l.phone,
         clientName: names.get(l.client_id) ?? 'Unknown client',
         stage: l.stage ?? 'new',
-        budget: hi || null,
+        budgetMin: l.budget_min,
+        budgetMax: l.budget_max,
         area: l.area,
         escalated: Boolean(esc),
         minutes: esc ? minutesSince(esc.at, now) : 0,

@@ -7,19 +7,10 @@ import { Shell } from '@/components/Shell'
 import { Chip } from '@/components/Queue'
 import { Composer, HandBack } from '@/components/Reply'
 import { IconBack, IconWarning } from '@/components/Icons'
+import { budgetLabel } from '@/lib/money'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
-
-function money(min: number | null, max: number | null): string | null {
-  const hi = Math.max(Number(max ?? 0), Number(min ?? 0))
-  if (!hi) return null
-  if (hi >= 1_000_000) {
-    const m = hi / 1_000_000
-    return `€${(Math.round(m * 10) / 10).toString().replace(/\.0$/, '')}M`
-  }
-  return `€${Math.round(hi / 1000)}k`
-}
 
 /**
  * Always in the CLIENT's timezone, never the server's. The server is Vercel,
@@ -53,7 +44,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
   const [lead, openCount] = await Promise.all([getLead(id), getOpenCount()])
   if (!lead) notFound()
 
-  const budget = money(lead.budgetMin, lead.budgetMax)
+  const budget = budgetLabel(lead.budgetMin, lead.budgetMax)
 
   return (
     <Shell active="queue" openCount={openCount} email={operator.email}>
