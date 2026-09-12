@@ -41,11 +41,19 @@ def render(slot_lines=None, prefer_requested=None, prefer_status='none',
           'preferRequested': prefer_requested, 'preferStatus': prefer_status,
           'bookingIntent': booking_intent, 'bookingSlot': booking_slot,
           'existingBooking': existing_booking}
+    # The fragment has grown since this harness was written: the APPOINTMENT
+    # and BOOKING notes read names BuildClaudeRequest defines above the slot
+    # block. They are stubbed here to the no-property, no-booking case, which
+    # is what every suite exercises. If the node grows another dependency the
+    # render RAISES (ReferenceError), which is the point: never a stale copy.
     script = ("const { DateTime } = require('luxon');\n"
               "let system = '';\n"
-              "const cfg = { min_hours_notice: %d };\n"
+              "const cfg = { min_hours_notice: %d, timezone: 'Europe/Lisbon' };\n"
               "const sl = JSON.parse(process.env.SL);\n"
               "const mc = sl;\n"
+              "const appointmentKind = 'meeting';\n"
+              "const propertyRefs = [];\n"
+              "const pq = {};\n"
               "%s\n"
               "process.stdout.write(system);" % (min_hours_notice, frag))
     out = subprocess.run(['docker', 'exec', '-i', '-e', 'SL=' + json.dumps(sl),
