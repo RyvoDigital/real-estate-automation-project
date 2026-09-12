@@ -1,1 +1,480 @@
-{"updatedAt":"2026-09-11T16:11:30.874Z","createdAt":"2026-09-06T21:46:24.211Z","id":"ryvoCockpitSnd1","name":"cockpit_send","description":null,"active":true,"isArchived":false,"nodes":[{"parameters":{"httpMethod":"POST","path":"cockpit-send","responseMode":"responseNode","options":{}},"id":"e2-Webhook","name":"Webhook","type":"n8n-nodes-base.webhook","typeVersion":2,"position":[-380,300],"webhookId":"ryvo-cockpit-send"},{"parameters":{"jsCode":"// The cockpit is the only caller. A shared secret in a header is the whole\n// gate, so it is compared in constant time -- a plain === leaks the length\n// of the matching prefix through timing, and this endpoint sends WhatsApp\n// messages on a client's behalf.\nconst crypto = require('crypto');\nconst req = $input.first().json;\nconst headers = req.headers || {};\nconst given = String(headers['x-ryvo-cockpit-secret'] || '');\nconst want  = String($env.COCKPIT_SEND_SECRET || '');\n\nlet authed = false;\nif (want && given.length === want.length) {\n  authed = crypto.timingSafeEqual(Buffer.from(given), Buffer.from(want));\n}\n\n// Never echo either value, not even a prefix, and not into an execution\n// that is retained for 14 days.\nconst body = req.body || {};\nreturn [{ json: {\n  authed,\n  secretConfigured: Boolean(want),\n  leadId: String(body.leadId || ''),\n  text: String(body.text || ''),\n} }];"},"id":"e2-CheckSecret","name":"CheckSecret","type":"n8n-nodes-base.code","typeVersion":2,"position":[-160,300]},{"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"id":"e2-IsAuthed-c","leftValue":"={{ $json.authed }}","rightValue":"","operator":{"type":"boolean","operation":"true","singleValue":true}}],"combinator":"and"},"options":{}},"id":"e2-IsAuthed","name":"IsAuthed","type":"n8n-nodes-base.if","typeVersion":2.2,"position":[60,300]},{"parameters":{"respondWith":"json","responseBody":"={{ JSON.stringify({ ok: false, error: \"unauthorised\" }) }}","options":{"responseCode":401}},"id":"e2-Respond401","name":"Respond401","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[280,460]},{"parameters":{"method":"GET","url":"=https://txxkqskhxhwtrhbmwwig.supabase.co/rest/v1/leads?id=eq.{{ $json.leadId }}&select=id,client_id,phone,full_name","authentication":"predefinedCredentialType","nodeCredentialType":"supabaseApi","options":{"response":{"response":{"fullResponse":true,"neverError":true}},"timeout":15000}},"id":"e2-LoadLead","name":"LoadLead","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[280,160],"onError":"continueRegularOutput","credentials":{"supabaseApi":{"id":"ryvoSupabaseCred","name":"Ryvo Supabase (service_role)"}}},{"parameters":{"jsCode":"// The caller supplies a lead id and nothing else. The DESTINATION NUMBER is\n// resolved here, from the row, and never taken from the request -- otherwise\n// anyone holding the secret could send a WhatsApp message to any number in\n// the world on the client's account.\nconst a   = $('CheckSecret').first().json;\nconst res = $input.first().json;\nconst rows = Array.isArray(res.body) ? res.body : [];\nconst lead = rows[0] || null;\n\nconst text = String(a.text || '').trim();\n\nlet error = null;\nif (res.statusCode < 200 || res.statusCode >= 300) error = 'lead_lookup_failed:' + res.statusCode;\nelse if (!lead) error = 'lead_not_found';\nelse if (!lead.phone) error = 'lead_has_no_phone';\nelse if (!text) error = 'empty_text';\nelse if (text.length > 1500) error = 'text_too_long';\n\nreturn [{ json: {\n  ok: error === null,\n  error,\n  leadId: a.leadId,\n  clientId: lead ? lead.client_id : null,\n  phone: lead ? lead.phone : null,\n  name: lead ? lead.full_name : null,\n  text,\n} }];"},"id":"e2-AfterLoad","name":"AfterLoad","type":"n8n-nodes-base.code","typeVersion":2,"position":[500,160]},{"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"id":"e2-IsSendable-c","leftValue":"={{ $json.ok }}","rightValue":"","operator":{"type":"boolean","operation":"true","singleValue":true}}],"combinator":"and"},"options":{}},"id":"e2-IsSendable","name":"IsSendable","type":"n8n-nodes-base.if","typeVersion":2.2,"position":[720,160]},{"parameters":{"respondWith":"json","responseBody":"={{ JSON.stringify({ ok: false, error: $json.error }) }}","options":{"responseCode":422}},"id":"e2-Respond422","name":"Respond422","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[940,320]},{"parameters":{"method":"POST","url":"=https://api.twilio.com/2010-04-01/Accounts/{{ $env.TWILIO_ACCOUNT_SID }}/Messages.json","authentication":"predefinedCredentialType","nodeCredentialType":"twilioApi","sendBody":true,"contentType":"form-urlencoded","bodyParameters":{"parameters":[{"name":"From","value":"={{ $env.TWILIO_WHATSAPP_FROM }}"},{"name":"To","value":"=whatsapp:{{ $json.phone }}"},{"name":"Body","value":"={{ $json.text }}"}]},"options":{"timeout":20000,"response":{"response":{"fullResponse":true,"neverError":true}}}},"id":"e2-SendWhatsApp","name":"SendWhatsApp","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[940,60],"onError":"continueRegularOutput","credentials":{"twilioApi":{"id":"ryvoTwilioCred","name":"Ryvo Twilio (sandbox)"}}},{"parameters":{"jsCode":"// Same shape as the Concierge's AfterSend. neverError turns a 4xx into a\n// green node, so the status is read explicitly rather than inferred from\n// the node having run -- instance 13.\nconst p   = $('AfterLoad').first().json;\nconst res = $input.first().json;\nconst ok  = res.statusCode >= 200 && res.statusCode < 300;\nconst b   = res.body || {};\nreturn [{ json: { ...p,\n  sendOk: ok,\n  twilioSid: ok ? (b.sid || null) : null,\n  twilioErrorCode: ok ? null : (b.code || res.statusCode),\n  twilioErrorMessage: ok ? null : String(b.message || '').slice(0, 300),\n} }];"},"id":"e2-AfterSend","name":"AfterSend","type":"n8n-nodes-base.code","typeVersion":2,"position":[1160,60]},{"parameters":{"method":"POST","url":"=https://txxkqskhxhwtrhbmwwig.supabase.co/rest/v1/messages","authentication":"predefinedCredentialType","nodeCredentialType":"supabaseApi","options":{"response":{"response":{"fullResponse":true,"neverError":true}},"timeout":15000},"sendBody":true,"specifyBody":"json","jsonBody":"={{ JSON.stringify({ client_id: $json.clientId, lead_id: $json.leadId, channel: 'whatsapp', direction: 'outbound', body: $json.text, status: $json.sendOk ? 'sent' : 'failed', ai_generated: false, approved_by_human: true, origin: 'human', external_id: $json.twilioSid }) }}"},"id":"e2-StoreOutbound","name":"StoreOutbound","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[1380,60],"onError":"continueRegularOutput","credentials":{"supabaseApi":{"id":"ryvoSupabaseCred","name":"Ryvo Supabase (service_role)"}}},{"parameters":{"jsCode":"// A node whose whole purpose is to write a row must have its status\n// surfaced -- #6 in the lessons file recurred verbatim three days after\n// being written up, both times caught by checking the artefact rather than\n// the execution. So the cockpit is told whether the row exists, separately\n// from whether Twilio accepted the message.\nconst p   = $('AfterSend').first().json;\nconst res = $input.first().json;\nconst stored = res.statusCode >= 200 && res.statusCode < 300;\n\nreturn [{ json: {\n  ok: p.sendOk && stored,\n  sendOk: p.sendOk,\n  stored,\n  storeStatus: res.statusCode,\n  storeError: stored ? null : String(JSON.stringify(res.body || {})).slice(0, 300),\n  sid: p.twilioSid,\n  error: p.sendOk ? (stored ? null : 'message_not_recorded') : ('send_failed:' + (p.twilioErrorCode || 'unknown')),\n  errorMessage: p.sendOk ? null : p.twilioErrorMessage,\n} }];"},"id":"e2-AfterStore","name":"AfterStore","type":"n8n-nodes-base.code","typeVersion":2,"position":[1600,60]},{"parameters":{"respondWith":"json","responseBody":"={{ JSON.stringify($json) }}","options":{"responseCode":200}},"id":"e2-RespondResult","name":"RespondResult","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[1820,60]}],"connections":{"Webhook":{"main":[[{"node":"CheckSecret","type":"main","index":0}]]},"CheckSecret":{"main":[[{"node":"IsAuthed","type":"main","index":0}]]},"IsAuthed":{"main":[[{"node":"LoadLead","type":"main","index":0}],[{"node":"Respond401","type":"main","index":0}]]},"LoadLead":{"main":[[{"node":"AfterLoad","type":"main","index":0}]]},"AfterLoad":{"main":[[{"node":"IsSendable","type":"main","index":0}]]},"IsSendable":{"main":[[{"node":"SendWhatsApp","type":"main","index":0}],[{"node":"Respond422","type":"main","index":0}]]},"SendWhatsApp":{"main":[[{"node":"AfterSend","type":"main","index":0}]]},"AfterSend":{"main":[[{"node":"StoreOutbound","type":"main","index":0}]]},"StoreOutbound":{"main":[[{"node":"AfterStore","type":"main","index":0}]]},"AfterStore":{"main":[[{"node":"RespondResult","type":"main","index":0}]]}},"settings":{"executionOrder":"v1","timezone":"Europe/Lisbon"},"staticData":null,"meta":null,"nodeGroups":[],"pinData":{},"versionId":"edab9568-771b-4b03-b50b-b341ecae578a","activeVersionId":"edab9568-771b-4b03-b50b-b341ecae578a","versionCounter":2,"triggerCount":1,"sourceWorkflowId":null,"tags":[],"shared":[{"updatedAt":"2026-09-06T21:46:24.211Z","createdAt":"2026-09-06T21:46:24.211Z","role":"workflow:owner","workflowId":"ryvoCockpitSnd1","projectId":"uJAXibMof3BDHwvP","project":{"updatedAt":"2026-07-04T23:01:35.388Z","createdAt":"2026-07-04T22:58:34.115Z","id":"uJAXibMof3BDHwvP","name":"Manuel Vale <hello@ryvodigital.com>","type":"personal","icon":null,"description":null,"customTelemetryTags":[],"creatorId":"e3386b92-bb92-47d2-89c0-7fc4fb66650c"}}],"versionMetadata":{"name":null,"description":null}}
+{
+  "updatedAt": "2026-09-11T16:11:30.874Z",
+  "createdAt": "2026-09-06T21:46:24.211Z",
+  "id": "ryvoCockpitSnd1",
+  "name": "cockpit_send",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cockpit-send",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "e2-Webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -380,
+        300
+      ],
+      "webhookId": "ryvo-cockpit-send"
+    },
+    {
+      "parameters": {
+        "jsCode": "// The cockpit is the only caller. A shared secret in a header is the whole\n// gate, so it is compared in constant time -- a plain === leaks the length\n// of the matching prefix through timing, and this endpoint sends WhatsApp\n// messages on a client's behalf.\nconst crypto = require('crypto');\nconst req = $input.first().json;\nconst headers = req.headers || {};\nconst given = String(headers['x-ryvo-cockpit-secret'] || '');\nconst want  = String($env.COCKPIT_SEND_SECRET || '');\n\nlet authed = false;\nif (want && given.length === want.length) {\n  authed = crypto.timingSafeEqual(Buffer.from(given), Buffer.from(want));\n}\n\n// Never echo either value, not even a prefix, and not into an execution\n// that is retained for 14 days.\nconst body = req.body || {};\nreturn [{ json: {\n  authed,\n  secretConfigured: Boolean(want),\n  leadId: String(body.leadId || ''),\n  text: String(body.text || ''),\n} }];"
+      },
+      "id": "e2-CheckSecret",
+      "name": "CheckSecret",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e2-IsAuthed-c",
+              "leftValue": "={{ $json.authed }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e2-IsAuthed",
+      "name": "IsAuthed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        60,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: \"unauthorised\" }) }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "e2-Respond401",
+      "name": "Respond401",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        280,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://txxkqskhxhwtrhbmwwig.supabase.co/rest/v1/leads?id=eq.{{ $json.leadId }}&select=id,client_id,phone,full_name",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "id": "e2-LoadLead",
+      "name": "LoadLead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        280,
+        160
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ryvoSupabaseCred",
+          "name": "Ryvo Supabase (service_role)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// The caller supplies a lead id and nothing else. The DESTINATION NUMBER is\n// resolved here, from the row, and never taken from the request -- otherwise\n// anyone holding the secret could send a WhatsApp message to any number in\n// the world on the client's account.\nconst a   = $('CheckSecret').first().json;\nconst res = $input.first().json;\nconst rows = Array.isArray(res.body) ? res.body : [];\nconst lead = rows[0] || null;\n\nconst text = String(a.text || '').trim();\n\nlet error = null;\nif (res.statusCode < 200 || res.statusCode >= 300) error = 'lead_lookup_failed:' + res.statusCode;\nelse if (!lead) error = 'lead_not_found';\nelse if (!lead.phone) error = 'lead_has_no_phone';\nelse if (!text) error = 'empty_text';\nelse if (text.length > 1500) error = 'text_too_long';\n\nreturn [{ json: {\n  ok: error === null,\n  error,\n  leadId: a.leadId,\n  clientId: lead ? lead.client_id : null,\n  phone: lead ? lead.phone : null,\n  name: lead ? lead.full_name : null,\n  text,\n} }];"
+      },
+      "id": "e2-AfterLoad",
+      "name": "AfterLoad",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e2-IsSendable-c",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e2-IsSendable",
+      "name": "IsSendable",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json.error }) }}",
+        "options": {
+          "responseCode": 422
+        }
+      },
+      "id": "e2-Respond422",
+      "name": "Respond422",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        940,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{ $env.TWILIO_ACCOUNT_SID }}/Messages.json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "twilioApi",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "From",
+              "value": "={{ $env.TWILIO_WHATSAPP_FROM }}"
+            },
+            {
+              "name": "To",
+              "value": "=whatsapp:{{ $json.phone }}"
+            },
+            {
+              "name": "Body",
+              "value": "={{ $json.text }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "e2-SendWhatsApp",
+      "name": "SendWhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        940,
+        60
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "twilioApi": {
+          "id": "ryvoTwilioCred",
+          "name": "Ryvo Twilio (sandbox)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Same shape as the Concierge's AfterSend. neverError turns a 4xx into a\n// green node, so the status is read explicitly rather than inferred from\n// the node having run -- instance 13.\nconst p   = $('AfterLoad').first().json;\nconst res = $input.first().json;\nconst ok  = res.statusCode >= 200 && res.statusCode < 300;\nconst b   = res.body || {};\nreturn [{ json: { ...p,\n  sendOk: ok,\n  twilioSid: ok ? (b.sid || null) : null,\n  twilioErrorCode: ok ? null : (b.code || res.statusCode),\n  twilioErrorMessage: ok ? null : String(b.message || '').slice(0, 300),\n} }];"
+      },
+      "id": "e2-AfterSend",
+      "name": "AfterSend",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1160,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://txxkqskhxhwtrhbmwwig.supabase.co/rest/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          },
+          "timeout": 15000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ client_id: $json.clientId, lead_id: $json.leadId, channel: 'whatsapp', direction: 'outbound', body: $json.text, status: $json.sendOk ? 'sent' : 'failed', ai_generated: false, approved_by_human: true, origin: 'human', external_id: $json.twilioSid }) }}"
+      },
+      "id": "e2-StoreOutbound",
+      "name": "StoreOutbound",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1380,
+        60
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ryvoSupabaseCred",
+          "name": "Ryvo Supabase (service_role)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// A node whose whole purpose is to write a row must have its status\n// surfaced -- #6 in the lessons file recurred verbatim three days after\n// being written up, both times caught by checking the artefact rather than\n// the execution. So the cockpit is told whether the row exists, separately\n// from whether Twilio accepted the message.\nconst p   = $('AfterSend').first().json;\nconst res = $input.first().json;\nconst stored = res.statusCode >= 200 && res.statusCode < 300;\n\nreturn [{ json: {\n  ok: p.sendOk && stored,\n  sendOk: p.sendOk,\n  stored,\n  storeStatus: res.statusCode,\n  storeError: stored ? null : String(JSON.stringify(res.body || {})).slice(0, 300),\n  sid: p.twilioSid,\n  error: p.sendOk ? (stored ? null : 'message_not_recorded') : ('send_failed:' + (p.twilioErrorCode || 'unknown')),\n  errorMessage: p.sendOk ? null : p.twilioErrorMessage,\n} }];"
+      },
+      "id": "e2-AfterStore",
+      "name": "AfterStore",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "e2-RespondResult",
+      "name": "RespondResult",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1820,
+        60
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "CheckSecret",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CheckSecret": {
+      "main": [
+        [
+          {
+            "node": "IsAuthed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IsAuthed": {
+      "main": [
+        [
+          {
+            "node": "LoadLead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond401",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LoadLead": {
+      "main": [
+        [
+          {
+            "node": "AfterLoad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AfterLoad": {
+      "main": [
+        [
+          {
+            "node": "IsSendable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IsSendable": {
+      "main": [
+        [
+          {
+            "node": "SendWhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond422",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SendWhatsApp": {
+      "main": [
+        [
+          {
+            "node": "AfterSend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AfterSend": {
+      "main": [
+        [
+          {
+            "node": "StoreOutbound",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "StoreOutbound": {
+      "main": [
+        [
+          {
+            "node": "AfterStore",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AfterStore": {
+      "main": [
+        [
+          {
+            "node": "RespondResult",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Lisbon"
+  },
+  "staticData": null,
+  "meta": null,
+  "nodeGroups": [],
+  "pinData": {},
+  "versionId": "edab9568-771b-4b03-b50b-b341ecae578a",
+  "activeVersionId": "edab9568-771b-4b03-b50b-b341ecae578a",
+  "versionCounter": 2,
+  "triggerCount": 1,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-09-06T21:46:24.211Z",
+      "createdAt": "2026-09-06T21:46:24.211Z",
+      "role": "workflow:owner",
+      "workflowId": "ryvoCockpitSnd1",
+      "projectId": "uJAXibMof3BDHwvP",
+      "project": {
+        "updatedAt": "2026-07-04T23:01:35.388Z",
+        "createdAt": "2026-07-04T22:58:34.115Z",
+        "id": "uJAXibMof3BDHwvP",
+        "name": "Manuel Vale <hello@ryvodigital.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "customTelemetryTags": [],
+        "creatorId": "e3386b92-bb92-47d2-89c0-7fc4fb66650c"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}
