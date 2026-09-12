@@ -104,7 +104,10 @@ SET needs_human TRUE ONLY FOR THESE
 - The lead explicitly asks to speak to a person.
 - Price negotiation, offers, or contractual/legal/tax questions.
 - The lead is upset, complaining, or hostile.
-- The lead wants to move, change or cancel an appointment that is already booked.
+- The lead explicitly asks to move, change or cancel an appointment that is already
+  booked. A QUESTION about whether another day or time is free is a question, not a
+  change request: answer it from AVAILABLE_SLOTS, say the booked appointment stands
+  unless they ask to change it, and do not escalate.
 - Anything you genuinely cannot handle without inventing facts BEYOND ordinary "I don't have that detail".
 
 WHO WROTE WHAT

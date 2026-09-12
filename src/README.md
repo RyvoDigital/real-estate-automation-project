@@ -7,13 +7,14 @@ read them and embed a copy into the workflow at build time.
 | File | Embedded into | Notes |
 |---|---|---|
 | `concierge_system_prompt.txt` | `BuildClaudeRequest` (`SYSTEM_TEMPLATE`) | Placeholders `__AGENT__`, `__AGENCY__`, `__AREAS__` are filled from `client_automations.config` |
-| `slot_engine.js` | `ProposeSlots` (Checkpoint C) | Unit-tested standalone; see the harness in the C1 notes |
+| `slot_engine.js` | `ProposeSlots`, `MatchConfirmation` (Checkpoint C) | Slot engine and the confirmation matcher; a question is not an acceptance, an ordinal naming the appointment ("first meeting") is not a slot choice; `tests/slot_engine.test.js` and `tests/match_confirmation.test.js` load this file |
 | `appointment_kind.js` | `BuildClaudeRequest`, `ParseClaude`, `ParseGuardRetry` | Meeting vs viewing; `tests/appointment_kind.test.js` loads this file |
 | `booking_check.js` | `ResolveBooking` | Is the stored booking still real: past / cancelled / missing / confirmed / unreadable; `tests/booking_check.test.js` loads this file |
 | `booking_claim.js` | `ParseClaude`, `ParseGuardRetry` | Second line of defence: rejects a reply asserting an appointment the workflow does not hold; `tests/booking_claim.test.js` loads this file |
 | `event_id.js` | `ReadSlotEvents` | Generation suffix for the slot-keyed event id, so a deleted event does not burn the slot; `tests/event_id.test.js` loads this file |
 | `budget_range.js` | `MergeLeadFields` | A budget is one fact with two bounds: after the per-column merge the pair must still be a range, or the bound the lead moved this turn pulls the other with it and the old range is archived; `tests/budget_range.test.js` loads this file |
 | `offer_count.js` | `BuildClaudeRequest` | How many of the assistant's own turns ended with an unanswered offer to propose times since the lead last raised booking; stated as an OFFERS note; `tests/offer_count.test.js` loads this file |
+| `booking_stated.js` | `ParseClaude`, `ParseGuardRetry` | A booking made this turn must be stated in the reply (time and day); one targeted retry, then the booking is withheld with a warning event; `tests/booking_stated.test.js` loads this file |
 | `reply_name.js` | `ParseClaude`, `ParseGuardRetry` | Did the reply address the lead by a name not on the row (narrow: direct-address position only); one targeted retry, then delivered with a warning event; `tests/reply_name.test.js` loads this file |
 | `reply_language.js` | `BuildClaudeRequest`, `ParseClaude`, `ParseGuardRetry` (after `language.js`) | States the detected reply language in the prompt; checks the reply came back in it (name masked, per-language bar); one targeted retry carrying the reason, then delivered with a warning event, never escalated; `tests/reply_language.test.js` loads this file |
 | `known_facts.js` | `BuildClaudeRequest` | States what the row already holds (name when stated, type, budget, timeline, area, bedrooms, financing, purpose) so the model does not re-ask what a 20-message window cannot see; `tests/known_facts.test.js` loads this file, `prompt_suites.py` suite 4 renders it |

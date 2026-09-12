@@ -1431,3 +1431,42 @@ event — and say "no note was sent" when there is none. That is a small change
 to `getViewing()` in the cockpit; it is recorded here rather than made now
 because the retired-note send status is not yet joined to the retirement
 event, and doing it by timestamp proximity would be another inference.
+
+### 8c. A new member of the family: the system acting for the lead without telling them
+
+Logged 2026-09-13, at the operator's request.
+
+On 12 September at 23:46 the lead asked *"What should I bring to the first
+meeting?"* and the workflow created a calendar event for Monday 09:00. The
+confirmation matcher read "first" as "the first slot"; the offer from 35
+minutes earlier was still on the row; one ordinal was enough. The reply
+answered about documents and never mentioned a booking. The calendar knew.
+The lead did not. The agent would have found out on Monday. On the next
+message, *"Is Tuesday still available?"*, the model, correctly told a
+booking existed, escalated it as a change request.
+
+Every earlier member of §8 was a belief that had stopped being true. This one
+is an **action taken on the lead's behalf that the lead was never told
+about** — the same family, because the reply asserted a world (nothing
+booked) that the workflow had just made false, but a new member, because
+nothing stale was involved. Three rules came out of it:
+
+- **A question is not an acceptance.** The matcher confirms nothing from a
+  message that ends in "?" or opens with an interrogative unless it also says
+  yes. *"Is Tuesday still available?"* with one Tuesday on offer would have
+  booked it.
+- **A booking made this turn is stated in the reply, or it is not made.**
+  `ParseClaude` checks the draft names the slot's time and day; one targeted
+  retry; then the booking is withheld with a `booking.withheld` warning.
+  Even a perfect matcher leaves this gap, and this rule closes it.
+- **Our own phrasing becomes a booking trigger.** *"Uma primeira reunião com
+  o nosso colega"* is what every reply calls the appointment, in three
+  languages, since Checkpoint C. Leads say it back. **Any deterministic
+  matcher that reads lead text must be checked against the phrases our own
+  replies put in their mouths** — list the nouns the prompt teaches and make
+  sure none of them is also a trigger word. The ordinal rule now refuses an
+  ordinal followed by the appointment's own name.
+
+Persist-then-send (improvements §3.10) is still the structural close for the
+family; this member would not have needed a special rule under it, because a
+reply drafted after the write would have been drafted knowing the event existed.

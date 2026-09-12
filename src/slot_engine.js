@@ -269,6 +269,20 @@ function computeSlots(opts) {
 // The bias is deliberate and one-directional: when in doubt, do NOT book. An
 // ambiguous message costs the lead one clarifying question. A wrong match puts
 // a real appointment in a real agent's calendar at a time nobody agreed to.
+//
+// 2026-09-13, THE PHRASE WE TEACH THEM. "What should I bring to the first
+// meeting?" booked the first slot on offer: "first" is an ordinal, the offer
+// was open, and one ordinal was enough. "Uma primeira reuniao com o nosso
+// colega" is the phrase every reply uses for the appointment, so leads say it
+// back. A deterministic matcher that reads lead text has to be checked against
+// the words our own replies put in their mouths. Two rules follow:
+//   - a QUESTION is not an acceptance. "Is Tuesday still available?" with one
+//     Tuesday on offer would have booked it. A message that ends in "?" or
+//     opens with an interrogative confirms nothing unless it also carries an
+//     affirmative ("pode ser terca as 9?" still books).
+//   - an ORDINAL counts only when it points at a slot -- "the first one", "a
+//     primeira opcao", "o primeiro horario" -- never when it names the
+//     appointment: "first meeting", "primeira reuniao", "primera cita".
 // ============================================================================
 const AFFIRMATIVE = /\b(sim|yes|si|ok|okay|claro|perfeito|perfect|combinado|pode ser|works|great|otimo|vale|de acuerdo)\b/;
 
@@ -279,6 +293,11 @@ const ORDINALS = [
   { rx: /\b(terceir[oa]|third|tercer[oa]|3o|3a)\b/, idx: 2 },
   { rx: /\b(ultim[oa]|last)\b/, idx: -1 },
 ];
+// An ordinal followed by the appointment itself is the appointment's name, not
+// a choice between slots. The system's own vocabulary, in all three languages.
+const ORDINAL_NAMES_APPOINTMENT = /\b(primeir[oa]|first|primer[oa]|ultim[oa]|last|terceir[oa]|third|tercer[oa])\s+(reuniao|reunion|meeting|conversa|encontro|visita|visit|viewing|cita|contacto|contact|call|chamada|sessao|session|appointment|marcacao)\b/;
+// A question is not an acceptance.
+const QUESTION_OPENERS = /^\s*(is|are|do|does|can|could|would|will|what|when|which|how|e|ha|tem|tens|teem|pode|podem|podia|podiam|sera|esta|estao|hay|tiene|tienen|puede|pueden|que|cuando|quando|se)\b/;
 
 function matchConfirmation(text, storedSlots, tz, nowISO) {
   const out = (status, slot, by) => ({ status, slot: slot || null, matchedBy: by || null });
@@ -287,6 +306,10 @@ function matchConfirmation(text, storedSlots, tz, nowISO) {
   if (!text) return out('none');
 
   const t = String(text).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  // A question confirms nothing unless it also says yes.
+  const isQuestion = /\?\s*$/.test(t) || QUESTION_OPENERS.test(t);
+  if (isQuestion && !AFFIRMATIVE.test(t)) return out('none', null, 'question_not_acceptance');
 
   // Describe each offered slot in the client's zone, so every comparison below
   // is against what the lead was actually shown.
@@ -348,7 +371,7 @@ function matchConfirmation(text, storedSlots, tz, nowISO) {
   }
 
   // --- "a primeira", "the last one" ----------------------------------------
-  if (pool.length > 1) {
+  if (pool.length > 1 && !ORDINAL_NAMES_APPOINTMENT.test(t)) {
     for (const o of ORDINALS) {
       if (o.rx.test(t)) {
         const target = o.idx === -1 ? desc[desc.length - 1] : desc[o.idx];

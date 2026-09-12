@@ -308,7 +308,34 @@ for m in NAME_MSGS:
         print("     [%s] %s :: %s" % ("pass" if ok else "FAIL", m[:26], p["reply"][:76]))
 print("  name-held: %d/%d" % (nm_p, nm_p + nm_f))
 
+# ------------------------------------- 6. a question about another time is a question
+# 2026-09-12: with a Monday meeting held, "Is Tuesday still available?" escalated
+# as a change request. The rule now escalates only an explicit move/cancel; a
+# question is answered from the slot list. The already-booked note is rendered
+# from the shipping node with a real existing booking.
+BOOKED = {"event_id": "rvtest", "startUtc": "2026-09-14T08:00:00.000Z", "endUtc": "2026-09-14T09:00:00.000Z",
+          "local": "2026-09-14T09:00:00.000+01:00", "zone": "Europe/Lisbon"}
+BOOKED_BLOCK = render_slots_block(booking_intent='already_booked', existing_booking=BOOKED)
+Q_MSGS = [("en", "Thanks. Is Tuesday still available?"), ("pt", "Tem alguma coisa na terça?"),
+          ("en", "Do you also have anything on Wednesday afternoon?")]
+MOVE_MSGS = [("en", "Can we move my Monday meeting to Tuesday instead?"), ("pt", "Afinal quero cancelar a reunião de segunda.")]
+print()
+print("=" * 74); print("SUITE 6: with a booking held, a question about another time is not a change request"); print("=" * 74)
+q_p = q_f = 0
+for lang, m in Q_MSGS:
+    for i in range(3):
+        p = call([{"role": "user", "content": m}], BASE + render_reply_language_note(m) + BOOKED_BLOCK)
+        ok = p["needs_human"] is False; q_p += ok; q_f += (not ok)
+        print("     [%s] %s :: needs_human=%s :: %s" % ("pass" if ok else "FAIL", m[:30], p["needs_human"], p["reply"][:60]))
+print("  -- and an explicit move or cancel still escalates")
+for lang, m in MOVE_MSGS:
+    for i in range(2):
+        p = call([{"role": "user", "content": m}], BASE + render_reply_language_note(m) + BOOKED_BLOCK)
+        ok = p["needs_human"] is True; q_p += ok; q_f += (not ok)
+        print("     [%s] %s :: needs_human=%s" % ("pass" if ok else "FAIL", m[:30], p["needs_human"]))
+print("  question-not-change: %d/%d" % (q_p, q_p + q_f))
+
 print()
 print("=" * 74)
-print("  inventory %d/%d | language %d/%d | never-invent %d/%d | known-facts %d/%d | name-held %d/%d"
-      % (inv_p, inv_p + inv_f, lang_p, lang_p + lang_f, no_p, no_p + no_f, kf_p, kf_p + kf_f, nm_p, nm_p + nm_f))
+print("  inventory %d/%d | language %d/%d | never-invent %d/%d | known-facts %d/%d | name-held %d/%d | question-not-change %d/%d"
+      % (inv_p, inv_p + inv_f, lang_p, lang_p + lang_f, no_p, no_p + no_f, kf_p, kf_p + kf_f, nm_p, nm_p + nm_f, q_p, q_p + q_f))
