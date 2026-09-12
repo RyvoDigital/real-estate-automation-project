@@ -539,6 +539,40 @@ that the clever version was never buying anything.
 
 ---
 
+## 1h. An example inside a prompt outweighs the rule wrapped around it
+
+The language rule sits at the top of the Concierge prompt in capitals: reply
+in the language of the lead's most recent message, and "some examples in these
+instructions are written in Portuguese purely to illustrate a pattern; they are
+NOT a signal to reply in Portuguese." Lower down, the meeting rule said: call
+the appointment a meeting, "for example *uma primeira reuniao com o nosso
+colega*". One example, in one language.
+
+On 12 September the prompt suite, running for the first time in three days,
+failed two English booking requests with Portuguese replies. Both replies
+contained that phrase. A probe of 48 calls put numbers on it: the shipping
+prompt answered 44 in English, and only 21 of 24 when an English conversation
+history preceded the request, the demo's exact shape. Every failure echoed the
+example. The same prompt with the example given in all three languages
+answered 48 of 48.
+
+The instruction said "do not let the example's language decide". The example
+decided anyway. An example is a demonstration of the wanted output, and a
+model weights a demonstration above a description of it; a caveat next to the
+example does not neutralise it, and this one had been reinforced twice already
+(B1, C1 -- see §4) without anyone asking whether an example was the source.
+
+**Rules that fall out of this:**
+- Any example of output in a prompt is a specimen of the output wanted, *in
+  every property it has*, including the ones you did not mean. If a property
+  must vary (language, tone, register), the example must vary with it or be
+  written so that it cannot be copied.
+- When a rule keeps needing reinforcement, look for an example that contradicts
+  it before strengthening the wording again.
+- A prompt suite is only evidence about the shapes it contains. The
+  with-slots language cases existed, but without a history; the failure rate
+  with one was three times higher.
+
 ## 1c. A wrong invocation that produces a valid-looking config
 
 `cd infra && docker compose up -d` is the natural thing to type and it took the

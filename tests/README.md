@@ -9,6 +9,7 @@
 | `event_id.test.js` | `src/event_id.js` — smallest unused generation, racers agree, foreign ids ignored | `node tests/event_id.test.js`, runs anywhere |
 | `transcript.test.js` | `src/transcript.js` — origin fallback, turn labels, hand-back note placement, role alternation; replays the 2026-09-11 re-escalation | `node tests/transcript.test.js`, runs anywhere |
 | `budget_range.test.js` | `src/budget_range.js` — the 11 Sep inversion (1.2–1.5M then 1.1M), the mirror case, pass-through, point ranges | `node tests/budget_range.test.js`, runs anywhere |
+| `offer_count.test.js` | `src/offer_count.js` — the six identical closings, the lead raising booking restarts the count, colleagues and notes do not count, three languages | `node tests/offer_count.test.js`, runs anywhere |
 | `known_facts.test.js` | `src/known_facts.js` — every fact line, the profile name excluded, budget shapes, empty row renders nothing | `node tests/known_facts.test.js`, runs anywhere |
 | `lead_name.test.js` | `src/lead_name.js` — the 11 Sep refusal, profile vs stated, shorter forms, same tokens in another order | `node tests/lead_name.test.js`, runs anywhere |
 | `lead_stage.test.js` | `src/lead_stage.js` — retirement regresses the stage, cancel-and-rebook in one turn, `lost` from `not_interested` and revival, nurturing suppression, `lead.qualified` fires once | `node tests/lead_stage.test.js`, runs anywhere |
