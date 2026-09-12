@@ -220,6 +220,12 @@ async function getRepliesSinceEscalation(rows: LeadRow[]): Promise<Set<string>> 
   return out
 }
 
+async function getClientTimezone(clientId: string): Promise<string> {
+  const { data } = await admin().from('clients').select('timezone').eq('id', clientId).maybeSingle()
+  const tz = typeof data?.timezone === 'string' ? data.timezone.trim() : ''
+  return tz || 'Europe/Lisbon'
+}
+
 async function getClientNames(ids: string[]): Promise<Map<string, string>> {
   const unique = [...new Set(ids)]
   if (unique.length === 0) return new Map()
@@ -266,6 +272,10 @@ export type LeadDetail = {
   name: string
   phone: string | null
   clientName: string
+  /** Every time on the lead page is rendered in THIS zone. Vercel runs in
+   *  UTC, and on 2026-09-12 a 09:00 Lisbon booking rendered as 08:00 — an
+   *  agent reading it would have arrived an hour early. */
+  clientTimezone: string
   stage: string | null
   leadType: string | null
   budgetMin: number | null
@@ -298,10 +308,11 @@ export async function getLead(id: string): Promise<LeadDetail | null> {
   if (!data) return null
 
   const lead = data as LeadRow
-  const [names, messages, viewing] = await Promise.all([
+  const [names, messages, viewing, timezone] = await Promise.all([
     getClientNames([lead.client_id]),
     getMessages(lead.id),
     getViewing(lead.id),
+    getClientTimezone(lead.client_id),
   ])
 
   const esc = parseEscalated(lead.qualification)
@@ -313,6 +324,7 @@ export async function getLead(id: string): Promise<LeadDetail | null> {
     name: lead.full_name ?? 'Unknown lead',
     phone: lead.phone,
     clientName: names.get(lead.client_id) ?? 'Unknown client',
+    clientTimezone: timezone,
     stage: lead.stage,
     leadType: lead.lead_type,
     budgetMin: lead.budget_min,

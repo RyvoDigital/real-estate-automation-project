@@ -1039,8 +1039,23 @@ was never offered a viewing (brief 1.2) and why the stage sat at
    outage that silently changed booking behaviour would be the silent-failure
    pattern again; this is where it becomes visible.
 
+4. **A cancelled or missing booking always escalates, and the lead is always
+   told - by a fixed string, not by the model.** `DecideEscalation` adds
+   `booking_retired:<cancelled|missing>` whatever the model decided, and the
+   handoff body becomes the *booking-retired note* with `{when}` rendered in
+   the lead's language and the client's zone ("A marcação que tínhamos para
+   quarta-feira, 16 de setembro às 09:00 (hora de Lisboa) já não está na nossa
+   agenda…"). Found on 2026-09-12: the model escalated this case itself with a
+   good reason, the escalation path discarded its reply by design, and the lead
+   got the generic note - still believing they had a meeting. Overridable per
+   client via `config.system_messages.booking_retired` (pt/en/es, `{when}`
+   placeholder); the defaults live in the node.
+
 The run payload carries `booking_check`, `booking_check_status`,
 `booking_check_error` and `booking_check_event_status`.
+
+**The cockpit renders every time on the lead page in the client's timezone.**
+Vercel runs in UTC; until 2026-09-12 a 09:00 Lisbon booking showed as 08:00.
 
 **Still true:** a cancelled event burns its id (next section), so a lead who
 picks the *same* slot again is escalated with `conflict_burned_id` rather than

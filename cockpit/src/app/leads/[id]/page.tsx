@@ -21,13 +21,29 @@ function money(min: number | null, max: number | null): string | null {
   return `€${Math.round(hi / 1000)}k`
 }
 
-function clock(iso: string): string {
-  return new Date(iso).toLocaleString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+/**
+ * Always in the CLIENT's timezone, never the server's. The server is Vercel,
+ * which runs in UTC; without the zone a 09:00 Lisbon booking rendered as 08:00,
+ * and an agent trusting the screen would have arrived an hour early.
+ */
+function clock(iso: string, timeZone: string): string {
+  try {
+    return new Date(iso).toLocaleString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone,
+    })
+  } catch {
+    // An unknown zone string must not take the page down; say so instead.
+    return new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) + ' UTC'
+  }
+}
+
+function zoneLabel(timeZone: string): string {
+  const city = timeZone.includes('/') ? timeZone.split('/')[1].replace(/_/g, ' ') : timeZone
+  return `${city} time`
 }
 
 export default async function LeadPage({ params }: { params: Promise<{ id: string }> }) {
@@ -106,7 +122,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
                     <span className="tag">Human</span>
                   )}
                   {m.status === 'failed' && <span className="tag tag--failed">Failed</span>}
-                  <span>{clock(m.createdAt)}</span>
+                  <span>{clock(m.createdAt, lead.clientTimezone)}</span>
                 </div>
               </div>
             ))}
@@ -116,7 +132,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
                 <IconWarning size={16} />
                 <span>
                   The assistant stopped here and handed over
-                  {lead.escalated.at ? ` at ${clock(lead.escalated.at)}` : ''}. It has not replied
+                  {lead.escalated.at ? ` at ${clock(lead.escalated.at, lead.clientTimezone)}` : ''}. It has not replied
                   since.
                 </span>
               </div>
@@ -189,7 +205,9 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
                     className={lead.viewing.state === 'retired' ? 'learned__none' : 'learned__v'}
                     style={lead.viewing.state === 'retired' ? { textDecoration: 'line-through' } : undefined}
                   >
-                    {lead.viewing.startsAt ? clock(lead.viewing.startsAt) : 'Booked'}
+                    {lead.viewing.startsAt
+                      ? `${clock(lead.viewing.startsAt, lead.clientTimezone)}, ${zoneLabel(lead.clientTimezone)}`
+                      : 'Booked'}
                   </span>
                   {/* A booking the Concierge has retired or could not verify says
                       so HERE, where the operator looks — not only in the prompt. */}
@@ -203,7 +221,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
                     >
                       {lead.viewing.state === 'unverified' ? 'Unverified. ' : ''}
                       {lead.viewing.note}
-                      {lead.viewing.at ? ` (${clock(lead.viewing.at)})` : ''}
+                      {lead.viewing.at ? ` (${clock(lead.viewing.at, lead.clientTimezone)})` : ''}
                     </span>
                   )}
                 </>

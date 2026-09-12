@@ -78,6 +78,7 @@ test('the three classes are distinct — item 16', () => {
   assert.equal(classOf('bad_reply_twice'), 'system')
   assert.equal(classOf('booking_failed:conflict_burned_id'), 'system')
   assert.equal(classOf('no_availability:window_full'), 'system')
+  assert.equal(classOf('booking_retired:cancelled'), 'system')
   assert.equal(classOf('media_unprocessable:voice_note'), 'system')
 
   assert.equal(classOf('high_value:3200000>=1500000'), 'high_value')

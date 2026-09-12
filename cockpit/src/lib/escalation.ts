@@ -8,6 +8,7 @@
  *
  *   claude_failed:<errorType>        bad_reply_twice
  *   booking_failed:<result>[:<err>]  no_availability:<slotError|window_full>
+ *   booking_retired:<cancelled|missing>
  *   media_unprocessable:<kind>       high_value:<budget>>=<threshold>
  *   needs_human[:<free text from the model>]
  *
@@ -20,7 +21,7 @@
 export type EscalationClass = 'system' | 'high_value' | 'person'
 
 /** The system set, matching SYSTEM_REASONS in the workflow exactly. */
-const SYSTEM = /^(claude_failed|bad_reply_twice|booking_failed|no_availability|media_unprocessable)/
+const SYSTEM = /^(claude_failed|bad_reply_twice|booking_failed|booking_retired|no_availability|media_unprocessable)/
 
 export type Escalated = {
   at: string | null
@@ -108,6 +109,11 @@ export function humanise(reason: string): string {
       return tail === 'conflict_burned_id'
         ? 'Booking failed — calendar id burned'
         : `Booking failed${tail ? ` — ${tail.replace(/_/g, ' ')}` : ''}`
+    case 'booking_retired':
+      // The lead HAS been told, by a fixed note, before this reached the queue.
+      return tail === 'cancelled'
+        ? 'Appointment removed from the calendar — lead told, needs rebooking'
+        : 'Appointment no longer in the calendar — lead told, needs rebooking'
     case 'no_availability':
       return tail === 'window_full'
         ? 'No free slots in the booking window'
