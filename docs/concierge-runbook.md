@@ -1051,6 +1051,15 @@ was never offered a viewing (brief 1.2) and why the stage sat at
    client via `config.system_messages.booking_retired` (pt/en/es, `{when}`
    placeholder); the defaults live in the node.
 
+5. **The absence is stated every turn.** When the lead holds no active booking
+   the prompt says so, names the most recent retired one and why, and says the
+   note outranks the model's own earlier confirmation. Found 2026-09-12: with
+   nothing said, the model read "Ficou confirmado!" twenty lines up and told the
+   lead they still had the meeting. A second line of defence, `bookingClaim()`
+   in both parsers (`src/booking_claim.js`), rejects a reply that asserts an
+   appointment the workflow does not hold; it is a backstop and deliberately
+   incomplete - the prompt carries the weight.
+
 The run payload carries `booking_check`, `booking_check_status`,
 `booking_check_error` and `booking_check_event_status`.
 

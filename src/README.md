@@ -10,6 +10,7 @@ read them and embed a copy into the workflow at build time.
 | `slot_engine.js` | `ProposeSlots` (Checkpoint C) | Unit-tested standalone; see the harness in the C1 notes |
 | `appointment_kind.js` | `BuildClaudeRequest`, `ParseClaude`, `ParseGuardRetry` | Meeting vs viewing; `tests/appointment_kind.test.js` loads this file |
 | `booking_check.js` | `ResolveBooking` | Is the stored booking still real: past / cancelled / missing / confirmed / unreadable; `tests/booking_check.test.js` loads this file |
+| `booking_claim.js` | `ParseClaude`, `ParseGuardRetry` | Second line of defence: rejects a reply asserting an appointment the workflow does not hold; `tests/booking_claim.test.js` loads this file |
 | `transcript.js` | `BuildClaudeRequest` | Who wrote what — origin labels and the hand-back note; `tests/transcript.test.js` loads this file |
 
 **There is deliberately no example of the `AVAILABLE_SLOTS` block here.** There

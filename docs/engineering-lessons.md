@@ -1341,3 +1341,40 @@ than unlikely. The workflow attempts the insert and treats `23505` / HTTP 409 as
 The general shape: when a correctness property can be enforced by a constraint
 the database already checks atomically, put it there. Application-level checks
 are advisory the moment there is more than one caller.
+
+## 8. Every defect on 2026-09-11 was a belief that had stopped being true
+
+Recorded by the operator after the rehearsal-defect pass, for later work — no
+action now.
+
+None of the day's defects was broken logic. Each was the system **holding or
+presenting a belief that had stopped being true**:
+
+- an escalation flag that outlived the human's handling of it;
+- a booking object that outlived the calendar event (and the slot);
+- a stage of `viewing_booked` that outlived the booking;
+- handoff notes and a human's cockpit replies presented to the model as its
+  own words, so it inherited promises it never made;
+- and finally an **absence never stated** — the workflow knew a booking was
+  gone, told the model once, and then said nothing on later turns, so the model
+  refilled the gap from its own earlier confirmation.
+
+Every fix had the same shape too: verify the belief at the moment it is about
+to be acted on (the hand-back stamp, `VerifyBooking`, the transcript labels,
+the no-booking note each turn), and record the verification where a person can
+see it.
+
+**Where testing should aim next: state transitions, not message variety.** The
+prompt suites vary the *message*; none of them moved the *state* underneath a
+conversation. The cases that found today's defects are all transitions:
+
+- a booking is cancelled in the calendar after it was confirmed;
+- a slot passes;
+- a lead is handed back, and messages again;
+- an escalation is resolved by a reply rather than by the button;
+- a config value changes under a live lead (calendar id, handoff note,
+  working hours).
+
+A suite built on those would replay a conversation, change one fact underneath
+it, and assert what the next turn says — the mirror of `prompt_suites.py`,
+which holds the state still and varies the words.
