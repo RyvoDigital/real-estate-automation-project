@@ -18,12 +18,12 @@ const Q = { name_source: 'stated', bedrooms: 4, financing: 'pre-approved with Mi
 console.log('\nthe 2026-09-12 lead: everything known, nothing should be asked again');
 let s = renderKnownFacts(ROW, Q);
 chk('has the header', /WHAT OUR RECORDS ALREADY HOLD/.test(s));
-chk('name, when stated', /- Name: João Ferreira/.test(s));
+chk('name, when stated, with the never-translate rule (John Ferreira, 2026-09-12)', /- Name: João Ferreira \(write it exactly like this/.test(s) && /never translated/.test(s));
 chk('lead type in plain words', /- Looking to: buy/.test(s));
 chk('budget as a range with thousands separators', /- Budget: 1,200,000 EUR to 1,500,000 EUR/.test(s));
 chk('timeline and area', /- Timeline: next three months/.test(s) && /- Area: Cascais/.test(s));
 chk('qualification facts', /- Bedrooms: 4/.test(s) && /- Financing: pre-approved with Millennium/.test(s) && /- Purpose: relocation, family home/.test(s));
-chk('tells the model not to ask again and that new words win', /Do not ask again/.test(s) && /overrides the record/.test(s));
+chk('tells the model not to ask again, not to ask for confirmation, and that new words win', /Do not ask again/.test(s) && /do not ask the lead to confirm/.test(s) && /overrides the record/.test(s));
 chk('tells the model to return only the new figure on a change', /return only what they said now/.test(s));
 
 console.log('\nthe profile name is not a fact');

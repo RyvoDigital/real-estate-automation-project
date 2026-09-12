@@ -130,14 +130,38 @@ for want, msgs in LANG:
         if not ok:
             print("  [FAIL] want=%s got=%s :: %s" % (want, got, p["reply"][:80]))
 N_SLOTS = int(os.environ.get('N_WITH_SLOTS', '3'))
+# 2026-09-12: the reply language is STATED by BuildClaudeRequest from the
+# deterministic detector; the suite renders that note from the shipping source
+# (src/language.js + src/reply_language.js) the way it renders the slot block.
+from render_slots_block import CONTAINER as _C
+import subprocess as _sp
+def render_reply_language_note(text):
+    script = (open('/opt/ryvo-automation-platform/src/language.js').read() + "\n"
+              + open('/opt/ryvo-automation-platform/src/reply_language.js').read()
+              + "\nprocess.stdout.write(renderReplyLanguageNote(detectLanguage(process.env.T).lang));")
+    out = _sp.run(['docker', 'exec', '-i', '-e', 'T=' + text, _C, 'node', '-e', script], capture_output=True)
+    if out.returncode != 0:
+        raise RuntimeError('could not render the shipping reply-language note: ' + out.stderr.decode()[:400])
+    return out.stdout.decode()
+
+# The demo's shape: an English history behind the booking request. Measured on
+# 12 Sep at 21/24 English without the note, against 23/24 with no history.
+EN_HISTORY = [{"role": "user", "content": "Hi, I saw a villa in Cascais on your website - is it still available?"},
+              {"role": "assistant", "content": "I can't confirm availability myself, but a colleague will check on that villa for you. In the meantime, could you tell me your budget range and timeline?"},
+              {"role": "user", "content": "Budget is around 1.2 to 1.5 million, looking to buy in the next three months"},
+              {"role": "assistant", "content": "Thank you, that's very helpful! A colleague will confirm what's currently available in Cascais within that range."}]
 for want, msg in LANG_WITH_SLOTS:
-    for i in range(N_SLOTS):
-        p = call([{"role": "user", "content": msg}], BASE + SLOTS_BLOCK)
-        got = judge(LANG_JUDGE, p["reply"])["reason"]
-        ok = got == want; lang_p += ok; lang_f += (not ok)
-        if not ok:
-            print("  [FAIL] with-slots want=%s got=%s :: %s" % (want, got, p["reply"][:80]))
-print("  language (incl. booking-with-slots): %d/%d" % (lang_p, lang_p + lang_f))
+    note = render_reply_language_note(msg)
+    for hist_label, hist in (("no history", []), ("en history", EN_HISTORY if want == "en" else [])):
+        if hist_label == "en history" and want != "en":
+            continue
+        for i in range(N_SLOTS):
+            p = call(hist + [{"role": "user", "content": msg}], BASE + note + SLOTS_BLOCK)
+            got = judge(LANG_JUDGE, p["reply"])["reason"]
+            ok = got == want; lang_p += ok; lang_f += (not ok)
+            if not ok:
+                print("  [FAIL] with-slots (%s) want=%s got=%s :: %s" % (hist_label, want, got, p["reply"][:80]))
+print("  language (incl. booking-with-slots, with the shipping REPLY LANGUAGE note): %d/%d" % (lang_p, lang_p + lang_f))
 
 # ------------------------------------------------- 3. never invent a time (NEW)
 SLOTS = ["Tuesday 8 September 2026 at 10:00 Lisbon time",

@@ -27,7 +27,9 @@ function renderKnownFacts(lead, qualification) {
   const clean = (v) => (v === null || v === undefined) ? '' : String(v).trim();
   const eur = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' EUR';
 
-  if (q.name_source === 'stated' && clean(l.full_name)) lines.push('- Name: ' + clean(l.full_name));
+  if (q.name_source === 'stated' && clean(l.full_name)) {
+    lines.push('- Name: ' + clean(l.full_name) + ' (write it exactly like this in every reply language; a name is never translated or localised)');
+  }
   const TYPE = { buyer: 'buy', seller: 'sell', renter: 'rent' };
   if (TYPE[l.lead_type]) lines.push('- Looking to: ' + TYPE[l.lead_type]);
 
@@ -48,8 +50,9 @@ function renderKnownFacts(lead, qualification) {
   return '\n\nWHAT OUR RECORDS ALREADY HOLD FOR THIS LEAD\n'
     + 'Learned earlier in this conversation, possibly before the messages you can see:\n'
     + lines.join('\n') + '\n'
-    + 'Do not ask again for anything listed here. If the lead brings one of these up you may '
-    + 'confirm or refine it, and what the lead says now overrides the record. In the JSON, '
+    + 'Do not ask again for anything listed here, and do not ask the lead to confirm it either - '
+    + 'use it. If the lead brings one of these up you may refine it, and what the lead says now '
+    + 'overrides the record. In the JSON, '
     + 'return these values unless the lead has changed them; when the lead gives a new figure, '
     + 'return only what they said now.';
 }
