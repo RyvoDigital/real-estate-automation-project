@@ -158,3 +158,15 @@ Each is written as: what to send, and what should happen. Where the right behavi
 ## NEW (13 Sep, 00:20) — Offer count restarts on a question that is not a booking request 🟢 logged, not fixed
 
 Step 5 of the language rehearsal: after "Not yet, I'll confirm tomorrow" (offer correctly withheld), "What's the next step?" re-offered the three times. The lead-raises pattern in `src/offer_count.js` treats "when"/"times"-class words as the lead raising booking; "next step" is not in it, but the count restarted anyway — check whether the model's slot reply, not the count, is what re-offered (the OFFERS note is only written when the count is above zero, and the count is reset by the lead's *previous* booking request in step 1). Defensible either way; the tic is gone. Decide after the demo whether "what's next" should count as raising booking.
+
+## NEW (13 Sep, 02:05) — Retired-booking escalation reason is a code, not a sentence 🟢 cosmetic, logged
+
+`DecideEscalation` pushes `'booking_retired:' + mc.bookingCheck`, so the cockpit shows *"booking_retired:cancelled"*. The model's own reasons read as prose; this one never did. One line: *"The appointment for Monday 14 September at 09:00 was removed from the calendar (cancelled); the lead has been sent the retired note."* Needs a deploy, so not tonight.
+
+## NEW (13 Sep, 02:05) — `booking_match_status` is null in every run payload 🟢 cosmetic, logged
+
+`PrepRunAI` reads it from `AfterBooking`, which does not carry it; `matched_by` does carry the matcher's reason (e.g. `question_not_acceptance`), so nothing is lost. Read it from `MatchConfirmation` by name, or drop the field.
+
+## Closed 13 Sep, ~02:00 — the "first meeting" phantom booking
+
+Five-step rehearsal on the hardest transcript in the system, all clean first drafts (no retries in any payload): the phantom message books nothing; "Is Tuesday still available?" is answered, not escalated; a real acceptance is booked and stated; with a booking held, a question about Wednesday is answered with Tuesday stated as standing. Lessons §8c.
