@@ -63,6 +63,15 @@ const BOOKING_CLAIMS = [
   { rx: /\bfica (?:entao |assim |ja )?(?:marcad|agendad|reservad)[ao] para\b/, label: 'fica marcado para' },
   { rx: /\bvoy a (?:agendar|reservar|programar|marcar)\b/, label: 'voy a agendar' },
   { rx: /\bse pondr[aá]n? en contacto para confirmar\b/, label: 'se pondra en contacto para confirmar' },
+  // The shapes suite 7 produced on 2026-09-14 with the rule already in the prompt (6/12):
+  { rx: /\bi(?:'ll| will) (?:set|get|book|put) you (?:up|down|in) (?:for|on|with)\b/, label: "I'll set you up for" },
+  { rx: /\b(?:consider it|that's|that is) (?:booked|set|arranged|done)\b/, label: "consider it booked" },
+  { rx: /\bvamos (?:marcar|agendar|reservar) (?:para|na|no|a|as|o) (?:segunda|terca|quarta|quinta|sexta|sabado|domingo|dia \d|\d)/, label: 'vamos marcar para <dia>' },
+  { rx: /\b(?:ja )?vou tratar (?:disso|de tudo|da marcacao)\b/, label: 'vou tratar disso' },
+  { rx: /\bdejo (?:propuest|reservad|agendad|apuntad)/, label: 'dejo propuesto' },
+  { rx: /\bquedamos (?:para|el|en) (?:el |la |lunes|martes|miercoles|jueves|viernes|sabado|domingo|\d)/, label: 'quedamos para' },
+  { rx: /\b(?:reservamos|agendamos|programamos) (?:para |el |la )?(?:lunes|martes|miercoles|jueves|viernes|sabado|domingo|el dia|\d)/, label: 'reservamos el' },
+  { rx: /\bte lo dejo (?:agendad|reservad|apuntad)/, label: 'te lo dejo agendado' },
 ];
 
 // bookingClaim(reply) -> the offending phrase (label), or null.

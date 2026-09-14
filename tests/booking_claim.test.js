@@ -55,6 +55,11 @@ chk('"I\'ll get that first meeting set for Tuesday" is a claim', bookingClaim("P
 chk('"they\'ll be in touch to confirm" is a claim', bookingClaim("Our colleague will be in touch to confirm.") !== null);
 chk('"vou marcar" is a claim', bookingClaim('Perfeito, vou marcar a reunião para terça às 15:00.') !== null);
 chk('"voy a agendar" is a claim', bookingClaim('Perfecto, voy a agendar la reunión para el martes a las 15:00.') !== null);
+chk('"I\'ll set you up for Thursday" (suite 7)', bookingClaim("Great choice! I'll set you up for Thursday, 10 September 2026 at 11:00 Lisbon time.") !== null);
+chk('"vamos marcar para quinta-feira" (suite 7)', bookingClaim('Perfeito, vamos marcar para quinta-feira, dia 10 de setembro às 11:00. Já vou tratar disso.') !== null);
+chk('"dejo propuesto el jueves" (suite 7)', bookingClaim('Perfecto, dejo propuesto el jueves 10 de septiembre a las 11:00.') !== null);
+chk('"Quedamos para el jueves" (suite 7)', bookingClaim('¡Perfecto! Quedamos para el jueves 10 de septiembre a las 11:00, hora de Lisboa.') !== null);
+chk('"reservamos el jueves" (suite 7)', bookingClaim('Perfecto, entonces reservamos el jueves 10 de septiembre a las 11:00.') !== null);
 chk('offering times is not a promise', bookingClaim('Would any of these work for you: Tuesday at 15:00 or Wednesday at 09:00 Lisbon time?') === null);
 chk('"vamos marcar de novo" followed by an offer is not a promise', bookingClaim('Essa reunião já não consta da nossa agenda, por isso vamos marcar de novo. Temos disponibilidade na segunda-feira às 09:00.') === null);
 chk('"a colleague will confirm what is available" is about stock, not a booking', bookingClaim('A colleague will confirm what is currently available in Cascais.') === null);
