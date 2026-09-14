@@ -63,5 +63,20 @@ chk('"reservamos el jueves" (suite 7)', bookingClaim('Perfecto, entonces reserva
 chk('offering times is not a promise', bookingClaim('Would any of these work for you: Tuesday at 15:00 or Wednesday at 09:00 Lisbon time?') === null);
 chk('"vamos marcar de novo" followed by an offer is not a promise', bookingClaim('Essa reunião já não consta da nossa agenda, por isso vamos marcar de novo. Temos disponibilidade na segunda-feira às 09:00.') === null);
 chk('"a colleague will confirm what is available" is about stock, not a booking', bookingClaim('A colleague will confirm what is currently available in Cascais.') === null);
+console.log('\n2026-09-14: the present tense used as a future, in three languages');
+chk('"marco então quinta-feira" (suite 7, twice)', bookingClaim('Perfeito, marco então quinta-feira, 10 de setembro de 2026, às 11:00 (hora de Lisboa).') !== null);
+chk('"agendo já a sua reunião"', bookingClaim('Ótimo, agendo já a sua reunião para quinta às 11:00.') !== null);
+chk('"deixo marcado para quinta"', bookingClaim('Combinado, deixo marcado para quinta-feira às 11:00.') !== null);
+chk('"reservo el jueves"', bookingClaim('Perfecto, reservo el jueves 10 de septiembre a las 11:00.') !== null);
+chk('"te agendo para el jueves"', bookingClaim('Genial, te agendo para el jueves a las 11:00.') !== null);
+chk('"queda reservado el jueves"', bookingClaim('Perfecto, queda reservado el jueves a las 11:00, hora de Lisboa.') !== null);
+chk('"I\'m booking you in for Thursday"', bookingClaim("Lovely, I'm booking you in for Thursday 10 September at 11:00 Lisbon time.") !== null);
+chk('"I\'m putting you down for Thursday"', bookingClaim("I'm putting you down for Thursday at 11:00.") !== null);
+chk('"I\'m setting up that first meeting"', bookingClaim("Great, I'm setting up that first meeting for Thursday.") !== null);
+chk('a colleague called Marco is not a booking', bookingClaim('O Marco, o nosso colega, entra em contacto consigo em breve.') === null);
+chk('"um marco histórico" is not a booking', bookingClaim('A Quinta da Marinha é um marco histórico da zona.') === null);
+chk('"I\'m looking forward to it" is not a booking', bookingClaim("I'm looking forward to hearing which time suits you.") === null);
+chk('"reservo o direito" style prose is not a booking', bookingClaim('Reservo a minha opinião até falar com um colega.') === null);
+
 console.log(`\n  ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

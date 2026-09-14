@@ -598,6 +598,13 @@ lead with nothing left to ask.
 - Prefer a stated fact to a classified situation (improvements §0.4). The fix
   here is a `QUALIFIED` line the workflow writes from the row, not a better
   sentence the model has to recognise itself in.
+- A guard covers the shapes someone thought of; the model produces a
+  neighbour. The booking-claim guard had "vou marcar" (future) and missed
+  "marco então quinta-feira" (present tense used as a future, ordinary
+  Portuguese) twice in twelve on 14 September. When a guard gains a shape in
+  one language, check the same tense in the other two before shipping —
+  Spanish "reservo el jueves" and English "I'm booking you in for Thursday"
+  had the identical gap.
 
 ## 1c. A wrong invocation that produces a valid-looking config
 

@@ -72,6 +72,20 @@ const BOOKING_CLAIMS = [
   { rx: /\bquedamos (?:para|el|en) (?:el |la |lunes|martes|miercoles|jueves|viernes|sabado|domingo|\d)/, label: 'quedamos para' },
   { rx: /\b(?:reservamos|agendamos|programamos) (?:para |el |la )?(?:lunes|martes|miercoles|jueves|viernes|sabado|domingo|el dia|\d)/, label: 'reservamos el' },
   { rx: /\bte lo dejo (?:agendad|reservad|apuntad)/, label: 'te lo dejo agendado' },
+  // --- 2026-09-14, the present tense used as a future --------------------------
+  // The guard covered "vou marcar" and not "marco entao quinta-feira": the
+  // future tense, not the present-as-future that is ordinary Portuguese. Suite 7
+  // produced it twice in twelve. The same neighbour exists in Spanish ("reservo
+  // el jueves", "te agendo") and English ("I'm booking you in for Thursday").
+  // Each pattern needs a day, a time or the appointment after the verb, so
+  // "Marco, o nosso colega" (a name) and "o marco historico" never match.
+  { rx: /\b(?:marco|agendo|reservo|anoto|registo) (?:entao |ja |assim |desde ja )?(?:para |a |o |na |no |nа |as |às )?(?:segunda|terca|quarta|quinta|sexta|sabado|domingo|dia \d|\d{1,2}[:h]|a sua |a tua |a reuniao|a visita|a primeira|essa|esse)/, label: 'marco entao <dia>' },
+  { rx: /\bdeixo (?:entao |ja )?(?:marcad|agendad|reservad)[ao]s? (?:para|a|o|na|no)\b/, label: 'deixo marcado para' },
+  { rx: /\b(?:reservo|agendo|programo|anoto|apunto) (?:entonces |ya )?(?:para |el |la |te |le |su |tu )?(?:lunes|martes|miercoles|jueves|viernes|sabado|domingo|el dia|\d{1,2}[:h]|\d|reunion|cita|visita|primera)/, label: 'reservo el jueves' },
+  { rx: /\b(?:te|le|les|os) (?:agendo|reservo|programo|apunto|anoto)\b/, label: 'te agendo' },
+  { rx: /\bqueda (?:entonces |ya )?(?:reservad|agendad|programad|confirmad|apuntad)[ao]s? (?:el |la |para |su |tu )/, label: 'queda reservado el' },
+  { rx: /\bi(?:'m| am) (?:booking|scheduling|putting|pencil+ing|locking|setting) you (?:in |down |up )?(?:for|on|with)\b/, label: "I'm booking you in for" },
+  { rx: /\bi(?:'m| am) (?:booking|scheduling|arranging|setting up|reserving|locking in) (?:that|this|it|the|your|a)\b/, label: "I'm booking that" },
 ];
 
 // bookingClaim(reply) -> the offending phrase (label), or null.
