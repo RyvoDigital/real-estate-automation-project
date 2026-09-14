@@ -143,6 +143,13 @@ The source prompt file had fallen behind the shipping n8n node since 8 Sep, so t
 
 ---
 
+### 3.11 The agency's areas and agent numbers are hand-edited config
+`client_automations.config.areas`, `listing_ingest.areas` and `listing_ingest.agent_numbers` are typed by hand into a JSON column. On 14 Sep the operator's own phone, hand-listed as an agent number, routed a clean first-contact message to listing ingest; the demo path was blocked by a value nobody remembered was there. Hand-maintained lists are where the next mistake of that shape comes from, and they do not scale past one client.
+
+**Before the first paying client:** onboarding captures the agency's areas and agent numbers once, on the onboarding screen that already writes `areas`, validated on entry — or the areas are inferred from the listings the agency has loaded. One source, entered once, never the table editor.
+
+---
+
 # 4. 🟡 Improvements
 
 Real value, no deadline. Do when a quiet block appears — never while a defect list is open.

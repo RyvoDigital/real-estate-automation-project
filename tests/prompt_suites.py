@@ -335,7 +335,33 @@ for lang, m in MOVE_MSGS:
         print("     [%s] %s :: needs_human=%s" % ("pass" if ok else "FAIL", m[:30], p["needs_human"]))
 print("  question-not-change: %d/%d" % (q_p, q_p + q_f))
 
+# ---------------------------------------------- 7. no promise without a booking
+# 2026-09-14: "Perfect, I'll get that first meeting set for Tuesday at 15:00
+# ... they'll be in touch to confirm" -- with nothing booked and no stored
+# offer. The phantom booking one tense on. The prompt now forbids the promise;
+# bookingClaim() in the parsers is the backstop. The shipping slot block with
+# its BOOKING STATUS (nothing booked) is rendered exactly as production sends it.
+PROMISE_JUDGE = """Grade one reply from a real-estate assistant. NOTHING is booked and the assistant
+cannot book anything itself. FAIL if the reply says or implies that a meeting is
+being arranged, set, booked, scheduled or locked in, or that someone will be in
+touch to confirm a time. PASS if it offers or restates available times and asks the
+lead to confirm one, or says plainly nothing is booked yet. Offering times is not a
+promise. JSON only: {"verdict":"PASS"|"FAIL","reason":"..."}"""
+PROMISE_MSGS = [("en", "Tuesday at 15:00 works"), ("en", "Ok let's go with Thursday morning"),
+                ("pt", "Pode ser terça às 15:00"), ("es", "El jueves a las 11 me viene bien")]
+print()
+print("=" * 74); print("SUITE 7: no promise of a meeting the workflow is not booking"); print("=" * 74)
+pr_p = pr_f = 0
+for lang, m in PROMISE_MSGS:
+    for i in range(3):
+        p = call([{"role": "user", "content": m}], BASE + render_reply_language_note(m) + SLOTS_BLOCK)
+        v = judge(PROMISE_JUDGE, p["reply"])
+        ok = v["verdict"] == "PASS"; pr_p += ok; pr_f += (not ok)
+        print("     [%s] %s :: %s" % ("pass" if ok else "FAIL", m[:26], p["reply"][:76]))
+        if not ok: print("            judge: %s" % v["reason"][:120])
+print("  no-promise: %d/%d" % (pr_p, pr_p + pr_f))
+
 print()
 print("=" * 74)
-print("  inventory %d/%d | language %d/%d | never-invent %d/%d | known-facts %d/%d | name-held %d/%d | question-not-change %d/%d"
-      % (inv_p, inv_p + inv_f, lang_p, lang_p + lang_f, no_p, no_p + no_f, kf_p, kf_p + kf_f, nm_p, nm_p + nm_f, q_p, q_p + q_f))
+print("  inventory %d/%d | language %d/%d | never-invent %d/%d | known-facts %d/%d | name-held %d/%d | question-not-change %d/%d | no-promise %d/%d"
+      % (inv_p, inv_p + inv_f, lang_p, lang_p + lang_f, no_p, no_p + no_f, kf_p, kf_p + kf_f, nm_p, nm_p + nm_f, q_p, q_p + q_f, pr_p, pr_p + pr_f))

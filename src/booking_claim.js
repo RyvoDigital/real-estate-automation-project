@@ -52,6 +52,17 @@ const BOOKING_CLAIMS = [
   { rx: /\b(?:is|are|remains|stays) (?:already |still |now )?(?:booked|confirmed|scheduled|in the diary) for (?:the |mon|tue|wed|thu|fri|sat|sun|\d|next|this|tomorrow)/, label: 'is booked for <day>' },
   { rx: /\bwe have you (?:booked|down) for\b/, label: 'we have you booked for' },
   { rx: /\bi(?:'ve| have) (?:got )?you (?:booked|down) for\b/, label: 'I have you booked for' },
+  // --- 2026-09-14: the promise, in the future tense --------------------------
+  // "I'll get that first meeting set for Tuesday", "they'll be in touch to
+  // confirm", "vou marcar", "voy a agendar": the model arranging a meeting the
+  // workflow is not arranging. Same class as the phantom booking, one tense on.
+  { rx: /\bi(?:'ll| will) (?:get|have) (?:that|this|it|the|your|a) [^.!?\n]{0,30}?(?:set|booked|arranged|scheduled|in the diary)\b/, label: "I'll get that set" },
+  { rx: /\bi(?:'ll| will) (?:book|schedule|arrange|set up|lock in|pencil in) (?:that|this|it|the|your|a)\b/, label: "I'll book that" },
+  { rx: /\b(?:will|'ll) be in touch to confirm\b/, label: 'will be in touch to confirm' },
+  { rx: /\bvou (?:marcar|agendar|reservar|tratar de marcar)\b/, label: 'vou marcar' },
+  { rx: /\bfica (?:entao |assim |ja )?(?:marcad|agendad|reservad)[ao] para\b/, label: 'fica marcado para' },
+  { rx: /\bvoy a (?:agendar|reservar|programar|marcar)\b/, label: 'voy a agendar' },
+  { rx: /\bse pondr[aá]n? en contacto para confirmar\b/, label: 'se pondra en contacto para confirmar' },
 ];
 
 // bookingClaim(reply) -> the offending phrase (label), or null.

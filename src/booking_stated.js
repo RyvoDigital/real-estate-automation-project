@@ -64,3 +64,16 @@ function retryBookingHint(slotText) {
     + 'first meeting is confirmed for ' + slotText + ' - the weekday, the date and the time - '
     + 'then answer anything else they asked. Keep it short.';
 }
+
+// slotsNamedIn(reply, slots) -> the offered slots the reply actually named.
+//
+// 2026-09-14: the model volunteered three times after qualifying the lead,
+// tagged the turn wants_booking=false, and the merge -- which stored an offer
+// only on wants_booking -- recorded nothing. "Tuesday at 15:00 works" then met
+// an empty offer. Every rehearsal had the lead ask for times first, so the
+// gap never showed. What the lead was SHOWN is what the workflow must hold;
+// this reads the reply for it, deterministically.
+function slotsNamedIn(reply, slots) {
+  const list = Array.isArray(slots) ? slots : [];
+  return list.filter(s => replyStatesSlot(reply, s));
+}

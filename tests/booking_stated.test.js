@@ -29,6 +29,18 @@ chk('the wrong time with the right weekday', replyStatesSlot('Monday at 10:00 it
 chk('empty reply', replyStatesSlot('', MON) === false);
 chk('a slot without a local string cannot be checked, so it is not stated', replyStatesSlot('Monday at 09:00', { startUtc: '2026-09-14T08:00:00.000Z' }) === false);
 
+console.log('\nthe 2026-09-14 gap: the model volunteers times, the lead was shown an offer the row never held');
+const TUE15 = { startUtc: '2026-09-15T14:00:00.000Z', endUtc: '2026-09-15T15:00:00.000Z', local: '2026-09-15T15:00:00.000+01:00', zone: 'Europe/Lisbon' };
+const WED09 = { startUtc: '2026-09-16T08:00:00.000Z', endUtc: '2026-09-16T09:00:00.000Z', local: '2026-09-16T09:00:00.000+01:00', zone: 'Europe/Lisbon' };
+const THU09 = { startUtc: '2026-09-17T08:00:00.000Z', endUtc: '2026-09-17T09:00:00.000Z', local: '2026-09-17T09:00:00.000+01:00', zone: 'Europe/Lisbon' };
+let named = slotsNamedIn('Wonderful! I would love to set up a first meeting with our colleague. Would any of these work for you: Tuesday, 15 September at 15:00, Wednesday, 16 September at 09:00, or Thursday, 17 September at 09:00 Lisbon time?', [TUE15, WED09, THU09]);
+chk('the step 3 reply named all three offered slots', named.length === 3);
+named = slotsNamedIn('Great, Cascais or Estoril around 1.5M is very helpful. Are you looking to buy to live in, or as an investment?', [TUE15, WED09, THU09]);
+chk('a qualifying reply names none', named.length === 0);
+named = slotsNamedIn('Temos terça-feira, dia 15, às 15:00 ou quarta-feira, dia 16, às 09:00 (hora de Lisboa). Qual prefere?', [TUE15, WED09, THU09]);
+chk('a Portuguese reply naming two of three', named.length === 2 && named[0] === TUE15 && named[1] === WED09);
+chk('no slots, nothing named', slotsNamedIn('Tuesday at 15:00 works', []).length === 0);
+
 console.log('\nthe retry hint');
 chk('names the slot and asks for weekday, date and time', /confirmed for Monday 14 September 2026 at 09:00 Lisbon time/.test(retryBookingHint('Monday 14 September 2026 at 09:00 Lisbon time')) && /weekday, the date and the time/.test(retryBookingHint('x')));
 

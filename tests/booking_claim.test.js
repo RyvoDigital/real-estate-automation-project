@@ -49,5 +49,14 @@ passes('en: no longer in the diary', 'The earlier appointment is no longer in th
 passes('en: will check', "I'll check availability and come back to you.");
 passes('empty', '');
 
+
+console.log('\n2026-09-14: the promise in the future tense');
+chk('"I\'ll get that first meeting set for Tuesday" is a claim', bookingClaim("Perfect, I'll get that first meeting set for Tuesday, 15 September at 15:00 Lisbon time with our colleague.") !== null);
+chk('"they\'ll be in touch to confirm" is a claim', bookingClaim("Our colleague will be in touch to confirm.") !== null);
+chk('"vou marcar" is a claim', bookingClaim('Perfeito, vou marcar a reunião para terça às 15:00.') !== null);
+chk('"voy a agendar" is a claim', bookingClaim('Perfecto, voy a agendar la reunión para el martes a las 15:00.') !== null);
+chk('offering times is not a promise', bookingClaim('Would any of these work for you: Tuesday at 15:00 or Wednesday at 09:00 Lisbon time?') === null);
+chk('"vamos marcar de novo" followed by an offer is not a promise', bookingClaim('Essa reunião já não consta da nossa agenda, por isso vamos marcar de novo. Temos disponibilidade na segunda-feira às 09:00.') === null);
+chk('"a colleague will confirm what is available" is about stock, not a booking', bookingClaim('A colleague will confirm what is currently available in Cascais.') === null);
 console.log(`\n  ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
