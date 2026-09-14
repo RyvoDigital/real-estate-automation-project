@@ -44,5 +44,18 @@ chk('null inputs render nothing', renderKnownFacts(null, null) === '');
 chk('unknown lead_type is not a line', !/Looking to/.test(renderKnownFacts({ lead_type: 'unknown', area: 'X' }, {})));
 chk('blank strings are not facts', renderKnownFacts({ timeline: '  ', area: '' }, { purpose: ' ' }) === '');
 
+console.log('\nQUALIFIED (2026-09-14): nothing left to ask means offer times, not "a colleague will follow up"');
+const QROW = { budget_min: 1500000, budget_max: 1500000, timeline: 'within 6 months', area: 'Cascais or Estoril' };
+const CTX = { bookingIntent: 'none', offersPending: 0, slotsAvailable: 3 };
+chk('budget + timeline + area, nothing booked or offered, slots available: qualified', qualifiedForOffer(QROW, {}, CTX) === true);
+chk('a bound alone is a budget', qualifiedForOffer({ budget_max: 900000, timeline: 'soon', area: 'Cascais' }, {}, CTX) === true);
+chk('missing timeline: not yet', qualifiedForOffer({ budget_max: 900000, area: 'Cascais' }, {}, CTX) === false);
+chk('missing area: not yet', qualifiedForOffer({ budget_max: 900000, timeline: 'soon' }, {}, CTX) === false);
+chk('a booking on the row: no', qualifiedForOffer(QROW, { booking: { event_id: 'rv1' } }, CTX) === false);
+chk('a booking in motion this turn: no', qualifiedForOffer(QROW, {}, { bookingIntent: 'confirm', offersPending: 0, slotsAvailable: 3 }) === false);
+chk('an offer already pending: no', qualifiedForOffer(QROW, {}, { bookingIntent: 'none', offersPending: 1, slotsAvailable: 3 }) === false);
+chk('no slots to offer: no', qualifiedForOffer(QROW, {}, { bookingIntent: 'none', offersPending: 0, slotsAvailable: 0 }) === false);
+chk('the note says offer now and forbids the handoff phrase', /offer the times listed under AVAILABLE_SLOTS in THIS reply/.test(renderQualifiedNote()) && /a colleague will follow up/.test(renderQualifiedNote()));
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

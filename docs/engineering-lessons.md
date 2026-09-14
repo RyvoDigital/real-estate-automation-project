@@ -573,6 +573,32 @@ example does not neutralise it, and this one had been reinforced twice already
   with-slots language cases existed, but without a history; the failure rate
   with one was three times higher.
 
+## 1i. A rule that fixes one behaviour can make its neighbour strictly worse, and only a real conversation shows it
+
+On 13 September two rules went into the prompt: never promise to arrange a
+meeting the workflow is not booking, and make an offer once. Both fixed
+what they were written for, and both passed their suites. On 14 September
+a fully qualified buyer — budget, area, bedrooms, timeline, financing —
+got two consecutive replies with no next step: "a colleague will follow up".
+The day before, the same prompt had volunteered times at that point.
+
+The cause was already in the prompt: times were to be offered "only if the
+lead is asking", and the forward move was "one qualifying question". When the
+questions run out, the handoff phrase is all that is left. The two new rules
+did not create that; they made the model more literal about it. A fix in one
+place tightened a neighbour that no suite measured, because no suite held a
+lead with nothing left to ask.
+
+**Rules that fall out of this:**
+- After any prompt change, run a whole conversation, not only the suites.
+  The suites hold the state still; a conversation moves through the states
+  the rules interact in.
+- When a rule says "only when X", ask what the model does when not-X and
+  nothing else applies. The answer is usually the oldest phrase in the prompt.
+- Prefer a stated fact to a classified situation (improvements §0.4). The fix
+  here is a `QUALIFIED` line the workflow writes from the row, not a better
+  sentence the model has to recognise itself in.
+
 ## 1c. A wrong invocation that produces a valid-looking config
 
 `cd infra && docker compose up -d` is the natural thing to type and it took the

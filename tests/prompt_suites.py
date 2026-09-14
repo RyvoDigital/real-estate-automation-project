@@ -361,7 +361,30 @@ for lang, m in PROMISE_MSGS:
         if not ok: print("            judge: %s" % v["reason"][:120])
 print("  no-promise: %d/%d" % (pr_p, pr_p + pr_f))
 
+# ------------------------------------- 8. nothing left to qualify: offer times
+# 2026-09-14: a fully qualified buyer got "a colleague will follow up" twice.
+# The QUALIFIED note is rendered from the shipping source; the reply must name
+# at least one offered time. Regex, no judge.
+def render_qualified_note():
+    script = open(KF_SRC).read() + "\nprocess.stdout.write(renderQualifiedNote());"
+    out = _sp.run(['docker', 'exec', '-i', _C, 'node', '-e', script], capture_output=True)
+    if out.returncode != 0 or not out.stdout:
+        raise RuntimeError('could not render the shipping QUALIFIED note: ' + out.stderr.decode()[:400])
+    return out.stdout.decode()
+QUAL_NOTE = render_qualified_note()
+QUAL_MSGS = ["Ok, sounds good.", "Perfeito, obrigado.", "That's everything from my side for now.", "Vale, gracias."]
+print()
+print("=" * 74); print("SUITE 8: nothing left to qualify -> the reply offers times"); print("=" * 74)
+qo_p = qo_f = 0
+for m in QUAL_MSGS:
+    for i in range(3):
+        p = call([{"role": "user", "content": m}], BASE + KNOWN_BLOCK + render_reply_language_note(m) + QUAL_NOTE + SLOTS_BLOCK)
+        found = set("%d:%s" % (int(a), b) for a, b, c, d in TIME_RE.findall(p["reply"]) if a)
+        ok = bool(found & ALLOWED); qo_p += ok; qo_f += (not ok)
+        print("     [%s] %s :: %s" % ("pass" if ok else "FAIL", m[:26], p["reply"][:76]))
+print("  qualified-offers: %d/%d" % (qo_p, qo_p + qo_f))
+
 print()
 print("=" * 74)
-print("  inventory %d/%d | language %d/%d | never-invent %d/%d | known-facts %d/%d | name-held %d/%d | question-not-change %d/%d | no-promise %d/%d"
-      % (inv_p, inv_p + inv_f, lang_p, lang_p + lang_f, no_p, no_p + no_f, kf_p, kf_p + kf_f, nm_p, nm_p + nm_f, q_p, q_p + q_f, pr_p, pr_p + pr_f))
+print("  inventory %d/%d | language %d/%d | never-invent %d/%d | known-facts %d/%d | name-held %d/%d | question-not-change %d/%d | no-promise %d/%d | qualified-offers %d/%d"
+      % (inv_p, inv_p + inv_f, lang_p, lang_p + lang_f, no_p, no_p + no_f, kf_p, kf_p + kf_f, nm_p, nm_p + nm_f, q_p, q_p + q_f, pr_p, pr_p + pr_f, qo_p, qo_p + qo_f))

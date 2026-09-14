@@ -56,3 +56,40 @@ function renderKnownFacts(lead, qualification) {
     + 'return these values unless the lead has changed them; when the lead gives a new figure, '
     + 'return only what they said now.';
 }
+
+// ============================================================================
+// QUALIFIED: the row says there is nothing left to ask. — 2026-09-14.
+//
+// A buyer who had given budget, area, bedrooms, timeline and financing got
+// two consecutive replies with no next step: "a colleague will follow up".
+// The prompt told the model to offer times only when the lead asked, and to
+// move forward with one qualifying question -- and when the questions run
+// out, the handoff phrase is all that is left. That is the moment a lead
+// goes cold, and the thing the product exists to prevent. Yesterday's rules
+// against promising and against repeating an offer made the model more
+// literal about it, not less.
+//
+// So the WORKFLOW says it, from the row, as a fact (improvements §0.4):
+// budget, timeline and area are on record, no meeting is booked or offered,
+// times are available -- offer them now. The prompt rule is reinforcement.
+// ============================================================================
+function qualifiedForOffer(lead, qualification, ctx) {
+  const l = lead || {}, q = qualification || {}, c = ctx || {};
+  const hasBudget = Number(l.budget_min) > 0 || Number(l.budget_max) > 0;
+  const hasTimeline = !!(l.timeline && String(l.timeline).trim());
+  const hasArea = !!(l.area && String(l.area).trim());
+  if (!(hasBudget && hasTimeline && hasArea)) return false;
+  if (q.booking && q.booking.event_id) return false;          // already booked
+  if (c.bookingIntent && c.bookingIntent !== 'none') return false;   // booking in motion this turn
+  if (c.offersPending > 0) return false;                       // already offered, not taken up
+  if (!(c.slotsAvailable > 0)) return false;                   // nothing to offer
+  return true;
+}
+
+function renderQualifiedNote() {
+  return '\n\nQUALIFIED: budget, area and timeline are on record, no meeting is booked and none has '
+    + 'been offered. There is nothing left to qualify. The next step is a first meeting with our '
+    + 'colleague: offer the times listed under AVAILABLE_SLOTS in THIS reply, warmly, and ask '
+    + 'which suits. Do not end this reply with "a colleague will follow up" - that is the moment '
+    + 'a lead goes cold.';
+}
