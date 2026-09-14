@@ -34,7 +34,10 @@ function deaccentStated(s) {
 // time string ("2026-09-14T09:00:00.000+01:00"), so no timezone library is
 // needed here and the check reads exactly what the lead was shown.
 function slotParts(slot) {
-  const local = String((slot && slot.local) || '');
+  // The slot engine emits `startLocal`; the stored offer and the matched slot
+  // carry `local`. On 2026-09-14 this read only `local`, so the named-slot check
+  // never fired on the raw offer and the volunteer-then-accept path stayed open.
+  const local = String((slot && (slot.local || slot.startLocal)) || '');
   const m = local.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
   if (!m) return null;
   const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);

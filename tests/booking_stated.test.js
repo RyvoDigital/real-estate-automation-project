@@ -40,6 +40,11 @@ chk('a qualifying reply names none', named.length === 0);
 named = slotsNamedIn('Temos terça-feira, dia 15, às 15:00 ou quarta-feira, dia 16, às 09:00 (hora de Lisboa). Qual prefere?', [TUE15, WED09, THU09]);
 chk('a Portuguese reply naming two of three', named.length === 2 && named[0] === TUE15 && named[1] === WED09);
 chk('no slots, nothing named', slotsNamedIn('Tuesday at 15:00 works', []).length === 0);
+const ENGINE_SHAPE = [{ startUtc: '2026-09-15T15:00:00.000Z', endUtc: '2026-09-15T16:00:00.000Z', startLocal: '2026-09-15T16:00:00.000+01:00', dateLocal: '2026-09-15', timeLocal: '16:00', zone: 'Europe/Lisbon' },
+                      { startUtc: '2026-09-16T08:00:00.000Z', endUtc: '2026-09-16T09:00:00.000Z', startLocal: '2026-09-16T09:00:00.000+01:00', dateLocal: '2026-09-16', timeLocal: '09:00', zone: 'Europe/Lisbon' }];
+named = slotsNamedIn('Would any of these work: Tuesday, 15 September at 16:00, or Wednesday, 16 September at 09:00 Lisbon time?', ENGINE_SHAPE);
+chk('slots in the slot engine\'s own shape (startLocal, no local) are recognised -- the 14 Sep miss', named.length === 2);
+chk('and a booked slot in the engine shape can be checked as stated', replyStatesSlot('Confirmed for Tuesday 15 September at 16:00 Lisbon time.', ENGINE_SHAPE[0]) === true);
 
 console.log('\nthe retry hint');
 chk('names the slot and asks for weekday, date and time', /confirmed for Monday 14 September 2026 at 09:00 Lisbon time/.test(retryBookingHint('Monday 14 September 2026 at 09:00 Lisbon time')) && /weekday, the date and the time/.test(retryBookingHint('x')));

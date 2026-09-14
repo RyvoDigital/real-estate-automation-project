@@ -8,6 +8,116 @@
 
 ---
 
+# 0. 🔴 The reliability standard — how we work from now on
+
+**Adopted 14 Sep 2026.** This section is not a backlog. It is the standing method, and it applies to every automation before it is sold and while it runs. Full research and sources in `docs/reliability-research-report.md`.
+
+**The principle it rests on:** offline testing does not predict production behaviour — research puts the gap at around 37%, and practitioner reports put evaluation at 60–80% of development time in successful AI product teams, most of it spent *understanding failures* rather than writing checks. Zero unknown defects is not available. What is available is failures that are **small, visible within minutes, and never repeated.**
+
+---
+
+## 0.1 Verify the end state, never the last message 🔴
+
+Every serious benchmark uses execution-based verification — tau-bench checks the database state, SWE-Bench runs the test suite — because a check on final text alone "would pass agents that look right and do the wrong thing."
+
+**Every defect found between 11 and 14 September was one shape: the reply asserted something the row did not hold.**
+
+| The reply said | The system held |
+|---|---|
+| booking confirmed | no calendar event |
+| (silence) | escalation flag three days old |
+| "€1,100,000 recorded" | €1.2M–€1.5M, write rejected |
+| "Hi John" | name is João |
+| (booked a slot silently) | lead never told |
+| "I'll get that meeting set" | no offer stored, nothing being arranged |
+
+**Rule: no test passes on the reply alone. Assert the resulting database and calendar state.**
+
+## 0.2 The five invariants — how unplanned defects get caught
+
+The answer to *"what catches the things nobody thought of?"* is not prediction. It is a small set of properties that must always hold, checked on every run, so a violation surfaces whether or not anyone anticipated it.
+
+1. If a reply names a time, the workflow holds an offer containing it
+2. If a reply confirms a booking, a calendar event exists
+3. If a booking is on the row, a calendar event exists
+4. If a lead sent a message, an outbound message exists or a deliberate-silence flag is set
+5. If a reply states a fact about the lead, that fact is on the row
+
+**All six defects above violate one of these five.** One family of checks, the whole family of bugs — including the members not yet encountered.
+
+**Rule: every new automation defines its own invariant set before it ships, and violations are logged and alerted, not swallowed.**
+
+## 0.3 Consistency, not a single pass
+
+Production reliability is `pass^k` — success across repeated runs — not `pass@k`. On 12 September a prompt variant scored 24/24, then 22/22 on the identical test. The first was a good draw, not a fix.
+
+**Rules:**
+- Run any measurement twice before believing it
+- Nothing is reported as fixed until the **full suite has run on the deployed artifact**
+- Never skip a suite run to save API credit. Credit is topped up and auto-reload is on; flag it if a run would cost more than a few dollars, otherwise just run it
+
+## 0.4 Guardrails are code, not instructions
+
+A guardrail is enforcement that runs outside the model and **cannot be talked out of its job.** For tool-using agents the checks must cover execution state, tool arguments and downstream effects — not input–output text — and **pre-execution verification is required for any consequential action.**
+
+**Rules:**
+- Any action with a real-world side effect (a calendar write, an outbound send, a database commit) is gated by a deterministic check before it fires
+- A failed check triggers a **targeted retry naming the fault**, then delivery with a warning event. Escalate only when the fault is substantive, never when it is a matter of form
+- Prefer **stating facts over stating prohibitions.** Both the language leak and the name defect resisted rules phrased as "never do X" because the model did not perceive its own output as falling under the category. Both yielded to a plain statement of fact
+- A guardrail firing tells you nothing about its own miss rate. Guardrails and evals are separate obligations
+
+## 0.5 Traces are the backbone
+
+Trace-based evaluation, production sampling and **regression datasets that grow as new failure modes appear** are what surface failure modes there are no metrics for yet.
+
+**Rules:**
+- Every run records its guard verdicts, match statuses, retries and mismatches in the payload. Already in place — keep it
+- **Read the transcripts.** Twenty minutes a day for the first month of any live client. The words, not the dashboard. The "I'll get that set" defect is invisible in every metric and obvious in one line of text
+- Evaluate at three levels: end-to-end (did the task succeed), trajectory (was the path sound), component (what broke)
+
+## 0.6 Every defect becomes a permanent test
+
+Defect 1.1 was fixed, verified by hand, and reappeared within the hour because nothing was watching it.
+
+**Rule: a fix is not closed until a test exists that fails if the defect returns.**
+
+## 0.7 A test that cannot fail proves nothing
+
+Three instances in one weekend: the prompt suites expected a schema file that no longer existed; a 48/48 result turned out to be variance; the name rule was verified only in Portuguese and Spanish, where "João" is already the natural form, while every English reply said "John".
+
+**Rules:**
+- Test where the defect would live, not where the code is convenient to run
+- Before trusting a green result, confirm the test detects a deliberately broken version
+- A suite that has never gone red has not been shown to work
+
+## 0.8 Adversarial conversation testing as a release gate
+
+Both unplanned defects of 13–14 September — the accidental booking from a lead echoing our own phrase, and the offer that was shown but never stored — were found by having a realistic conversation and noticing the reply was not *true*. Neither was in any plan.
+
+**Rule: before any automation is sold, it gets 20 unscripted conversations from at least two people who did not build it — one instructed to behave normally, one instructed to break it. Every anomaly is written down, however trivial it seems.**
+
+Half a day per automation. Highest yield per hour of anything on this list.
+
+## 0.9 Staged rollout, never a switch
+
+Shadow mode, then canary, then full — the universal pattern. One documented case: an agent was "correct" 96% of the time and the entire 4% divergence sat in edge cases that violated compliance policy; shadow mode caught it before any real impact.
+
+**The warning that matters most: the riskiest failures are not crashes. They are an agent that responds fluently but is subtly wrong or over-promising — which dashboards miss and human review of sampled conversations catches.**
+
+**Standard rollout for every new client:**
+- **Days 1–3, shadow:** the automation runs, every conversation is read before the day ends
+- **Week 1, constrained:** live, with escalation thresholds set deliberately low so more reaches a human than strictly necessary
+- **Weeks 2–4, ramp:** loosen as the transcripts justify it, not on a schedule
+- **Any outbound campaign in batches of 20–30 a day**, never a blast — correct for WhatsApp number-safety and correct for reliability
+
+## 0.10 What this buys, stated honestly
+
+Not zero failures. It buys the difference between *"something odd happened, Manuel called me twenty minutes later and it was fixed"* and *"it has been telling my buyers the wrong thing for three weeks and nobody noticed."*
+
+**That distance is invariants, alerting, and someone reading the transcripts.** None of it requires a platform. Revisit evaluation tooling — DeepEval, LangSmith, Braintrust, Phoenix — at five clients, not before. The guardrail libraries (Guardrails AI, NeMo Guardrails, Lakera) solve problems already solved here by hand and would mean a rewrite.
+
+---
+
 # 1. Priority key
 
 | Tier | Meaning |
@@ -141,12 +251,45 @@ The inbound webhook was unpublished for ~2 minutes during the 11 Sep deploy. Har
 ### 3.9 Prompt source drift guard
 The source prompt file had fallen behind the shipping n8n node since 8 Sep, so the prompt suites were testing something the live system was not running. Re-synced 11 Sep. Needs a guard so it cannot recur silently.
 
----
+### 3.11 The five invariants, checked and alerted 🔴 highest value per hour
+Implementation of §0.2. Each run asserts the five properties; a violation writes a warning event, surfaces in the cockpit, and fires an alert.
 
-### 3.11 The agency's areas and agent numbers are hand-edited config
-`client_automations.config.areas`, `listing_ingest.areas` and `listing_ingest.agent_numbers` are typed by hand into a JSON column. On 14 Sep the operator's own phone, hand-listed as an agent number, routed a clean first-contact message to listing ingest; the demo path was blocked by a value nobody remembered was there. Hand-maintained lists are where the next mistake of that shape comes from, and they do not scale past one client.
+**This is the single item that catches defects nobody predicted** — every defect of 11–14 September violates one of the five. Build it before any client is live.
 
-**Before the first paying client:** onboarding captures the agency's areas and agent numbers once, on the onboarding screen that already writes `areas`, validated on entry — or the areas are inferred from the listings the agency has loaded. One source, entered once, never the table editor.
+### 3.12 Adversarial conversation gate
+Implementation of §0.8. Twenty unscripted conversations from two people who did not build the automation, one behaving normally and one trying to break it, before anything is sold. Half a day per automation, and it is what found both unplanned defects this weekend.
+
+### 3.13 Staged rollout runbook
+Implementation of §0.9. Written down as a repeatable procedure rather than improvised per client: shadow, constrained, ramp — with the transcript-review obligation named and a go/no-go at each stage.
+
+### 3.14 Client areas hardcoded in config
+`client_automations.config` holds the agency's areas as a hand-edited list. That does not scale past one client and is a manual step that will eventually be got wrong. Onboarding should capture the agency's areas once and store them, or infer them from listings. **Operability, not reliability.** Build before client two.
+
+### 3.15 🔴 "Viewing" and "meeting" are used interchangeably and mean different things
+**Found 14 Sep, by the founder mistaking his own product's behaviour.**
+
+What the Concierge books today is an **introductory meeting between the lead and one of the agency's people** — a conversation about the search. It is not a property visit. The system's own language does not agree with itself:
+
+| Says "viewing" | Says "meeting" |
+|---|---|
+| `leads.stage = 'viewing_booked'` | The reply: "first meeting with our colleague" |
+| `metrics_daily.viewings_booked` | Calendar title: "First meeting: …" |
+| Earlier calendar titles: "Viewing: Lead — +351…" | The appointment-kind note |
+| `viewing.booked`, `viewing.retired` event types | |
+
+**Why this is not cosmetic.** The person who built this system still believed it was booking property viewings. A client reading a weekly report that says "3 viewings booked" when nobody visited a property is a trust problem — and it surfaces in the first weekly report, not in month six.
+
+**Fix:** pick one word for the introductory conversation and use it everywhere — stages, metrics, event types, calendar titles, prompt. Reserve "viewing" strictly for a visit to a specific property, which is a different product (see 5.8).
+
+### 3.16 The meeting has no defined properties
+The system books a meeting without ever saying what it is. A real lead asks these immediately and currently gets nothing:
+
+- **What kind?** Phone, video, or at the office. Never stated.
+- **How long?** The model correctly refuses to invent a duration — which is right, and means "how long is it?" gets a non-answer.
+- **Where?** No location on the calendar event. If it is in person, the lead has no address and the agent has no reminder of one.
+- **What if none of the three times work?** Undefined. No fallback path exists.
+
+**Fix:** capture meeting kind, duration and location per client at onboarding, state them in the prompt as facts, and put them on the calendar event. Add a "none of those work — roughly when suits?" path. Small, and all four are things a lead asks in the first conversation.
 
 ---
 
@@ -236,6 +379,34 @@ Full research in `docs/grok-research-report.md`.
 When Phase 3's ops agent is designed, Grok Bot is a usable reference for how it should *feel*: messenger-style rather than a dashboard, delegate-and-walk-away, the agent returns for approval rather than asking for direction at each step, and several agents coordinating with one acting as chief of staff.
 
 **Reference only.** No subscription, no dependency, nothing to buy. Read it, copy the interaction model, build it on the existing stack.
+
+### 5.8 Property viewings are a different product from meetings
+The Concierge books an introductory meeting autonomously because that needs **one** calendar. A viewing of a specific property is structurally harder and should not be treated as the same feature:
+
+| | Meeting | Viewing |
+|---|---|---|
+| Calendars involved | One — the agency's | **Three** — buyer, agent, and whoever holds the keys |
+| Relationship | One-to-one | **One-to-many** — a real buyer wants to see several |
+| Can it be booked autonomously? | Yes | **No** — availability depends on a vendor or tenant the AI cannot reach |
+
+**Four things the system does not model at all:**
+1. A lead being interested in a **specific property**. Nothing links a lead to a listing.
+2. **Several properties at once**, which is the normal case.
+3. **Third-party availability.** No way to ask a vendor and no way to wait for an answer.
+4. **The agent entity** (see 3.1) — a viewing belongs to a specific agent at a specific address.
+
+**The realistic flow once Automation 03 lands:** enquiry → qualify → AI proposes matching listings → lead says which interest them → **hand to the agent**, who confirms with the vendor → times come back for those specific properties.
+
+**The honest division of labour:** the AI does capture, matching and chasing. The agent does the part that requires talking to a human who owns a key. That division should be explicit in how Automation 03 is designed, and it is also what an agency would expect.
+
+### 5.9 How available times are presented
+**Question raised 14 Sep, decided as "keep three for now."**
+
+Three options is probably right. Limited choice converts better than open choice — "which of these three" is an easier decision than "when are you free" — and a booking link would take the lead out of WhatsApp, which contradicts the product's own positioning that everything reaches people where they already are. For luxury property a self-serve picker also reads as cheap.
+
+**The real gap is narrower:** what happens when none of the three work is undefined (see 3.16). The fix is conversational — "none of those? tell me roughly when suits and I'll find something" — not a link.
+
+**Where a link would earn its place:** as a fallback after two failed rounds, or for a lead who has gone quiet. Never as the default.
 
 ---
 

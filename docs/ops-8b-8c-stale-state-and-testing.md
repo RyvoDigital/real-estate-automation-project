@@ -72,6 +72,47 @@ All of it verifies components in isolation. **The defects live in the seams betw
 
 The prompt suites exist and were **deliberately not run** during the 11 September fixes, to preserve API credit (balance was $3.47). A safety net switched off to save twenty dollars is not a safety net. **Top up Anthropic credit and set a test budget that is not negotiable against demo spend.**
 
+### A test that cannot fail proves nothing
+
+Three separate instances of this in one weekend, and it is the single most expensive pattern found:
+
+1. **The prompt suites were silently broken.** They expected a schema file that no longer existed and sliced a node that had outgrown the slice. "Prompt suites exist" had meant nothing since before 11 September — they could not have passed or failed meaningfully.
+2. **48/48 turned out to be variance.** The trilingual example probe scored 24/24, then 22/22 on the identical prompt. A fix was declared on a sample too small to distinguish a fix from a good draw. The larger suite contradicted it.
+3. **The name rule was only tested where it could not fail.** "Write the name exactly as recorded" was verified in Portuguese and Spanish, where "João" is already the natural form, so nothing visibly changed. Every English reply said "John". The bug lived in the one language the test never used.
+
+**The discipline that follows:**
+
+- **Test where the defect would live, not where the code is convenient to run.** A multilingual rule is tested in the language where the failure is possible.
+- **Distinguish a fix from a good draw.** A single passing run on a small sample is not evidence. Run it twice before believing it, and report nothing as fixed until the full suite has run on the deployed artifact.
+- **Verify the test can fail.** Before trusting a green result, confirm the test detects a deliberately broken version. A suite that has never gone red has not been shown to work.
+- **Prefer stating facts over stating prohibitions.** Both the language leak and the name defect resisted rules phrased as prohibitions ("never translate") because the model did not perceive its own output as falling under the category. Both yielded to deterministic statements of fact ("the reply language is English"; "the lead's name is João Ferreira, written exactly so"). Rules the model has to classify its own behaviour against are weaker than facts it simply receives.
+
+### What can be automated, and what cannot
+
+The 23 manual scenarios in `remaining-defects-session-2.md` were assessed against this. Roughly 18 are fully automatable, which is the encouraging finding — the manual list is a starting specification for the suite, not a permanent chore.
+
+**Fully automatable (~18).** Anything where a message goes in and the assertion is on the reply plus the resulting database state. All of Group C except the media cases, all of Group D, most of Group B. The config-boundary cases — booking beyond `booking_window_days`, outside working hours, on a non-working day — are the cheapest tests available, because the correct answer is deterministic.
+
+**Automatable with more setup — the two highest-risk groups.**
+- **Group A** (cockpit and AI disagreeing) needs the harness to call the cockpit's send endpoint, not only the WhatsApp webhook. Real work, and worth it: this is the group with the highest risk and zero coverage.
+- **Calendar cases** (B1, B2, B3, B5) need the harness to create, move and delete Google Calendar events between turns. Also real work, also worth it — B1, an event moved rather than deleted, is a defect that has not yet been found and would tell a lead 09:00 while the agent's diary says 14:00.
+
+**Genuinely manual — four things.**
+1. **Media handling** — needs fixture files and Twilio media URLs. Automatable eventually, not first.
+2. **C2, two messages in quick succession** — a timing race; reproducing it reliably is harder than testing it by hand.
+3. **Cockpit visual state** — struck-through bookings, whether a control sits above the fold on a phone.
+4. **E3, deliberately breaking something mid-flow** — judgement, not assertion.
+
+### The distinction that should shape the suite
+
+**Automate state. Keep human eyes on voice.**
+
+Asserting *"did it escalate"* or *"is `budget_min` 1200000"* is cheap and reliable. Asserting *"is this reply warm, varied, and not repetitive"* is not. Defect 2.3 — five consecutive replies ending "a colleague will follow up" — was caught by a person reading the transcript, and no state assertion would have flagged it.
+
+This matches where the defects actually are. **Every defect in the 11 September session was a state bug. The conversational voice was sound throughout.** So the suite should carry the state burden entirely, and a human should read a real transcript end to end before anything ships to a client.
+
+A second model grading output quality is a plausible later addition. Not first.
+
 ### Sequencing
 
 **Not before the 15 September demo.** Introducing a test framework under deadline pressure is how working code gets broken.
