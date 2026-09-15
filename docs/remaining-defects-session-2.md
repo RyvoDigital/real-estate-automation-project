@@ -66,6 +66,12 @@ At retirement the model's own reason says the lead asked about a meeting "that i
 
 ---
 
+## NEW (16 Sep) — A failed handoff send is logged as a successful run 🔴 Tier 1, found by design, not by a lead
+
+Found while designing invariant 4 (improvements §3.11), before it was built. `PrepRunEscalated` sets `status` from the operator notify and the system-failure reasons only: a run where `SendHandoffNote` **failed** but `NotifyOperator` succeeded is written as `status='success'` with `handoff_sent: false` buried in the payload. The lead who asked for a human hears nothing, the operator is told a handoff went out, and nothing alerts — the same shape as the 992ms `Success` that sent nothing.
+
+**Now caught, not yet fixed:** invariant 4 reads `handoff_sent` on every escalated run and writes an `invariant.violated` event (critical) plus a WhatsApp when it is false, so the silence is visible within a minute. The run row itself still says `success`. **Fix:** `PrepRunEscalated` treats `!handoffOk` as an error (`error_type: 'handoff_send_failed'`), the same way `PrepRunAI` treats a failed reply send. Small change, one node; make it after the invariants have been seen to fire, so the two changes are not confounded.
+
 # Manual test scenarios — run before the demo
 
 Everything below is untested. Ordered by the risk of it happening in front of Vania, or in front of a real lead in week one. Each is a state transition, which is where every defect in this project has lived.

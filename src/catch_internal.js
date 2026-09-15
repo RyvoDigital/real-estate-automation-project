@@ -30,12 +30,12 @@ const ZONES = {
   // 3 - the booking path, after the model may already have written a
   //     confirmation. Never book, never let a confirmation stand.
   SkipBooking: 3, ReadRecheck: 3, ReadSlotEvents: 3, AfterBooking: 3, BlockedBooking: 3,
-  CreatedBooking: 3, ResolveConflict: 3,
+  CreatedBooking: 3, ResolveConflict: 3, AssertInvariants: 3,
   // 4 - the lead already has their reply. Record and continue; NEVER re-send.
   AfterSend: 4, AfterMediaSend: 4, AfterHandoff: 4, AfterNotify: 4,
   AfterEmailAlert: 4, MergeLeadFields: 4, AfterLeadUpdate: 4,
   PrepRunAI: 4, PrepRunDuplicate: 4, PrepRunSilenced: 4, PrepRunMedia: 4,
-  PrepRunEscalated: 4,
+  PrepRunEscalated: 4, AssertDelivery: 4, FinalizeRun: 4,
 };
 
 // Hardcoded rather than read from Normalise, because Normalise is one of the

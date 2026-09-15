@@ -21,6 +21,7 @@ read them and embed a copy into the workflow at build time.
 | `lead_name.js` | `MergeLeadFields` | A stated name beats the WhatsApp profile name whatever the order or length; between stated names a shorter form keeps the stored one; records `qualification.name_source`; `tests/lead_name.test.js` loads this file |
 | `lead_stage.js` | `MergeLeadFields` | Stage follows what the workflow holds: a retired booking regresses `viewing_booked` to `qualified`, `not_interested` derives `lost`, forward moves on the model's proposal only; `tests/lead_stage.test.js` loads this file |
 | `transcript.js` | `BuildClaudeRequest` | Who wrote what — origin labels and the hand-back note; `tests/transcript.test.js` loads this file |
+| `invariants.js` | `AssertInvariants`, `AssertDelivery` (after `booking_claim.js`, `booking_stated.js`, `reply_name.js`, whose detectors it reuses) | The five invariants of improvements §0.2: a time named is in an offer the row holds (1), a booking confirmed has an event (2), a booking on the row has an event (3) and an event created is on the row (3b), a lead was answered or the silence is flagged (4), a stated name or money amount is on the row (5). Observes only, on the text actually sent and the row as returned; a violation is an `invariant.violated` event, a WhatsApp and `payload.invariants`; `tests/invariants.test.js` loads this file |
 
 **There is deliberately no example of the `AVAILABLE_SLOTS` block here.** There
 was one, `available_slots_block.example.txt`, and it drifted: by 2026-09-04 it

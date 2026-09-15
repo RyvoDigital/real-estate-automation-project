@@ -237,7 +237,9 @@ Alert on everything and it gets muted within a week.
 3. **The invariant check.** Needs design, and it is the one that catches this project's specific historical failure.
 
 ### 3.10 Persist-then-send 🔴 root of the assert-before-verify class
-The workflow order is parse → guard → booking chain → **send** → persist. The reply leaves before the row is touched, and the model never learns what persistence did. This is by design since Checkpoint B3, for speed.
+**Sequencing corrected 16 Sep 2026.** The node order is parse → guard → booking chain → **persist** (`UpdateLead`) → send → store the outbound. It has been that way in every export since at least 11 Sep; this section previously said the send came first, which was wrong. The gap it describes is real and is this: the reply is **composed** before the row is written, and the model never learns what persistence did. So the reply can still assert what the merge then refused, and the outbound row is written after the lead has the message.
+
+The correct sequencing is also why invariants 1, 2, 3, 3b and 5 (§3.11) can be asserted on the row as returned by the database *before* the send.
 
 **It is the root cause of the entire defect class found on 11–12 September:** the phantom booking, the stale escalation, the "lead has not been told" display claim, and the budget confirmation that told a lead €1.1M was recorded when the parser had rejected it and the row never changed.
 
@@ -255,6 +257,8 @@ The source prompt file had fallen behind the shipping n8n node since 8 Sep, so t
 Implementation of §0.2. Each run asserts the five properties; a violation writes a warning event, surfaces in the cockpit, and fires an alert.
 
 **This is the single item that catches defects nobody predicted** — every defect of 11–14 September violates one of the five. Build it before any client is live.
+
+**Built 16 Sep 2026.** `src/invariants.js`, embedded in `AssertInvariants` (1, 2, 3, plus 3b: an event created this turn is on the row — the reverse of 3 and worse, because the lead is offered times again while a meeting sits in the diary) and `AssertDelivery` (4). Invariant 5 is narrowed to the facts that can be read deterministically: the name in direct address, money amounts, and the appointment time via 1 and 2; "any fact" would need a second model per turn and is §5.5, not this. Every violation is an `invariant.violated` event, a WhatsApp to `escalate_to`, and an `invariants` block in the run payload. **Observes only** — the send proceeds; whether 2 should force the handoff is decided after a check has fired on a deliberately broken build. All five alert while no client is live, so the false-positive rate is measured rather than guessed. What it cannot see: a run that never reaches the handler; that is the outside sweep, a health-check item. Runbook section "The five invariants" has the queries and the proof procedure.
 
 ### 3.12 Adversarial conversation gate
 Implementation of §0.8. Twenty unscripted conversations from two people who did not build the automation, one behaving normally and one trying to break it, before anything is sold. Half a day per automation, and it is what found both unplanned defects this weekend.

@@ -17,6 +17,7 @@
 | `known_facts.test.js` | `src/known_facts.js` — every fact line, the profile name excluded, budget shapes, empty row renders nothing | `node tests/known_facts.test.js`, runs anywhere |
 | `lead_name.test.js` | `src/lead_name.js` — the 11 Sep refusal, profile vs stated, shorter forms, same tokens in another order | `node tests/lead_name.test.js`, runs anywhere |
 | `lead_stage.test.js` | `src/lead_stage.js` — retirement regresses the stage, cancel-and-rebook in one turn, `lost` from `not_interested` and revival, nurturing suppression, `lead.qualified` fires once | `node tests/lead_stage.test.js`, runs anywhere |
+| `invariants.test.js` | `src/invariants.js` — a DELIBERATELY BROKEN case per invariant, reconstructed from the 11–14 Sep defects (shown-not-stored, "já tem uma reunião marcada", "Hi John", "€1.1M recorded" after rejection, the handoff that failed under a successful notify), plus the passing shape of each once the row holds the fact; the retired notes in three languages are not confirmations; money parsing (M, mil, milhões, €, bare groups; m², minutes, phones and years are not money) | `node tests/invariants.test.js`, runs anywhere. Sabotage-checked 16 Sep: disabling 1 and 4 in a copy turned 7 cases red |
 | `render_slots_block.py` | Not a test — renders the `AVAILABLE_SLOTS` block **out of the shipping node** for the two suites above | Imported by `prompt_suites.py`; run directly to eyeball the block |
 
 **§9.10 is now a deterministic guard, not only a probe.** `ParseClaude` and

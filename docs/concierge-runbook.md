@@ -1170,6 +1170,58 @@ slots, confirm, book — ran clean end to end, `stage=viewing_booked`, with
 `lead.created`, `lead.qualified` and `viewing.booked` all written. **12 health
 checks passing.**
 
+### The five invariants — checked on every run, alerted, never blocking (2026-09-16)
+
+Improvements §0.2 and §3.11. Every defect of 11–14 September was the reply
+asserting something the row did not hold. A guard catches the shape it was
+written for; an invariant is a property that must hold after every run
+whatever the shape. Source: `src/invariants.js`; tests: `tests/invariants.test.js`.
+
+| # | Property | Where | Evidence used | Severity |
+|---|---|---|---|---|
+| 1 | a time named in the text sent is in an offer the row holds | `AssertInvariants`, after `UpdateLead`, before the send | `qualification.proposed_slots` / `booking` / `past_bookings` on the returned row, the slot booked or retired this turn | warning |
+| 2 | a booking confirmed in the text sent has a calendar event | same | a 2xx create this turn, or `ResolveBooking` = `confirmed` this turn | critical |
+| 3 | a booking on the row has a calendar event | same | the row's `event_id` equals the id created or verified this turn | critical |
+| 3b | an event created this turn is on the row | same | the reverse of 3 — the row write failed, or a `duplicate_replay` the row never learned | critical |
+| 4 | a lead who sent a message was answered, or the silence is a flag | `AssertDelivery`, before `LogRun`, every path | `twilio_sid` / `handoff_sent` / media send status; `silenced_escalated_lead`, `duplicate_delivery` | critical |
+| 5 | a stated fact is on the row — **narrowed** to name in direct address and money amounts | `AssertInvariants` | `full_name` when stated; `budget_min/max`, the figures rejected this turn | warning |
+
+**The text under test is the text the lead receives** — the handoff note on
+the escalation path, never the discarded reply. **The row under test is what
+the PATCH returned**, or the row as it was when the write failed.
+
+**What a violation produces:** one `events` row per invariant, `type =
+'invariant.violated'`, `data.invariant` in `1|2|3|3b|4|5`, `data.evidence`,
+the first 200 chars of the text sent; a WhatsApp to `config.escalate_to`; and
+`payload.invariants` on the run row: `checked`, `violated`, `unverified`,
+`detail`, and the HTTP status of each event insert and alert. A check that
+cannot run writes `invariant.check_failed` (critical) and records the error in
+the payload; it never throws — a throw would route into `CatchInternal` and
+turn a good reply into a handoff. `unverified` (calendar unreadable, or a
+payload shape the check does not know) is recorded and not alerted.
+
+**Posture:** observes only. The send proceeds; the guards remain the gates.
+All five alert while no client is live, to measure the false-positive rate.
+Whether 2 should force the handoff is decided after a check has fired for
+real. What it cannot see: an execution that never reaches the handler — that
+is the outside sweep, a health-check item, not this.
+
+```sql
+-- what fired, newest first
+select created_at, severity, summary from events where type like 'invariant.%' order by created_at desc limit 20;
+-- every run's block
+select started_at, status, payload->'invariants' from automation_runs order by started_at desc limit 10;
+```
+
+**Proving a check fires (§0.7).** The unit tests carry a deliberately broken
+case per invariant. For the live proof, the sabotage build in the session
+scratchpad feeds `AssertInvariants` and `AssertDelivery` false evidence
+(offer emptied, event id replaced, send status forced) so ONE message from
+the test lead fires every invariant at once; deploy it, send, confirm the
+event rows and the WhatsApp, then deploy the real build and send the same
+message to confirm silence. Same pattern as alert Test 2 above: sabotage,
+observe, restore. Never leave the sabotage build published.
+
 ### Alerting — the channel, and what it deliberately does not depend on (D1)
 
 **The old alarm had one leg on a 72-hour timer.** It pushed over WhatsApp
