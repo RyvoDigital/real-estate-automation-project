@@ -1214,13 +1214,16 @@ select started_at, status, payload->'invariants' from automation_runs order by s
 ```
 
 **Proving a check fires (§0.7).** The unit tests carry a deliberately broken
-case per invariant. For the live proof, the sabotage build in the session
-scratchpad feeds `AssertInvariants` and `AssertDelivery` false evidence
-(offer emptied, event id replaced, send status forced) so ONE message from
-the test lead fires every invariant at once; deploy it, send, confirm the
-event rows and the WhatsApp, then deploy the real build and send the same
-message to confirm silence. Same pattern as alert Test 2 above: sabotage,
-observe, restore. Never leave the sabotage build published.
+case per invariant. For the live proof, `python3 tests/sabotage_invariants.py`
+writes `tests/ryvoInboundConc01.SABOTAGE.json` (gitignored): the shipping
+workflow with `AssertInvariants` and `AssertDelivery` fed false evidence
+**only when the inbound message carries a marker** — `SABOTAGE-A` fires 1, 2,
+3, 5 before the send and 4 at the run end; `SABOTAGE-B` fires 3b. Deploy it
+(import, publish, restart), send the two marked messages from the test lead,
+confirm the event rows, the WhatsApps and `payload.invariants`, then deploy
+the committed workflow and send an unmarked message to confirm silence. Same
+pattern as alert Test 2 above: sabotage, observe, restore. **Never leave the
+sabotage build published**, and re-export only after the real build is back.
 
 ### Alerting — the channel, and what it deliberately does not depend on (D1)
 
