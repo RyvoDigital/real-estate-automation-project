@@ -1225,6 +1225,26 @@ the committed workflow and send an unmarked message to confirm silence. Same
 pattern as alert Test 2 above: sabotage, observe, restore. **Never leave the
 sabotage build published**, and re-export only after the real build is back.
 
+**What that proof does and does not show.** It proves the plumbing: node →
+event row → WhatsApp → `payload.invariants`, and that the real build stays
+silent on the same messages. It does **not** show a check firing on evidence
+read from a real row, because the evidence was injected. The logic against
+real shapes is the unit suite, with the reconstructed defects; the first
+genuine firing on production data is the day one of these checks is finally
+trusted, and until then a green cycle means "wired correctly", nothing more.
+
+Restore is verified by a query, never by the deploy output. The served version
+is the one `activeVersionId` names, and its code is in `workflow_history`:
+
+```sql
+select w."activeVersionId" = h."versionId" as served_is_active,
+       position('checkInvariants' in h.nodes::text) > 0 as has_invariants,
+       position('SABOTAGE' in h.nodes::text) > 0 as has_sabotage
+from workflow_entity w join workflow_history h on h."versionId" = w."activeVersionId"
+where w.id = 'ryvoInboundConc01';
+-- real build: t, t, f   sabotage build: t, t, t
+```
+
 ### Alerting — the channel, and what it deliberately does not depend on (D1)
 
 **The old alarm had one leg on a 72-hour timer.** It pushed over WhatsApp
