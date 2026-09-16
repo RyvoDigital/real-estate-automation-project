@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-16T11:07:53.879Z",
+  "updatedAt": "2026-09-16T11:15:41.109Z",
   "createdAt": "2026-09-16T11:07:00.416Z",
   "id": "ryvoErrorProbe01",
   "name": "ryvo_error_probe",
@@ -65,7 +65,7 @@
   "versionId": "5f89983d-77a2-4721-885a-f83bbe7e355e",
   "activeVersionId": null,
   "versionCounter": 1,
-  "triggerCount": 0,
+  "triggerCount": 1,
   "sourceWorkflowId": null,
   "tags": [],
   "shared": [
