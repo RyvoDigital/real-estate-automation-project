@@ -1,4 +1,6 @@
 {
+  "updatedAt": "2026-09-16T11:07:06.439Z",
+  "createdAt": "2026-09-16T11:07:00.416Z",
   "id": "ryvoErrorHandler01",
   "name": "ryvo_error_handler",
   "description": null,
@@ -300,6 +302,36 @@
   },
   "staticData": null,
   "meta": null,
+  "nodeGroups": [],
   "pinData": null,
-  "tags": []
+  "versionId": "ce1dd1e6-77f4-4d88-a509-616104428042",
+  "activeVersionId": "ce1dd1e6-77f4-4d88-a509-616104428042",
+  "versionCounter": 1,
+  "triggerCount": 0,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-09-16T11:07:00.416Z",
+      "createdAt": "2026-09-16T11:07:00.416Z",
+      "role": "workflow:owner",
+      "workflowId": "ryvoErrorHandler01",
+      "projectId": "uJAXibMof3BDHwvP",
+      "project": {
+        "updatedAt": "2026-07-04T23:01:35.388Z",
+        "createdAt": "2026-07-04T22:58:34.115Z",
+        "id": "uJAXibMof3BDHwvP",
+        "name": "Manuel Vale <hello@ryvodigital.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "customTelemetryTags": [],
+        "creatorId": "e3386b92-bb92-47d2-89c0-7fc4fb66650c"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
 }

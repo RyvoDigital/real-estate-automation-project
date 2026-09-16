@@ -1,4 +1,6 @@
 {
+  "updatedAt": "2026-09-16T11:07:12.250Z",
+  "createdAt": "2026-09-16T10:50:23.667Z",
   "id": "ryvoHeartbeat01",
   "name": "ryvo_heartbeat",
   "description": null,
@@ -97,8 +99,42 @@
     "saveDataErrorExecution": "all",
     "errorWorkflow": "ryvoErrorHandler01"
   },
-  "staticData": null,
+  "staticData": {
+    "node:Every 5 minutes": {
+      "recurrenceRules": []
+    }
+  },
   "meta": null,
+  "nodeGroups": [],
   "pinData": null,
-  "tags": []
+  "versionId": "32412c31-9512-4135-a035-aa86393826eb",
+  "activeVersionId": "32412c31-9512-4135-a035-aa86393826eb",
+  "versionCounter": 2,
+  "triggerCount": 1,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-09-16T10:50:23.667Z",
+      "createdAt": "2026-09-16T10:50:23.667Z",
+      "role": "workflow:owner",
+      "workflowId": "ryvoHeartbeat01",
+      "projectId": "uJAXibMof3BDHwvP",
+      "project": {
+        "updatedAt": "2026-07-04T23:01:35.388Z",
+        "createdAt": "2026-07-04T22:58:34.115Z",
+        "id": "uJAXibMof3BDHwvP",
+        "name": "Manuel Vale <hello@ryvodigital.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "customTelemetryTags": [],
+        "creatorId": "e3386b92-bb92-47d2-89c0-7fc4fb66650c"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
 }
