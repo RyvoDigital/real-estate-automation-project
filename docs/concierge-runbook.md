@@ -1274,6 +1274,17 @@ Exempted from the login redirect in `src/proxy.ts` by exact path.
 **Successful heartbeat executions are not saved** (`saveDataSuccessExecution:
 none`), so 288 runs a day leave no rows; the proof the schedule fires is the
 monitor's last-ping time. A ping that does not land throws, so it IS saved.
+`n8n execute --id ryvoHeartbeat01` cannot be used as a proof while n8n is
+running: the CLI tries to start a second task broker on port 5679 and exits.
+
+> Observed on the 16 Sep deploy: `docker compose --env-file ../.env up -d n8n`
+> (needed because the env changed) **also recreated `infra-postgres-1`** — the
+> dependency's config hash no longer matched the container created weeks
+> earlier. The data volume is untouched and postgres was healthy within a
+> minute, but it is a database restart the concierge feels for a few seconds,
+> and the 10:50 health check logged n8n-not-running plus a 502 (one run, below
+> the alert threshold). When only a workflow changed, `docker restart` is the
+> right command; when the env changed, expect this and do it in a quiet minute.
 
 > ⚠️ **Known limitation, accepted 16 Sep 2026: "wake me" cannot wake anyone.**
 > Push and phone-call alerts are on Better Stack's paid tier (~$29/month); the
