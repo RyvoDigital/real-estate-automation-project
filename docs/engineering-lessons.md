@@ -1611,3 +1611,23 @@ And a verification rule with teeth: **`git log -S"<a distinctive phrase>"` on a
 paragraph you believe you wrote is a two-second check that it is still there.**
 It is the same move as checking the artefact rather than the source, and it is
 what finally found this.
+
+**The check is now a script, because a rule that depends on remembering is not
+a control (rule 13).** `./tests/docs_guard.sh` answers one question — *would
+committing right now delete anything from a doc?* — by diffing the working
+tree against both the index and HEAD and printing every line that would go.
+It exits 1 when there is anything to see. The one-liner underneath it, if the
+script is ever not to hand:
+
+```bash
+git diff HEAD -- docs/ | grep -E '^-[^-]'     # anything printed is about to be lost
+```
+
+Proven by reconstructing the failure: stage a paragraph, delete it from the
+file, run the guard, watch it name the paragraph. A guard that has never been
+shown to fire has not been shown to work (§0.7).
+
+**And the operating rule the operator set, which removes the need for the
+trick entirely: never stage content without also writing it to the working
+tree on a file they are holding edits in. Ask them to commit theirs first.
+That costs one message and has no failure mode.**
