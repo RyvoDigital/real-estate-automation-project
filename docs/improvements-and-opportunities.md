@@ -412,6 +412,30 @@ Three options is probably right. Limited choice converts better than open choice
 
 **Where a link would earn its place:** as a fallback after two failed rounds, or for a lead who has gone quiet. Never as the default.
 
+### 5.10 🔴 Pitch-page update — apply the 15 Sep feedback
+Three reviewers saw the client overview page on 15 Sep. Full record in `docs/feedback-log.md`. **Apply this before the next outreach round**, not after.
+
+1. **Lead with the ROI calculator.** Two of three reviewers singled it out independently and without prompting — Martim (*"gostei muito do slide to your own numbers"*) and José (*"esta é a big rock que tens que passar, mais nada"*). It is the strongest element on the page and currently sits partway down.
+2. **Make the hand-off explicit** — *"the AI opens the door, your agent closes."* Martim raised the objection that a buyer spending €1.5M will not make that decision through a chatbot and will resent being asked to. He is right, and the product already answers it — but the page does not say so clearly enough for a reader to reach that conclusion alone. **Pre-empt it rather than waiting for a prospect to raise it.**
+3. **Design pass for polish, not a rebuild.** Martim found it *"blank and bland"*; Evelyn, a business owner and the actual target profile, found it *"súper bien presentado… muy profesional."* Two audiences, both right. **Do not redesign for the design-literate reader at the cost of the buyer.**
+4. **De-emphasise multilingual.** *"Já tava à espera disso"* — it reads as table stakes to anyone under thirty. Keep it as a demo moment, not a headline.
+5. **Ask Evelyn's permission** to quote *"transmite perfectamente lo que buscan las inmos."* A Spanish business owner saying it communicates exactly what agencies want is close to a usable testimonial.
+
+### 5.11 Automation demo videos for the pitch page
+**Idea 15 Sep, prompted by Martim's note that the page needs more visual presence.**
+
+Once all five automations are built and working, record each one end to end and produce a short, professionally edited video per automation — motion, captions, real conversations — using Claude Code's video generation, then embed them in the pitch page.
+
+**Why it is worth doing:**
+- It is the direct answer to *"blank and bland"* without redesigning anything
+- It scales the demo. Right now a prospect only sees the product if Manuel performs it live. A recording reaches the ones who never take a call
+- It fills the real gap identified earlier: a prospect wants to explain this to a partner or an accountant who was not in the room, and cannot re-perform the demo
+- One video per automation makes the catalogue legible — five things you sell, five things a buyer can watch
+
+**🔴 Sequencing, and this matters:** not before the automations exist and are reliable. A polished video of a product that fails in week one is worse than no video. **Live demo stays the primary sales tool until there is a paying client;** video is what scales it afterwards.
+
+**Scope note:** professionally edited, not slick-for-its-own-sake. Screen recordings with real conversations, clear motion, no music-video treatment. Over-production on a technical product reads as compensating.
+
 ---
 
 # 6. Rejected — do not revisit without new information
