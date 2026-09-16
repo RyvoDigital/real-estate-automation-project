@@ -1,7 +1,8 @@
 import { requireOperator } from '@/lib/auth'
-import { getQueue } from '@/lib/data'
+import { ANOMALY_WINDOW_DAYS, getAnomalies, getQueue } from '@/lib/data'
 import { detectOutage, formatWait } from '@/lib/escalation'
 import { Shell } from '@/components/Shell'
+import { AnomalyList } from '@/components/Anomalies'
 import { OutageBanner, PressureBar, QueueHero, QueueRowItem } from '@/components/Queue'
 
 // Never cached. A queue screen that is even a minute stale is worse than no
@@ -12,7 +13,9 @@ export const revalidate = 0
 
 export default async function QueuePage() {
   const operator = await requireOperator()
-  const rows = await getQueue()
+  // Independent reads, so they go in parallel: the anomaly feed must never
+  // slow down the screen whose whole job is being current.
+  const [rows, anomalies] = await Promise.all([getQueue(), getAnomalies()])
 
   const outage = detectOutage(rows.map((r) => ({ at: r.at, reasons: r.reasons })))
   const [oldest, ...behind] = rows
@@ -70,6 +73,18 @@ export default async function QueuePage() {
           )}
         </>
       )}
+
+      {/* §4.8: what the system got WRONG, as opposed to what is waiting for a
+          human. Below the queue because a lead waiting now outranks a fault
+          that already happened — and on the same screen because the morning
+          question is both at once. */}
+      <AnomalyList
+        groups={anomalies.groups}
+        total={anomalies.total}
+        capped={anomalies.capped}
+        leadNames={anomalies.leadNames}
+        windowDays={ANOMALY_WINDOW_DAYS}
+      />
     </Shell>
   )
 }

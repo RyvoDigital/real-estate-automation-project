@@ -2,6 +2,14 @@ import 'server-only'
 
 import { admin } from '@/lib/supabase/admin'
 import {
+  ANOMALY_TYPES,
+  groupAnomalies,
+  shapeAnomaly,
+  type AnomalyEvent,
+  type AnomalyGroup,
+  type AnomalyRow,
+} from '@/lib/anomaly'
+import {
   classify,
   minutesSince,
   parseEscalated,
@@ -656,6 +664,82 @@ export async function getHealth(): Promise<HealthRun | null> {
     durationMs: (r.duration_ms as number) ?? null,
     host: (r.host as string) ?? null,
   }
+}
+
+// ---------------------------------------------------------- anomalies (§4.8)
+
+/**
+ * How far back the anomaly list looks. Seven days because the screen answers
+ * "what has this system got wrong lately", not "what is on fire right now" —
+ * that is the queue, one section above it.
+ */
+export const ANOMALY_WINDOW_DAYS = Number(process.env.ANOMALY_WINDOW_DAYS ?? 7)
+
+/**
+ * The ceiling on rows READ, not on rows shown. Grouping happens after the
+ * read, so a fault that fired 400 times must still be counted correctly; a
+ * limit that cut the read would under-count it and the number beside the row
+ * would be quietly wrong. If the window ever exceeds this, the count is
+ * marked as a floor rather than reported as exact.
+ */
+const ANOMALY_READ_CAP = 500
+
+export type AnomalyFeed = {
+  groups: AnomalyGroup[]
+  /** Total occurrences inside the window, across every kind. */
+  total: number
+  /** True when the read hit its cap, so `total` is a floor. */
+  capped: boolean
+  /** Lead id -> display name, for the rows that carry one. */
+  leadNames: Map<string, string>
+}
+
+async function getLeadNames(ids: string[]): Promise<Map<string, string>> {
+  const unique = [...new Set(ids)]
+  if (unique.length === 0) return new Map()
+
+  const { data, error } = await admin().from('leads').select('id, full_name').in('id', unique)
+  // A failed name lookup must not empty the anomaly list: the anomaly is the
+  // point, the name is decoration. Same posture as the viewing lookup.
+  if (error) return new Map()
+
+  return new Map((data ?? []).map((l) => [l.id as string, (l.full_name as string) ?? 'Unknown lead']))
+}
+
+async function readAnomalies(filter?: { leadId?: string }): Promise<AnomalyRow[]> {
+  const since = new Date(Date.now() - ANOMALY_WINDOW_DAYS * 86_400_000).toISOString()
+
+  let q = admin()
+    .from('events')
+    .select('id, created_at, type, severity, summary, data')
+    .in('type', ANOMALY_TYPES as unknown as string[])
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(ANOMALY_READ_CAP)
+
+  if (filter?.leadId) q = q.eq('data->>lead_id', filter.leadId)
+
+  const { data, error } = await q
+  if (error) throw new Error(`anomalies query failed: ${error.message}`)
+
+  return (data ?? []).map((e) => shapeAnomaly(e as AnomalyEvent))
+}
+
+export async function getAnomalies(): Promise<AnomalyFeed> {
+  const rows = await readAnomalies()
+  const leadNames = await getLeadNames(rows.map((r) => r.leadId).filter((v): v is string => v !== null))
+
+  return {
+    groups: groupAnomalies(rows),
+    total: rows.length,
+    capped: rows.length >= ANOMALY_READ_CAP,
+    leadNames,
+  }
+}
+
+/** Ungrouped, for one lead: the record to read when that lead complains. */
+export async function getAnomaliesForLead(leadId: string): Promise<AnomalyRow[]> {
+  return readAnomalies({ leadId })
 }
 
 // ---------------------------------------------------------- weekly report

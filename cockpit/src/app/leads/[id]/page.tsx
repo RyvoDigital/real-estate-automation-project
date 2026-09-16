@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { requireOperator } from '@/lib/auth'
-import { getLead, getOpenCount } from '@/lib/data'
+import { getAnomaliesForLead, getLead, getOpenCount } from '@/lib/data'
 import { TIER_WORD, classOf, formatWait, humanise } from '@/lib/escalation'
+import { LeadAnomalies } from '@/components/Anomalies'
 import { Shell } from '@/components/Shell'
 import { Chip } from '@/components/Queue'
 import { Composer, HandBack } from '@/components/Reply'
@@ -53,7 +54,11 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
   const operator = await requireOperator()
   const { id } = await params
 
-  const [lead, openCount] = await Promise.all([getLead(id), getOpenCount()])
+  const [lead, openCount, anomalies] = await Promise.all([
+    getLead(id),
+    getOpenCount(),
+    getAnomaliesForLead(id),
+  ])
   if (!lead) notFound()
 
   const budget = budgetLabel(lead.budgetMin, lead.budgetMax)
@@ -265,6 +270,10 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
               )}
             </div>
           </div>
+
+          {/* §4.8: this lead's anomalies, when there are any. The record to
+              read when they complain about something the system got wrong. */}
+          <LeadAnomalies rows={anomalies} />
         </aside>
       </div>
     </Shell>

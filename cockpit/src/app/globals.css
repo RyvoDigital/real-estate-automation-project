@@ -729,6 +729,56 @@ code { font-family: var(--f-mono); font-size: 0.92em; }
 .rawreason--high_value { background: rgba(237, 228, 220, 0.09); border: 1px solid rgba(237, 228, 220, 0.28); color: var(--bone); }
 .rawreason--person { background: rgba(255, 255, 255, 0.04); border: 1px solid var(--hairline-strong); color: var(--ink-2); }
 
+/* ------------------------------------------------------------- anomalies */
+/* §4.8. Deliberately built on .row, so an anomaly and an escalation read as
+   the same KIND of object on the same screen — and critical rows inherit the
+   queue's hatching, because colour alone fails in sunlight (§11 item 16). */
+
+.anom__stage {
+  margin-left: 8px;
+  font-family: var(--f-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+/* The summary is the sentence the WhatsApp carried. It wraps: truncating the
+   evidence would defeat the row's whole purpose. */
+.anom__summary { white-space: normal; overflow: visible; overflow-wrap: anywhere; line-height: 1.45; }
+/* What the lead was actually sent. Quoted, dimmer than the summary, and
+   clipped to two lines — it is evidence, not the headline. */
+.anom__sent {
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-3);
+  font-style: italic;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.anom__meta { margin-top: 4px; font-size: 11.5px; color: var(--ink-4); }
+.anom__at { font-family: var(--f-mono); font-size: 11px; color: var(--ink-3); text-align: right; white-space: nowrap; }
+.anom-none {
+  padding: 16px 15px;
+  border: 1px dashed var(--hairline-strong);
+  border-radius: var(--r-md);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+/* Per-lead block in the detail panel. */
+.anom-lead { display: flex; flex-direction: column; gap: 8px; }
+.anom-lead__row { display: flex; flex-direction: column; gap: 3px; padding: 10px 11px; border-radius: 12px; }
+.anom-lead__row--critical { background: rgba(255, 84, 71, 0.09); border: 1px solid rgba(255, 84, 71, 0.3); }
+.anom-lead__row--warning { background: rgba(176, 130, 121, 0.09); border: 1px solid rgba(176, 130, 121, 0.28); }
+.anom-lead__top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.anom-lead__label { font-size: 13px; font-weight: 600; color: #fff; }
+.anom-lead .anom__summary { font-size: 12.5px; color: var(--ink-1); }
+
 /* -------------------------------------------------------------- composer */
 
 .composer { display: flex; flex-direction: column; gap: 10px; padding: 16px; border-top: 1px solid var(--hairline); background: rgba(0, 0, 0, 0.22); }
