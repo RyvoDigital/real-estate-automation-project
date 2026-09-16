@@ -1358,9 +1358,11 @@ nobody can reach it. The proof:
 
 ```bash
 docker exec infra-n8n-1 n8n publish:workflow --id=ryvoErrorProbe01 && docker restart infra-n8n-1
-curl -s -o /dev/null -w '%{http_code}\n' -X POST https://n8n.ryvodigital.com/webhook/error-probe   # expect 500
+curl -s -o /dev/null -w '%{http_code}\n' -X POST https://n8n.ryvodigital.com/webhook/error-probe   # 200: the webhook answers on receipt, then the execution throws
 # expect: email "Ryvo RUN ERROR: ryvo_error_probe at ThrowOnPurpose", a WhatsApp, a run.errored event,
 # and a successful ryvo_error_handler execution whose AssertDelivered shows both statuses 2xx
+# (first proof 16 Sep 11:10 UTC: email 200, WhatsApp 201, event 201; the message line was cut to
+#  its tail by n8n's error object, fixed in ShapeError by reading the stack's first line)
 docker exec infra-n8n-1 n8n update:workflow --id=ryvoErrorProbe01 --active=false && docker restart infra-n8n-1
 ```
 
