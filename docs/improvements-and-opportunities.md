@@ -202,6 +202,8 @@ The recurring theme across the entire project record. `backup.sh` has run green 
 
 **Build:** an **n8n error workflow** that every other workflow points to on failure. Fires on any thrown node, sends workflow name, node and error. One build, covers every automation ever added.
 
+**Built 16 Sep 2026:** `ryvo_error_handler`, named in every workflow's `settings.errorWorkflow`. Email (Resend) first, WhatsApp to the hardcoded operator number second, a `run.errored` event third; fails its own execution if neither channel accepted the alert. Silent by name for the two deliberate throws that already alert, and structurally disjoint from the invariant alerts (those fire in executions that complete, this fires in executions that fail). Proof is the `ryvo_error_probe` webhook, kept unpublished. The "missing" sentence above about `status='error'` runs is stale: the server health check has emailed on those since 8 Sep and invariant 4 messages when the lead was left unanswered. Runbook section "Layer 1 — the error workflow".
+
 #### Layer 2 — the workflow reports what it *failed to do* 🔴 where the real risk lives
 An exception handler cannot catch a run that completes successfully having done nothing. The 992ms `Success` that sent no reply is the canonical case.
 
@@ -216,6 +218,10 @@ Catches the worst case, and is free. Better Stack, UptimeRobot or Healthchecks.i
 - **Deep health check.** An endpoint that actually queries Supabase and returns non-200 when the platform DB is unreachable. This is the answer to the free-tier auto-pause, which currently gives no signal while the backup log stays green.
 
 Route both to the phone via the monitoring service's app or WhatsApp integration.
+
+**Built 16 Sep 2026 — Better Stack free plan, three monitors:** the `ryvo_heartbeat` workflow pinging every 5 minutes, the deep health check at the cockpit's `/api/health` (Vercel, token-guarded, a real Supabase query, 503 on failure), and an edge check on n8n's `/healthz`. Runbook section "Layer 3 — the outside monitor". **Known limitation:** the free plan alerts by email only; push and calls are the paid tier. "Wake me" therefore means "when the operator next reads email" until there is revenue to justify ~$29/month. Accepted with no live client; revisit before the first paying one. Also note the server health check has checked Supabase reachability and failed runs since 8 Sep, so the "no signal" sentence above describes the state before that; what it could never do is report the server itself being dead.
+
+**Proven 16 Sep 2026 by drill:** n8n stopped for 11m21s. Better Stack's edge check emailed after ~2 minutes and the heartbeat after ~10; the cockpit health monitor correctly stayed green; **the server health check caught both faults and sent nothing**, because one failing run is below its two-run threshold. An 11-minute total outage was invisible to every layer inside the box, by design, and only the outside monitor reported it. All three alerting layers are now proven by deliberately breaking something.
 
 #### Layer 4 — the things that expire
 Twilio sandbox (72h), WhatsApp tokens (24h in dev), TLS certificates, Anthropic credit. All predictable, all fail silently.
@@ -237,7 +243,9 @@ Alert on everything and it gets muted within a week.
 3. **The invariant check.** Needs design, and it is the one that catches this project's specific historical failure.
 
 ### 3.10 Persist-then-send 🔴 root of the assert-before-verify class
-The workflow order is parse → guard → booking chain → **send** → persist. The reply leaves before the row is touched, and the model never learns what persistence did. This is by design since Checkpoint B3, for speed.
+**Sequencing corrected 16 Sep 2026.** The node order is parse → guard → booking chain → **persist** (`UpdateLead`) → send → store the outbound. It has been that way in every export since at least 11 Sep; this section previously said the send came first, which was wrong. The gap it describes is real and is this: the reply is **composed** before the row is written, and the model never learns what persistence did. So the reply can still assert what the merge then refused, and the outbound row is written after the lead has the message.
+
+The correct sequencing is also why invariants 1, 2, 3, 3b and 5 (§3.11) can be asserted on the row as returned by the database *before* the send.
 
 **It is the root cause of the entire defect class found on 11–12 September:** the phantom booking, the stale escalation, the "lead has not been told" display claim, and the budget confirmation that told a lead €1.1M was recorded when the parser had rejected it and the row never changed.
 
@@ -255,6 +263,8 @@ The source prompt file had fallen behind the shipping n8n node since 8 Sep, so t
 Implementation of §0.2. Each run asserts the five properties; a violation writes a warning event, surfaces in the cockpit, and fires an alert.
 
 **This is the single item that catches defects nobody predicted** — every defect of 11–14 September violates one of the five. Build it before any client is live.
+
+**Built 16 Sep 2026.** `src/invariants.js`, embedded in `AssertInvariants` (1, 2, 3, plus 3b: an event created this turn is on the row — the reverse of 3 and worse, because the lead is offered times again while a meeting sits in the diary) and `AssertDelivery` (4). Invariant 5 is narrowed to the facts that can be read deterministically: the name in direct address, money amounts, and the appointment time via 1 and 2; "any fact" would need a second model per turn and is §5.5, not this. Every violation is an `invariant.violated` event, a WhatsApp to `escalate_to`, and an `invariants` block in the run payload. **Observes only** — the send proceeds; whether 2 should force the handoff is decided after a check has fired on a deliberately broken build. All five alert while no client is live, so the false-positive rate is measured rather than guessed. What it cannot see: a run that never reaches the handler; that is the outside sweep, a health-check item. Runbook section "The five invariants" has the queries and the proof procedure.
 
 ### 3.12 Adversarial conversation gate
 Implementation of §0.8. Twenty unscripted conversations from two people who did not build the automation, one behaving normally and one trying to break it, before anything is sold. Half a day per automation, and it is what found both unplanned defects this weekend.

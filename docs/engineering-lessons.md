@@ -1561,3 +1561,53 @@ written the way it is: **an alert should lead with the consequence, not the
 cause.** "No run row and no handoff came out of it: whatever this run was doing
 for a lead did not happen, and nobody was told except by this message" is what
 a person needs at 3am. The stack trace can wait until they are at a keyboard.
+
+## 9b. Committing a hunk without writing it to the working tree, and the plain `git add` that silently reverted four of them
+
+Logged 2026-09-16, found while recording the heartbeat drill.
+
+The operator had uncommitted edits in `docs/improvements-and-opportunities.md`
+throughout a long session. To commit my own additions to the same file without
+taking theirs, I built the file's content from `git show HEAD:<path>`, wrote it
+to a scratch file, hashed it with `git hash-object -w` and staged it with
+`git update-index --cacheinfo`. That is a correct way to stage a subset of a
+file, and it worked: each commit contained exactly my paragraph and none of
+theirs.
+
+**The working tree never received those paragraphs.** So after four such
+commits the index and HEAD held them and the file on disk did not — a
+divergence nothing reported, because `git status` showed the file as modified
+either way, which is what it had been showing all session.
+
+Then one later commit added the same file the ordinary way, `git add <path>`.
+That staged the working tree's version, which was the operator's edits on top
+of a base that had never contained mine. **Four paragraphs were deleted in a
+commit whose message described adding something else** — the Layer 1 and
+Layer 3 status entries, the §3.10 sequencing correction the operator had
+explicitly asked for, and the §3.11 invariants entry.
+
+Nothing failed. The commit succeeded, the push succeeded, the diff was never
+read line by line, and the loss surfaced only because a later edit's anchor
+text could not be found.
+
+**What generalises.** This is rule 19 again — the source file is not the
+artefact, the running system is — turned around: *the index is not the working
+tree either, and a deliberate divergence between them is a trap armed for the
+next ordinary command.* The technique is not wrong; leaving it in place is.
+
+Three rules:
+
+1. **Do not leave the index ahead of the working tree.** If a hunk is worth
+   committing, write it to the file as well, in the same step. Stage the subset
+   for the commit, then restore the file to contain everything.
+2. **`git add <path>` after any surgical staging is a revert.** Treat it as
+   one. Diff `HEAD:<path>` against the working tree before staging it whole.
+3. **Prefer not to co-edit a file the operator is holding open.** The honest
+   alternatives are to ask them to commit first, or to write to a different
+   file and merge later. Both cost a message; this cost four paragraphs and
+   only luck exposed it.
+
+And a verification rule with teeth: **`git log -S"<a distinctive phrase>"` on a
+paragraph you believe you wrote is a two-second check that it is still there.**
+It is the same move as checking the artefact rather than the source, and it is
+what finally found this.
