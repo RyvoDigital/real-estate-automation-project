@@ -217,6 +217,8 @@ Catches the worst case, and is free. Better Stack, UptimeRobot or Healthchecks.i
 
 Route both to the phone via the monitoring service's app or WhatsApp integration.
 
+**Built 16 Sep 2026 — Better Stack free plan, three monitors:** the `ryvo_heartbeat` workflow pinging every 5 minutes, the deep health check at the cockpit's `/api/health` (Vercel, token-guarded, a real Supabase query, 503 on failure), and an edge check on n8n's `/healthz`. Runbook section "Layer 3 — the outside monitor". **Known limitation:** the free plan alerts by email only; push and calls are the paid tier. "Wake me" therefore means "when the operator next reads email" until there is revenue to justify ~$29/month. Accepted with no live client; revisit before the first paying one. Also note the server health check has checked Supabase reachability and failed runs since 8 Sep, so the "no signal" sentence above describes the state before that; what it could never do is report the server itself being dead.
+
 #### Layer 4 — the things that expire
 Twilio sandbox (72h), WhatsApp tokens (24h in dev), TLS certificates, Anthropic credit. All predictable, all fail silently.
 

@@ -93,6 +93,10 @@ services:
       # the Concierge with it — would be a far worse blast radius than the
       # thing being guarded. The workflow node asserts it and fails loudly.
       - COCKPIT_BASE_URL=${COCKPIT_BASE_URL}
+      # Layer 3 (improvements §3.7): the outside monitor's heartbeat URL. Read by
+      # the ryvo_heartbeat workflow as $env, never written into a workflow file.
+      # Unset means the heartbeat workflow fails loudly rather than pinging nothing.
+      - BETTERSTACK_HEARTBEAT_URL=${BETTERSTACK_HEARTBEAT_URL:-}
     volumes:
       - n8n_data:/home/node/.n8n
     depends_on:

@@ -72,8 +72,12 @@ export async function proxy(request: NextRequest) {
    * Listed explicitly, one path at a time. `path.startsWith('/api')` would
    * exempt every future API route from auth by default, and the next one
    * added might not bring its own.
+   *
+   * /api/health is polled by the outside monitor (Better Stack) with a token
+   * header and no cookie — improvements §3.7, Layer 3. It checks the token
+   * before touching anything.
    */
-  const isMachineEndpoint = path === '/api/listings/inbound'
+  const isMachineEndpoint = path === '/api/listings/inbound' || path === '/api/health'
 
   const isPublic = isAsset || isMachineEndpoint || path.startsWith('/login') || path.startsWith('/auth')
 

@@ -1245,6 +1245,58 @@ where w.id = 'ryvoInboundConc01';
 -- real build: t, t, f   sabotage build: t, t, t
 ```
 
+### Layer 3 — the outside monitor (2026-09-16)
+
+Improvements §3.7. Everything else here alerts from inside the box: the health
+check is cron on the server, the keepalive and the invariants run in n8n. When
+the server, n8n or the scheduler is what died, none of them can say so. Layer 3
+is a monitor that lives elsewhere: **Better Stack, free plan**, three monitors.
+
+| Monitor | What it watches | Fails when | Set up by |
+|---|---|---|---|
+| **Heartbeat** — `ryvo_heartbeat` workflow pings the Better Stack heartbeat URL every 5 min (grace 5 min) | the server, n8n, and the schedule trigger, all at once | the ping stops for ~10 min | operator in Better Stack; URL in `.env` as `BETTERSTACK_HEARTBEAT_URL`, passed by compose, read as `$env` |
+| **Deep health** — HTTP GET `https://ryvo-cockpit.vercel.app/api/health` with header `x-ryvo-health-token` | the platform database, from outside the box (Vercel) | Supabase does not answer a real query → 503 | operator in Better Stack; token in Vercel as `RYVO_HEALTH_TOKEN` |
+| **Edge** — HTTP GET `https://n8n.ryvodigital.com/healthz` expecting 200 | DNS, Caddy, TLS, n8n's HTTP server | anything on the public path is down | operator in Better Stack; nothing on the server |
+
+The edge monitor uses n8n's own `/healthz` rather than an unsigned POST to the
+webhook, because a POST creates an execution every poll (the 10-minute health
+check already does that, improvements §4.6) and `/healthz` proves the same path
+without one. The unsigned-403 check stays with the server health check.
+
+**The deep health endpoint** returns 200 or 503 with `{ ok, at, checks:
+{ supabase, latency_ms, error }, server_health_age_min }`. It checks the token
+before touching Supabase (401 otherwise, constant-time compare), so it cannot
+be used to drive load; the body carries no ids, names or counts. The age of the
+newest server health run is informational only — the server going quiet is the
+heartbeat's job, and two alerts for one outage is how alerting gets muted.
+Exempted from the login redirect in `src/proxy.ts` by exact path.
+
+**Successful heartbeat executions are not saved** (`saveDataSuccessExecution:
+none`), so 288 runs a day leave no rows; the proof the schedule fires is the
+monitor's last-ping time. A ping that does not land throws, so it IS saved.
+
+> ⚠️ **Known limitation, accepted 16 Sep 2026: "wake me" cannot wake anyone.**
+> Push and phone-call alerts are on Better Stack's paid tier (~$29/month); the
+> free plan alerts by **email only**. So a dead server, a paused database or a
+> dead edge is known when the operator next reads email, not within minutes.
+> Acceptable with no live client; **revisit before the first paying client**,
+> when the revenue justifies the tier or a second free channel is added.
+
+**Proving it (each once, on setup, and after any change to the pieces):**
+
+```bash
+# heartbeat: stop n8n, wait past period + grace (~10 min), expect the email; start it, expect recovery
+docker stop infra-n8n-1 && sleep 660 && docker start infra-n8n-1
+# deep health: token → 200 with checks.supabase=ok; no token → 401; wrong key → 503 (test 3 below)
+curl -s -w ' %{http_code}\n' https://ryvo-cockpit.vercel.app/api/health -H "x-ryvo-health-token: $RYVO_HEALTH_TOKEN"
+curl -s -o /dev/null -w '%{http_code}\n' https://ryvo-cockpit.vercel.app/api/health
+```
+
+The 503 path cannot be proven without breaking Supabase access from Vercel.
+The honest proof is to set `SUPABASE_SERVICE_ROLE_KEY` to a wrong value in a
+Vercel **preview** deployment and hit that deployment's `/api/health` — never
+production.
+
 ### Alerting — the channel, and what it deliberately does not depend on (D1)
 
 **The old alarm had one leg on a 72-hour timer.** It pushed over WhatsApp
