@@ -1503,3 +1503,61 @@ nothing stale was involved. Three rules came out of it:
 Persist-then-send (improvements §3.10) is still the structural close for the
 family; this member would not have needed a special rule under it, because a
 reply drafted after the write would have been drafted knowing the event existed.
+
+## 9. A 2xx from the alert provider is not the alert arriving, and the channel that looks fine can be the one that is lying
+
+Logged 2026-09-16, at the operator's request, from the first live firing of the
+error workflow (improvements §3.7, Layer 1).
+
+The probe threw on purpose. The handler delivered on three channels and
+recorded three status codes: email `200`, WhatsApp `201`, event row `201`.
+Every check was green, the handler's own delivery assertion passed, and by any
+measure inside the system the alert had worked.
+
+The WhatsApp said:
+
+> Ryvo run error
+> ryvo_error_probe
+> node: ThrowOnPurpose
+> **55.836Z) [line 2]**
+
+n8n hands a Code node's thrown error with `message` cut to the text after the
+last colon. The message contained an ISO timestamp, so the last colon was
+inside `11:10:55.836Z` and what survived was its tail. The first line of the
+`stack` still carried the sentence whole.
+
+**The part that matters is which channel showed it.** The email was *correct on
+the same run*, because it prints the stack trace underneath the message and the
+sentence was there. So:
+
+- checking the email alone would have confirmed the alert worked
+- the three 2xx codes would have been quoted as proof
+- and the channel actually read at 3am would have been the useless one
+
+**This is §0.1 turned on the alerting itself: verify what arrived, not that the
+send succeeded.** An alert path is a feature like any other, and "the provider
+accepted it" is the same class of claim as "the row was written" or "the reply
+was sent" — a statement about the call, not about the outcome. The runbook has
+said since D1 that *acceptance is not delivery* and that both inboxes must be
+confirmed by eye; this extends it. **Read the text of every channel, on every
+channel, at least once.** Two channels carrying the same event are two chances
+to be wrong independently, and the one that is wrong will be the one whose
+formatting you never looked at.
+
+Three rules:
+
+1. **Prove an alert by reading it, not by counting status codes.** A delivery
+   assertion that checks `2xx` is worth having — it catches the silent
+   credential failure — but it cannot see content, and content is the whole
+   product of an alert.
+2. **Never build an alert line out of a provider's `message` field alone.**
+   Error objects are reshaped by every layer they cross. Take the longest
+   faithful source available and say where it came from.
+3. **A message with a colon in it is a message with a truncation hazard in
+   it.** Timestamps, URLs and `key: value` prefixes all carry one.
+
+And the corollary the operator named, which is why the email's opening line is
+written the way it is: **an alert should lead with the consequence, not the
+cause.** "No run row and no handoff came out of it: whatever this run was doing
+for a lead did not happen, and nobody was told except by this message" is what
+a person needs at 3am. The stack trace can wait until they are at a keyboard.
