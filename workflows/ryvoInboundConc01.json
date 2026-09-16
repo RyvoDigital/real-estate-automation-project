@@ -5511,7 +5511,8 @@
   },
   "settings": {
     "executionOrder": "v1",
-    "saveManualExecutions": true
+    "saveManualExecutions": true,
+    "errorWorkflow": "ryvoErrorHandler01"
   },
   "staticData": null,
   "meta": null,

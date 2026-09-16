@@ -1271,9 +1271,19 @@ newest server health run is informational only — the server going quiet is the
 heartbeat's job, and two alerts for one outage is how alerting gets muted.
 Exempted from the login redirect in `src/proxy.ts` by exact path.
 
-**Successful heartbeat executions are not saved** (`saveDataSuccessExecution:
-none`), so 288 runs a day leave no rows; the proof the schedule fires is the
-monitor's last-ping time. A ping that does not land throws, so it IS saved.
+**Heartbeat executions are saved, all of them.** The first deploy set
+`saveDataSuccessExecution: none` to spare the executions list 288 rows a day;
+on n8n 2.28.3 that left every run as an orphan row in status `running` with no
+`stoppedAt`, which reads as a hang. Reverted the same morning: 288 rows a day,
+pruned at 14 days, is the honest option. The proof the schedule fires and the
+ping lands is the statistics table, which counts a run as a success only when
+`AssertPinged` did not throw:
+
+```sql
+select name, count, "latestEvent" from workflow_statistics where "workflowId" = 'ryvoHeartbeat01';
+-- production_success climbing every 5 minutes; production_error means the ping is failing
+```
+
 `n8n execute --id ryvoHeartbeat01` cannot be used as a proof while n8n is
 running: the CLI tries to start a second task broker on port 5679 and exits.
 
@@ -1307,6 +1317,52 @@ The 503 path cannot be proven without breaking Supabase access from Vercel.
 The honest proof is to set `SUPABASE_SERVICE_ROLE_KEY` to a wrong value in a
 Vercel **preview** deployment and hit that deployment's `/api/health` — never
 production.
+
+### Layer 1 — the error workflow (2026-09-16)
+
+Improvements §3.7. `ryvo_error_handler` (`ryvoErrorHandler01`) is named in
+`settings.errorWorkflow` of **every other workflow**, so any execution that
+**ends in error** — a node threw with no error branch — lands on its Error
+Trigger with the workflow, the node, the mode, the execution id and URL, and
+the message. One build, every automation ever added, provided the new
+workflow's settings name it (the export shows `"errorWorkflow"`; check it).
+
+What it sends, in this order: email through Resend (the leg that does not
+expire; addresses hardcoded, D1), WhatsApp to the hardcoded operator number
+(the "tell me now" leg; the target is not read from Supabase because Supabase
+may be what failed), and a best-effort `run.errored` event (critical) for the
+cockpit. `AssertDelivered` then fails the handler's own execution if **neither**
+email nor WhatsApp was accepted, so an undelivered alert is visible in the
+handler's list rather than nowhere.
+
+**What it does not report, on purpose:**
+
+- Anything the internal handler caught. Every Code node routes its throw to
+  `CatchInternal`, which emails; that execution ends *successfully* and never
+  reaches here. No overlap, and no double alert.
+- The two **deliberate** throws, named in `ShapeError` and suppressed:
+  `ThrowDbOutage` (EmailDbOutage has already emailed with the lead's message)
+  and `ThrowKeepaliveFailure` (the keepalive has already emailed and messaged).
+  A suppressed arrival is recorded in the handler's execution with the reason.
+- Invariant violations. Those happen inside executions that complete; the
+  error workflow fires only for executions that fail. Disjoint by construction.
+- Runs that write `status='error'` without throwing (a Claude timeout, a
+  failed send). Those have a run row, and the server health check emails
+  within two 10-minute cycles; invariant 4 messages at once when the lead
+  was left unanswered. Layer 1 here is for what leaves **no** row.
+
+**Proving it.** n8n does not fire error workflows for manual test runs, so the
+Test button proves nothing. `ryvo_error_probe` (`ryvoErrorProbe01`) is a
+webhook that throws on purpose, committed **inactive and unpublished** so
+nobody can reach it. The proof:
+
+```bash
+docker exec infra-n8n-1 n8n publish:workflow --id=ryvoErrorProbe01 && docker restart infra-n8n-1
+curl -s -o /dev/null -w '%{http_code}\n' -X POST https://n8n.ryvodigital.com/webhook/error-probe   # expect 500
+# expect: email "Ryvo RUN ERROR: ryvo_error_probe at ThrowOnPurpose", a WhatsApp, a run.errored event,
+# and a successful ryvo_error_handler execution whose AssertDelivered shows both statuses 2xx
+docker exec infra-n8n-1 n8n update:workflow --id=ryvoErrorProbe01 --active=false && docker restart infra-n8n-1
+```
 
 ### Alerting — the channel, and what it deliberately does not depend on (D1)
 

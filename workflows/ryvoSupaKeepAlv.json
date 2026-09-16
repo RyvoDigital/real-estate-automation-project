@@ -314,7 +314,8 @@
   "settings": {
     "executionOrder": "v1",
     "saveManualExecutions": true,
-    "saveDataErrorExecution": "all"
+    "saveDataErrorExecution": "all",
+    "errorWorkflow": "ryvoErrorHandler01"
   },
   "staticData": {
     "node:Daily 04:00": {

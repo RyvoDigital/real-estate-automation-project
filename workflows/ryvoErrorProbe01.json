@@ -1,0 +1,63 @@
+{
+  "id": "ryvoErrorProbe01",
+  "name": "ryvo_error_probe",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "error-probe",
+        "options": {}
+      },
+      "id": "b0000000-0000-4000-8000-00000000e001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        0
+      ],
+      "webhookId": "b0000000-0000-4000-8000-00000000e0ff",
+      "notes": "The proof for the error workflow (Layer 1). n8n does not fire error workflows for manual test runs, so the probe is a production webhook that throws on purpose. It is committed INACTIVE and unpublished: publish it for the proof, POST to /webhook/error-probe, expect HTTP 500 here and the run-error email + WhatsApp, then unpublish. While unpublished nobody can reach it."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Deliberate. This is the one node in the platform that exists to fail.\nthrow new Error('error probe: deliberate throw to prove ryvo_error_handler reports it (' + new Date().toISOString() + ')');"
+      },
+      "id": "b0000000-0000-4000-8000-00000000e002",
+      "name": "ThrowOnPurpose",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -180,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "ThrowOnPurpose",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Lisbon",
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "errorWorkflow": "ryvoErrorHandler01"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "tags": []
+}

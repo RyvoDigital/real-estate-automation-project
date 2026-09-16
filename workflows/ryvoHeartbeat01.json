@@ -24,7 +24,7 @@
         -400,
         0
       ],
-      "notes": "Layer 3 (improvements 3.7). The outside monitor expects a ping every 5 minutes with a 5-minute grace; when the pings stop it alerts from OUTSIDE. This is the only layer that catches the server, n8n or the scheduler being dead -- a system cannot report its own death. Successful executions are not saved (settings), so 288 runs a day leave no rows; the proof the schedule fires is the monitor's last-ping time, not an execution row."
+      "notes": "Layer 3 (improvements 3.7). The outside monitor expects a ping every 5 minutes with a 5-minute grace; when the pings stop it alerts from OUTSIDE. This is the only layer that catches the server, n8n or the scheduler being dead -- a system cannot report its own death. Successes ARE saved: with saveDataSuccessExecution=none n8n 2.28 left every run as an orphan row in status 'running' with no stoppedAt (observed 16 Sep), which reads as a hang. 288 rows a day, pruned at 14 days, is the honest option. The proof the schedule fires is workflow_statistics.production_success and the monitor's last-ping time."
     },
     {
       "parameters": {
@@ -93,8 +93,9 @@
     "executionOrder": "v1",
     "timezone": "Europe/Lisbon",
     "saveManualExecutions": true,
-    "saveDataSuccessExecution": "none",
-    "saveDataErrorExecution": "all"
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all",
+    "errorWorkflow": "ryvoErrorHandler01"
   },
   "staticData": null,
   "meta": null,

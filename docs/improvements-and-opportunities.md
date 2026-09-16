@@ -202,6 +202,8 @@ The recurring theme across the entire project record. `backup.sh` has run green 
 
 **Build:** an **n8n error workflow** that every other workflow points to on failure. Fires on any thrown node, sends workflow name, node and error. One build, covers every automation ever added.
 
+**Built 16 Sep 2026:** `ryvo_error_handler`, named in every workflow's `settings.errorWorkflow`. Email (Resend) first, WhatsApp to the hardcoded operator number second, a `run.errored` event third; fails its own execution if neither channel accepted the alert. Silent by name for the two deliberate throws that already alert, and structurally disjoint from the invariant alerts (those fire in executions that complete, this fires in executions that fail). Proof is the `ryvo_error_probe` webhook, kept unpublished. The "missing" sentence above about `status='error'` runs is stale: the server health check has emailed on those since 8 Sep and invariant 4 messages when the lead was left unanswered. Runbook section "Layer 1 — the error workflow".
+
 #### Layer 2 — the workflow reports what it *failed to do* 🔴 where the real risk lives
 An exception handler cannot catch a run that completes successfully having done nothing. The 992ms `Success` that sent no reply is the canonical case.
 

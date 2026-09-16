@@ -220,7 +220,8 @@
   },
   "settings": {
     "executionOrder": "v1",
-    "timezone": "Europe/Lisbon"
+    "timezone": "Europe/Lisbon",
+    "errorWorkflow": "ryvoErrorHandler01"
   },
   "staticData": null,
   "meta": null,
