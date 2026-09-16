@@ -1,7 +1,13 @@
 import Link from 'next/link'
 
-import { anomalyClock, type AnomalyGroup, type AnomalyRow } from '@/lib/anomaly'
-import { IconWarning } from './Icons'
+import {
+  ANOMALY_VISIBLE,
+  anomalyClock,
+  splitAnomalies,
+  type AnomalyGroup,
+  type AnomalyRow,
+} from '@/lib/anomaly'
+import { IconChevron, IconWarning } from './Icons'
 
 /**
  * Improvements §4.8. The invariants and the error workflow write to `events`
@@ -84,6 +90,33 @@ export function AnomalyItem({
   )
 }
 
+/**
+ * The expander. Opens in place, keeps nothing between visits, and needs no
+ * client component — `<details>` is the boring mechanism the platform already
+ * arbitrates (§6), and the report screen already uses it.
+ *
+ * It STATES THE SEVERITY OF WHAT IT HIDES. Without that, four warnings on top
+ * of a folded-away critical would read as a calm screen, which is the burying
+ * problem the grouping was built to prevent, reintroduced one layer up.
+ */
+function AnomalyMore({ count, critical, children }: { count: number; critical: number; children: React.ReactNode }) {
+  return (
+    <details className={`anom-more${critical > 0 ? ' anom-more--crit' : ''}`}>
+      <summary className="anom-more__sum">
+        <IconChevron size={14} className="anom-more__chev" />
+        <span>{count} more</span>
+        {critical > 0 && (
+          <span className="anom-more__crit-tag">
+            <IconWarning size={12} />
+            {critical} critical
+          </span>
+        )}
+      </summary>
+      <div className="anom-more__body">{children}</div>
+    </details>
+  )
+}
+
 export function AnomalyList({
   groups,
   total,
@@ -97,6 +130,9 @@ export function AnomalyList({
   leadNames: Map<string, string>
   windowDays: number
 }) {
+  // Newest first, four visible; the rest fold away with their severity stated.
+  const { shown, hidden, hiddenCritical } = splitAnomalies(groups, (g) => g.latest.severity)
+
   return (
     <>
       <div className="section">
@@ -113,11 +149,22 @@ export function AnomalyList({
           state.
         </div>
       ) : (
-        <div className="rows">
-          {groups.map((g) => (
-            <AnomalyItem key={g.latest.id} group={g} leadNames={leadNames} />
-          ))}
-        </div>
+        <>
+          <div className="rows">
+            {shown.map((g) => (
+              <AnomalyItem key={g.latest.id} group={g} leadNames={leadNames} />
+            ))}
+          </div>
+          {hidden.length > 0 && (
+            <AnomalyMore count={hidden.length} critical={hiddenCritical}>
+              <div className="rows">
+                {hidden.map((g) => (
+                  <AnomalyItem key={g.latest.id} group={g} leadNames={leadNames} />
+                ))}
+              </div>
+            </AnomalyMore>
+          )}
+        </>
       )}
     </>
   )
@@ -128,20 +175,37 @@ export function AnomalyList({
 export function LeadAnomalies({ rows }: { rows: AnomalyRow[] }) {
   if (rows.length === 0) return null
 
+  // The panel is a sidebar, so a lead with a run of anomalies pushes
+  // everything below it off the screen. Same treatment, same reason.
+  const { shown, hidden, hiddenCritical } = splitAnomalies(rows, (r) => r.severity, ANOMALY_VISIBLE)
+
+  const Row = ({ r }: { r: AnomalyRow }) => (
+    <div className={`anom-lead__row anom-lead__row--${r.severity}`}>
+      <span className="anom-lead__top">
+        <span className="anom-lead__label">{r.label}</span>
+        <span className="anom__at">{anomalyClock(r.at)}</span>
+      </span>
+      <span className="anom__summary">{r.summary}</span>
+      {r.textSent && <span className="anom__sent">&ldquo;{r.textSent}&rdquo;</span>}
+    </div>
+  )
+
   return (
     <div className="learned">
       <span className="eyebrow">What went wrong</span>
       <div className="anom-lead">
-        {rows.map((r) => (
-          <div key={r.id} className={`anom-lead__row anom-lead__row--${r.severity}`}>
-            <span className="anom-lead__top">
-              <span className="anom-lead__label">{r.label}</span>
-              <span className="anom__at">{anomalyClock(r.at)}</span>
-            </span>
-            <span className="anom__summary">{r.summary}</span>
-            {r.textSent && <span className="anom__sent">&ldquo;{r.textSent}&rdquo;</span>}
-          </div>
+        {shown.map((r) => (
+          <Row key={r.id} r={r} />
         ))}
+        {hidden.length > 0 && (
+          <AnomalyMore count={hidden.length} critical={hiddenCritical}>
+            <div className="anom-lead">
+              {hidden.map((r) => (
+                <Row key={r.id} r={r} />
+              ))}
+            </div>
+          </AnomalyMore>
+        )}
       </div>
     </div>
   )

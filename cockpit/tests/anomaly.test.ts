@@ -3,11 +3,14 @@ import assert from 'node:assert/strict'
 
 import {
   ANOMALY_TYPES,
+  ANOMALY_VISIBLE,
   anomalyClock,
   groupAnomalies,
   shapeAnomaly,
+  splitAnomalies,
   stripTrailingPhone,
   type AnomalyEvent,
+  type AnomalySeverity,
 } from '../src/lib/anomaly'
 
 /*
@@ -178,4 +181,52 @@ test('the clock is absolute and in the operator zone, never relative', () => {
   assert.match(s, /\d{2}:\d{2}/)
   assert.ok(s.includes('16 Sep'), `expected the Lisbon date, got ${s}`)
   assert.ok(!/ago/.test(s))
+})
+
+// --------------------------------------------------------------- the expander
+
+const sev = (s: AnomalySeverity) => ({ severity: s })
+const sevOf = (i: { severity: AnomalySeverity }) => i.severity
+
+test('four stay visible and the rest fold away', () => {
+  const six = Array.from({ length: 6 }, () => sev('warning'))
+  const { shown, hidden } = splitAnomalies(six, sevOf)
+  assert.equal(shown.length, ANOMALY_VISIBLE)
+  assert.equal(hidden.length, 2)
+})
+
+test('nothing folds away when there is nothing to fold', () => {
+  const { shown, hidden, hiddenCritical } = splitAnomalies([sev('critical'), sev('warning')], sevOf)
+  assert.equal(shown.length, 2)
+  assert.deepEqual(hidden, [])
+  assert.equal(hiddenCritical, 0, 'an expander must not appear at all')
+})
+
+test('THE BURYING CASE: a critical behind the fold is counted, not silent', () => {
+  // Four warnings on top of a folded-away critical would read as a calm
+  // screen. The count is what the expander states; without it, collapsing
+  // reintroduces exactly what grouping was built to prevent.
+  const items = [sev('warning'), sev('warning'), sev('warning'), sev('warning'), sev('critical'), sev('warning'), sev('critical')]
+  const { shown, hidden, hiddenCritical } = splitAnomalies(items, sevOf)
+  assert.ok(shown.every((i) => i.severity === 'warning'), 'the visible four are all warnings')
+  assert.equal(hidden.length, 3)
+  assert.equal(hiddenCritical, 2, 'and the expander says two criticals are down there')
+})
+
+test('the order is NOT changed to keep criticals visible', () => {
+  // Sorting by severity would put a six-day-old critical above a two-minute
+  // -old warning and destroy the list as a timeline. The expander carries the
+  // severity instead.
+  const items = [sev('warning'), sev('critical')]
+  const { shown } = splitAnomalies(items, sevOf)
+  assert.equal(shown[0].severity, 'warning', 'newest first survives')
+})
+
+test('the split runs on real groups, keyed off the latest occurrence', () => {
+  const groups = groupAnomalies([RUN_ERR, INV4, INV2, INV1, CHECK_FAILED].map(shapeAnomaly))
+  const { shown, hidden, hiddenCritical } = splitAnomalies(groups, (g) => g.latest.severity)
+  assert.equal(shown.length, 4)
+  assert.equal(hidden.length, 1)
+  assert.equal(hidden.length + shown.length, groups.length)
+  assert.equal(hiddenCritical, hidden.filter((g) => g.latest.severity === 'critical').length)
 })

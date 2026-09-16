@@ -150,6 +150,44 @@ export function groupAnomalies(rows: AnomalyRow[]): AnomalyGroup[] {
   return groups
 }
 
+/**
+ * How many anomalies stay visible before the rest go behind an expander.
+ *
+ * WHY THIS IS A SEPARATE CONCERN FROM GROUPING. Grouping stops one loud fault
+ * burying a different one. This stops the anomaly section — which is history —
+ * pushing the escalations off the screen, and the escalations are what the
+ * page is opened for. Four is what fits above the fold on a phone beneath the
+ * queue's own content.
+ */
+export const ANOMALY_VISIBLE = 4
+
+export type AnomalySplit<T> = {
+  shown: T[]
+  hidden: T[]
+  /** How many of the HIDDEN items are critical. */
+  hiddenCritical: number
+}
+
+/**
+ * Split into what is shown and what is folded away.
+ *
+ * ORDER IS NOT CHANGED. Sorting criticals to the top would keep them visible,
+ * but it would also put a six-day-old critical above a two-minute-old warning
+ * and destroy the list's reading as a timeline. So the order stays newest
+ * first and the EXPANDER carries the severity of what it is hiding — the
+ * caller must render `hiddenCritical`, or collapsing reintroduces exactly the
+ * burying that grouping was built to prevent.
+ */
+export function splitAnomalies<T>(
+  items: T[],
+  severityOf: (item: T) => AnomalySeverity,
+  visible: number = ANOMALY_VISIBLE,
+): AnomalySplit<T> {
+  const shown = items.slice(0, visible)
+  const hidden = items.slice(visible)
+  return { shown, hidden, hiddenCritical: hidden.filter((i) => severityOf(i) === 'critical').length }
+}
+
 /** Absolute, in the operator's zone. Never relative: a screen left open all
  *  night keeps saying "5 minutes ago" (the health screen's lesson, §5.6). */
 export function anomalyClock(iso: string, timeZone = 'Europe/Lisbon'): string {
