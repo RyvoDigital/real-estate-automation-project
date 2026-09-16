@@ -1225,6 +1225,26 @@ the committed workflow and send an unmarked message to confirm silence. Same
 pattern as alert Test 2 above: sabotage, observe, restore. **Never leave the
 sabotage build published**, and re-export only after the real build is back.
 
+**Drill, 16 September 2026 — the only one of the three layers that reported it.**
+n8n stopped 12:20:49 UTC, started 12:32:10, down 11m21s. Nothing was live.
+
+| Layer | Saw it? | When |
+|---|---|---|
+| Better Stack, edge `/healthz` | **yes** | email 12:21 UTC, ~2 min after the stop |
+| Better Stack, heartbeat | **yes** | email 12:30 UTC, period + grace elapsed |
+| Better Stack, cockpit `/api/health` | correctly stayed **green** | it asks Supabase from Vercel and never touches n8n; verified 200 four seconds after the stop |
+| Server health check (cron, inside the box) | caught both faults at 12:30 and **sent nothing** | one failing run, threshold is two — see the blind-window warning above |
+| n8n error workflow (Layer 1) | **no, and cannot** | it runs inside n8n |
+
+Recovery: webhook back to 403 twelve seconds after the start, edge 200, and the
+heartbeat pinged again at 12:35:13 (`production_success` 18 → 19), which is the
+signal to confirm rather than the container's status.
+
+**The finding worth keeping:** an 11-minute total outage of n8n was invisible
+to every layer inside the box, by design in each case, and only the outside
+monitor reported it. That is a better argument for Layer 3 than the one made
+when it was built.
+
 **What that proof does and does not show.** It proves the plumbing: node →
 event row → WhatsApp → `payload.invariants`, and that the real build stays
 silent on the same messages. It does **not** show a check firing on evidence
@@ -1656,6 +1676,25 @@ and sameness are deliverability inputs, not cosmetics. Three changes:
 - **Debounce.** `FAIL_THRESHOLD=2` consecutive failing runs (~20 min) before
   alerting. A maintenance restart no longer produces a failure-then-recovery
   pair at all, which removes most of the volume at source.
+
+  > ⚠️ **The health check is deliberately NOT a fast alarm, and the cost of
+  > that is a blind window of up to ~20 minutes.** At a 10-minute cadence with
+  > a 2-run threshold, **any failure that resolves before two consecutive runs
+  > fail is never announced by this layer at all** — one failing run is logged
+  > (`below the alert threshold (1/2) - not alerting yet`) and, on recovery,
+  > deliberately stays quiet, because being told a problem ended that you were
+  > never told began is noise.
+  >
+  > **Measured, not theorised: the 16 Sep heartbeat drill** (below) stopped n8n
+  > for 11m21s. The 12:30 run caught both faults — container not running,
+  > webhook 502 — and n8n was back before 12:40, so `consecutive` never reached
+  > 2 and **no email was sent, by design.** A total outage of n8n was invisible
+  > to every layer inside the box.
+  >
+  > **This is correct behaviour, and Layer 3 is what closes it.** Do not lower
+  > the threshold to "fix" it: that trades a known blind window for alert
+  > fatigue, which is the failure mode that makes every alert worthless. The
+  > outside monitor is the fast alarm; this is the thorough one.
 - **No unannounced recoveries.** "Recovered" is sent only if the failure was
   actually announced. Being told a problem ended that you were never told began
   is noise by definition.
