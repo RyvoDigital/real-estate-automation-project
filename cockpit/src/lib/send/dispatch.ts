@@ -90,7 +90,18 @@ export type SendStore = {
 
 /** What a provider adapter must offer. The real one is not written yet. */
 export type ProviderAdapter = {
-  send(input: { to: string; body: string; templateName: string }): Promise<
+  send(input: {
+    to: string
+    /** The client's own number. The adapter has no default sender. */
+    from: string
+    /** The approved template's id. Outside the window, only templates may go. */
+    contentSid: string
+    /** {"1": "Maria", "2": "Cascais"} — Twilio renders, so the wire is its copy. */
+    variables?: Record<string, string>
+    /** What we rendered, carried for the record rather than for sending. */
+    body: string
+    templateName: string
+  }): Promise<
     | { accepted: true; providerMessageId: string; bodySent: string }
     | { accepted: false; retryable: 'never' | 'later'; error: string }
   >
@@ -130,7 +141,14 @@ export async function dispatch(
     attempts += 1
     let answer: Awaited<ReturnType<ProviderAdapter['send']>>
     try {
-      answer = await provider.send({ to: permit.to, body: permit.body, templateName: permit.templateName })
+      answer = await provider.send({
+        to: permit.to,
+        from: permit.from,
+        contentSid: permit.contentSid,
+        variables: permit.variables,
+        body: permit.body,
+        templateName: permit.templateName,
+      })
     } catch (e) {
       // NO ANSWER. This is the branch that must not retry.
       const message = e instanceof Error ? e.message : String(e)

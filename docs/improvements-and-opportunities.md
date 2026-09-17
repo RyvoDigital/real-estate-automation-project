@@ -327,6 +327,42 @@ The no-client-login decision is unchanged and reinforced. Clients still get outc
 
 **Sequencing:** not before Automation 02 exists, because Automation 02 will itself demand operator screens — import, segment approval, campaign status — and those should be designed into the new frame rather than bolted onto the old one. But the frame must be decided before those screens are built, or they get built twice.
 
+### 3.18 🔴 Nobody has ever classified a contact, and no code can do it
+
+**Recorded 18 Sep 2026, on finishing the refusal machinery.** Every other gap
+between here and a working campaign closes with code. This one does not, and it
+decides whether the automation has anyone to send to at all.
+
+The gate refuses a contact unless the ledger holds a basis: documented consent,
+or a segment the agency declared. Today the ledger holds one contact in
+`claimed_unevidenced` and two reserved fixtures. **So even with Portugal
+confirmed by a lawyer and a template approved by Meta, the gate would refuse
+every real contact, correctly.**
+
+Closing it needs an agency sitting with the operator going through their list
+and saying where each group came from: transacted, enquired, consented with
+evidence, origin unknown. The system proposes; the agency declares; the
+declaration is recorded with a name and a timestamp because that record is what
+a supervisory authority would ask for (Enquadramento §5.1).
+
+**That conversation has never happened with anybody.** It is not a screen that
+is missing — the screen is worth building and is §3.17's first customer — it is
+that the classification is knowledge held by the agency and by nobody else, and
+it arrives through a person's afternoon rather than through a deployment.
+
+**Why it is recorded here rather than in a build plan.** Every engineering task
+on this project can be finished from a keyboard. This one cannot be closed from
+this chair at all, and a plan that lists it beside tasks that can will quietly
+schedule it as though it were one. It belongs in the required-before-client
+section because it is exactly that: required, before a client, and not
+buildable.
+
+The honest sequencing consequence: the first campaign's size is not decided by
+the software. It is decided by how much of one agency's list one person can
+account for in an afternoon, and the answer may be "less than they hoped", which
+is §1.4 of the Automation 02 specification arriving as a practical matter rather
+than a legal one.
+
 ---
 
 # 4. 🟡 Improvements

@@ -29,11 +29,15 @@ export type SendPlan = {
   clientId: string
   leadId?: string | null
   to: string
+  /** The client's WhatsApp number. Supplied, never looked up by the sender. */
+  from: string
+  variables?: Record<string, string>
   automation: string
   campaignId?: string | null
   templateName: string
   templateLanguage: string
-  templateApprovalId?: string | null
+  /** Required: 0020 refuses a sent row that names no template. */
+  templateApprovalId: string
   body: string
 }
 
@@ -42,6 +46,9 @@ export class SendPermit {
     readonly sendId: string,
     readonly idempotencyKey: string,
     readonly to: string,
+    readonly from: string,
+    readonly contentSid: string,
+    readonly variables: Record<string, string>,
     readonly body: string,
     readonly templateName: string,
   ) {}
@@ -97,7 +104,7 @@ export class SendPermit {
 
         template_name: plan.templateName,
         template_language: plan.templateLanguage,
-        template_approval_id: plan.templateApprovalId ?? null,
+        template_approval_id: plan.templateApprovalId,
         body_intended: plan.body,
       })
       .select('id, idempotency_key')
@@ -114,6 +121,9 @@ export class SendPermit {
       data!.id as string,
       data!.idempotency_key as string,
       plan.to,
+      plan.from,
+      plan.templateApprovalId,
+      plan.variables ?? {},
       plan.body,
       plan.templateName,
     )

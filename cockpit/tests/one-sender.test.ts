@@ -54,6 +54,18 @@ const READER = 'cockpit/src/lib/send/provider-reader.ts'
 const READ_CRED_ALSO_ALLOWED = ['cockpit/tests/probe-reconcile.ts']
 
 /**
+ * The adapter's own test sets placeholder credentials so the request builder can
+ * be exercised. It names the SENDING credential, which is a true positive under
+ * the rule that a file naming a credential can reach it — in CI with real
+ * values present, `||=` would use the real ones.
+ *
+ * Exempted explicitly and narrowly, with a compensating assertion below: that
+ * file must ALWAYS inject `fetchImpl`, so even holding a real credential it
+ * cannot reach the network. The exemption is for naming, never for sending.
+ */
+const SEND_CRED_ALSO_ALLOWED = ['cockpit/tests/twilio-adapter.test.ts']
+
+/**
  * Credentials are matched by NAME, anywhere in the file, not by access pattern.
  *
  * The first version matched `process.env.TWILIO_…`, and provider-reader.ts
@@ -159,10 +171,36 @@ test('the SENDING credential appears in at most one file, and it is not the read
   // send, whatever it imports.
   const offenders = FILES.filter((f) => SEND_CRED.test(f.text)).map((f) => f.path)
   assert.deepEqual(
-    offenders.filter((p) => p !== SENDER), [],
+    offenders.filter((p) => p !== SENDER && !SEND_CRED_ALSO_ALLOWED.includes(p)), [],
     'the sending credential may only appear in the adapter. Offending file(s) above.\n' +
     'A file that can construct a sending client can send without a send row.',
   )
+})
+
+test('a file exempted for naming the sending credential still cannot reach the network', () => {
+  // The exemption is for NAMING. This is what keeps it from becoming an
+  // exemption for SENDING: every construction of the adapter in that file must
+  // inject fetch, so a real credential in the environment changes nothing.
+  for (const exempt of SEND_CRED_ALSO_ALLOWED) {
+    const f = FILES.find((x) => x.path === exempt)
+    assert.ok(f, `${exempt} is exempted and does not exist — remove the exemption`)
+    const constructions = [...f!.text.matchAll(/twilioAdapter\(/g)].length
+    const injected = [...f!.text.matchAll(/twilioAdapter\(\{[^)]*fetchImpl/gs)].length
+    assert.ok(constructions > 0, `${exempt} is exempted for the sending credential and never builds an adapter`)
+    assert.equal(injected, constructions,
+      `${exempt} builds the adapter ${constructions} time(s) and injects fetch ${injected} time(s) — ` +
+      'an un-injected construction could reach Twilio with a real credential')
+  }
+})
+
+test('the sender exists now, and the assertions above are about a file rather than an absence', () => {
+  // Every check in this file passed for weeks while `twilio-adapter.ts` did not
+  // exist — "at most one" is satisfied by zero. This asserts the slot is filled,
+  // so the suite is now testing a real boundary rather than an empty one (§5c).
+  const sender = FILES.find((f) => f.path === SENDER)
+  assert.ok(sender, `${SENDER} does not exist — the credential assertions are vacuous without it`)
+  assert.equal(SEND_CRED.test(sender!.text), true, 'the sender does not hold the sending credential')
+  assert.equal(READ_CRED.test(sender!.text), false, 'the sender holds the READ credential too')
 })
 
 test('the READ credential appears in at most one file, and it is not the dispatcher', () => {
