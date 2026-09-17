@@ -1,0 +1,27 @@
+{
+  "_readme": [
+    "Proofs that cannot run in the test suite, and the hash of what they proved.",
+    "cockpit/tests/proof-staleness.test.ts fails while a recorded hash does not",
+    "match the file on disk. It does NOT run the SQL and cannot know whether you",
+    "really ran it -- it converts 'remember to run this' into 'the suite asks'.",
+    "A stale alarm is not a proof. It is the difference between a note and a control.",
+    "To re-bless after running the proof: npm run proof:bless"
+  ],
+  "proofs": [
+    {
+      "id": "0013-consent-view-wiring",
+      "what": "The views aggregate, group and join correctly. The RULES are proved separately and automatically in cockpit/tests/consent-resolution.test.ts.",
+      "how": "Paste db/tests/0013_consent_view.test.sql into the Supabase SQL editor and run it. It rolls itself back. Expect two NOTICEs and no exception.",
+      "watches": [
+        "db/migrations/0013_leads_consent_view.sql",
+        "db/tests/0013_consent_view.test.sql"
+      ],
+      "hashes": {
+        "db/migrations/0013_leads_consent_view.sql": "b939908430f65c0050cab6c0704a2a8d32fb5964ef3c355a99eaa2db1063d38d",
+        "db/tests/0013_consent_view.test.sql": "88af558adfe6e771e111e3f7a2b09612ec0312cde5f039785e51847886b87b68"
+      },
+      "last_proved": "2026-09-17",
+      "proved_by": "Manuel Vale"
+    }
+  ]
+}

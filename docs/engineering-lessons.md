@@ -1759,6 +1759,72 @@ cause.** "No run row and no handoff came out of it: whatever this run was doing
 for a lead did not happen, and nobody was told except by this message" is what
 a person needs at 3am. The stack trace can wait until they are at a keyboard.
 
+---
+
+## 9c. A guard proved against one role is not a guard proved
+
+Logged 2026-09-17, from the consent ledger's two layers.
+
+`consent_events` is append-only, enforced twice: a trigger that raises on
+`UPDATE`/`DELETE`/`TRUNCATE`, and `revoke update, delete` from `service_role`.
+Both were proved, and the interesting part is that **each proof came back
+different, and neither would have established the other.**
+
+In the Supabase SQL editor, which runs as the table's owner:
+
+```
+ERROR: P0001: consent_events is append-only: UPDATE refused.
+CONTEXT: PL/pgSQL function consent_events_append_only() line 3 at RAISE
+```
+
+Through the `service_role` key, which is the path the cockpit actually takes:
+
+```
+UPDATE → 42501 permission denied for table consent_events
+DELETE → 42501 permission denied for table consent_events
+```
+
+The owner is a role the `revoke` does not touch, so that session reached the
+trigger and stopped there. The application's key never reaches the trigger at
+all, because the privilege check refuses it first. **Two roles, two mechanisms,
+two different errors, and only one of them is exercised on any given path.**
+
+### Why one proof would have been a false negative
+
+Had we only run the owner test, we would know the trigger fires and would have
+learned nothing about whether the application's key can write — and the revoke
+is the layer that matters for every write the product actually makes. Had we
+only run the `service_role` test, a `42501` proves the grant is missing and says
+*nothing* about the trigger, so the day someone re-grants `UPDATE` — or 0002's
+`ALTER DEFAULT PRIVILEGES` quietly does it for a table created later — the
+guarantee would rest entirely on a trigger nobody had ever seen fire.
+
+Worse, a `42501` is exactly what you would also get from a table that was never
+created properly, a schema-cache miss, or a key with the wrong role. **A generic
+permission error is weak evidence.** The trigger's own message is strong
+evidence, because nothing else in the system produces that sentence.
+
+### The general form
+
+> A guard with more than one enforcement layer must be proved **once per layer,
+> through the role and the path that layer governs.** A single green result tells
+> you which layer you happened to reach first, not that the guard holds.
+
+Practically, for anything protected both by a database privilege and by
+application or trigger logic:
+
+1. **Test as the privileged role** to prove the in-database logic fires, since
+   the privilege check would otherwise mask it forever.
+2. **Test as the application's role** to prove the privilege actually landed,
+   since the logic would otherwise mask that.
+3. **Read the error text, not just the failure.** `42501` and `P0001` mean
+   different things, and a test that asserts only "it failed" cannot tell a
+   working guard from a missing table.
+
+This is §9 at a different altitude — there, a 2xx from the alert provider was
+not the alert arriving; here, a refusal from one role is not the refusal the
+next caller will meet.
+
 ## 9b. Committing a hunk without writing it to the working tree, and the plain `git add` that silently reverted four of them
 
 Logged 2026-09-16, found while recording the heartbeat drill.

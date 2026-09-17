@@ -166,17 +166,107 @@ deploy of the one workflow that is carrying real conversations.
 ```
 leads_consent(lead_id, client_id, phone_e164,
               state, segment, occurred_at, source, event_id)
+
+state ∈ objected | consented | declared | claimed_unevidenced | undetermined
 ```
+
+A contact with no events at all still appears, as `undetermined`. Absence from
+the view would make "nobody has said anything" indistinguishable from "this
+contact does not exist", which is §5b again and the reason rule 5 is written
+down rather than left as a fall-through.
 
 `state` resolves in this order, and the order is the design:
 
-1. **Any `objection` event ⇒ `objected`.** Permanent. Not last-write-wins, not
-   superseded by a later consent, not expirable. This is the only rule in the
-   system that ignores subsequent events, and it is the one that has to.
-2. Else the latest un-withdrawn `consent_given` ⇒ `consented`, carrying its
-   `occurred_at`.
-3. Else the latest `declared` segment ⇒ that segment.
-4. Else ⇒ `undetermined`.
+| # | Rule | `state` |
+|---|---|---|
+| 1 | **Any `objection` event exists** | `objected` |
+| 2 | Latest `consent_given` with no later `consent_withdrawn` | `consented` |
+| 3 | Latest un-revoked `declared` | `declared` (+ `segment`) |
+| 4 | An un-revoked `claimed` or `quarantined` event exists | `claimed_unevidenced` |
+| 5 | Nothing was ever said | `undetermined` |
+
+## 4.3.1 Rule 1 is the only one that ignores what comes after it
+
+Every other rule is last-write-wins. Rule 1 is not: **an objection is permanent,
+and a later `consent_given` does not overturn it.** Not expirable, not
+superseded, not overridable by an operator. Someone who said stop has said stop,
+and a system that lets a subsequent event quietly re-open them has produced the
+one outcome that cannot be apologised for afterwards.
+
+This is the rule most likely to be broken by a well-meaning future edit — it
+looks like an inconsistency until you know why it is there — so §4.3.3 makes it
+provable rather than asserted.
+
+## 4.3.2 `claimed_unevidenced` exists so that two different facts stay different
+
+A consent event cannot be undated: the `consent_given` check constraint in 0012
+refuses one without `occurred_at`, because a consent that cannot be dated cannot
+be expiry-checked, and Ireland's existing-customer route lapses twelve months
+from the act. So an undated consent never enters the table, and the view can
+always do its job on the rows that do.
+
+What *does* exist is the row this ledger was built to hold: a contact the agency
+asserted something about, where the assertion is not evidence — a `claimed`
+event, or the `quarantined` correction of one. If that collapsed into
+`undetermined` it would become indistinguishable from a contact nobody has ever
+said a word about, and those are not the same fact:
+
+> **A contact with an unevidenced claim is worth asking the agency about. A
+> contact with nothing is not.** The first gets a question on the segmentation
+> screen — *"your file said `sim` for this contact; do you have the record
+> behind it?"* — and the second gets silence, because there is nothing to ask.
+
+This is the empty-cell distinction from `readConsentClaim` appearing a second
+time, one layer up: *said something we cannot use* and *said nothing* are
+different states of the world, and a system that merges them loses the only
+information that makes the next step possible.
+
+**Both are equally not contactable.** The distinction is about what we ask a
+human, never about what we send a lead — `claimed_unevidenced` is not a weaker
+form of consent, it is a stronger form of nothing.
+
+A claim carrying a later `claim_revoked` (§7.2) does **not** reach rule 4. It
+falls through to `undetermined`, because the import behind it was undone and
+there is no longer anything to ask the agency to confirm.
+
+## 4.3.3 Rule 1, proved rather than asserted
+
+`db/tests/0013_consent_view.test.sql`, run inside `begin … rollback`:
+
+```sql
+begin;
+  -- a contact who objected, and then a consent event appended AFTER it
+  insert into public.consent_events (client_id, phone_e164, kind, source, occurred_at) values
+    (:client, '+351900000001', 'objection',     'whatsapp_reply', now() - interval '10 days'),
+    (:client, '+351900000001', 'consent_given', 'web_form',       now() - interval '1 day');
+
+  do $$ begin
+    if (select state from public.leads_consent
+        where phone_e164 = '+351900000001') <> 'objected' then
+      raise exception 'RULE 1 BROKEN: a consent event appended after an objection changed the state';
+    end if;
+  end $$;
+rollback;
+```
+
+Plus the neighbouring cases in the same file, because a rule proved on one input
+is not proved: consent then withdrawal; a dated consent alone; a claim alone; a
+claim with a later revocation; and a contact with no events at all, which must
+be `undetermined` rather than absent from the view.
+
+**Why the test is SQL in a transaction rather than a unit test.** The derivation
+has exactly one definition — the view — and testing a TypeScript mirror of it
+would create the second copy that lesson 15 is about, with the mirror passing
+while the view drifts. And the ledger refuses `DELETE`, so a test that writes
+rows can never clean up after itself; `rollback` is the only exit that leaves no
+trace, which makes a transaction the only honest place to run it.
+
+**That has a cost worth stating: this test cannot run in `npm test`,** because it
+needs a real Postgres session rather than PostgREST. It is run by hand in the
+SQL editor when the view changes. A check that depends on remembering is not a
+control (rule 13), so the file names itself in the view's own migration header
+and in `0013`'s verify block, which is the weakest form of enforcement available
+and is being chosen consciously rather than by omission.
 
 **What the view deliberately does not do is say whether a contact may be
 messaged.** Contactability is a function of segment *and* jurisdiction policy
