@@ -1639,6 +1639,68 @@ Persist-then-send (improvements §3.10) is still the structural close for the
 family; this member would not have needed a special rule under it, because a
 reply drafted after the write would have been drafted knowing the event existed.
 
+---
+
+## 10. Two clocks collapsed into one column, and the impossible timestamp that proved it
+
+Logged 2026-09-17, found in a dry run rather than in the source.
+
+`leads.consent_at` was written by the importer as `new Date()` — the moment of
+upload — in a field that every reader, including a supervisory authority, takes
+to mean *when this person consented*. The argument that this is wrong can be
+made from the source code, and it was. But the proof was in the row:
+
+```
+leads.consent_at    2026-09-08T12:25:37.265Z
+batch committed_at  2026-09-08T12:25:37.375Z   (+110ms)
+leads.created_at    2026-09-08T12:25:37.376Z   (+111ms)
+```
+
+**The consent timestamp precedes the creation of the record it describes.** The
+field asserts that Maria Santos consented 111 milliseconds before our record of
+Maria Santos existed — because `new Date()` fired while the row objects were
+being built in memory, ahead of the insert that created her.
+
+### Why one column was always going to produce this
+
+The world has two clocks and they answer different questions:
+
+- **`occurred_at`** — when the act happened. The person ticked the box, replied,
+  said yes.
+- **`recorded_at`** — when we came to know it. The import ran, the webhook
+  fired, the operator typed it in.
+
+A system that keeps one column writes it with whichever clock is to hand at the
+moment of writing — always the second, because the first is usually unknown —
+and then reads it as the first, because that is what the column is named for.
+Nothing in the code looks wrong at either end. The write is a sensible
+`new Date()`. The read is a sensible interpretation of the field name. **The
+defect exists only in the gap between them, which is exactly where nobody
+looks.**
+
+### What generalises
+
+> When a timestamp can be produced by more than one clock, name the clock in the
+> column. `created_at` and `updated_at` are safe because they can only mean the
+> record. Anything describing an event in the world needs both, and the one that
+> is unknown must be allowed to be null rather than filled with the one that is
+> to hand.
+
+And the habit that found it, which is the transferable part:
+
+> **Look for orderings in the data that cannot be true.** A child timestamp
+> before its parent's. A "last seen" before a "first seen". A confirmation
+> before the thing confirmed. These are free to check, they need no knowledge of
+> the code, and they are the one class of evidence nobody can argue with — it is
+> the same move as §0.1 and rule 19, verifying the artefact rather than the
+> source, applied to time.
+
+Worth noticing where it surfaced: not in a review of the source, but in the
+**dry run** of the pass built to correct the defect, printing real rows before
+writing any. A dry run that prints what it would do is not only a safety
+measure; it is the cheapest read of production data you will ever get, and it
+routinely knows more than the design it is testing.
+
 ## 9. A 2xx from the alert provider is not the alert arriving, and the channel that looks fine can be the one that is lying
 
 Logged 2026-09-16, at the operator's request, from the first live firing of the
