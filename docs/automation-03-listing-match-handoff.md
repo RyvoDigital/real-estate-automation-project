@@ -226,7 +226,11 @@ Three reasons, and the first is the strongest:
 
 ### 6.1 Consent is a hard gate ⚖️
 
-**The `leads` table has `consent_status` and `consent_at`. Nothing outbound may bypass them.**
+**Nothing outbound may send without a recorded basis.** This used to read "the
+`leads` table has `consent_status` and `consent_at`, nothing outbound may bypass
+them" — right instinct, wrong object. Those columns are no longer authoritative
+and the importer no longer writes them; the basis lives in the consent ledger
+(`docs/consent-ledger-design.md`).
 
 - **Lead contacted the agency themselves** (Concierge-captured) — strongest position, contract or legitimate interest
 - **Agency's own past clients** — depends entirely on how those contacts were originally collected. **The agency must confirm this at onboarding**, and their answer is recorded

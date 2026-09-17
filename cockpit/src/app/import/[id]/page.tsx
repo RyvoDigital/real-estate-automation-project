@@ -147,7 +147,7 @@ export default async function ImportBatchPage({ params }: { params: Promise<{ id
                       <span className="lead-card__name">{c.full_name ?? '(no name)'}</span>
                       <span className="lead-card__sub">{c.phone ?? c.email ?? ''}</span>
                       <span className="lead-card__sub">
-                        {[c.area, c.bedrooms !== null ? `T${c.bedrooms}` : null, c.consent_status].filter(Boolean).join(' · ')}
+                        {[c.area, c.bedrooms !== null ? `T${c.bedrooms}` : null, c.claimed_consent ? `file says "${c.claimed_consent.raw}"` : null].filter(Boolean).join(' · ')}
                       </span>
                     </span>
                     <span className="lead-card__end">

@@ -111,8 +111,11 @@ current free-tier retention and plan accordingly.
 - **Data residency:** Hetzner (DE) + Supabase Frankfurt. All personal data stays in the EU.
 - **Least privilege:** Postgres port unpublished (Docker-network only); `service_role`
   key server-side only; SSH key-only; firewall locked to 22/80/443.
-- **Consent fields** (`consent_status`, `consent_at`) exist on `leads`; outbound
-  automations in later phases must respect them and get a compliance review.
+- **Consent** is moving from two columns on `leads` to an append-only ledger.
+  `consent_status` / `consent_at` still exist and are **no longer authoritative**:
+  the importer stopped writing them on 2026-09-17, because a spreadsheet cell is
+  not consent and the import clock is not the moment a person consented. See
+  `docs/consent-ledger-design.md`. Nothing outbound may rely on either column.
 - **RLS** is enabled on all 9 tables with no public policies — browser clients are
   denied by default; all access goes through the server using `service_role`.
 

@@ -26,6 +26,18 @@ export type Target =
   | 'source'
   | 'ignore'
 
+/**
+ * What a consent column says, kept as a claim rather than a conclusion.
+ *
+ * `raw` is the cell exactly as the agency typed it, because Meta puts the
+ * burden of proof on the sender and wants the wording. `parsed` is our reading
+ * of it and is never, on its own, consent. See docs/consent-ledger-design.md.
+ */
+export type ConsentClaim = {
+  raw: string
+  parsed: 'opt_in' | 'opt_out' | 'unknown'
+}
+
 /** source column header -> what it is. Several columns may share a target. */
 export type Mapping = Record<string, Target>
 

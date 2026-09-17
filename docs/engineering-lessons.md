@@ -874,6 +874,76 @@ about.
 
 ---
 
+## 5c. A remediation pass that cannot find its target reports success identically to one that had nothing to fix
+
+Logged 2026-09-17, found before the pass was written, by running its own
+targeting query against real data.
+
+`cockpit/src/lib/import/store.ts` was writing a false consent record: a
+spreadsheet cell reading `sim` became `consent_status = 'opt_in'`, and
+`consent_at` was stamped with `new Date()` — the moment of import, in a field
+that asserts when a person consented. The remediation was designed to find its
+rows this way:
+
+```sql
+from public.import_batches b
+join public.leads l on l.qualification->'imported'->>'batch_id' = b.id::text
+where b.status = 'committed'
+```
+
+Read as prose that is unobjectionable: *the leads that committed imports
+created*. Run against the database it returned **no rows**, while a second
+query over `leads` alone found the false record sitting there.
+
+The batch had been **reverted** 106 seconds after it committed. `revert.ts`
+deletes the leads an import created *except* those that have since acquired a
+message or an event — it refuses those deliberately, because deleting them
+would null `messages.lead_id` and leave a conversation with its subject erased
+(§6f). So one lead survived its own import's undo, still carrying the false
+`opt_in`, and the pass built to correct it would have skipped every row it
+existed for.
+
+**And it would have reported success.** No error, no empty-set warning: zero
+rows corrected, zero rows failed, exit clean — the exact output of a run with
+genuinely nothing to do. The false record stays, the log says the remediation
+ran, and the next person reads that log as evidence the problem is gone.
+
+### Why this is worse than an ordinary empty set
+
+§5b is about a *query* whose empty result gets narrated as a fact about the
+world. This is the same shape with the stakes inverted, because a remediation
+pass is run precisely once, by someone who has already decided the problem is
+real, and its success is measured by there being nothing left to see. **The
+evidence of the fix working and the evidence of the fix missing are the same
+evidence.** Every other kind of pass gets a second opinion eventually; this one
+is trusted permanently on the strength of one clean run.
+
+### The general form
+
+> A pass that changes data must state the population it expects **before** it
+> runs, and fail — not pass quietly — when what it finds does not match.
+
+Three rules that follow:
+
+1. **Target the object that carries the defect, not the object that explains
+   it.** The false value was on the lead. The batch was the *story* of how it
+   got there, and stories go missing: reverted, deleted, superseded. Join to
+   context for enrichment, never for identification.
+2. **Count first, correct second, and make the count a precondition.** The
+   operator ran the targeting query as a read before anything was written,
+   which is the only reason this was found before it shipped. A pass whose
+   count comes back different from the count that justified it should stop.
+3. **A zero nobody checked is not a zero.** The operator's phrase, and it is
+   the whole lesson in six words. Zero is an answer that has to be earned by a
+   query proven to be able to return something.
+
+This is also §1f — *105/105 after a sabotage is not a result, it is a smell* —
+at a different altitude: a number that means "everything is fine" deserves more
+suspicion than a number that means "something is broken", because nobody
+investigates the first one.
+
+---
+
 ## 1g. A handler that reports "nothing was known" is indistinguishable from its own bug
 
 The failure handler for the Code-node gate was wired to 31 nodes, deployed, and

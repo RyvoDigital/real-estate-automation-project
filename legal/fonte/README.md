@@ -13,6 +13,13 @@ PDF podem divergir: o PDF é o que já saiu para o mundo e o seu nome está fixo
 | `percurso-do-cliente.md` | `../operacoes/Ryvo_Percurso_do_Cliente_v1.pdf` |
 | `nota-handback-clausula-12.md` | — nota de trabalho, não é tipografada |
 
+Os **modelos de mensagem** não estão aqui. Vivem em `../modelos/`, fonte e PDF
+juntos, por serem peças submetidas a uma plataforma para aprovação e por se
+multiplicarem por cliente e por idioma — uma família que se mantém inteira vale
+mais do que a separação fonte/saída que o resto desta pasta segue.
+Os argumentos de construção desse documento **não estão registados**; quem o
+construir a seguir deve acrescentá-los abaixo.
+
 O `v2` no nome do enquadramento é a segunda versão do **enquadramento**, não um
 segundo PDF: nunca existiu um `Ryvo_Enquadramento_Conformidade_v1.pdf`.
 

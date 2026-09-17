@@ -4,13 +4,13 @@ import {
   normaliseEmail,
   parseBedrooms,
   parseBudgetRange,
-  parseConsent,
+  readConsentClaim,
   parseDate,
   parseMoney,
   toE164,
 } from './normalise'
 import type { ParsedRow } from './parse'
-import type { Duplicate, ImportReport, Mapping, Reject, Tier } from './types'
+import type { ConsentClaim, Duplicate, ImportReport, Mapping, Reject, Tier } from './types'
 
 /**
  * Applying an approved mapping to parsed rows.
@@ -34,7 +34,8 @@ export type Candidate = {
   timeline: string | null
   last_contact_at: string | null
   notes: string | null
-  consent_status: 'opt_in' | 'opt_out' | 'unknown'
+  /** The agency's assertion about origin. Never a consent state (§1). */
+  claimed_consent: ConsentClaim | null
   source: string | null
   /** What this row alone can support (§2.4), before any list-level rounding. */
   tier: Tier
@@ -150,7 +151,7 @@ export function planImport(
           })
           .filter(Boolean)
           .join('\n') || null,
-      consent_status: parseConsent(firstValue(row, cols(mapping, 'consent'))),
+      claimed_consent: readConsentClaim(firstValue(row, cols(mapping, 'consent'))),
       source: firstValue(row, cols(mapping, 'source')) || null,
       tier: 'contact_only',
     }

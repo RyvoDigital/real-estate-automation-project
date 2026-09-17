@@ -5,7 +5,7 @@ import {
   normaliseEmail,
   parseBedrooms,
   parseBudgetRange,
-  parseConsent,
+  readConsentClaim,
   parseDate,
   parseMoney,
   toE164,
@@ -90,19 +90,34 @@ test('bedrooms: T3 is not a typo, it is how this market writes it', () => {
   assert.equal(parseBedrooms('any'), null)
 })
 
-test('consent: anything unreadable is unknown, never opt_in', () => {
-  assert.equal(parseConsent('yes'), 'opt_in')
-  assert.equal(parseConsent('Sim'), 'opt_in')
-  assert.equal(parseConsent('TRUE'), 'opt_in')
-  assert.equal(parseConsent('1'), 'opt_in')
-  assert.equal(parseConsent('no'), 'opt_out')
-  assert.equal(parseConsent('não'), 'opt_out')
-  assert.equal(parseConsent('unsubscribed'), 'opt_out')
-  // The gate in §6.1 only ever opens on an explicit yes.
-  assert.equal(parseConsent(''), 'unknown')
-  assert.equal(parseConsent('maybe'), 'unknown')
-  assert.equal(parseConsent('called them once'), 'unknown')
-  assert.equal(parseConsent('opt in?'), 'unknown')
+test('consent: a cell is read as a CLAIM, and never as consent', () => {
+  // The reading survives. What changed is that it can no longer be mistaken
+  // for a state: every answer carries the cell it came from.
+  assert.deepEqual(readConsentClaim('yes'), { raw: 'yes', parsed: 'opt_in' })
+  assert.deepEqual(readConsentClaim('1'), { raw: '1', parsed: 'opt_in' })
+  assert.deepEqual(readConsentClaim('no'), { raw: 'no', parsed: 'opt_out' })
+  assert.deepEqual(readConsentClaim('unsubscribed'), { raw: 'unsubscribed', parsed: 'opt_out' })
+  assert.deepEqual(readConsentClaim('maybe'), { raw: 'maybe', parsed: 'unknown' })
+  assert.deepEqual(readConsentClaim('called them once'), { raw: 'called them once', parsed: 'unknown' })
+  assert.deepEqual(readConsentClaim('opt in?'), { raw: 'opt in?', parsed: 'unknown' })
+})
+
+test('consent: the cell is kept exactly as typed, because the wording is the evidence', () => {
+  // Meta puts the burden of proof on the sender and asks for the wording. A
+  // lowercased or stripped copy is a worse record than the original, and the
+  // original costs nothing to keep.
+  assert.deepEqual(readConsentClaim('Sim'), { raw: 'Sim', parsed: 'opt_in' })
+  assert.deepEqual(readConsentClaim('TRUE'), { raw: 'TRUE', parsed: 'opt_in' })
+  assert.deepEqual(readConsentClaim('não'), { raw: 'não', parsed: 'opt_out' })
+  assert.deepEqual(readConsentClaim('  sí  '), { raw: 'sí', parsed: 'opt_in' }, 'trimmed, not altered')
+})
+
+test('consent: an empty cell is no claim at all, not an unknown one', () => {
+  // The distinction is load-bearing. "The agency said something we could not
+  // read" and "the agency said nothing" are different facts about the world,
+  // and §5b is the whole file's warning about collapsing them.
+  assert.equal(readConsentClaim(''), null)
+  assert.equal(readConsentClaim('   '), null)
 })
 
 test('dates: day-first, and ambiguity resolved one way on purpose', () => {

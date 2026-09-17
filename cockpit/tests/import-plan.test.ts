@@ -30,6 +30,19 @@ const mapping: Mapping = {
   'Último Contacto': 'last_contact_at',
 }
 
+/*
+ * §0.7 — these are written against the CORRECTED behaviour of
+ * docs/consent-ledger-design.md §6 and are expected to be RED until store.ts
+ * and plan.ts are changed. They read the candidate structurally rather than
+ * through its type, so the suite still typechecks and the assertions actually
+ * run: a test that fails at `tsc` proves the field is missing, not that the
+ * behaviour is wrong.
+ *
+ * The corrected behaviour, in one line: the importer records what the agency
+ * ASSERTED and never a consent state.
+ */
+const fields = (c: unknown) => c as Record<string, unknown>
+
 function run() {
   const parsed = parseCsv(csv)
   return {
@@ -129,7 +142,14 @@ test('a budget with no scale is left null rather than stored as 1.5 euros', () =
   assert.ok(placeholder)
   assert.equal(placeholder!.budget_min, null)
   assert.equal(placeholder!.full_name, null, '"n/a" is a placeholder, not a name')
-  assert.equal(placeholder!.consent_status, 'unknown', '"maybe" is not consent')
+  assert.equal(
+    fields(placeholder).consent_status, undefined,
+    'the importer must not produce a consent state at all — design §6',
+  )
+  assert.deepEqual(
+    fields(placeholder).claimed_consent, { raw: 'maybe', parsed: 'unknown' },
+    '"maybe" is not consent, and the cell is kept as what it is: a claim',
+  )
 })
 
 test('the typology, the range and the Spanish row all read correctly', () => {
@@ -138,14 +158,28 @@ test('the typology, the range and the Spanish row all read correctly', () => {
   assert.equal(maria.budget_min, 1_800_000)
   assert.equal(maria.budget_max, 2_000_000)
   assert.equal(maria.bedrooms, 4, 'T4')
-  assert.equal(maria.consent_status, 'opt_in')
+  assert.equal(
+    fields(maria).consent_status, undefined,
+    'a spreadsheet cell reading "yes" is not consent — design §1',
+  )
+  assert.deepEqual(
+    fields(maria).claimed_consent, { raw: 'yes', parsed: 'opt_in' },
+    "the agency's assertion is retained, with the exact cell text — design §5.3",
+  )
   assert.equal(maria.last_contact_at, '2026-04-15')
 
   const lucia = candidates.find((c) => c.phone === '+34600123456')!
   assert.equal(lucia.budget_min, 800_000)
   assert.equal(lucia.budget_max, 1_100_000)
   assert.equal(lucia.bedrooms, 3, '3 dorm.')
-  assert.equal(lucia.consent_status, 'opt_in', 'sí')
+  assert.equal(
+    fields(lucia).consent_status, undefined,
+    '"sí" is not consent either, and Spain is the jurisdiction where it matters most',
+  )
+  assert.deepEqual(
+    fields(lucia).claimed_consent, { raw: 'sí', parsed: 'opt_in' },
+    'the claim keeps the accent and the original cell',
+  )
 })
 
 test('the tier is reported per row, not asserted over the list', () => {
@@ -160,4 +194,15 @@ test('the tier is reported per row, not asserted over the list', () => {
       report.fieldCoverage._tier_contact_only,
     report.accepted,
   )
+})
+
+test('no import path can produce a consented state — design §6, invariant candidate', () => {
+  const { candidates } = run()
+  for (const c of candidates) {
+    assert.equal(
+      fields(c).consent_status, undefined,
+      `row ${c.row} came out of the importer carrying a consent state`,
+    )
+  }
+  assert.ok(candidates.length > 0, 'a vacuous pass over an empty list proves nothing (§5c)')
 })

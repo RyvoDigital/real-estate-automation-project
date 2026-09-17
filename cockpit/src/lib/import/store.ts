@@ -179,8 +179,11 @@ export async function commitBatch(batchId: string): Promise<{ inserted: number; 
     timeline: c.timeline,
     stage: 'dormant',
     source: c.source ?? 'import',
-    consent_status: c.consent_status,
-    consent_at: c.consent_status === 'opt_in' ? new Date().toISOString() : null,
+    // NO consent_status and NO consent_at. This is the correction of
+    // docs/consent-ledger-design.md: a spreadsheet cell is not consent, and the
+    // import clock is not the moment a person consented. An imported contact is
+    // undetermined -- and therefore not contactable -- by the ABSENCE of a
+    // ledger row, which is a state nobody has to remember to set.
     last_contact_at: c.last_contact_at,
     qualification: {
       imported: {
@@ -190,6 +193,11 @@ export async function commitBatch(batchId: string): Promise<{ inserted: number; 
         property_type: c.property_type,
         // §4.2 will read this. It is the whole reason the import exists.
         notes: c.notes,
+        // The claim, kept with the exact cell text, so the segmentation screen
+        // can ask the agency the useful question -- "your file said this; do
+        // you have the record behind it?" -- and so the ledger never has to
+        // record `wording: null` for a row imported after today (§5.3).
+        claimed_consent: c.claimed_consent,
       },
     },
   }))

@@ -1,3 +1,5 @@
+import type { ConsentClaim } from './types'
+
 import parsePhoneNumberFromString, { type CountryCode } from 'libphonenumber-js'
 
 /**
@@ -133,13 +135,32 @@ export function parseBedrooms(raw: string): number | null {
   return null
 }
 
-/** Consent is a hard gate (§6.1), so an unreadable value is `unknown`. */
-export function parseConsent(raw: string): 'opt_in' | 'opt_out' | 'unknown' {
-  const s = (raw ?? '').trim().toLowerCase()
-  if (!s) return 'unknown'
-  if (/^(y|yes|true|1|sim|si|sí|opt[ _-]?in|consent(ed)?|subscribed)$/.test(s)) return 'opt_in'
-  if (/^(n|no|false|0|não|nao|opt[ _-]?out|unsubscribed|baixa)$/.test(s)) return 'opt_out'
-  return 'unknown'
+/**
+ * A consent column read as what it actually is: the agency's CLAIM.
+ *
+ * This function used to be `parseConsent` and used to return `'opt_in'`, which
+ * the importer wrote straight into `leads.consent_status` with `consent_at =
+ * new Date()`. A cell reading `sim` became, in our database, a person who
+ * consented — at the moment of import. Both halves were false: the cell is an
+ * assertion the agency cannot evidence, and the timestamp was the import clock
+ * in a field that means when a person consented.
+ *
+ * So the reading survives and the CONCLUSION does not. There is no longer any
+ * way for a caller to obtain a consent state from a spreadsheet, because the
+ * only thing returned is the claim: the exact cell text, and what we read it
+ * as. Consent itself lives in the ledger and arrives by other routes.
+ *
+ * See docs/consent-ledger-design.md §1 and §6.
+ */
+export function readConsentClaim(raw: string): ConsentClaim | null {
+  const original = (raw ?? '').trim()
+  if (!original) return null            // no cell is no claim, not an unknown one
+  const s = original.toLowerCase()
+  const parsed: ConsentClaim['parsed'] =
+    /^(y|yes|true|1|sim|si|sí|opt[ _-]?in|consent(ed)?|subscribed)$/.test(s) ? 'opt_in'
+    : /^(n|no|false|0|não|nao|opt[ _-]?out|unsubscribed|baixa)$/.test(s) ? 'opt_out'
+    : 'unknown'
+  return { raw: original, parsed }
 }
 
 /**
