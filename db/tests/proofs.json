@@ -71,9 +71,11 @@
       "watches": [
         "db/migrations/0019_sends_unresolved.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0019_sends_unresolved.sql": "6635dc4c333537dd1a5c27929dd055af742a23208f1bc553fba0657ff6ac5f2c"
+      },
+      "last_proved": "2026-09-17",
+      "proved_by": "Manuel Vale"
     }
   ]
 }

@@ -217,6 +217,76 @@ price, and it is small.
 
 ---
 
+# 6.2 Scheduling: DECIDED, WRITTEN DOWN, AND NOT YET WIRED
+
+Both passes are built and both are **manually invocable only**. Nothing runs on
+a timer, no cron entry exists, and no Vercel cron is configured. The cadence
+below is the decision; turning it on is a separate act.
+
+## The two passes
+
+| pass | cadence | window |
+|---|---|---|
+| `reconcilePending` | **every 10 minutes** | rows older than the 10-minute grace period |
+| `sweepOrphans` | **nightly, 03:00 Europe/Lisbon** | the last 48 hours |
+
+## Why ten minutes
+
+The grace period is already ten: a request still in flight has not failed, and
+searching for it immediately races the call and finds nothing, which would mark
+a live send unresolved. So a shorter loop mostly re-examines rows it must skip.
+
+A row therefore resolves within twenty minutes of the silence that created it,
+and **nothing downstream depends on it resolving faster.** The campaign has
+moved on; what waits is an operator's certainty about one contact, and twenty
+minutes of uncertainty there costs nothing. The alternative — a tighter loop —
+buys minutes on a question whose answer is read by a human at human pace.
+
+**Not event-driven after a dispatch returns `ambiguous`.** That would be
+tighter, and it is the same mistake §12 keeps producing: a check that runs
+because a caller remembered to call it is not a control. The scheduled pass
+covers the paths that forget, including the ones not written yet — and the
+crash that produced the `intended` row is exactly the case where no caller
+survives to trigger anything.
+
+## Why nightly, over 48 hours
+
+The listing is the expensive call and an orphan is catastrophic-but-rare, so a
+tight loop spends money continuously against a risk that materialises almost
+never.
+
+**The 48-hour window over a nightly run means every message is examined twice.**
+That is deliberate: a single failed run cannot create a permanent blind spot,
+which is §4c applied to a schedule rather than to a test. A 24-hour window would
+make one missed night into a gap nobody would ever notice.
+
+## What each pass may do when it fires
+
+| | `reconcilePending` | `sweepOrphans` |
+|---|---|---|
+| resolve a row | yes, when exactly one message matches exactly | — |
+| mark `unresolved` | yes, with the reason | — |
+| alert | on a duplicate send, immediately | on any orphan, critically |
+| **halt campaigns** | no | **yes, for that client, immediately** |
+| **send anything** | **never** | **never** |
+
+The asymmetry in halting is the same one that runs through the whole subsystem.
+An unresolved row is uncertainty about one contact and the gate still holds; an
+orphan means the gate is not the only route, and every subsequent send is
+suspect until a person says otherwise.
+
+## Before either is scheduled
+
+1. A dry run of each against production data, printing what it *would* write —
+   the same shape as the quarantine pass, and for the same reason.
+2. `sweepOrphans` run by hand once, to establish that a quiet night really does
+   come back with zero. A sweep that has never returned a clean result has not
+   been shown to distinguish clean from broken.
+3. The alert channel confirmed as the one the invariants already use (§3.7),
+   not a new one.
+
+---
+
 # 7. Credentials, and where each one lives
 
 Three values, all for the READ key. The sending credential is a separate key and
