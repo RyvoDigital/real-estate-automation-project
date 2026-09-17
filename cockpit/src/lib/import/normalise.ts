@@ -10,19 +10,16 @@ import parsePhoneNumberFromString, { type CountryCode } from 'libphonenumber-js'
  * the real shapes rather than reasoned about.
  */
 
-/** E.164 or nothing. §2.5, and the same reason recorded at E3. */
-export function toE164(raw: string, defaultCountry: CountryCode = 'PT'): string | null {
-  const s = (raw ?? '').trim()
-  if (!s) return null
-  // A spreadsheet phone column is a graveyard: "00351 912 345 678",
-  // "912345678", "+351-912-345-678", "351912345678", and — because Excel
-  // helpfully treats it as a number — "912345678.0" and "9.12346E+11".
-  if (/e\+/i.test(s)) return null // scientific notation has already lost digits
-  const cleaned = s.replace(/\.0+$/, '').replace(/^00/, '+')
-  const p = parsePhoneNumberFromString(cleaned, defaultCountry)
-  if (!p || !p.isValid()) return null
-  return p.number
-}
+/**
+ * E.164 or nothing — §2.5, and the same reason recorded at E3.
+ *
+ * MOVED to ../jurisdiction.ts and re-exported here so existing callers are
+ * unaffected. It is a re-export and not a second copy on purpose: the cleaning
+ * rules for a spreadsheet phone cell now have exactly one home, shared with
+ * resolveJurisdiction, because two copies of a parser diverge and the stale one
+ * keeps answering confidently (lesson 15).
+ */
+export { toE164 } from '../jurisdiction'
 
 export function normaliseEmail(raw: string): string | null {
   const s = (raw ?? '').trim().toLowerCase()

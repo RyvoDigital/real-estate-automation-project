@@ -25,6 +25,7 @@
 import { readFileSync } from 'node:fs'
 import { createClient } from '@supabase/supabase-js'
 import { QUARANTINE_NOTE } from './lib/quarantine-note'
+import { resolveJurisdiction } from '../src/lib/jurisdiction'
 
 for (const l of readFileSync(new URL('../.env.local', import.meta.url), 'utf8').split('\n')) {
   const m = l.match(/^([A-Z_]+)=(.*)$/)
@@ -56,10 +57,16 @@ type Lead = {
   qualification: { imported?: { batch_id?: string; line?: number } } | null
 }
 
+/**
+ * Was a two-line startsWith stopgap, correct for one Portuguese number and
+ * wrong in general -- +1 is twenty-odd countries and +44 is four. Now the real
+ * resolver, which is the whole of Stage 1 piece 3. A refusal stays null: the
+ * ledger records that no jurisdiction follows from the number rather than
+ * guessing one.
+ */
 function jurisdictionOf(phone: string | null): string | null {
-  if (phone?.startsWith('+351')) return 'PT'
-  if (phone?.startsWith('+34')) return 'ES'
-  return null   // resolved properly by the jurisdiction engine; null is a refusal, not a guess
+  const r = resolveJurisdiction(phone ?? '')
+  return r.ok ? r.country : null
 }
 
 async function main() {
