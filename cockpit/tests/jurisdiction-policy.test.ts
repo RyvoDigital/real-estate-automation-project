@@ -30,7 +30,7 @@ const row = (over: Partial<PolicyRow> = {}): PolicyRow => ({
   statute: 'Lei n.º 41/2004',
   authority: 'CNPD',
   traps: null,
-  list_obligation: null,
+  obligation_codes: null,
   confirmed_at: null,
   confirmed_by: null,
   ...over,
@@ -151,11 +151,11 @@ test('every refusal reason has operator wording', () => {
 })
 
 test('a permission always states its basis, because a log saying "allowed" explains nothing', () => {
-  const v = evaluatePolicy(confirmed({ existing_customer: 'available', list_obligation: 'art. 13.º-B lists' }), 'A')
+  const v = evaluatePolicy(confirmed({ existing_customer: 'available', obligation_codes: ['pt_13b_lists'] }), 'A')
   assert.equal(v.permitted, true)
   if (v.permitted) {
     assert.ok(v.basis.includes('existing-customer'))
     assert.ok(v.basis.includes('Lei'), 'the statute travels with the permission')
-    assert.equal(v.listObligation, 'art. 13.º-B lists', 'an obligation attached to the basis must not be lost')
+    assert.deepEqual(v.obligationCodes, ['pt_13b_lists'], 'an obligation attached to the basis must not be lost')
   }
 })

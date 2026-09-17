@@ -27,6 +27,8 @@
  * true; baking today's Spanish reading into the derivation would not.
  */
 
+import { partitionObligations } from '@/lib/obligations'
+
 export type Segment = 'A' | 'B' | 'C' | 'D' | 'E'
 
 export type PolicyRow = {
@@ -39,7 +41,8 @@ export type PolicyRow = {
   statute: string | null
   authority: string | null
   traps: string | null
-  list_obligation: string | null
+  /** Obligation CODES, not prose. Resolved against src/lib/obligations.ts. */
+  obligation_codes: string[] | null
   confirmed_at: string | null
   confirmed_by: string | null
 }
@@ -56,9 +59,10 @@ export type PolicyRefusal =
   | 'consent_request_unknown'
   | 'consent_expired'
   | 'consent_undated'
+  | 'obligation_undischargeable'
 
 export type PolicyVerdict =
-  | { permitted: true; basis: string; listObligation: string | null }
+  | { permitted: true; basis: string; obligationCodes: string[] }
   | { permitted: false; reason: PolicyRefusal; detail: string }
 
 export const POLICY_REFUSAL_MEANS: Record<PolicyRefusal, string> = {
@@ -84,6 +88,8 @@ export const POLICY_REFUSAL_MEANS: Record<PolicyRefusal, string> = {
     'The consent is older than this jurisdiction allows. Ireland lapses at twelve months from the act.',
   consent_undated:
     'A consent with no date cannot be expiry-checked in a country that imposes expiry, so it cannot be honoured.',
+  obligation_undischargeable:
+    'This permission carries an obligation nothing in the system knows how to discharge. Proving we knew of a duty nobody performs is worse than not recording it, so the permission is refused until the obligation has a discharge and a check.',
 }
 
 /**
@@ -122,11 +128,7 @@ export function evaluatePolicy(
 
   if (segment === 'A') {
     if (row.existing_customer === 'available') {
-      return {
-        permitted: true,
-        basis: `existing-customer route, ${row.statute ?? 'statute not recorded'}`,
-        listObligation: row.list_obligation,
-      }
+      return permit(row, `existing-customer route, ${row.statute ?? 'statute not recorded'}`)
     }
     return no(
       row.existing_customer === 'unavailable'
@@ -137,11 +139,7 @@ export function evaluatePolicy(
 
   if (segment === 'C') {
     if (row.consent_request === 'permitted') {
-      return {
-        permitted: true,
-        basis: `consent request permitted, ${row.statute ?? 'statute not recorded'}`,
-        listObligation: row.list_obligation,
-      }
+      return permit(row, `consent request permitted, ${row.statute ?? 'statute not recorded'}`)
     }
     return no(
       row.consent_request === 'prohibited'
@@ -165,9 +163,27 @@ export function evaluatePolicy(
     }
   }
 
-  return {
-    permitted: true,
-    basis: `documented consent${row.consent_expiry_months != null ? `, within ${row.consent_expiry_months} months` : ''}`,
-    listObligation: row.list_obligation,
+  return permit(
+    row,
+    `documented consent${row.consent_expiry_months != null ? `, within ${row.consent_expiry_months} months` : ''}`,
+  )
+}
+
+/**
+ * Every permission goes through here, so the obligation check cannot be
+ * forgotten on one branch. Three call sites, one gate on all of them --
+ * §12: prefer a boundary to a rule.
+ */
+function permit(row: PolicyRow, basis: string): PolicyVerdict {
+  const { known, unknown } = partitionObligations(row.obligation_codes)
+  if (unknown.length > 0) {
+    return {
+      permitted: false,
+      reason: 'obligation_undischargeable',
+      detail:
+        `${POLICY_REFUSAL_MEANS.obligation_undischargeable} Unrecognised: ${unknown.join(', ')}. ` +
+        `Add it to src/lib/obligations.ts with a discharge and a check, or remove it from the ${row.country} policy row.`,
+    }
   }
+  return { permitted: true, basis, obligationCodes: known.map((o) => o.code) }
 }

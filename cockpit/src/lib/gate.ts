@@ -69,7 +69,11 @@ export type GateVerdict =
   | {
       permitted: true
       basis: string
-      /** Conditions that ride WITH the permission, never separately (§11). */
+      /**
+       * Obligation CODES that ride WITH the permission, never separately (§11).
+       * Resolved to prose through src/lib/obligations.ts; an unrecognised code
+       * never reaches here, because it turns the permission into a refusal.
+       */
       obligations: string[]
       evidence: {
         country: string
@@ -94,6 +98,36 @@ export type ConsentFacts = {
   occurred_at: string | null
   event_id: string | null
 } | null
+
+/**
+ * Ledger state to the segment the policy speaks in.
+ *
+ * EXHAUSTIVE OVER THE STATE UNION ON PURPOSE. The `never` assignment below
+ * fails to compile if a state is added to `consent_by_contact` without a
+ * decision being made here. A new state falling through to a default is the
+ * wrong shape for a decision about whether to message somebody -- and the
+ * default that would have absorbed it is the one that PERMITS, since anything
+ * mapping to B or a declared segment goes on to be evaluated.
+ *
+ * `claimed_unevidenced` maps to D, which layer 4 refuses BEFORE any policy row
+ * is read. So no policy row, however permissive, can reach it. That state means
+ * the agency asserted something we cannot use: it is not a weaker form of
+ * consent, it is a stronger form of nothing.
+ */
+function segmentFor(consent: ConsentFacts): Segment {
+  if (!consent) return 'D'
+  switch (consent.state) {
+    case 'consented': return 'B'
+    case 'declared': return consent.segment ?? 'D'
+    case 'objected': return 'E'
+    case 'claimed_unevidenced': return 'D'
+    case 'undetermined': return 'D'
+    default: {
+      const unhandled: never = consent.state
+      throw new Error(`gate: no segment decided for ledger state "${String(unhandled)}"`)
+    }
+  }
+}
 
 /**
  * The whole decision, as a pure function of facts already gathered.
@@ -136,10 +170,7 @@ export function decideGate(input: {
   // speaks in. `claimed_unevidenced` and `undetermined` are different facts
   // about the world and the same fact here: no basis to send. They are kept
   // distinct in the DETAIL, because one is worth asking the agency about.
-  const segment: Segment =
-    input.consent?.state === 'consented' ? 'B'
-    : input.consent?.state === 'declared' && input.consent.segment ? input.consent.segment
-    : 'D'
+  const segment: Segment = segmentFor(input.consent)
 
   if (segment === 'D') {
     const claimed = input.consent?.state === 'claimed_unevidenced'
@@ -166,7 +197,7 @@ export function decideGate(input: {
   return {
     permitted: true,
     basis: `${v.basis} · ${j.country}`,
-    obligations: v.listObligation ? [v.listObligation] : [],
+    obligations: v.obligationCodes,
     evidence: {
       country: j.country,
       segment,

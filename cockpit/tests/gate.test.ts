@@ -27,7 +27,7 @@ const PT_OPEN: PolicyRow = {
   statute: 'Lei n.º 41/2004',
   authority: 'CNPD',
   traps: null,
-  list_obligation: 'art. 13.º-B lists',
+  obligation_codes: ['pt_13b_lists'],
   confirmed_at: '2026-09-20T00:00:00Z',
   confirmed_by: 'M. de Sousa Pereira',
 }
@@ -123,7 +123,7 @@ test('a declared segment travels from the ledger into the policy question', () =
   assert.equal(decideGate({ phone: REAL, consent: declared('C'), policy: PT_OPEN }).permitted, true)
 
   // Spain: the existing-customer route unavailable and segment C prohibited.
-  const ES: PolicyRow = { ...PT_OPEN, country: 'ES', existing_customer: 'unavailable', consent_request: 'prohibited', list_obligation: null }
+  const ES: PolicyRow = { ...PT_OPEN, country: 'ES', existing_customer: 'unavailable', consent_request: 'prohibited', obligation_codes: null }
   const a = decideGate({ phone: '+34600123456', consent: declared('A'), policy: ES })
   const c = decideGate({ phone: '+34600123456', consent: declared('C'), policy: ES })
   assert.equal(a.permitted === false && a.reason, 'existing_customer_unavailable')
@@ -161,7 +161,7 @@ test('THE PERMISSION STATES ITS BASIS AND CARRIES ITS OBLIGATIONS (§11)', () =>
   if (v.permitted) {
     assert.match(v.basis, /documented consent/)
     assert.match(v.basis, /PT/)
-    assert.deepEqual(v.obligations, ['art. 13.º-B lists'],
+    assert.deepEqual(v.obligations, ['pt_13b_lists'],
       'an obligation attached to the basis must travel inside the verdict, never separately')
     assert.equal(v.evidence.country, 'PT')
     assert.equal(v.evidence.segment, 'B')
@@ -193,4 +193,56 @@ test('no refusal the gate can produce lacks operator wording', () => {
   }
   assert.equal(refusals, cases.length)
   assert.ok(refusals > 5, 'a vacuous pass proves nothing (§5c)')
+})
+
+test('claimed_unevidenced is refused for EVERY policy configuration, by name', () => {
+  // The state means the agency asserted something we cannot use. It is not a
+  // weaker form of consent, it is a stronger form of nothing -- so no policy
+  // row, however permissive or however confirmed, may reach it. Layer 4 refuses
+  // before a policy row is read at all, and this asserts that across the whole
+  // space of permissive policies rather than against one of them.
+  const claimed: ConsentFacts = {
+    state: 'claimed_unevidenced', segment: null,
+    occurred_at: '2026-09-08T12:25:37.265Z',       // the real quarantined row
+    event_id: '29052633-f1c8-4e29-aded-794fed2f07e3',
+  }
+  const permissive: PolicyRow[] = [
+    PT_OPEN,
+    { ...PT_OPEN, existing_customer: 'available' },
+    { ...PT_OPEN, consent_request: 'permitted' },
+    { ...PT_OPEN, consent_expiry_months: null },
+    { ...PT_OPEN, obligation_codes: null },
+    { ...PT_OPEN, existing_customer: 'available', consent_request: 'permitted', consent_expiry_months: null },
+    { ...PT_OPEN, confirmed_at: '2020-01-01T00:00:00Z', confirmed_by: 'a very confident lawyer' },
+  ]
+  for (const policy of permissive) {
+    const v = decideGate({ phone: REAL, consent: claimed, policy })
+    assert.equal(v.permitted, false, `claimed_unevidenced was PERMITTED under ${JSON.stringify(policy.existing_customer)}/${policy.consent_request}`)
+    if (!v.permitted) {
+      assert.equal(v.layer, 'basis', 'it must be refused at layer 4, before policy is consulted')
+      assert.equal(v.reason, 'no_ledger_basis')
+      assert.match(v.detail, /unevidenced claim/, 'the detail must say it is worth asking the agency about')
+    }
+  }
+})
+
+test('an obligation nothing can discharge turns a permission into a refusal', () => {
+  // A lawyer adding "…and you must also do X" to a policy row must not be able
+  // to create a duty nothing performs. Proving we knew of an obligation nobody
+  // discharges is worse than never recording it.
+  const withUnknown: PolicyRow = { ...PT_OPEN, obligation_codes: ['pt_13b_lists', 'es_robinson_screening'] }
+  const v = decideGate({ phone: REAL, consent: consented, policy: withUnknown })
+  assert.equal(v.permitted, false)
+  if (!v.permitted) {
+    assert.equal(v.layer, 'policy')
+    assert.equal(v.reason, 'obligation_undischargeable')
+    assert.match(v.detail, /es_robinson_screening/, 'the refusal must NAME what it did not recognise')
+    assert.match(v.detail, /obligations\.ts/, 'and say where to register it')
+  }
+})
+
+test('a known obligation still permits, and its code travels on the verdict', () => {
+  const v = decideGate({ phone: REAL, consent: consented, policy: { ...PT_OPEN, obligation_codes: ['pt_13b_lists'] } })
+  assert.equal(v.permitted, true)
+  if (v.permitted) assert.deepEqual(v.obligations, ['pt_13b_lists'])
 })

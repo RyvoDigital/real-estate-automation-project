@@ -37,6 +37,17 @@
       },
       "last_proved": "2026-09-17",
       "proved_by": "Manuel Vale"
+    },
+    {
+      "id": "0017-allowlist-freeze",
+      "what": "The freeze inverted from a denylist to an allowlist: outcome columns writable, every other column frozen INCLUDING ones 0015 never mentioned. 0015's version would have allowed campaign_id to be edited after the fact.",
+      "how": "Paste db/migrations/0017_sends_attempts_and_allowlist_freeze.sql, then run its verify block inside begin/rollback. Expect: attempts/last_attempt_at/last_error writable; gate_decided_at refused BY NAME; campaign_id refused (0015 would have allowed it).",
+      "watches": [
+        "db/migrations/0017_sends_attempts_and_allowlist_freeze.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
     }
   ]
 }
