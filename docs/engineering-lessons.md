@@ -938,6 +938,61 @@ happened is the only row anyone would ever be tempted to edit, and an
 authorisation that can be rewritten afterwards is not an authorisation, it is a
 note.
 
+---
+
+## 4d. A check's SCOPE is part of its claim, and the scope is the part that goes unread
+
+Logged 2026-09-17, caught by a check's own vacuity guard rather than by anyone
+reading it.
+
+`one-sender.test.ts` asserts the thing that keeps the send path honest: **at most
+one file may import the message provider, read its credentials, or call its API.**
+It is the cheapest and most durable of the three defences around that path,
+because it is the only one a person can apply without knowing the argument.
+
+It scanned `cockpit/src`.
+
+So what it actually asserted was *"no other file **under cockpit/src** may
+send"*, and it read as *"no other file may send"*. Nothing in the test name, the
+failure message or the assertion said otherwise. A sender added to the n8n
+shared modules in `src/`, to a script in `infra/`, or to the test tree would
+have been invisible — and the n8n side is precisely where a bypass would be both
+plausible and catastrophic, because the whole architecture decision is that n8n
+never sends marketing directly.
+
+**A widened scan was then proved by sabotage**: a `src/blast.js` doing
+`require('twilio')(process.env.TWILIO_ACCOUNT_SID, …)` — an n8n module sending
+directly — turned two checks red and named the file. The old scan would have
+stayed green.
+
+### What generalises
+
+> **Any check that searches rather than executes — a grep, a lint rule, a
+> dependency-cruiser config, a "no imports from X" guard — makes two claims: what
+> it looks for, and where it looked. Only the first is ever written down.**
+
+Three habits:
+
+1. **Say the scope in the name or the failure message**, so the next reader is
+   told what the check does not cover.
+2. **Give the scan a positive control per root**, not a total count. A count
+   stays green when an entire tree stops being visited; asserting that a known
+   file in each root was seen does not. This is exactly how the defect was
+   found — the §5c vacuity check disagreed with the assertion it was guarding,
+   and the vacuity check was right.
+3. **Sabotage it in the place you just added.** A widened scope is a claim until
+   a planted violation in the new territory turns it red.
+
+### And the exception belongs in the code
+
+Widening turned up one legitimate caller: the Concierge workflow calls the
+provider ~35 times, because it REPLIES inside the 24-hour window the lead
+opened, which is not a business-initiated message and needs no gate. That
+exception is now an explicit path exclusion with the reasoning beside it —
+rather than a silently narrow scan that happened to exclude it by accident.
+**An exception that exists on purpose can be re-examined. One that exists by
+oversight cannot, because nobody knows it is there.**
+
 ## 4c. A test is not green until it is green twice, and cleanup is what hides the difference
 
 Logged 2026-09-17, caught by running a suite a second time for an unrelated

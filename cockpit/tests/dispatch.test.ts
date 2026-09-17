@@ -32,13 +32,43 @@ const made: string[] = []
 
 after(async () => { if (made.length) await db.from('sends').delete().in('id', made) })
 
+/**
+ * A fully authorised intent row.
+ *
+ * THE FIRST VERSION OF THIS FIXTURE COULD NOT REACH `sent`, AND THAT IS THE
+ * CONSTRAINTS WORKING. It carried a permission and a basis but no
+ * consent_event_id and no policy confirmation, so `send_requires_permission`
+ * and `send_requires_confirmed_policy` refused the UPDATE to 'sent' — 0015's
+ * invariants 1 and 2, enforced against a test rather than only against
+ * production. The fixture had to be made compliant before it could pass, which
+ * is the property holding on us as well as on the product.
+ *
+ * So the consent event is a REAL row from the ledger rather than an invented
+ * uuid: the foreign key would refuse an invented one, and a fixture that can
+ * only exist by satisfying the same rules as a real send is worth more than one
+ * that is waved through.
+ */
 async function intendedRow(key: string): Promise<string> {
   const { data: c } = await db.from('clients').select('id').limit(1).single()
+  const { data: ev, error: evErr } = await db.from('consent_events')
+    .select('id, occurred_at')
+    .eq('client_id', c!.id)
+    .eq('kind', 'consent_given')
+    .limit(1).maybeSingle()
+  assert.equal(evErr, null, evErr?.message ?? 'consent event read failed')
+  assert.ok(ev, 'no consent_given event to hang the fixture on — the ledger fixtures are missing')
+
   const { data, error } = await db.from('sends').insert({
     client_id: c!.id, phone_e164: PHONE, automation: 'dispatch_test',
     idempotency_key: key, status: 'intended',
     gate_verdict: 'permitted', gate_basis: 'documented consent · PT',
     gate_decided_at: new Date().toISOString(), country: 'PT', segment: 'B',
+    // invariant 1: a send needs the ledger row it relied on
+    consent_event_id: ev!.id, consent_occurred_at: ev!.occurred_at,
+    // invariant 2: and a jurisdiction a named human confirmed
+    policy_country: 'PT',
+    policy_confirmed_at: new Date().toISOString(),
+    policy_confirmed_by: 'FIXTURE — not a real confirmation',
     body_intended: 'test body',
   }).select('id').single()
   assert.equal(error, null, error?.message ?? 'insert failed')

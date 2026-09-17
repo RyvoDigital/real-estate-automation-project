@@ -45,9 +45,11 @@
       "watches": [
         "db/migrations/0017_sends_attempts_and_allowlist_freeze.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0017_sends_attempts_and_allowlist_freeze.sql": "cf7105e360e31cca2582eb30d8a2b3a9279fa5ab7482bd3129eee49d1c164c74"
+      },
+      "last_proved": "2026-09-17",
+      "proved_by": "Manuel Vale"
     }
   ]
 }

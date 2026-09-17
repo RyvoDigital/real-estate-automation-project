@@ -17,24 +17,45 @@ import assert from 'node:assert/strict'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
-const ROOT = new URL('../', import.meta.url).pathname
+const REPO = new URL('../../', import.meta.url).pathname
+const SELF = 'cockpit/tests/one-sender.test.ts'
+
 /**
  * The one file allowed to touch the provider. It does not exist yet, and that
  * is the correct state: nothing can physically send. The checks below assert
- * "at most one, and if it exists it is this" — so they pass today with zero,
- * and the day somebody writes a sender anywhere else they fail with its name.
+ * "at MOST one, and if it exists it is this" — they pass today with zero, and
+ * the day somebody writes a sender anywhere else they fail with its name.
  *
  * NOT dispatch.ts: that file owns no IO and no credentials by design, which is
  * what makes the retry rules testable. The credential lives in the adapter.
  */
-const SENDER = 'src/lib/send/twilio-adapter.ts'
+const SENDER = 'cockpit/src/lib/send/twilio-adapter.ts'
 
-/** Every source file we ship, excluding tests and build output. */
-function sources(dir = join(ROOT, 'src'), acc: string[] = []): string[] {
+/**
+ * THE SCAN COVERS THE WHOLE REPOSITORY, NOT JUST cockpit/src.
+ *
+ * The first version scanned `cockpit/src` alone, which meant a sender added to
+ * the n8n shared modules in `src/`, to a script in `infra/`, or to a test could
+ * not be seen. The assertions read as "no other file may send" and meant "no
+ * other file UNDER cockpit/src may send" — weaker than they looked, and weakest
+ * exactly where it matters: the gate decision says n8n never sends marketing,
+ * so an n8n module is the one place a bypass would be both plausible and
+ * catastrophic.
+ *
+ * THE ONE EXCEPTION, STATED RATHER THAN HIDDEN: `workflows/` legitimately calls
+ * the provider ~35 times. The Concierge REPLIES inside the 24-hour window the
+ * lead opened, which is not a business-initiated message and needs no gate.
+ * That is the boundary this file defends — business-initiated sends — and the
+ * exception is excluded by path so that removing it is a visible edit.
+ */
+const SKIP = /(^|\/)(node_modules|\.next|\.git|dist|build|workflows)(\/|$)/
+
+function sources(dir = REPO, acc: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name)
+    if (SKIP.test(relative(REPO, p))) continue
     if (statSync(p).isDirectory()) sources(p, acc)
-    else if (/\.(ts|tsx)$/.test(name)) acc.push(p)
+    else if (/\.(ts|tsx|js|mjs|py|sh)$/.test(name)) acc.push(p)
   }
   return acc
 }
@@ -46,27 +67,39 @@ function sources(dir = join(ROOT, 'src'), acc: string[] = []): string[] {
  * `//` to end-of-line would mangle a URL inside a string literal
  * ('https://api.twilio.com') and silently break the very check that looks for
  * it. This misses a block comment whose lines do not begin with `*`, which is
- * a real limitation and an acceptable one — the checks below are looking for
- * imports and credentials, neither of which hides in prose.
+ * a real limitation and an acceptable one — the checks below look for imports
+ * and credentials, neither of which hides in prose.
  */
 function codeOnly(text: string): string {
   return text
     .split('\n')
     .filter((l) => {
       const s = l.trimStart()
-      return !s.startsWith('//') && !s.startsWith('*') && !s.startsWith('/*')
+      return !s.startsWith('//') && !s.startsWith('*') && !s.startsWith('/*') && !s.startsWith('#')
     })
     .join('\n')
 }
 
-const FILES = sources().map((p) => ({
-  path: relative(ROOT, p),
-  text: codeOnly(readFileSync(p, 'utf8')),
-}))
+const FILES = sources()
+  .map((p) => ({ path: relative(REPO, p), text: codeOnly(readFileSync(p, 'utf8')) }))
+  // This file names the provider in order to look for it.
+  .filter((f) => f.path !== SELF)
 
-test('the source tree was actually scanned (a vacuous pass proves nothing, §5c)', () => {
-  assert.ok(FILES.length > 20, `only ${FILES.length} source files found — the scan is broken`)
-  assert.ok(FILES.some((f) => f.path === SENDER), `${SENDER} was not found by the scan`)
+test('the scan sees both worlds (a vacuous pass proves nothing, §5c)', () => {
+  // Positive controls, one per root. A count alone would stay green if an
+  // entire tree stopped being visited, which is exactly the blind spot this
+  // check exists to catch — and did catch, in its first version.
+  assert.ok(FILES.length > 80, `only ${FILES.length} files found — the scan is broken`)
+  for (const control of [
+    'cockpit/src/lib/send/dispatch.ts',   // the cockpit
+    'src/invariants.js',                  // the n8n shared modules
+    'cockpit/src/lib/gate.ts',
+    'tests/opt_out.test.js',
+  ]) {
+    assert.ok(FILES.some((f) => f.path === control), `${control} was not visited — the scan has a blind spot`)
+  }
+  // And the sender is ALLOWED not to exist. Asserting its presence is what the
+  // first version did, and it made a missing file look like a broken scanner.
 })
 
 test('the provider SDK is imported in at most one file, and it is the dispatcher', () => {
@@ -103,7 +136,7 @@ test('nothing but the dispatcher calls the provider REST API by URL', () => {
 })
 
 test('SendPermit has no public constructor, so the wrong order cannot be written', () => {
-  const src = readFileSync(join(ROOT, 'src/lib/send/permit.ts'), 'utf8')
+  const src = readFileSync(join(REPO, 'cockpit/src/lib/send/permit.ts'), 'utf8')
   assert.match(src, /private constructor\(/,
     'SendPermit must keep its private constructor: it is what makes the insert produce the ' +
     'argument the send requires, rather than merely precede it')
@@ -120,7 +153,7 @@ test('SendPermit has no public constructor, so the wrong order cannot be written
 })
 
 test('the dispatcher re-reads the row rather than trusting the permit', () => {
-  const src = readFileSync(join(ROOT, 'src/lib/send/dispatch.ts'), 'utf8')
+  const src = readFileSync(join(REPO, 'cockpit/src/lib/send/dispatch.ts'), 'utf8')
   for (const check of [
     /store\.read\(permit\.sendId\)/,
     /status !== 'intended'/,
