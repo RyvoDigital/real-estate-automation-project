@@ -1,9 +1,13 @@
-# Nota — quatro questões que bloqueiam uma construção
+# Quatro questões
 
-**Para:** Dra. Margarida de Sousa Pereira
-**Através de:** José Vale
-**De:** Manuel Vale — Ryvo Digital / Pedro Seixas Vale — Consultoria, Lda
-**Data:** 17 de Setembro de 2026
+**Automação 02 — Reactivação de Base de Dados**
+
+| | |
+|---|---|
+| **Para** | Dra. Margarida de Sousa Pereira |
+| **Através de** | José Vale |
+| **De** | Manuel Vale — Ryvo Digital / Pedro Seixas Vale — Consultoria, Lda |
+| **Data** | 17 de Setembro de 2026 |
 
 ---
 
@@ -13,7 +17,7 @@ Agradeço desde já. Tenho consciência de que faz isto por favor e procurei red
 
 ---
 
-## 1. 🔴 A regra da própria Meta, antes ainda da lei
+# 1. 🔴 A regra da própria Meta, antes ainda da lei
 
 A *WhatsApp Business Messaging Policy* exige que, para enviar mensagens por iniciativa da empresa, o destinatário tenha fornecido o número **e** tenha dado autorização prévia para receber mensagens dessa empresa. O ónus da prova recai sobre quem envia.
 
@@ -27,7 +31,7 @@ A ser assim, o consentimento terá de ser obtido por outra via — telefone, cor
 
 ---
 
-## 2. O mesmo pedido, à luz da Lei n.º 41/2004
+# 2. O mesmo pedido, à luz da Lei n.º 41/2004
 
 Independentemente da resposta anterior: **uma mensagem cujo único objecto é pedir autorização constitui, ela própria, comunicação comercial** para efeitos do artigo 13.º-A?
 
@@ -37,7 +41,7 @@ Em Espanha, o artigo 21.º da LSSI, com a leitura restritiva da AEPD, parece-me 
 
 ---
 
-## 3. Apagamento e supressão, que puxam em sentidos opostos
+# 3. Apagamento e supressão, que puxam em sentidos opostos
 
 Um titular exerce o direito ao apagamento. Os seus dados são eliminados.
 
@@ -50,9 +54,9 @@ A prática corrente é conservar um registo mínimo de supressão, com fundament
 
 ---
 
-## 4. A tabela de jurisdições
+# 4. A tabela de jurisdições
 
-O `Enquadramento de Conformidade` que lhe envio em anexo contém, no §8.3, oito entradas — uma por país — cada uma indicando se a excepção de cliente existente está disponível e com que fundamento. **A estrutura é técnica; o conteúdo é jurídico**, e nenhuma entrada deve entrar em serviço sem confirmação.
+O `Enquadramento de Conformidade` que envio em anexo contém, no §8.3, oito entradas — uma por país — cada uma indicando se a excepção de cliente existente está disponível e com que fundamento. **A estrutura é técnica; o conteúdo é jurídico**, e nenhuma entrada deve entrar em serviço sem confirmação.
 
 **Só Portugal e Espanha importam neste momento.** As restantes seis — Irlanda, Alemanha, França, Países Baixos, Reino Unido e Estados Unidos — só se tornam relevantes se e quando houver cliente nesses mercados, e podem esperar.
 
@@ -60,7 +64,7 @@ O sistema está construído de modo a que **um país sem entrada na tabela não 
 
 ---
 
-## O que faço entretanto
+# O que faço entretanto
 
 Prossigo a construção da parte que recusa: registo de oposições, resolução da jurisdição a partir do indicativo telefónico, e a verificação que impede qualquer envio sem fundamento registado. **Nada disso depende das respostas acima** — só o envio depende, e o envio é a última coisa a ser construída.
 
@@ -69,4 +73,4 @@ Fico ao dispor para qualquer esclarecimento, por escrito ou por telefone, consoa
 Com os melhores cumprimentos,
 
 **Manuel Vale**
-Ryvo Digital
+Ryvo Digital · manuelvale@ryvodigital.com · +351 933 048 230

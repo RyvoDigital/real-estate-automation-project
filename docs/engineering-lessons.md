@@ -809,6 +809,58 @@ structurally the wrong instrument for the path that did not exist an hour ago.
 
 ---
 
+---
+
+## 4c. A test is not green until it is green twice, and cleanup is what hides the difference
+
+Logged 2026-09-17, caught by running a suite a second time for an unrelated
+reason.
+
+`suppression.test.ts` wrote a fixture objection to the consent ledger, appended
+a `consent_given` after it to prove rule 1 end to end, and asserted that the
+fixture held only objection rows. It passed. Run again immediately, it failed:
+the consent it had appended on the first run was still there, because the ledger
+refuses `DELETE`.
+
+Two defects in one, and the second is the general one:
+
+1. **The assertion was true only of a database this test had never run against.**
+   Its first run was the only run it was written for.
+2. **It appended a row on every run**, so the table grew without bound. Nobody
+   would have noticed for months, and every row was permanent.
+
+### The part that generalises, and it is not about ledgers
+
+The only reason this was visible is that the storage refuses deletion. **On an
+ordinary table, the same defect hides for ever behind a cleanup step.** A test
+that truncates its fixtures in `beforeEach` is not idempotent — it is *reset*,
+which is a different property that happens to look identical from the outside.
+The moment the cleanup is skipped, reordered, or made conditional, or the moment
+a second test starts sharing the same row, the hidden non-idempotence becomes a
+failure that looks like the code broke rather than the test.
+
+> **A test that has only ever been observed to pass once has not been shown to
+> work.** Run it twice before believing it. If the second run needs a cleanup to
+> pass, the test depends on state it does not own, and that dependency is the
+> finding.
+
+Three habits:
+
+1. **Run a new test twice in a row, immediately.** It costs seconds and it is
+   the only cheap check for state leakage.
+2. **Write fixtures write-once rather than write-always** — check, then insert.
+   It makes the test idempotent by construction instead of by cleanup, and it
+   works on storage that cannot be cleaned.
+3. **Name a fixture after what it contains, not what you meant it to contain.**
+   When the rows could not be deleted, the honest fix was to rename
+   `objected` to `objectedThenConsented`, which is what the accident had made
+   it — and it turned out to be exactly the fixture rule 1 needed anyway.
+
+This is §4b from the other side. There, a green suite proved only the branches
+it ran; here, a green suite proved only the *state* it ran against. Both are the
+same mistake: reading a pass as a statement about the system when it was only a
+statement about one execution.
+
 ## 5. The failure you can see is rarely the failure that matters
 
 Related to §1 but distinct, and worth stating separately.

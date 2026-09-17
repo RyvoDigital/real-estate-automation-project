@@ -11,14 +11,19 @@ PDF podem divergir: o PDF é o que já saiu para o mundo e o seu nome está fixo
 | `enquadramento-conformidade.md` | `../conformidade/Ryvo_Enquadramento_Conformidade_v2.pdf` |
 | `registo-de-achados.md` | `../conformidade/Ryvo_Registo_de_Achados.pdf` |
 | `percurso-do-cliente.md` | `../operacoes/Ryvo_Percurso_do_Cliente_v1.pdf` |
+| `nota-questoes-automacao-02.md` | `../contratos/Ryvo_Quatro_Questoes.pdf` |
 | `nota-handback-clausula-12.md` | — nota de trabalho, não é tipografada |
+
+**As quatro questões estão em `../contratos/`** e não em `../conformidade/`,
+ainda que o assunto seja conformidade. O critério da pasta é o destinatário e
+não o tema: `contratos/` é o que vai para a advogada, e este documento foi para
+a advogada. A `Nota de acompanhamento` das minutas está ao lado, pela mesma
+razão.
 
 Os **modelos de mensagem** não estão aqui. Vivem em `../modelos/`, fonte e PDF
 juntos, por serem peças submetidas a uma plataforma para aprovação e por se
 multiplicarem por cliente e por idioma — uma família que se mantém inteira vale
 mais do que a separação fonte/saída que o resto desta pasta segue.
-Os argumentos de construção desse documento **não estão registados**; quem o
-construir a seguir deve acrescentá-los abaixo.
 
 O `v2` no nome do enquadramento é a segunda versão do **enquadramento**, não um
 segundo PDF: nunca existiu um `Ryvo_Enquadramento_Conformidade_v1.pdf`.
@@ -68,6 +73,16 @@ dentro de `legal/`):
       legal/operacoes/Ryvo_Percurso_do_Cliente_v1.pdf \
       "Documento operacional" "Automação para Mediação Imobiliária" \
       "Percurso do Cliente"
+
+    python3 legal/typeset.py legal/fonte/nota-questoes-automacao-02.md \
+      legal/contratos/Ryvo_Quatro_Questoes.pdf \
+      "Nota" "Automação para Mediação Imobiliária" \
+      "Quatro questões — Automação 02"
+
+    python3 legal/typeset.py legal/modelos/modelos-whatsapp.md \
+      legal/modelos/Ryvo_Modelos_WhatsApp_v1.pdf \
+      "Documento operacional" "Automação para Mediação Imobiliária" \
+      "Modelos de Mensagem WhatsApp"
 
 O mesmo tipógrafo constrói um documento que **não** vive em `legal/` — a
 especificação da Automação 02, cuja fonte e PDF estão ambos em `docs/`:
