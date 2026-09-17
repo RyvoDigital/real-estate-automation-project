@@ -76,7 +76,7 @@ Found while designing invariant 4 (improvements §3.11), before it was built. `P
 
 Suite 7 on the deployed build (15a2b23) missed twice on Spanish present-as-future: *"Perfecto, entonces quedamos el jueves 10 de septiembre..."* and *"Perfecto, quedamos entonces para el jueves..."*. The first shape is caught in production by `src/booking_claim.js` (`quedamos (para|el|en) <día>`). The second is **not**: the pattern allows nothing between the verb and `para`, and "entonces" sits there. Same lesson as "marco então" vs "vou marcar" (engineering-lessons 1i): the check was built for the shape someone thought of. **Fix:** allow an optional adverb (`entonces|ya|así|pues`) after `quedamos`, check the same neighbour in pt (`ficamos então para`) and en, add both suite-7 outputs verbatim to `tests/booking_claim.test.js` as permanent cases (§0.6). Prompt suites after.
 
-## NEW (17 Sep) — Did the internal-failure email actually arrive? 🔴 Tier 1, unverified Layer 2
+## CLOSED (17 Sep) — The internal-failure email did arrive. Two layers reported it independently ✅
 
 **Check this before anything else next session.** Two runs on 17 Sep at 00:18:57 and 00:23:35 ended `status='error'`, `error_type='internal_error:PrepRunAI'`, zone 4 — the AI-disclosure TDZ bug, since fixed. Zone 4 means the reply had already been sent, so `CatchInternal` correctly did **not** send the lead a duplicate handoff, and the operator saw three clean messages on his phone and nothing else.
 
@@ -86,7 +86,11 @@ So a run that errored produced: a row in `automation_runs`, no event, no invaria
 
 **How to check:** the operator's inbox (`manuelvale@ryvodigital.com`, no dot) around 00:19 and 00:23 on 17 Sep; the Resend dashboard for those two timestamps; and `EmailInternalFailure`'s response status in the executions for those runs.
 
-**If it did not fire:** find out whether the node ran at all and 4xx'd, or was never reached on the zone-4 branch — they are different fixes. Then add a `run.errored`-equivalent event on the caught-internal path so the failure is visible in the cockpit's anomalies screen (§4.8) and not only in a table nobody reads. **A caught error that alerts nobody is worse than an uncaught one**, because the uncaught one at least reaches Layer 1.
+**RESOLVED — it fired, and so did the layer above it.** The operator received *"Ryvo: internal failure in PrepRunAI - a lead may be unanswered"* at 02:23 **with a count of 2**, so neither failure was dropped. Independently, the server health check reported *"2 failed automation run(s) in the last 30 minutes"* at 02:30 — from outside n8n, seven minutes later, without reading the same signal.
+
+So a caught internal failure is **not** silent: Layer 2 (the workflow reporting what it failed to do) and Layer 3 (the outside monitor) both spoke, and agreed. The absence of an `events` row is correct behaviour, not a gap — the workflow handled its own error, so Layer 1 (`ryvoErrorHandler01`, which fires on n8n *execution* errors) rightly never saw it.
+
+**The carried limitation, which is real but is not this defect:** both alerts arrive **by email only**. A WhatsApp goes out for invariant violations but not for a caught internal failure, and email is the slower channel and the one most likely to be missed out of hours. That belongs with the §3.7 alerting work and the §4.8 anomalies screen — a caught internal failure should be visible in the cockpit, not only in two inboxes — and not as an open defect here.
 
 # Manual test scenarios — run before the demo
 

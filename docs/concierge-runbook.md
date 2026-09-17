@@ -1299,6 +1299,15 @@ select l.id, l.phone, m.created_at, m.body
   disclosure and must not be marked as though they did. The audit query above is
   *supposed* to show the gap for anyone contacted before the deploy.
 
+**Proven live 17 Sep 2026**, the whole chain on one run (00:36:42, `status=success`):
+a cockpit reply at 00:36:33 wrote `origin='human'`; the lead's next message
+fired `reason='handback'`; `payload.disclosure` recorded
+`last_origin:'human'` with the timestamp of that cockpit row, `sent_head` the
+banner as it went to Twilio; invariant 6 returned `disclosed` with
+`violated: []` across all six; and the `ai.disclosure.sent` event and the
+`messages.disclosure` row **carry the same Twilio SID**, written by different
+nodes from different data — they agree only if the chain is consistent.
+
 > **The internal-failure path is disclosed but not invariant-checked.**
 > `CatchInternal → SendInternalHandoff` never reaches `AssertDelivery`, so
 > invariant 6 does not see it — the same pre-existing gap invariant 4 has. The
