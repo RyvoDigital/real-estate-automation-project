@@ -275,6 +275,42 @@ An unresolved row is uncertainty about one contact and the gate still holds; an
 orphan means the gate is not the only route, and every subsequent send is
 suspect until a person says otherwise.
 
+## The dry run found a permanent false clean, before anything was scheduled
+
+Run 17 Sep 2026. Both passes executed; nothing was written. Pass 1 examined zero
+rows because `sends` is empty, and said so in those terms rather than reporting
+a bare zero.
+
+**Pass 2 reported "0 outbound messages examined, all accounted for" for a number
+that has been carrying live Concierge traffic for weeks.**
+
+```
+From=+14155238886            200   0 message(s)
+From=whatsapp:+14155238886   200   5 message(s)
+```
+
+Twilio addresses WhatsApp with a `whatsapp:` channel prefix. Our storage is bare
+E.164 everywhere. **Both responses are HTTP 200** — the wrong query is not an
+error, it is a clean, confident, permanently empty result.
+
+Left unfixed, the orphan sweep would have reported all-clear every night while
+examining nothing, on the one check whose job is detecting the single event the
+architecture exists to prevent. And `matchSend` compares `m.to` against
+`sends.phone_e164`, so every reconciled row would have gone `unresolved` for
+ever.
+
+The channel detail now lives at the boundary: queries go out prefixed, results
+come back stripped, and every other module keeps speaking E.164. After the fix
+the same sweep examined **16 messages** over 48 hours.
+
+> **This is the whole argument for printing the query beside the result.** A
+> zero from a wrong window is indistinguishable from a quiet night, and the only
+> thing that told them apart was a dry run that showed what it had asked.
+
+The sweep also now says so itself: a client returning zero messages in 48 hours
+gets a warning that the pass cannot distinguish a quiet number from a wrong
+filter or a number not on the account.
+
 ## Before either is scheduled
 
 1. A dry run of each against production data, printing what it *would* write —

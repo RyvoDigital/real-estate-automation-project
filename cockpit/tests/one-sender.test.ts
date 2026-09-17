@@ -43,6 +43,17 @@ const SENDER = 'cockpit/src/lib/send/twilio-adapter.ts'
 const READER = 'cockpit/src/lib/send/provider-reader.ts'
 
 /**
+ * The dry run reports which key is configured, masked, so it names the READ
+ * credential. A true positive, exempted explicitly rather than by widening the
+ * rule — an exception that exists on purpose can be re-examined, one that
+ * exists by oversight cannot (§4d).
+ *
+ * It is exempted for the READ credential ONLY. If it ever names the sending
+ * credential the assertion above fires, and it should.
+ */
+const READ_CRED_ALSO_ALLOWED = ['cockpit/tests/probe-reconcile.ts']
+
+/**
  * Credentials are matched by NAME, anywhere in the file, not by access pattern.
  *
  * The first version matched `process.env.TWILIO_…`, and provider-reader.ts
@@ -159,9 +170,17 @@ test('the READ credential appears in at most one file, and it is not the dispatc
   // single "at most two files" assertion would still pass.
   const offenders = FILES.filter((f) => READ_CRED.test(f.text)).map((f) => f.path)
   assert.deepEqual(
-    offenders.filter((p) => p !== READER), [],
-    'the read credential may only appear in provider-reader.ts. Offending file(s) above.',
+    offenders.filter((p) => p !== READER && !READ_CRED_ALSO_ALLOWED.includes(p)), [],
+    'the read credential may only appear in provider-reader.ts (and the named dry run). ' +
+    'Offending file(s) above.',
   )
+  // The exemption is for reading only, and this is what keeps it narrow.
+  for (const exempt of READ_CRED_ALSO_ALLOWED) {
+    const f = FILES.find((x) => x.path === exempt)
+    if (!f) continue
+    assert.equal(SEND_CRED.test(f.text), false,
+      `${exempt} is exempted for the READ credential and names a SENDING one`)
+  }
   assert.ok(
     FILES.some((f) => f.path === READER && READ_CRED.test(f.text)),
     'the reader does not hold the read credential — has it been moved, or renamed?',

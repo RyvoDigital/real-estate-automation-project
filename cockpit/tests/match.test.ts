@@ -169,3 +169,22 @@ test('ORPHANS: a free-form reply with no send row is expected, not an orphan', (
   })
   assert.deepEqual(orphans, [])
 })
+
+test('THE CHANNEL PREFIX: provider addresses are whatsapp:-prefixed and ours are not', async () => {
+  // Caught by a dry run, before anything was scheduled. `From=+14155238886`
+  // returns HTTP 200 and zero messages; `From=whatsapp:+14155238886` returns
+  // the traffic. The wrong one is not an error — it is a clean, confident,
+  // permanently empty result, and the orphan sweep would have reported "all
+  // accounted for" every night while examining nothing.
+  const { toChannelAddress, stripChannelAddress } = await import('../src/lib/send/provider-reader')
+
+  assert.equal(toChannelAddress('+14155238886'), 'whatsapp:+14155238886')
+  assert.equal(toChannelAddress('whatsapp:+14155238886'), 'whatsapp:+14155238886', 'idempotent')
+  assert.equal(stripChannelAddress('whatsapp:+351912345678'), '+351912345678')
+  assert.equal(stripChannelAddress('+351912345678'), '+351912345678', 'a bare number survives')
+
+  // And the round trip, because the matcher compares the stripped form against
+  // sends.phone_e164 — one direction alone would still leave every row
+  // unresolved for ever.
+  assert.equal(stripChannelAddress(toChannelAddress('+351912345678')), '+351912345678')
+})

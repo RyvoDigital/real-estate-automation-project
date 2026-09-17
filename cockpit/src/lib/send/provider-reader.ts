@@ -68,6 +68,38 @@ async function getJson(url: string): Promise<unknown> {
   return res.json()
 }
 
+/**
+ * THE CHANNEL PREFIX, WHICH A DRY RUN CAUGHT BEFORE ANYTHING WAS SCHEDULED.
+ *
+ * Twilio addresses WhatsApp as `whatsapp:+351912345678`. Our storage is bare
+ * E.164 everywhere — leads.phone, consent_events.phone_e164, sends.phone_e164.
+ * The first version of this file passed the bare form to `From`, and:
+ *
+ *     From=+14155238886            200   0 message(s)
+ *     From=whatsapp:+14155238886   200   5 message(s)
+ *
+ * Both are HTTP 200. The wrong one is not an error — it is a clean, confident,
+ * permanently empty result. The orphan sweep would have reported "all
+ * accounted for" every night while examining nothing, on the one check whose
+ * job is detecting the single event the architecture exists to prevent. And
+ * the matcher compares `m.to === row.phoneE164`, so every row would have gone
+ * unresolved for ever.
+ *
+ * So the channel detail lives HERE, at the boundary, and nothing inland ever
+ * sees it: queries go out prefixed, results come back stripped, and every other
+ * module keeps speaking E.164.
+ */
+const CHANNEL = 'whatsapp'
+
+export function toChannelAddress(e164: string, channel = CHANNEL): string {
+  return e164.startsWith(`${channel}:`) ? e164 : `${channel}:${e164}`
+}
+
+export function stripChannelAddress(addr: string): string {
+  const i = addr.indexOf(':')
+  return i === -1 ? addr : addr.slice(i + 1)
+}
+
 type TwilioMessage = {
   sid: string
   to: string
@@ -95,12 +127,12 @@ export async function listMessages(params: {
   pageSize?: number
 }): Promise<ProviderMessage[]> {
   const q = new URLSearchParams({
-    From: params.from,
+    From: toChannelAddress(params.from),
     'DateSent>': params.sentAfter.toISOString(),
     'DateSent<': params.sentBefore.toISOString(),
     PageSize: String(params.pageSize ?? 200),
   })
-  if (params.to) q.set('To', params.to)
+  if (params.to) q.set('To', toChannelAddress(params.to))
 
   let url: string | null =
     `https://api.twilio.com/2010-04-01/Accounts/${ACCOUNT()}/Messages.json?${q.toString()}`
@@ -112,8 +144,9 @@ export async function listMessages(params: {
     for (const m of page.messages ?? []) {
       out.push({
         sid: m.sid,
-        to: m.to,
-        from: m.from,
+        // Stripped, so everything inland compares against bare E.164.
+        to: stripChannelAddress(m.to),
+        from: stripChannelAddress(m.from),
         body: m.body,
         // date_sent is null until the provider actually sends it; date_created
         // is when it accepted the request. The matcher compares against our
