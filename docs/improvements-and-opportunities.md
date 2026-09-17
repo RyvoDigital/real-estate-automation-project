@@ -312,6 +312,21 @@ The system books a meeting without ever saying what it is. A real lead asks thes
 
 **Fix:** capture meeting kind, duration and location per client at onboarding, state them in the prompt as facts, and put them on the calendar event. Add a "none of those work — roughly when suits?" path. Small, and all four are things a lead asks in the first conversation.
 
+### 3.17 🔴 The cockpit is built for the wrong user
+**Found 17 Sep while specifying Automation 02.**
+
+The cockpit is designed as though the operator were an agency owner: leads, escalations and a health page for one agency's world. It should be built for the person who sells and runs the automations across many agencies — someone who supervises every client, spots which one needs help, and does the operational work of onboarding, importing and configuring.
+
+The mismatch surfaced on a concrete question: where does an agency's contact list get imported, and by whom? There is an "Import — Contact lists" item in the sidebar, but the frame assumes a single agency rather than a portfolio.
+
+**The stated purpose:** simplify the operator's work to the maximum, and let him supervise both his own operations and his clients' — the clients' side limited to what he can actually help with, never anything confidential.
+
+**What that implies:** a client list as the top-level object rather than a lead list; per-client health, volume and anomaly rollups so one screen answers "which client needs me today"; onboarding and configuration as first-class operations rather than database edits (see 3.14); import as an operator action performed for a client; the existing lead and escalation views scoped beneath a selected client.
+
+The no-client-login decision is unchanged and reinforced. Clients still get outcomes in their own channels plus a weekly report. This is about the operator's own instrument being shaped for the job actually done.
+
+**Sequencing:** not before Automation 02 exists, because Automation 02 will itself demand operator screens — import, segment approval, campaign status — and those should be designed into the new frame rather than bolted onto the old one. But the frame must be decided before those screens are built, or they get built twice.
+
 ---
 
 # 4. 🟡 Improvements
@@ -474,6 +489,21 @@ Once all five automations are built and working, record each one end to end and 
 **🔴 Sequencing, and this matters:** not before the automations exist and are reliable. A polished video of a product that fails in week one is worse than no video. **Live demo stays the primary sales tool until there is a paying client;** video is what scales it afterwards.
 
 **Scope note:** professionally edited, not slick-for-its-own-sake. Screen recordings with real conversations, clear motion, no music-video treatment. Over-production on a technical product reads as compensating.
+
+### 5.12 Compliance watch — regulatory monitoring in the cockpit
+Compliance is not a state that is reached; it is a state that decays. Meta changed its Business Messaging Policy at least three times in 2026, the ePrivacy Regulation is unfinished, the AI Act phases in over years, and a supervisory authority can publish guidance that changes a jurisdiction row overnight.
+
+A scheduled job that reads the sources governing this product, summarises what changed, and surfaces it in the cockpit.
+
+**Sources:** Meta's WhatsApp Business Messaging Policy and platform changelog; CNPD decisions and directives; AEPD guidance; EDPB opinions; the AI Act implementation timeline and Commission guidance; national ePrivacy transpositions for each jurisdiction in the policy table.
+
+**Three severities, mirroring the alerting tiers.** *Act now* — something in production is now non-compliant; alerts immediately on the same channel as an invariant violation. *Review* — probably affects us, needs a human read within the week. *Note* — context, no action.
+
+It belongs in the cockpit rather than an inbox because it is operator work, it needs a record of what was reviewed and when, and "we monitor regulatory change and here is the log" is itself a compliance artefact.
+
+Same move as alerting: it does not make the system complete, it makes the gap short. A regulator does not expect omniscience — they expect a documented process for noticing and responding.
+
+Goes in the cockpit mindmap (§3.17) as a first-class section.
 
 ---
 
