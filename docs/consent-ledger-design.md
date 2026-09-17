@@ -197,6 +197,17 @@ This is the rule most likely to be broken by a well-meaning future edit — it
 looks like an inconsistency until you know why it is there — so §4.3.3 makes it
 provable rather than asserted.
 
+## 4.3.1a Segment E is derived, never declared
+
+The five segments are A–E, and the agency declares which one a contact is in —
+except E. **E is not a declaration, it is the consequence of an `objection`
+event**, and it arrives from the contact rather than from the agency. Nothing in
+the system should offer E as a choice on the segmentation screen: an agency
+cannot put someone in E, and it must not be able to take them out of it either.
+
+Rule 1 of the derivation is what makes that true, and `src/opt_out.js` is what
+decides an objection occurred.
+
 ## 4.3.2 `claimed_unevidenced` exists so that two different facts stay different
 
 A consent event cannot be undated: the `consent_given` check constraint in 0012
