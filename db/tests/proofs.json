@@ -58,9 +58,11 @@
       "watches": [
         "db/migrations/0018_campaign_runs.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0018_campaign_runs.sql": "597ffa7c27a329df532c93cd2169b2cb4c7323a536a5058a894fb80d9a7165f3"
+      },
+      "last_proved": "2026-09-17",
+      "proved_by": "Manuel Vale"
     }
   ]
 }

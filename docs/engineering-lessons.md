@@ -1098,6 +1098,33 @@ Each time the pattern is identical: a property everyone agrees with, one obvious
 step that destroys it, and a structural statement of the property as the only
 thing that survives.
 
+### It happens again to a property you have already FOUND and FIXED elsewhere
+
+The second instance, the same day. A prefix table for jurisdiction was rejected
+in the morning with a specific finding: `+44` is four countries and `07911` is
+Guernsey, so `startsWith('+44')` would apply English law to a Guernsey resident
+with no symptom. The resolver was rewritten to use libphonenumber and the
+finding was written into the findings log.
+
+Three hours later the bulk evaluator needed to pick which policy row to hand the
+gate, from a map keyed by country. It picked by dialling prefix.
+
+Not from forgetting the morning. **Picking a row from a map by prefix is the
+obvious way to pick a row from a map** — the local problem presents itself as a
+lookup, not as a jurisdiction question, and the defect only becomes visible when
+you hold both contexts at once. Which is why:
+
+> A property you have defended once is not defended. Each new caller, helper or
+> lookup re-poses the same question in a shape where the wrong answer is the
+> convenient one, and **intention is not a defence against a step that does not
+> feel like a violation.**
+
+The fix that survives is again structural rather than attentive, and again it
+went in the callee rather than the caller: `decideGate` now refuses a policy row
+whose country is not the one it resolved. Every future caller — including the
+ones written by someone who has never read the Guernsey finding — gets a refusal
+instead of a wrong permission.
+
 ### What to do about it
 
 1. **When you state a property, ask what the next requirement will be.** If the
@@ -1151,6 +1178,26 @@ regulator's question had an answer, and it paid again by making a whole class of
 test-cleanup bugs impossible to hide (§4c). Deny-by-default was adopted for
 compliance, and it paid again by turning a wrong jurisdiction resolution into a
 refusal instead of a wrong send.
+
+### The caveat, which the same function supplied within the hour
+
+Purity is not safety. A pure function takes its facts as arguments, which means
+**it is only as correct as everyone who will ever look those facts up** — and it
+cannot see them do it.
+
+`decideGate` was handed a policy row by its caller and evaluated it without
+checking that the row was for the country it had just resolved. Pure, total,
+exhaustively tested, and one careless lookup away from authorising a send under
+the wrong country's law. The tests could not have caught it: they pass the right
+row, because the person writing them knows which one is right.
+
+> **A pure function that trusts its inputs has not removed the validation, it
+> has relocated it — to every call site, present and future.** Where an input is
+> a looked-up fact rather than a caller's own value, the function should check
+> the relationship it depends on. That is not defensive clutter; it is the
+> difference between a guarantee and an assumption about colleagues.
+
+The check is three lines and turns a caller's mistake into a refusal.
 
 ## 5. The failure you can see is rarely the failure that matters
 
