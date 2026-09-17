@@ -50,6 +50,17 @@
       },
       "last_proved": "2026-09-17",
       "proved_by": "Manuel Vale"
+    },
+    {
+      "id": "0018-campaign-runs-constraints",
+      "what": "A halted run must say why, and an evaluated run's counts must add up: target = excluded + permitted + refused. A shape that does not add up is not a record.",
+      "how": "Paste db/migrations/0018_campaign_runs.sql, then its verify block inside begin/rollback. Expect halted_states_its_reason to refuse a halt with no reason; forecast_adds_up to refuse 23+20+200 against a target of 300 and to ACCEPT 23+20+257.",
+      "watches": [
+        "db/migrations/0018_campaign_runs.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
     }
   ]
 }

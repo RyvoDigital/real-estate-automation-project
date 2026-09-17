@@ -971,6 +971,17 @@ stayed green.
 > dependency-cruiser config, a "no imports from X" guard — makes two claims: what
 > it looks for, and where it looked. Only the first is ever written down.**
 
+### The operational form
+
+> **When a check asserts a property about "the system", the first question is
+> what it actually walked — and the answer is almost always narrower than the
+> sentence.**
+
+Ask it of every guard you inherit, and of every one you write. Not *does this
+check work*, which it usually does, but *over what*. A passing check with a
+narrow scope is more dangerous than a failing one, because it is producing
+evidence: somebody will cite it as the reason a property holds.
+
 Three habits:
 
 1. **Say the scope in the name or the failure message**, so the next reader is
@@ -1098,6 +1109,48 @@ thing that survives.
 3. **Suspect the step that feels like finishing.** The import that broke this
    was the last thing needed to make the gate work, which is exactly the moment
    the property was worth re-reading.
+
+---
+
+## 12b. A property chosen for one reason paying for an unrelated one is evidence it was the right property
+
+Logged 2026-09-17.
+
+`decideGate` was written as a pure function for a single, narrow reason: a view
+can only be tested by writing rows, and the consent ledger refuses DELETE, so
+the rules had to be callable with synthetic input and no database. That is a
+*testability* argument, and testability arguments are easy to wave away when
+the pure version is more awkward to write — as this one was, since it forced a
+second module and an injected store.
+
+Weeks later the bulk evaluator needed to decide three hundred contacts.
+Through a gate that read the database itself, that is six hundred round trips,
+or a second bulk implementation of the same rules that would drift from the
+first. Through a pure one it is **two queries and three hundred function
+calls**: read every consent state in one `in (…)`, read the distinct countries
+in another, then decide in memory.
+
+Nobody designed for that. The property was chosen for tests and it paid for
+throughput.
+
+### Why this is worth noticing rather than enjoying
+
+> When a property you adopted for one reason turns out to pay for an unrelated
+> one, that is evidence the property was structural rather than stylistic — and
+> it is an argument you can use on the next person who asks why the awkward
+> version is worth it.
+
+It also works as a diagnostic in the other direction. A property that never pays
+for anything but the reason it was adopted is often a preference wearing a
+justification: "we keep this pure for testability" and nothing else ever
+benefits usually means the tests could have been written differently and the
+awkwardness bought nothing.
+
+The same pattern elsewhere in this file: append-only was adopted so a
+regulator's question had an answer, and it paid again by making a whole class of
+test-cleanup bugs impossible to hide (§4c). Deny-by-default was adopted for
+compliance, and it paid again by turning a wrong jurisdiction resolution into a
+refusal instead of a wrong send.
 
 ## 5. The failure you can see is rarely the failure that matters
 

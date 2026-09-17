@@ -87,7 +87,7 @@ export type GateVerdict =
   | {
       permitted: false
       layer: GateLayer
-      reason: JurisdictionRefusal | PolicyRefusal | 'reserved_test_number' | 'objected' | 'no_ledger_basis'
+      reason: JurisdictionRefusal | PolicyRefusal | 'reserved_test_number' | 'objected' | 'no_ledger_basis' | 'policy_country_mismatch'
       detail: string
     }
 
@@ -184,6 +184,29 @@ export function decideGate(input: {
     }
   }
 
+  // 5a. THE ROW MUST BE FOR THE COUNTRY WE RESOLVED.
+  // The gate is handed a policy row by its caller, and until now it trusted
+  // that the caller looked up the right one. A bulk evaluator that picked rows
+  // by dialling prefix would hand a Guernsey number the United Kingdom's row —
+  // +44 is four jurisdictions — and this function would have evaluated a GG
+  // contact under PECR and permitted it. Exactly the defect the resolver was
+  // built to prevent, re-entering through the caller.
+  //
+  // So the gate checks rather than trusts. A caller that looks up correctly
+  // never sees this branch; a caller that does not gets a refusal instead of a
+  // wrong permission.
+  if (input.policy && input.policy.country !== j.country) {
+    return {
+      permitted: false,
+      layer: 'policy',
+      reason: 'policy_country_mismatch',
+      detail:
+        `The policy row supplied is for ${input.policy.country}, but this number resolves to ` +
+        `${j.country}. A row for the wrong country cannot authorise anything — +44 alone covers ` +
+        'the United Kingdom, Guernsey, Jersey and the Isle of Man.',
+    }
+  }
+
   // 5. POLICY. What this country permits for that basis.
   const v = evaluatePolicy(input.policy, segment, {
     consentOccurredAt: input.consent?.occurred_at ?? null,
@@ -216,4 +239,6 @@ export const GATE_REFUSAL_MEANS: Record<string, string> = {
   reserved_test_number: RESERVED_TEST_REASON,
   objected: 'This contact objected. Permanent and across campaigns.',
   no_ledger_basis: 'Nothing in the ledger permits contacting this person.',
+  policy_country_mismatch:
+    'The policy row supplied is for a different country than the number resolves to. A row for the wrong country cannot authorise anything.',
 }
