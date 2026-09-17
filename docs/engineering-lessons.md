@@ -880,6 +880,64 @@ that a permission states its basis and that no refusal reason lacks an
 explanation.** Both are one loop over the enumerated cases, and both fail loudly
 the day someone adds a twelfth reason and forgets its wording.
 
+---
+
+## 11b. A record that justifies a past action may join only to immutable data
+
+Logged 2026-09-17, found by writing one row out by hand before designing the
+table that would hold it.
+
+The send record has to answer *"why did this person receive this message"*. The
+obvious schema stores the ids — the consent event, the country — and joins for
+the rest: the statute, who confirmed the policy, when. It is the normal,
+correct-looking answer and it is wrong.
+
+**`jurisdiction_policy` is mutable by design.** Ireland's twelve-month expiry,
+Spain's segment C, the ePrivacy Regulation landing: each is an `UPDATE`, and
+that is the entire reason the policy lives in data rather than in code — "one
+table changes and every client is compliant tomorrow" is only true if it can
+change.
+
+So the join answers *what does the law say now*. The question asked of a record
+of a past action is always *what authorised it then*. Today those two sentences
+agree. In a year they do not, and the join produces the confident wrong one: a
+regulator reading the record would be told the message was sent under a policy
+that did not exist on the day it went out.
+
+### The rule
+
+> **A record that justifies a past action may join only to immutable data.
+> Everything mutable must be copied at the moment it was relied upon.**
+
+In this case: `policy_confirmed_at`, `policy_confirmed_by`, `policy_statute` and
+the basis sentence are snapshots stored as text on the send row.
+`consent_event_id` stays a foreign key, because `consent_events` is append-only
+and cannot change underneath the record — it is the one table a join to is safe,
+and it is safe for a structural reason rather than a hopeful one.
+
+### How to tell which kind of table you have
+
+Ask what an `UPDATE` to it means.
+
+- If an update means **"we were wrong about this"** — a policy, a price, a
+  configuration, a tax rate, a threshold, a name — then it is mutable and a
+  justifying record must copy from it.
+- If an update is **impossible or meaningless** — an append-only ledger, an
+  immutable event log, a content-addressed blob — a join is safe.
+
+The trap is that the mutable tables are the ones that feel most authoritative,
+because they hold the current truth. That is exactly what makes them the wrong
+thing to point at from a record of the past.
+
+### And the corollary, which is the half people skip
+
+Once copied, **the copy must be unwritable.** The gate columns on the send row
+are writable on insert and never again, enforced by a trigger that allows only
+the outcome columns to change. A row recording a send that should not have
+happened is the only row anyone would ever be tempted to edit, and an
+authorisation that can be rewritten afterwards is not an authorisation, it is a
+note.
+
 ## 4c. A test is not green until it is green twice, and cleanup is what hides the difference
 
 Logged 2026-09-17, caught by running a suite a second time for an unrelated
@@ -929,6 +987,62 @@ This is §4b from the other side. There, a green suite proved only the branches
 it ran; here, a green suite proved only the *state* it ran against. Both are the
 same mistake: reading a pass as a statement about the system when it was only a
 statement about one execution.
+
+---
+
+## 12. The next obvious step is often the one that breaks the property you just argued for
+
+Logged 2026-09-17, two messages after arguing the opposite.
+
+The consent gate's decision was deliberately written as a pure function, and the
+reason was stated out loud: a view can only be tested by writing rows, so the
+rules had to be callable with synthetic input and no database — that is what
+lets the layer ORDER be tested exhaustively, and the order is the part most
+worth proving.
+
+Then the same file was given `import 'server-only'` and a Supabase client,
+because the next thing it needed was to read two rows. Both were the obvious
+next step. Together they made the pure function unimportable from a plain test,
+and the suite failed on its first run with an error about Client Components that
+had nothing to do with consent.
+
+**This is not carelessness, and treating it as carelessness is why it recurs.**
+The property was "this decision can be tested without infrastructure". The next
+requirement was "this decision needs two rows from the database". Satisfying the
+second in the same file destroys the first, and nothing about writing the import
+feels like a violation — it feels like finishing the job.
+
+### The defence has to be structural, because intention has already failed once
+
+The fix was not "remember to keep it pure". It was to split the file and write
+into the second one:
+
+> **If a rule appears in this file, it is in the wrong file.**
+
+That works for one reason: it is *checkable*. Anyone can look at gate-read.ts
+and see whether it contains a decision, and the answer is not a matter of
+judgement. Compare "keep the gate pure", which is advice — true, agreed with,
+and no obstacle whatsoever to the import that broke it.
+
+The same move appears three times in this file already: rule 13 (documenting a
+failure mode does not control it — check the artefact), §9b's docs guard (a rule
+that depends on remembering is not a control), and the reserved test range,
+where "everyone knows those numbers are fake" became a refusal in the send gate.
+Each time the pattern is identical: a property everyone agrees with, one obvious
+step that destroys it, and a structural statement of the property as the only
+thing that survives.
+
+### What to do about it
+
+1. **When you state a property, ask what the next requirement will be.** If the
+   honest answer is "something that would break this in this file", split the
+   file now rather than after.
+2. **Prefer a boundary to a rule.** A separate module, a check constraint, a
+   test that fails — anything a person can evaluate without remembering the
+   original argument.
+3. **Suspect the step that feels like finishing.** The import that broke this
+   was the last thing needed to make the gate work, which is exactly the moment
+   the property was worth re-reading.
 
 ## 5. The failure you can see is rarely the failure that matters
 

@@ -22,6 +22,18 @@
       },
       "last_proved": "2026-09-17",
       "proved_by": "Manuel Vale"
+    },
+    {
+      "id": "0015-sends-constraints",
+      "what": "The three invariants of the send record and the authorisation freeze, each SEEN to refuse a row it must refuse. Two of the three are check constraints rather than observations, which is only possible because the row precedes the send.",
+      "how": "Paste db/tests/0015_sends_constraints.test.sql into the Supabase SQL editor and run it. It rolls itself back. Expect 'ALL SIX CONSTRAINT CASES FIRED', the neighbour accepted, and three freeze notices. Any 'DID NOT FIRE' is a constraint that is not holding.",
+      "watches": [
+        "db/migrations/0015_sends.sql",
+        "db/tests/0015_sends_constraints.test.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
     }
   ]
 }
