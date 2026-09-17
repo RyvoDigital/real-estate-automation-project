@@ -63,6 +63,17 @@
       },
       "last_proved": "2026-09-17",
       "proved_by": "Manuel Vale"
+    },
+    {
+      "id": "0019-unresolved-status",
+      "what": "The `unresolved` status is accepted where 0015 would have refused it, the freeze still holds on a row in that state, and the two reconciliation indexes exist.",
+      "how": "Paste db/migrations/0019_sends_unresolved.sql, then its verify block inside begin/rollback. Expect the unresolved insert to succeed, gate_basis refused by name, reconciled_at/last_error writable, and 2 index rows.",
+      "watches": [
+        "db/migrations/0019_sends_unresolved.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
     }
   ]
 }

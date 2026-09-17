@@ -32,6 +32,35 @@ const SELF = 'cockpit/tests/one-sender.test.ts'
 const SENDER = 'cockpit/src/lib/send/twilio-adapter.ts'
 
 /**
+ * The one file allowed to hold the READ credential. It exists.
+ *
+ * Two credentials now, and therefore TWO assertions rather than one weakened
+ * into "at most two files hold a Twilio credential". The sending credential may
+ * appear in exactly one file and it is not the reader; the read credential may
+ * appear in exactly one file and it is not the dispatcher. Weakening them into
+ * a single count would let both live in the same file and still pass.
+ */
+const READER = 'cockpit/src/lib/send/provider-reader.ts'
+
+/**
+ * Credentials are matched by NAME, anywhere in the file, not by access pattern.
+ *
+ * The first version matched `process.env.TWILIO_…`, and provider-reader.ts
+ * defeated it by accident on the first run: it reads `process.env[name]` through
+ * a helper, so the credential names appear only as string literals and the scan
+ * saw nothing. The same indirection in a SENDING file would have hidden a
+ * sender — one `process.env[k]` and the boundary check goes quiet.
+ *
+ * So the question is not "does this file access the environment in the shape I
+ * expected", it is "does this file name the credential at all". A file that
+ * names it can reach it.
+ */
+/** Sending. A Restricted key with Create, or the account auth token. */
+const SEND_CRED = /\b(TWILIO_AUTH_TOKEN|TWILIO_API_SECRET|TWILIO_SEND_KEY_[A-Z_]+|WHATSAPP_TOKEN|MESSAGING_[A-Z_]+)\b/
+/** Reading. Restricted to Messaging → messages → Read and List. */
+const READ_CRED = /\bTWILIO_READ_KEY_[A-Z_]+\b/
+
+/**
  * THE SCAN COVERS THE WHOLE REPOSITORY, NOT JUST cockpit/src.
  *
  * The first version scanned `cockpit/src` alone, which meant a sender added to
@@ -92,6 +121,7 @@ test('the scan sees both worlds (a vacuous pass proves nothing, §5c)', () => {
   assert.ok(FILES.length > 80, `only ${FILES.length} files found — the scan is broken`)
   for (const control of [
     'cockpit/src/lib/send/dispatch.ts',   // the cockpit
+    'cockpit/src/lib/send/provider-reader.ts',
     'src/invariants.js',                  // the n8n shared modules
     'cockpit/src/lib/gate.ts',
     'tests/opt_out.test.js',
@@ -113,25 +143,80 @@ test('the provider SDK is imported in at most one file, and it is the dispatcher
   )
 })
 
-test('provider credentials are read in at most one file, and it is the dispatcher', () => {
-  // The real boundary: without the credential in scope, a file CANNOT send,
-  // whatever it imports.
-  const CRED = /process\.env\.(TWILIO_[A-Z_]+|WHATSAPP_[A-Z_]+|MESSAGING_[A-Z_]+)/
-  const offenders = FILES.filter((f) => CRED.test(f.text)).map((f) => f.path)
+test('the SENDING credential appears in at most one file, and it is not the reader', () => {
+  // The real boundary: without a credential that can create, a file CANNOT
+  // send, whatever it imports.
+  const offenders = FILES.filter((f) => SEND_CRED.test(f.text)).map((f) => f.path)
   assert.deepEqual(
     offenders.filter((p) => p !== SENDER), [],
-    'provider credentials may only be read by the dispatcher. Offending file(s) above.\n' +
-    'A file that can construct a provider client can send without a send row.',
+    'the sending credential may only appear in the adapter. Offending file(s) above.\n' +
+    'A file that can construct a sending client can send without a send row.',
   )
 })
 
-test('nothing but the dispatcher calls the provider REST API by URL', () => {
-  // Closes the loophole of skipping the SDK and using fetch() directly.
+test('the READ credential appears in at most one file, and it is not the dispatcher', () => {
+  // The mirror. Without it, both credentials could migrate into one file and a
+  // single "at most two files" assertion would still pass.
+  const offenders = FILES.filter((f) => READ_CRED.test(f.text)).map((f) => f.path)
+  assert.deepEqual(
+    offenders.filter((p) => p !== READER), [],
+    'the read credential may only appear in provider-reader.ts. Offending file(s) above.',
+  )
+  assert.ok(
+    FILES.some((f) => f.path === READER && READ_CRED.test(f.text)),
+    'the reader does not hold the read credential — has it been moved, or renamed?',
+  )
+})
+
+test('the two credentials never meet: neither file holds the other one', () => {
+  // The property that makes the split worth having. If the reader ever holds a
+  // sending credential, the boundary is gone however tidy the file count looks.
+  const reader = FILES.find((f) => f.path === READER)
+  assert.ok(reader, `${READER} was not found`)
+  assert.equal(SEND_CRED.test(reader!.text), false,
+    'the reader holds a SENDING credential — it could then cause a message to exist')
+
+  const dispatcher = FILES.find((f) => f.path === 'cockpit/src/lib/send/dispatch.ts')
+  assert.equal(READ_CRED.test(dispatcher!.text), false,
+    'the dispatcher holds the READ credential — the two roles have merged')
+})
+
+test('the reader is structurally incapable of sending, not merely not calling send', () => {
+  const src = codeOnly(readFileSync(join(REPO, READER), 'utf8'))
+
+  // 1. No SDK: there is no `client.messages.create` in scope to reach for.
+  assert.equal(/from ['"]twilio['"]|require\(\s*['"]twilio['"]/.test(src), false,
+    'the reader imports the Twilio SDK — create() is then one edit away from being called')
+
+  // 2. One route to the network, and it hardcodes GET.
+  const fetches = [...src.matchAll(/\bfetch\(/g)].length
+  assert.equal(fetches, 1, `the reader makes ${fetches} fetch calls — there must be exactly one, inside getJson`)
+  assert.match(src, /method: 'GET'/)
+
+  // 3. No write verb, and no request body on the one call.
+  // NOT a bare /body:/ — that matched `body: string` in the message TYPE on the
+  // first run. A check that fires on a field name is measuring the wrong thing,
+  // and would have been silenced by renaming rather than by fixing anything.
+  for (const forbidden of [
+    /method:\s*['"](POST|PUT|PATCH|DELETE)['"]/i,
+    /\.create\(/,
+    /fetch\([^)]*body:/s,
+  ]) {
+    assert.equal(forbidden.test(src), false,
+      `the reader contains ${forbidden} — adding a write here must be a visible act, not an argument change`)
+  }
+})
+
+test('only the sender and the reader reach the provider API by URL', () => {
+  // Closes the loophole of skipping the SDK and using fetch() directly. TWO
+  // files may now, and which one may do WHAT is the subject of the credential
+  // assertions above — the reader reaching api.twilio.com with a key that
+  // cannot create is not a hole.
   const URL_RE = /https?:\/\/[a-z0-9.-]*twilio\.com/i
   const offenders = FILES.filter((f) => URL_RE.test(f.text)).map((f) => f.path)
   assert.deepEqual(
-    offenders.filter((p) => p !== SENDER), [],
-    'the provider API may only be called from the dispatcher, by SDK or by URL.',
+    offenders.filter((p) => p !== SENDER && p !== READER), [],
+    'the provider API may only be called from the adapter or the reader. Offending file(s) above.',
   )
 })
 

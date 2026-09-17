@@ -183,46 +183,59 @@ Three options, and I would take the third:
    "who may talk to Twilio" but **"who may cause a message to exist"**, and a
    key that cannot send cannot cross it.
 
-## 6.1 The scoping check — attempted 17 Sep 2026, and NOT settled
+## 6.1 The scoping check — SETTLED 17 Sep 2026, in the Console
 
-Three sources read. What is established:
+**Confirmed, not indicative.** Restricted API Keys scope by action, and the
+action columns are **Read · List · Create · Update · Delete**, separately, across
+twenty-nine products. Messaging expands to individual resources including
+`messages`, described there as *"Represents an inbound or outbound message"*.
 
-- **Restricted API Keys are GA**, not beta.
-- They scope by product, resource and **action**: *"which Twilio API Resources an
-  API Key can access, and which action(s) the API Key is allowed to take on
-  those API Resources"*. Messaging is among the supported products.
-- A search summary quoted an operation shaped `twilio/messaging/messages/list`,
-  which would mean list is grantable separately from create.
+> **Source: the Console's own permission grid**, read while creating a key. Not
+> the documentation — that page does not enumerate permissions, it points at a
+> PDF matrix which is font-encoded and yields no extractable text. Recorded
+> because the next person to check this will start at the docs and find the same
+> dead end, and should go straight to the Console.
 
-**What is not established: the permission identifiers themselves.** The
-documentation page does not enumerate them; it points at a PDF permissions
-matrix, and that PDF is font-encoded and does not yield text. So the last point
-above rests on a search-engine summary rather than on a page I read, and it is
-indicative rather than confirmed. Stated that way on purpose: a design that
-depends on a capability should not record a maybe as a yes.
+The key in use is restricted to Messaging → `messages` → **Read and List only**,
+with nothing ticked in any other product.
 
-**The check that settles it takes two minutes and needs the Console**: begin
-creating a Restricted API Key and read the Messaging permission list, or call
-the Keys API's permission enumeration. Either shows whether a read/list
-permission exists without a create permission.
+### Why option 3 beats option 1 even though option 1 keeps the file count lower
 
-### If it turns out read CANNOT be separated from create
+Option 1 — the adapter grows `list()` — keeps one file holding one credential,
+which sounds like the tighter arrangement. It is not, and the reason is the same
+one that decided the gate's location:
 
-Option 3 collapses and the choice is between the two it was preferred over.
-Saying now what that forces, rather than discovering it while writing the file:
+> **A read key cannot cause a message to exist.** The boundary is enforced by
+> the credential, not by a code check — and a code check can be edited by the
+> person adding the bypass, at the moment they are adding it, while a key that
+> lacks the Create permission refuses them from the other side of the network.
 
-- **Option 1 becomes the answer, not option 2.** The adapter grows `list()`
-  and remains the single file holding a credential. The assertion stays at
-  exactly one file, which is the property worth protecting; what is lost is that
-  the one file's surface grows, which is a smaller loss than "one" becoming
-  "two".
-- **`one-sender.test.ts` then needs a second assertion to compensate**: that
-  reconciliation does not import the adapter's send path — it may import the
-  module, but a call to `send()` outside `dispatch()` fails the suite. Weaker
-  than a credential that cannot send, and it is the best available if the key
-  cannot be scoped.
-- **And it should be recorded as a carried risk** rather than absorbed: the
-  boundary would then rest on a code check rather than on a capability, and a
-  code check can be edited by the person adding the bypass.
+Option 1's boundary would have been "reconciliation does not call `send()`",
+asserted by a test in the same repository as the change that would break it.
+Option 3's boundary is a permission Twilio enforces. The extra file is the
+price, and it is small.
 
-None of this blocks the matcher, which is pure and already built.
+---
+
+# 7. Credentials, and where each one lives
+
+Three values, all for the READ key. The sending credential is a separate key and
+does not appear here — that separation is the whole of §6.
+
+```
+TWILIO_ACCOUNT_SID=AC…
+TWILIO_READ_KEY_SID=SK…
+TWILIO_READ_KEY_SECRET=…
+```
+
+| | where | why |
+|---|---|---|
+| all three | **Vercel → Production** | Reconciliation runs in the cockpit, which owns the send path and therefore owns reconciling it |
+| all three | **`cockpit/.env.local`** (gitignored) | So the reader and its tests can run locally |
+| none | **NOT the Hetzner `.env`** | n8n has no business reading the message log. It cannot send marketing and it does not need to audit what was sent |
+| none | **NOT Vercel → Preview**, unless asked | A preview deployment with these would read the production message log from a branch |
+
+`TWILIO_ACCOUNT_SID` is an identifier rather than a secret, but it goes in the
+same place as the other two: it is account-identifying, and splitting a
+credential set across two homes is how half of one ends up somewhere it should
+not be.
