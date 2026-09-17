@@ -48,6 +48,40 @@ after(async () => { if (made.length) await db.from('sends').delete().in('id', ma
  * only exist by satisfying the same rules as a real send is worth more than one
  * that is waved through.
  */
+/**
+ * An approved template row for the fixtures to name.
+ *
+ * `sent_names_its_template` requires one and `sends_template_approval_fk`
+ * requires it to be REAL, so — like the consent event above — the fixture can
+ * only exist by satisfying the same rules as a real send. Write-once, so the
+ * table gains one row however often the suite runs.
+ *
+ * The body is deliberately unmistakable. This row joins the orphan sweep's
+ * vocabulary for this client, and a fixture body that resembled real traffic
+ * could match a genuine message and report it as one of ours.
+ */
+const FIXTURE_APPROVAL_ID = 'HX_FIXTURE_DISPATCH_TEST'
+const FIXTURE_BODY =
+  'FIXTURE — dispatch test row for {{1}}. Not a real template and never sent to anybody.'
+
+async function ensureFixtureTemplate(clientId: string): Promise<string> {
+  const { data: found, error: readErr } = await db
+    .from('message_templates').select('approval_id')
+    .eq('approval_id', FIXTURE_APPROVAL_ID).maybeSingle()
+  if (readErr) throw new Error(`template read failed (is 0020 applied?): ${readErr.message}`)
+  if (found) return FIXTURE_APPROVAL_ID
+
+  const { error } = await db.from('message_templates').insert({
+    client_id: clientId, name: 'fixture_dispatch_test', language: 'pt_PT', version: 1,
+    body: FIXTURE_BODY, category: 'marketing',
+    approval_id: FIXTURE_APPROVAL_ID, status: 'approved',
+    submitted_at: new Date().toISOString(), approved_at: new Date().toISOString(),
+    source_document: 'cockpit/tests/dispatch.test.ts — fixture, not a submitted template',
+  })
+  if (error) throw new Error(`template fixture insert failed: ${error.message}`)
+  return FIXTURE_APPROVAL_ID
+}
+
 async function intendedRow(key: string): Promise<string> {
   const { data: c } = await db.from('clients').select('id').limit(1).single()
   const { data: ev, error: evErr } = await db.from('consent_events')
@@ -69,6 +103,10 @@ async function intendedRow(key: string): Promise<string> {
     policy_country: 'PT',
     policy_confirmed_at: new Date().toISOString(),
     policy_confirmed_by: 'FIXTURE — not a real confirmation',
+    // 0020: a sent row must name a template, and the approval must be real.
+    template_approval_id: await ensureFixtureTemplate(c!.id as string),
+    template_name: 'fixture_dispatch_test',
+    template_language: 'pt_PT',
     body_intended: 'test body',
   }).select('id').single()
   assert.equal(error, null, error?.message ?? 'insert failed')

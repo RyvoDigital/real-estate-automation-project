@@ -84,9 +84,11 @@
       "watches": [
         "db/migrations/0020_message_templates.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0020_message_templates.sql": "4a722a4d8dfe8f3f1b5b45ee4b351bddf1b1c6ddf8c214b0538903eaf03e47f5"
+      },
+      "last_proved": "2026-09-17",
+      "proved_by": "Manuel Vale"
     }
   ]
 }

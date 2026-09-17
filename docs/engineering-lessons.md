@@ -940,6 +940,66 @@ note.
 
 ---
 
+---
+
+## 4e. A filter that looks like hygiene can be the thing that blinds the check
+
+Logged 2026-09-18, caught by an operator asking who else reads a field.
+
+The orphan sweep asks one question: **is this outbound message one of ours?** It
+answers it by compiling every approved template into a shape and testing the
+wire text against them.
+
+The vocabulary is built from `message_templates`, which carries a `status` —
+`approved`, `paused`, `disabled`, `rejected`. Filtering it to `approved` is the
+obvious thing to write. It looks like hygiene. It reads as *"only use templates
+that are actually approved"*, which sounds like care.
+
+**It would have made every orphan under a disabled template invisible.** Meta
+pauses and disables templates on its own initiative; a message sent under one it
+disabled yesterday is still a message we sent, and if that template drops out of
+the vocabulary then a message sent outside the gate under it stops being
+recognised as ours — on the one check whose entire job is recognising exactly
+that.
+
+### The tell
+
+> **Ask what question the check is asking, as a sentence. Then ask whether the
+> filter answers that question or a different one.**
+
+Here the two questions are one word apart and completely different:
+
+| the check asks | the filter answers |
+|---|---|
+| *is this one of ours?* | *may we send this?* |
+
+Status is the right filter for the second question. The send path absolutely
+should refuse a paused template. It is the wrong filter for the first, and
+nothing about the code says so — both are `where status = 'approved'`, both
+look prudent, and only the sentence distinguishes them.
+
+### The same shape elsewhere, because it is not about templates
+
+- An **audit log** filtered to *active* users: the actions of deleted accounts
+  are exactly the ones an investigation wants.
+- **Error monitoring** filtered to the *current release*: old clients keep
+  running, and their errors are the ones nobody sees.
+- A **security scan** filtered to *production* branches: the vulnerability was
+  introduced on the branch that has not merged yet.
+- A **reconciliation** filtered to *open* invoices: the ones wrongly closed are
+  the ones worth finding.
+
+Every one of them narrows the data by a property that is relevant to some other
+question, and every one of them reads as tidying up.
+
+### And the structural version
+
+Where it can be arranged, **do not give the check the field to filter on**.
+`buildVocabulary` takes `Template[]` with no status on the type at all, so
+there is nothing to filter by and a future edit that wants to would have to widen
+the input first — which is a visible act rather than a plausible one-line
+tightening. A boundary again, rather than a rule (§12).
+
 ## 4d. A check's SCOPE is part of its claim, and the scope is the part that goes unread
 
 Logged 2026-09-17, caught by a check's own vacuity guard rather than by anyone
