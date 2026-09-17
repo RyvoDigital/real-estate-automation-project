@@ -81,7 +81,46 @@ for (const node of wf.nodes) {
     problems++;
   }
 }
-console.log(problems
-  ? `\n  lint: ${problems} undeclared identifier(s) across ${checked} Code nodes`
-  : `\n  lint: ${checked} Code nodes, no undeclared identifiers`);
-process.exit(problems ? 1 : 0);
+// ---------------------------------------------------------------------------
+// Temporal dead zone: a `const` from an embedded source read ABOVE the embed.
+//
+// A function declaration hoists, so a call placed above the block that defines
+// it still resolves -- and then touches a `const` that has not been evaluated
+// yet. `node --check` passes, the linter above passes, and the node throws at
+// runtime only on the branch that reads the const.
+//
+// 2026-09-17: the AI-disclosure patch put the payload block above the embedded
+// src/ai_disclosure.js in all three PrepRun* nodes. `out.v = DISCLOSURE_VERSION`
+// is only reached when a disclosure is REQUIRED, so the first two live
+// disclosures threw `internal_error:PrepRunAI` after the message had already
+// been sent -- no run payload, no ai.disclosure.sent event, no invariant 6.
+// The one branch under test was the one branch that broke.
+let tdz = 0;
+for (const node of wf.nodes) {
+  if (node.type !== 'n8n-nodes-base.code') continue;
+  const c = node.parameters.jsCode || '';
+  for (const m of c.matchAll(/\/\/ <<< EMBED (\S+) <<</g)) {
+    const open = c.lastIndexOf('// >>> EMBED', m.index);
+    if (open === -1) continue;
+    // Everything strictly BEFORE the block's opening marker.
+    const head = c.slice(0, open);
+    if (!head.trim()) continue;
+    const body = c.slice(open, m.index + m[0].length);
+    // The hazard is not a const named in the head -- it is a CALL into the
+    // embedded source from above it. The function hoists and resolves; the
+    // consts it closes over have not been evaluated yet.
+    for (const fm of body.matchAll(/^function ([a-zA-Z_$][\w$]*)\s*\(/gm)) {
+      const fn = fm[1];
+      if (new RegExp('(^|[^\\w$.])' + fn + '\\s*\\(').test(head)) {
+        console.log(`  [FAIL] ${node.name}: calls ${fn}() from ${m[1]} ABOVE the embed (temporal dead zone)`);
+        tdz++;
+      }
+    }
+  }
+}
+
+const total = problems + tdz;
+console.log(total
+  ? `\n  lint: ${problems} undeclared identifier(s), ${tdz} dead-zone read(s) across ${checked} Code nodes`
+  : `\n  lint: ${checked} Code nodes, no undeclared identifiers, no dead-zone reads`);
+process.exit(total ? 1 : 0);

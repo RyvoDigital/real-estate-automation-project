@@ -191,8 +191,14 @@ console.log('\nrecording');
   const body = invariantAlertBody(res, { from: '+351900000000', stage: 'pre_send' });
   chk('the alert names each violation on its own line', body.split('\n').length === 4 && body.indexOf('15:00') !== -1 && body.indexOf('John') !== -1);
   chk('no alert when nothing fired', invariantAlertBody(run({ textSent: 'Olá!' }), { stage: 'pre_send' }) === null);
-  const merged = mergeInvariantResults(res, checkDelivery({ payload: { twilio_sid: 'SM1', outbound_row_status: 201 } }));
-  chk('merged results list every check once', same(merged.checked, ['1', '2', '3', '3b', '5', '4']) && same(merged.violated, ['1', '5']));
+  // A sent message carries a disclosure decision since 16 Sep (EU AI Act Art. 50).
+  // Omitting the block is not "no opinion": checkDelivery reads a lead-facing send
+  // with no decision recorded as a path somebody forgot to wire, and says so.
+  const DISC_OK = { required: false, reason: null, ever_before: true, last_origin: 'ai' };
+  const merged = mergeInvariantResults(res, checkDelivery({ payload: { twilio_sid: 'SM1', outbound_row_status: 201, disclosure: DISC_OK } }));
+  chk('merged results list every check once', same(merged.checked, ['1', '2', '3', '3b', '5', '4', '6']) && same(merged.violated, ['1', '5']));
+  const unwired = checkDelivery({ payload: { twilio_sid: 'SM1', outbound_row_status: 201 } });
+  chk('a send with no disclosure decision recorded violates 6', unwired.violated.indexOf('6') !== -1 && unwired.detail['6'].reason === 'disclosure_not_recorded');
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

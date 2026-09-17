@@ -117,6 +117,37 @@ function build() {
     note = picked.text; lang = picked.lang;
   } catch (e) { note = cfg.handoff_note || null; lang = cfg.default_language || null; }
 
+  // AI disclosure -- EU AI Act Article 50 (src/ai_disclosure.js, embedded above).
+  //
+  // UNCONDITIONAL WHEN THE STATE CANNOT BE READ, ON PURPOSE. This node runs
+  // because something upstream threw, possibly before ReadDisclosureState ever
+  // ran, so "has this lead been told" is not reliably knowable here. Over-
+  // disclosing is cosmetic; under-disclosing is the violation, so the failure
+  // direction is fixed rather than left to chance.
+  //
+  // And this is the worst path of all to omit it from: the note says a
+  // colleague will be in touch, which reads as though a human wrote it.
+  let discState = { everDisclosed: false, lastOutboundAt: null, lastOutboundOrigin: null, failsafe: true };
+  try {
+    const rs = $('ReadDisclosureState').first(0).json;
+    if (rs && rs.statusCode >= 200 && rs.statusCode < 300) {
+      const rows = Array.isArray(rs.body) ? rs.body : [];
+      let hist = [];
+      try { const h = $('LoadHistory').first(0).json; hist = Array.isArray(h.body) ? h.body : []; } catch (e2) { hist = []; }
+      // A clean read means a lead already disclosed to gets no second banner.
+      discState = disclosureStateFrom(rows, hist, cfg, new Date().toISOString());
+    }
+  } catch (e) { /* the throw beat the read; stay on the failsafe */ }
+  const discDecision = shouldDisclose(discState);
+  const discBanner = discDecision.required
+    ? disclosureText(cfg, lang || cfg.default_language || 'en',
+        { agent: cfg.agent_name, agency: cfg.agency_name })
+    : '';
+  // What goes on the wire is sendBody; handoffBody stays the configured string.
+  const discOut = String(note || '').trim()
+    ? withDisclosure(discBanner, note)
+    : { text: note, applied: false, overLimit: false, droppedChars: 0 };
+
   // Found by the Zone 4 drill, not by design. AfterSend, AfterMediaSend and
   // AfterHandoff each sit BETWEEN a send and its store. If one throws, the
   // message has already gone to the lead and is never written to `messages` --
@@ -193,6 +224,15 @@ function build() {
     body: leadText || raw.Body || '',
     handoffBody: note,
     handoffLang: lang,
+    sendBody: discOut.text,
+    disclosure: { decision: discDecision, state: discState,
+                  lang: lang || cfg.default_language || 'en',
+                  applied: discOut.applied, overLimit: discOut.overLimit,
+                  dropped: discOut.droppedChars,
+                  // What messages.disclosure gets, built by the tested helper.
+                  row: discOut.applied
+                    ? disclosureRecord(discDecision.reason, lang || cfg.default_language || 'en')
+                    : null },
     canReply,
     slotWarning,
     priorQualification: ctx.priorQualification || null,
@@ -217,7 +257,10 @@ try {
     supabaseUrl: SUPABASE_URL,
     clientAutomationId: null, clientId: null, leadId: null,
     from: null, profileName: null, messageSid: null, body: '',
-    handoffBody: null, handoffLang: null, canReply: false, slotWarning: null,
+    handoffBody: null, handoffLang: null, sendBody: null,
+    disclosure: { decision: { required: false, reason: null }, state: { failsafe: true },
+                  lang: null, applied: false, overLimit: false, dropped: 0, row: null },
+    canReply: false, slotWarning: null,
     priorQualification: null,
     startedAt: new Date().toISOString(), at: new Date().toISOString(),
   };

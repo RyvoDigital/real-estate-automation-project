@@ -20,6 +20,8 @@
 //   5  a fact stated about the lead is on the row -- narrowed to the facts
 //      that can be read deterministically: the name in direct address, money
 //      amounts, and (via 1 and 2) the appointment time
+//   6  a lead-facing message sent before any disclosure was on record actually
+//      CARRIED the AI disclosure (EU AI Act Art. 50; src/ai_disclosure.js)
 //
 // POSTURE
 // These checks OBSERVE. They never block the send and never change the text;
@@ -42,10 +44,14 @@ const INVARIANT_SLUGS = {
   '3b': 'event_without_row_booking',
   '4': 'inbound_without_outbound',
   '5': 'fact_not_on_row',
+  '6': 'undisclosed_first_contact',
 };
 // 2, 3, 3b and 4 are a lead being told, or a diary holding, something untrue
 // about their own appointment or being left unanswered. 1 and 5 are form.
-const INVARIANT_SEVERITY = { '1': 'warning', '2': 'critical', '3': 'critical', '3b': 'critical', '4': 'critical', '5': 'warning' };
+// 6 is critical and is the only one that is critical for a legal rather than
+// an operational reason: an undisclosed first interaction is an Article 50
+// breach, exposure up to EUR 15M or 3% of worldwide turnover.
+const INVARIANT_SEVERITY = { '1': 'warning', '2': 'critical', '3': 'critical', '3b': 'critical', '4': 'critical', '5': 'warning', '6': 'critical' };
 
 function deaccentInv(s) {
   return String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -231,7 +237,7 @@ function checkInvariants(ctx) {
   return out;
 }
 
-// checkDelivery(run) -> { checked: ['4'], violated, unverified, detail }
+// checkDelivery(run) -> { checked: ['4', '6'], violated, unverified, detail }
 //
 // Reads the run row every PrepRun* node builds, so it sees every path that
 // reaches LogRun. Deliberate silence is a FLAG on the payload, never inferred.
@@ -253,6 +259,46 @@ function checkDelivery(run) {
   out.detail['4'] = { sent, how, silence, stored, reason, error_type: (run && run.error_type) || null };
   if (reason === 'unknown_path') out.unverified.push('4');
   else if (reason !== 'ok') out.violated.push('4');
+
+  // --- 6: a first interaction carried the AI disclosure ---------------------
+  //
+  // EU AI Act Article 50. Everything else about the disclosure records what we
+  // INTENDED; this is the check on what reached the wire. The text under test
+  // is `payload.disclosure.sent_head` -- the leading segment of the body the
+  // PrepRun* node actually handed to Twilio -- read through disclosureIn(),
+  // which asks the question the regulation asks rather than comparing against
+  // the string we meant to send. A flag set by the sender, verified by the
+  // sender, would prove nothing (§0.7).
+  //
+  // Only checked when a disclosure was REQUIRED and something was actually
+  // sent. Required-but-nothing-sent is invariant 4's business, not this one:
+  // a lead who received no message was not undisclosed to, they were unanswered.
+  out.checked.push('6');
+  {
+    const disc = p.disclosure || null;
+    const outbound = sent === true;
+    if (!outbound) {
+      out.detail['6'] = { reason: 'nothing_sent', required: disc ? !!disc.required : null };
+    } else if (!disc) {
+      // A lead-facing path that sends without recording a disclosure decision
+      // is a path we forgot to wire. Fail loud: this is exactly the hole that
+      // would otherwise stay invisible until an auditor found it.
+      out.detail['6'] = { reason: 'disclosure_not_recorded', required: null, how };
+      out.violated.push('6');
+    } else if (!disc.required) {
+      out.detail['6'] = { reason: 'already_disclosed', required: false,
+                          ever_before: disc.ever_before === true, last_origin: disc.last_origin || null };
+    } else {
+      const head = String(disc.sent_head || '');
+      const carried = disclosureIn(head);
+      out.detail['6'] = { reason: carried ? 'disclosed' : 'required_but_absent',
+                          required: true, why: disc.reason || null, lang: disc.lang || null,
+                          v: disc.v || null, applied: disc.applied === true,
+                          over_limit: disc.over_limit === true,
+                          head: head.slice(0, 200) };
+      if (!carried) out.violated.push('6');
+    }
+  }
   return out;
 }
 
@@ -274,6 +320,10 @@ function describeViolation(k, d) {
   if (k === '3') return 'row holds event ' + (d.event_id || '?') + ' (' + (d.reason || '?') + ')';
   if (k === '3b') return 'event ' + (d.event_id || '?') + ' ' + (d.booking_result || 'created') + ', row lacks it (' + (d.reason || '?') + ')';
   if (k === '4') return (d.reason || '?') + ' via ' + (d.how || '?') + (d.error_type ? ' [' + d.error_type + ']' : '');
+  if (k === '6') {
+    if (d.reason === 'disclosure_not_recorded') return 'sent via ' + (d.how || '?') + ' with NO disclosure decision recorded -- unwired path';
+    return 'AI disclosure required (' + (d.why || '?') + ') but not in the text sent: "' + String(d.head || '').slice(0, 80) + '"';
+  }
   if (k === '5') {
     const parts = [];
     if ((d.reasons || []).indexOf('name_not_on_row') !== -1) parts.push('name "' + d.name.used + '" used, row holds "' + d.name.stored + '"');

@@ -744,6 +744,71 @@ than at its verdict. That is now twice. Verbose probe output has earned its cost
 
 ---
 
+## 4b. A green suite proves the branches it ran, and says nothing whatever about the others
+
+§1 is a test exercising the wrong path. §4 is two suites with a gap between
+them that neither owned. This is sharper than both: **three independent checks
+passed a build containing a certain, unconditional crash — because not one of
+them entered the branch that crashes.**
+
+**2026-09-17.** The AI-disclosure patch put the payload block above the
+embedded `src/ai_disclosure.js` in all three `PrepRun*` nodes.
+`disclosurePayload()` is a function *declaration*, so it hoists and the call
+resolves; it then reads `DISCLOSURE_VERSION`, a `const` still in its temporal
+dead zone. The read sits on one line:
+
+```js
+if (!dec.required) return out;   // <- every run that does not disclose leaves here
+out.lang = lang || null;
+out.v = DISCLOSURE_VERSION;      // <- ReferenceError, every single time
+```
+
+What passed it:
+
+| Check | Why it passed |
+|---|---|
+| `node --check` / `new Function(code)` | the code parses perfectly; a TDZ violation is a *runtime* error |
+| `tests/lint_code_nodes.js` | every identifier is declared somewhere in the node — the problem is **order**, not existence |
+| two full prompt-suite runs, 134/138 twice | the suites call the Anthropic API directly; they never execute a Code node |
+
+And then the deploy verification passed too: webhook 403, `active=t`,
+`published=t`. Every gate was green and the build was certain to throw the
+first time anyone was actually disclosed to.
+
+**It threw on exactly the branch under test.** The whole change existed to make
+`required` true; `required` true was the only path that crashed. The two live
+runs that disclosed correctly — banner sent, `messages.disclosure` written —
+logged `internal_error:PrepRunAI` and produced no run payload, no
+`ai.disclosure.sent` event and no invariant 6 verdict. The operator saw three
+correct messages on his phone and nothing else. It was visible only in
+`automation_runs`, and the invariants could not catch it because the run died
+before reaching `AssertDelivery`.
+
+**The lesson is not "add another check."** It is that a green suite is a
+statement about the lines it executed and about nothing else, and the
+*newest* branch in a change is the one least likely to have been executed by
+anything. Coverage of the old paths is what a regression suite is *for*; it is
+structurally the wrong instrument for the path that did not exist an hour ago.
+
+**What follows from it:**
+
+- **Ask which check would have entered the new branch.** If the answer is none,
+  the change is untested however many suites are green. Write the case that
+  enters it before deploying, not after.
+- **Hoisting hides initialisation order.** A function declaration resolves from
+  anywhere in the scope, so calling it early *looks* fine and fails only when
+  it touches a `const` from its own block. Where several sources are eval'd
+  into one node scope, position is semantics.
+- **A guard that runs after the side effect cannot protect the side effect.**
+  `PrepRun*` runs after the send, which is why the duty survived and only the
+  evidence was lost. That is the right order for a *logging* failure and the
+  wrong one to rely on for anything else.
+- The permanent check that came out of it — a call into an embedded source from
+  above its own embed block — is in `tests/lint_code_nodes.js`, and was proven
+  red against a reconstruction of the build that shipped (§0.7).
+
+---
+
 ## 5. The failure you can see is rarely the failure that matters
 
 Related to §1 but distinct, and worth stating separately.

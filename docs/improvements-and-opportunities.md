@@ -33,7 +33,7 @@ Every serious benchmark uses execution-based verification — tau-bench checks t
 
 **Rule: no test passes on the reply alone. Assert the resulting database and calendar state.**
 
-## 0.2 The five invariants — how unplanned defects get caught
+## 0.2 The six invariants — how unplanned defects get caught
 
 The answer to *"what catches the things nobody thought of?"* is not prediction. It is a small set of properties that must always hold, checked on every run, so a violation surfaces whether or not anyone anticipated it.
 
@@ -42,8 +42,11 @@ The answer to *"what catches the things nobody thought of?"* is not prediction. 
 3. If a booking is on the row, a calendar event exists
 4. If a lead sent a message, an outbound message exists or a deliberate-silence flag is set
 5. If a reply states a fact about the lead, that fact is on the row
+6. If a lead-facing message went out before any disclosure was on record, that message carried the AI disclosure
 
-**All six defects above violate one of these five.** One family of checks, the whole family of bugs — including the members not yet encountered.
+**All six defects above violate one of the first five.** One family of checks, the whole family of bugs — including the members not yet encountered.
+
+**Six was added 16 September 2026** and is a different animal from the rest: the others are operational truth, 6 is a legal duty (EU AI Act Article 50). It earns its place here for the same reason as the others — it is a property that must hold after every run, checked on the text that actually reached the wire, so *"we designed it to comply"* becomes *"we can show it complied, run by run."* That distinction is the whole of what an auditor is asking for.
 
 **Rule: every new automation defines its own invariant set before it ships, and violations are logged and alerted, not swallowed.**
 
@@ -158,6 +161,14 @@ Cannot be worked on by deciding to work harder. Each names what it waits for.
 
 Not blocked. Not optional either. These are acceptable to carry with zero clients and unacceptable with one.
 
+### 3.0 Tell the client about the disclosure banner before they notice it 🔴 onboarding, not engineering
+
+Every new conversation now opens with a line identifying the assistant as artificial intelligence (EU AI Act Article 50; runbook, "The AI disclosure"). It is the first thing a cold lead sees, and **it may measurably depress reply rates.** That is the client's number, not ours.
+
+It is the law and it is not optional — but the client hears it **from us, at onboarding, before they discover it in their own transcripts.** A client who finds it themselves reads it as something we did to their funnel without telling them; a client told in advance reads it as a thing we handled on their behalf, with the liability sitting with us rather than with them.
+
+**What to say:** it is required of the provider since 2 August 2026, exposure is up to €15M or 3% of turnover, we carry that duty and not them, it is one line at the top of the first message only, and it is also better manners with a discerning buyer. Then watch the reply rate through the shadow and canary weeks (§0.9) like any other number.
+
 ### 3.1 The agent entity
 There is **no agent anywhere in the system** — no table, no column. This is the root cause of three separate problems: escalations cannot route to the right person, the calendar cannot tell whose availability it is reading, and transactions cannot belong to anyone.
 
@@ -259,7 +270,7 @@ The inbound webhook was unpublished for ~2 minutes during the 11 Sep deploy. Har
 ### 3.9 Prompt source drift guard
 The source prompt file had fallen behind the shipping n8n node since 8 Sep, so the prompt suites were testing something the live system was not running. Re-synced 11 Sep. Needs a guard so it cannot recur silently.
 
-### 3.11 The five invariants, checked and alerted 🔴 highest value per hour
+### 3.11 The six invariants, checked and alerted 🔴 highest value per hour
 Implementation of §0.2. Each run asserts the five properties; a violation writes a warning event, surfaces in the cockpit, and fires an alert.
 
 **This is the single item that catches defects nobody predicted** — every defect of 11–14 September violates one of the five. Build it before any client is live.

@@ -1170,7 +1170,144 @@ slots, confirm, book — ran clean end to end, `stage=viewing_booked`, with
 `lead.created`, `lead.qualified` and `viewing.booked` all written. **12 health
 checks passing.**
 
-### The five invariants — checked on every run, alerted, never blocking (2026-09-16)
+### The AI disclosure — EU AI Act Article 50 (2026-09-16)
+
+Article 50(1) of Regulation (EU) 2024/1689 has been directly applicable since
+**2 August 2026**. A person must be told they are interacting with an AI system
+**"in a clear and distinguishable manner, at the latest at the time of the first
+interaction."** The Commission reads it as a duty of **design**, not of notice:
+the system must be built so the person knows. The duty sits with the **provider**
+— whoever puts the system on the market under their own name. In this
+architecture that is us, not the agency, and it is not discharged by the model
+vendor. Exposure is up to **€15M or 3% of worldwide turnover**, whichever is
+higher.
+
+Until 16 September the Concierge disclosed only when asked directly — and the
+prompt's answer was *"say honestly that you are an assistant"*, which is not a
+disclosure at all: a human receptionist is an assistant. Both legal drafts
+already state that the system complies (**Clause 12 of the DPA, Clause 10.5 of
+the service agreement**), so this had to become true before any client goes live.
+
+Source: `src/ai_disclosure.js`; tests: `tests/ai_disclosure.test.js`.
+
+**The predicate is "has a disclosure been delivered to this lead", never "is
+this a new lead".** `AfterLead.isNewLead` is the obvious hook and it is wrong
+for the reason §0.1 exists: it *asserts* that this run is the first contact
+rather than *verifying* that the lead has been told. If the very first outbound
+fails to send, the lead row still exists, `isNewLead` is false forever, and that
+lead is never disclosed to again — a permanent, silent gap of exactly the
+assert-before-verify shape.
+
+**Four paths reach a lead, and three of them never call the model.** This is
+why a prompt rule could never have carried the duty:
+
+| Path | Node | Body field |
+|---|---|---|
+| the AI reply | `SendWhatsApp` | `AfterBooking.sendBody` |
+| the handoff note | `SendHandoffNote` | `AfterBooking.sendHandoffBody` |
+| a voice note / image as the first message | `SendMediaReply` | `MediaReply.sendBody` |
+| an internal throw | `SendInternalHandoff` | `CatchInternal.sendBody` |
+
+**`sendBody` is what goes on the wire; `replyText` and `handoffBody` stay what
+the model or the config actually said.** That separation is load-bearing, not
+tidiness: `AfterBooking` runs *before* `AssertInvariants`, so prepending in
+place would push our own constant through `timesNamedIn`, `moneyAmountsIn` and
+`nameMismatch` and have them read it as if the model had written it.
+`AfterBooking` prepares **both** bodies because it cannot know which send will
+fire — `IsEscalating` decides that downstream and both read this node.
+
+**When it fires.** `ReadDisclosureState` (one indexed read, between
+`LoadHistory` and `IsMediaMessage`, so every lead-facing path has it in scope)
+answers "has this lead ever been told". The last-outbound facts come free from
+`LoadHistory`.
+
+| Reason | Trigger | Why |
+|---|---|---|
+| `first_contact` | no disclosed outbound row exists | Article 50 itself |
+| `handback` | the most recent outbound has `origin = 'human'` | the lead has been talking to a person from the cockpit; when the assistant resumes, their belief about who is replying is wrong. `origin = 'handoff'` is **not** a handback — the fixed note is the AI system's own output |
+| `gap` | more than `config.disclosure_gap_days` (default 30) since the last outbound | not required by Article 50, but a lead returning after months has plausibly forgotten |
+| `failsafe` | the state could not be read | over-disclosing is cosmetic, under-disclosing is the violation, so the direction is fixed |
+
+**The wording**, per language, from `src/ai_disclosure.js` and overridable at
+`config.system_messages.ai_disclosure`. Own line, blank line, then the message:
+
+> 🤖 Sofia, assistente virtual da {agency}. Esta conversa é respondida por inteligência artificial, não por uma pessoa.
+
+A banner rather than an in-voice opener for three reasons: "clear and
+distinguishable" is most defensible when the disclosure is *visually*
+distinguishable; it is byte-identical and greppable, which is what makes
+invariant 6 and the audit query trivial; and it does not collide with the
+model's own greeting the way an opener does. Every language says **"not a
+person"** explicitly — Clause 12.3 committed us to it, and "virtual assistant"
+alone is not enough, since the term is routinely used of human VAs.
+
+**The banner inherits the language the path already resolved. It never runs its
+own detection** — independent detection is how you get a Portuguese banner above
+an English reply, which is the split-language class §0.4 already fought.
+
+> ⚠️ **A client cannot configure themselves out of compliance.** Unlike
+> `system_messages.handoff`, where a missing string means fall back, a missing
+> or malformed `ai_disclosure` does **not** mean "no disclosure". The defaults
+> live in code; config may replace the wording per language, and a replacement
+> that does not actually disclose is rejected in favour of the built-in.
+> Resolution never crosses languages. The liability is ours, not the client's.
+
+**The model is told, as a statement of fact and not a rule** (§0.4):
+`BuildClaudeRequest` appends a line saying a disclosure precedes this reply so
+it does not introduce itself twice. If it ignores that, the result is a cosmetic
+double greeting, never a compliance failure. **Code carries the duty, the prompt
+carries the taste.**
+
+**Evidence — four independent records, so no single deletion erases the proof:**
+
+1. `messages.disclosure` — `{v, lang, reason}`, written by the sending node at
+   send time (migration 0011, the `origin` precedent of 0010)
+2. `messages.body` — the banner itself, verbatim, for free
+3. an `events` row `ai.disclosure.sent` carrying the Twilio SID, so the claim
+   can be corroborated against the carrier's own records; pseudonymous, and it
+   survives message pruning
+4. `automation_runs.payload.disclosure` — the per-run trace (§0.5)
+
+and **invariant 6**, which is not a record but a check: it reads
+`payload.disclosure.sent_head` — the leading segment of the body actually handed
+to Twilio — back through `disclosureIn()`, which asks the question the
+regulation asks rather than comparing against the string we meant to send. A
+flag set by the sender and verified by the sender would prove nothing (§0.7).
+
+**The standing audit query. It must return zero rows:**
+
+```sql
+select l.id, l.phone, m.created_at, m.body
+  from public.leads l
+  join lateral (
+    select m.* from public.messages m
+     where m.lead_id = l.id and m.direction = 'outbound'
+     order by m.created_at asc limit 1) m on true
+ where m.disclosure is null;
+```
+
+**Two things deliberately NOT done, and why:**
+
+- **The agent listing path (`ReplyToAgent`) does not disclose.** Article 50(1)
+  does not apply where AI involvement is "obvious ... from the point of view of
+  a reasonably well-informed natural person, taking into account the
+  circumstances and context of use." Agency staff who commissioned the system
+  and signed a contract naming it are inside that carve-out. Wiring it would
+  also need per-agent disclosure state keyed on a phone number, since agents
+  are not leads and have no row — a new store for a duty that does not apply.
+- **No backfill in migration 0011.** Rows predating the column carried no
+  disclosure and must not be marked as though they did. The audit query above is
+  *supposed* to show the gap for anyone contacted before the deploy.
+
+> **The internal-failure path is disclosed but not invariant-checked.**
+> `CatchInternal → SendInternalHandoff` never reaches `AssertDelivery`, so
+> invariant 6 does not see it — the same pre-existing gap invariant 4 has. The
+> banner is prepended and `messages.disclosure` is written; only the run-end
+> check is absent.
+
+---
+
+### The six invariants — checked on every run, alerted, never blocking (2026-09-16)
 
 Improvements §0.2 and §3.11. Every defect of 11–14 September was the reply
 asserting something the row did not hold. A guard catches the shape it was
@@ -1185,13 +1322,14 @@ whatever the shape. Source: `src/invariants.js`; tests: `tests/invariants.test.j
 | 3b | an event created this turn is on the row | same | the reverse of 3 — the row write failed, or a `duplicate_replay` the row never learned | critical |
 | 4 | a lead who sent a message was answered, or the silence is a flag | `AssertDelivery`, before `LogRun`, every path | `twilio_sid` / `handoff_sent` / media send status; `silenced_escalated_lead`, `duplicate_delivery` | critical |
 | 5 | a stated fact is on the row — **narrowed** to name in direct address and money amounts | `AssertInvariants` | `full_name` when stated; `budget_min/max`, the figures rejected this turn | warning |
+| 6 | a lead-facing message sent before any disclosure was on record **carried the AI disclosure** | `AssertDelivery`, before `LogRun`, every path | `payload.disclosure.sent_head` — the leading segment of the body actually handed to Twilio — read through `disclosureIn()` | critical |
 
 **The text under test is the text the lead receives** — the handoff note on
 the escalation path, never the discarded reply. **The row under test is what
 the PATCH returned**, or the row as it was when the write failed.
 
 **What a violation produces:** one `events` row per invariant, `type =
-'invariant.violated'`, `data.invariant` in `1|2|3|3b|4|5`, `data.evidence`,
+'invariant.violated'`, `data.invariant` in `1|2|3|3b|4|5|6`, `data.evidence`,
 the first 200 chars of the text sent; a WhatsApp to `config.escalate_to`; and
 `payload.invariants` on the run row: `checked`, `violated`, `unverified`,
 `detail`, and the HTTP status of each event insert and alert. A check that

@@ -9,6 +9,10 @@ message carries a marker:
                  AssertDelivery is told the send did not happen             => 4 fires at run end
   SABOTAGE-B  -> AssertInvariants is told an event was created this turn and the row
                  write failed                                               => 3b fires
+  SABOTAGE-C  -> AssertDelivery is told a disclosure was required on a message whose
+                 text carried none                                          => 6 fires
+                 (the lead still receives a correctly disclosed message: the sabotage
+                 falsifies the EVIDENCE the check reads, never the text sent)
 Output: tests/ryvoInboundConc01.SABOTAGE.json (gitignored: never commit, never leave published)
 
   python3 tests/sabotage_invariants.py
@@ -48,7 +52,16 @@ sub('AssertInvariants',
 sub('AssertDelivery',
     "  d = checkDelivery(run);\n",
     "  const SAB_A = /SABOTAGE-A/.test(String(a.body || ''));\n"
-    "  d = checkDelivery(SAB_A ? Object.assign({}, run, { payload: Object.assign({}, run.payload || {}, { twilio_sid: null, handoff_sent: false }) }) : run);\n")
+    "  const SAB_C = /SABOTAGE-C/.test(String(a.body || ''));\n"
+    "  let sabRun = run;\n"
+    "  if (SAB_A) sabRun = Object.assign({}, run, { payload: Object.assign({}, run.payload || {}, { twilio_sid: null, handoff_sent: false }) });\n"
+    "  // 6: claim a disclosure was due, and hand the check a sent_head with no AI term\n"
+    "  // in it. The lead's actual message is untouched -- only the evidence lies.\n"
+    "  if (SAB_C) sabRun = Object.assign({}, run, { payload: Object.assign({}, run.payload || {}, {\n"
+    "    twilio_sid: (run.payload || {}).twilio_sid || 'SMsabotage',\n"
+    "    disclosure: { required: true, reason: 'first_contact', ever_before: false, lang: 'pt', v: 1,\n"
+    "                  applied: true, sent_head: 'Ola! Sou a Sofia. Em que posso ajudar?' } }) });\n"
+    "  d = checkDelivery(sabRun);\n")
 
 out = os.path.join(HERE, 'ryvoInboundConc01.SABOTAGE.json')
 json.dump(w, open(out, 'w', encoding='utf-8'), indent=2, ensure_ascii=False)
