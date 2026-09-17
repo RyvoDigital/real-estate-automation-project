@@ -31,9 +31,12 @@
         "db/migrations/0015_sends.sql",
         "db/tests/0015_sends_constraints.test.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0015_sends.sql": "6879300c82eaab5f125ce8920c9d42190f5a29c7450bdc2255d7eb2c20ff05df",
+        "db/tests/0015_sends_constraints.test.sql": "44d9d60c99d9c876ee254d1aaf8651b22f62a72534a6f3f39ddfce07c5686d1a"
+      },
+      "last_proved": "2026-09-17",
+      "proved_by": "Manuel Vale"
     }
   ]
 }
