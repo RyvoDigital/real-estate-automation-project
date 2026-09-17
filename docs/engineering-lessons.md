@@ -1264,6 +1264,80 @@ about.
 
 ---
 
+---
+
+## 5d. A query in the wrong identifier format returns SUCCESS AND NOTHING
+
+Logged 2026-09-17, found by a dry run the evening before anything was scheduled.
+
+Twilio addresses WhatsApp with a channel prefix — `whatsapp:+351912345678`.
+Every table in this system stores bare E.164. The reconciliation reader was
+built from our form:
+
+```
+From=+14155238886            200   0 message(s)
+From=whatsapp:+14155238886   200   5 message(s)
+```
+
+**Both are HTTP 200.** The wrong one is not an error, not a 400, not a warning,
+not something a retry or a status check would catch. It is a clean, confident,
+permanently empty answer, and every consumer downstream reads an empty answer as
+a fact about the world.
+
+### It cost two subsystems at once, from one root cause, neither failing loudly
+
+- **The orphan sweep** would have reported *"0 outbound messages examined, all
+  accounted for"* every night while examining nothing — on the one check whose
+  entire job is detecting a message sent outside the gate.
+- **The matcher** compares the provider's `to` against our stored number, so
+  every reconciled row would have gone `unresolved` for ever, and the unresolved
+  count would have been read as a provider problem rather than a format one.
+
+Neither would have thrown. Both would have looked like diligent machinery
+producing reassuring numbers.
+
+### What generalises
+
+> **When a check queries an external system, the identifier format is part of
+> the query — and a mismatched format returns success.** Type systems do not
+> help: both values are strings, both are valid, and the API accepts both.
+
+The operational rule that follows:
+
+> **A zero from an external query must be accompanied by evidence that the query
+> could have returned something.** Print the query beside the result; assert a
+> known-present control; or compare against a broader query that is expected to
+> be non-empty. A bare zero from a remote system is not a measurement, it is a
+> question nobody asked.
+
+This is §5b at the network boundary, and harder, because a local empty result at
+least came from data you can inspect. Here the emptiness arrives from a machine
+that has every reason to be trusted and is answering a question you did not mean
+to ask.
+
+### And the probe that lied about its own query
+
+The dry run logged its parameters **as passed** rather than as sent, so the
+moment the prefix was introduced at the boundary the printed query stopped
+matching the real one. It read `From=+14155238886` while sending
+`From=whatsapp:+14155238886`.
+
+> **A probe that reports what it meant to ask cannot detect the class of defect
+> it exists to find.** Log the values at the point they leave, after every
+> transformation, or the log is a record of intention rather than of action.
+
+It is rule 19 once more — the source is not the artefact, the running system is
+— applied to a diagnostic rather than to a deploy.
+
+### The structural fix
+
+The prefix now lives in one boundary module, `provider-address.ts`, whose header
+is the warning rather than a comment inside one function. Anything that talks to
+the provider converts through it; nothing else in the repository ever sees a
+prefixed address. **The next place that queries Twilio will be written by
+somebody who has not read this file, and the module they must import is named
+for the thing they would otherwise get wrong.**
+
 ## 5c. A remediation pass that cannot find its target reports success identically to one that had nothing to fix
 
 Logged 2026-09-17, found before the pass was written, by running its own

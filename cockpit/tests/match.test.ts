@@ -176,7 +176,7 @@ test('THE CHANNEL PREFIX: provider addresses are whatsapp:-prefixed and ours are
   // the traffic. The wrong one is not an error — it is a clean, confident,
   // permanently empty result, and the orphan sweep would have reported "all
   // accounted for" every night while examining nothing.
-  const { toChannelAddress, stripChannelAddress } = await import('../src/lib/send/provider-reader')
+  const { toChannelAddress, stripChannelAddress } = await import('../src/lib/send/provider-address')
 
   assert.equal(toChannelAddress('+14155238886'), 'whatsapp:+14155238886')
   assert.equal(toChannelAddress('whatsapp:+14155238886'), 'whatsapp:+14155238886', 'idempotent')

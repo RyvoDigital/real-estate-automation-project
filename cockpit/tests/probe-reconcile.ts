@@ -22,7 +22,8 @@ import {
   reconcilePending, sweepOrphans, templateMatcherFromSends, GRACE_MS,
   type PendingRow, type ReconcileStore, type ProviderReader,
 } from '../src/lib/send/reconcile'
-import { listMessages, toChannelAddress } from '../src/lib/send/provider-reader'
+import { listMessages } from '../src/lib/send/provider-reader'
+import { toChannelAddress } from '../src/lib/send/provider-address'
 import type { ProviderMessage } from '../src/lib/send/match'
 
 for (const l of readFileSync(new URL('../.env.local', import.meta.url), 'utf8').split('\n')) {

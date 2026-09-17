@@ -31,6 +31,7 @@ import 'server-only'
  */
 
 import type { ProviderMessage } from '@/lib/send/match'
+import { toChannelAddress, stripChannelAddress } from '@/lib/send/provider-address'
 
 const ACCOUNT = () => required('TWILIO_ACCOUNT_SID')
 const KEY_SID = () => required('TWILIO_READ_KEY_SID')
@@ -69,36 +70,11 @@ async function getJson(url: string): Promise<unknown> {
 }
 
 /**
- * THE CHANNEL PREFIX, WHICH A DRY RUN CAUGHT BEFORE ANYTHING WAS SCHEDULED.
- *
- * Twilio addresses WhatsApp as `whatsapp:+351912345678`. Our storage is bare
- * E.164 everywhere — leads.phone, consent_events.phone_e164, sends.phone_e164.
- * The first version of this file passed the bare form to `From`, and:
- *
- *     From=+14155238886            200   0 message(s)
- *     From=whatsapp:+14155238886   200   5 message(s)
- *
- * Both are HTTP 200. The wrong one is not an error — it is a clean, confident,
- * permanently empty result. The orphan sweep would have reported "all
- * accounted for" every night while examining nothing, on the one check whose
- * job is detecting the single event the architecture exists to prevent. And
- * the matcher compares `m.to === row.phoneE164`, so every row would have gone
- * unresolved for ever.
- *
- * So the channel detail lives HERE, at the boundary, and nothing inland ever
- * sees it: queries go out prefixed, results come back stripped, and every other
- * module keeps speaking E.164.
+ * Addresses go out prefixed and come back stripped, through
+ * `provider-address.ts`. That module's header explains why, and it is the
+ * place to read before writing any provider query — including the next one,
+ * in whatever file it lives.
  */
-const CHANNEL = 'whatsapp'
-
-export function toChannelAddress(e164: string, channel = CHANNEL): string {
-  return e164.startsWith(`${channel}:`) ? e164 : `${channel}:${e164}`
-}
-
-export function stripChannelAddress(addr: string): string {
-  const i = addr.indexOf(':')
-  return i === -1 ? addr : addr.slice(i + 1)
-}
 
 type TwilioMessage = {
   sid: string
@@ -168,3 +144,7 @@ export async function listMessages(params: {
   }
   return out
 }
+
+/** Re-exported for callers that already reach for them here. One definition, in
+ * provider-address.ts (lesson 15). */
+export { toChannelAddress, stripChannelAddress } from '@/lib/send/provider-address'
