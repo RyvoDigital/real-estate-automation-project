@@ -76,6 +76,17 @@
       },
       "last_proved": "2026-09-17",
       "proved_by": "Manuel Vale"
+    },
+    {
+      "id": "0020-templates-and-sends-fk",
+      "what": "Variable contiguity refused, an approved row without its approval id refused, the body frozen while status stays writable, and a send naming a non-existent approval refused by the new foreign key.",
+      "how": "Paste db/migrations/0020_message_templates.sql, then its verify block inside begin/rollback. Expect: contiguity function t/f/t; variables_are_contiguous fires; approved_has_its_approval fires; status update succeeds then body update refused BY NAME; sends_template_approval_fk refuses HX_NOT_REAL.",
+      "watches": [
+        "db/migrations/0020_message_templates.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
     }
   ]
 }

@@ -239,6 +239,25 @@ test('only the sender and the reader reach the provider API by URL', () => {
   )
 })
 
+test('the template module is not a route to sending', () => {
+  // The obvious reading of "nothing here may become a route to sending" is
+  // about calls, and this is that half. The other half is a COLUMN, and it is
+  // guarded in 0020's header: default_recipients, auto_send_on_approval,
+  // send_to_segment — each turns a record of what was approved into a campaign
+  // definition, and something will eventually read it and act.
+  const src = codeOnly(readFileSync(join(REPO, 'cockpit/src/lib/send/template.ts'), 'utf8'))
+  for (const forbidden of [
+    /from '@\/lib\/send\/dispatch'/, /from '@\/lib\/send\/permit'/,
+    /SendPermit/, /dispatch\(/,
+  ]) {
+    assert.equal(forbidden.test(src), false,
+      `template.ts references ${forbidden} — it records what may be said and must have no route to a send`)
+  }
+  // render() returns a string. If it ever returned something permit-shaped, a
+  // caller holding a rendered body would hold half a send.
+  assert.match(src, /export function render\(body: string, variables: string\[\]\): string/)
+})
+
 test('SendPermit has no public constructor, so the wrong order cannot be written', () => {
   const src = readFileSync(join(REPO, 'cockpit/src/lib/send/permit.ts'), 'utf8')
   assert.match(src, /private constructor\(/,
