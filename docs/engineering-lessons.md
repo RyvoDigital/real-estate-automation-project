@@ -811,6 +811,75 @@ structurally the wrong instrument for the path that did not exist an hour ago.
 
 ---
 
+---
+
+## 11. A decision that does not carry its reason has thrown away the only part anyone will need
+
+Logged 2026-09-17, from the consent gate and everything that leads into it.
+
+A function that authorises an action is tempting to write as a boolean. It reads
+well at the call site — `if (mayContact(x))` — and it destroys the reason at the
+exact moment the reason was known and cheap. Nobody needs the boolean later.
+Everybody needs the reason.
+
+It bites in both directions, and the second one is the one people miss.
+
+### A refusal must say WHICH refusal
+
+Four functions written in the same week all started as `T | null` and all had to
+be changed:
+
+| | collapsed | became |
+|---|---|---|
+| a consent cell | `'opt_in' \| 'unknown'` | a claim, with the exact cell text, or `null` for *no cell at all* |
+| a phone number | `string \| null` | the number and its country, or one of four named refusals |
+| an opt-out | `boolean` | three verdicts, because halting and recording have different costs |
+| a jurisdiction | `boolean` | eleven named reasons, each with operator wording |
+
+Every one of those nulls meant several different things at once, and each time
+the collapse would have shown a human "not allowed" with no way to find out why.
+That is §5b — an empty result narrated as a fact — reappearing wherever a
+decision is returned rather than a value.
+
+### A permission must say on what BASIS
+
+This is the half that gets forgotten, because a permission feels
+self-explanatory in the moment.
+
+> A log line reading `allowed` explains nothing to a regulator. `allowed:
+> existing-customer route, Lei n.º 41/2004 art. 13.º-A, policy row confirmed
+> 2026-09-20 by <the lawyer>` answers the actual question, which is never *was
+> it allowed* but *on what grounds did you allow it*.
+
+And there is a failure mode worse than a thin log. **When a permission carries a
+condition, returning them separately means the caller can take the permission
+and drop the condition.** Portugal's existing-customer route is available *and*
+obliges the sender to maintain the art. 13.º-B lists. A verdict shaped
+`{permitted: true}` with the obligation left in the policy row for someone to
+remember is an obligation that will be missed — not through carelessness, but
+because nothing in the permission's own shape says it exists.
+
+So the obligation travels *inside* the verdict, attached to the basis that
+triggered it:
+
+```ts
+{ permitted: true, basis: 'existing-customer route, Lei n.º 41/2004',
+  listObligation: 'art. 13.º-B lists' }
+```
+
+### The general form
+
+> Any function whose answer authorises an action returns the authorisation and
+> its grounds as **one value**. A permission carries its basis and every
+> obligation attached to that basis; a refusal carries which refusal it is and
+> wording a human can act on. Neither is ever a bare boolean, and neither is
+> ever a null.
+
+The test that follows from it is cheap and worth writing every time: **assert
+that a permission states its basis and that no refusal reason lacks an
+explanation.** Both are one loop over the enumerated cases, and both fail loudly
+the day someone adds a twelfth reason and forgets its wording.
+
 ## 4c. A test is not green until it is green twice, and cleanup is what hides the difference
 
 Logged 2026-09-17, caught by running a suite a second time for an unrelated
