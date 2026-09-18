@@ -1,10 +1,10 @@
 # Where we left off
 
-**Last updated:** 2026-09-18.
-**Where the work is:** Automation 03 (listing match + nurture). Phase 1
-(Concierge) and Automation 02's send path are both done and are not what anyone
-is touching. **Next: nothing, until the operator has had the calibration
-conversation with an agency** — see §0 immediately below.
+**Last updated:** 2026-09-18 (evening).
+**Where the work is:** Automations 03 and 04. Phase 1 (Concierge) and
+Automation 02's send path are done and are not what anyone is touching.
+**Next: nothing, until the operator has sat with an agency** — §0 is Automation
+04, §0a is Automation 03, and both end in the same room.
 
 > ⚠️ The header used to say "Last updated 2026-09-03, next is Checkpoint C".
 > That was two automations ago. Sections below are newest-first and the older
@@ -17,7 +17,102 @@ tripped us up. **Sections are newest first.**
 
 ---
 
-# 0. HANDOVER — Automation 03, 18 September 2026
+# 0. HANDOVER — Automation 04, 18 September 2026
+
+**Read §0a too. 03 and 04 are the same conversation away from being useful.**
+
+## What 04 is, in one paragraph
+
+**A publication gate.** A property may not be advertised publicly unless it is
+lawful to advertise it; then a piece is prepared; then **a person at the agency
+publishes it**. Since 2013 every sale or rental advertisement in Portugal must
+carry the energy rating, and every piece of an agency's publicity must carry its
+AMI licence number — €250 to €3,741, and the fine lands on the client.
+
+**It is not a content generator**, and it does not alert interested buyers. That
+is 03, and it is built. The seeded description promised both; `0027` corrected
+it. The value is that an agency publishing through us cannot publish an unlawful
+advertisement — the copy is the part a client will think they are buying and the
+part worth least.
+
+`docs/automation-04-publication-gate-design.md` is the spec. §2 is the part to
+read before touching anything.
+
+## Where it stands
+
+| | |
+|---|---|
+| The two-gate boundary | ✅ `tests/two-gates.test.ts`, written **before** any 04 code |
+| `0027` description, `0028` certificate + AMI | ✅ applied, verified, blessed |
+| The publication gate | ✅ five refusals, in order, pure |
+| Exemption declaration | ✅ screen + validator, reads like the segmentation one |
+| Standing re-check + notice | ✅ and the notice claims nothing it cannot do |
+| Prepared piece + invariant | ✅ invariant read on the artefact |
+| `0029 launch_pieces` | ❌ **deliberately not written.** Nothing to store until a real piece exists for a real property; a schema designed from imagination is expensive to be wrong about |
+
+## What you cannot work out from the repo
+
+**1. The gate refuses everything, and that is correct.** Measured 18 Sep:
+
+```
+client  Ryvo Test Client        ami = NULL
+client  ZZ TEST — Cascais Demo  ami = NULL
+listing A-1042  under_offer  class = NULL  expires = NULL  exempt = no
+```
+
+No client has an AMI number and no listing has an energy rating, so **every
+property refuses at check 1 or 2**. Same shape as 03's `thresholds_not_configured`:
+the refusal is the designed output of a system nobody has given the facts to.
+
+**2. 🔴 The one thing to get right if you build F5.** 03's lead-facing send is
+the path that needs BOTH gates — consent about the person, publication about the
+property — and it is not built. `two-gates.test.ts` passes today because nothing
+on the send path knows what a listing is, and **fails with a filename** the day a
+send-path file learns about a property without learning about its clearance. It
+was proved against six wrong versions of F5, including the two anybody would
+actually write: the runner carrying a `listingId`, and `campaign-plan` reading
+the listings table.
+
+**3. The table accepts an incomplete property; the gate refuses to advertise
+one.** `0028` deliberately does *not* require a class or an exemption. A listing
+arrives from a WhatsApp message long before anyone has looked up its certificate,
+and refusing the row means an agent cannot record a property at all until they
+have the paperwork — which is the constraint that makes them stop using the
+system.
+
+**4. We cannot withdraw a post we did not publish.** Draft-for-a-human was
+chosen so that no mistake of ours can risk the client's Meta account, and the
+cost is this: the re-check produces **a notice, not an action**. A test fails on
+any verb claiming we acted on the advertisement. Do not add one.
+
+**5. Nothing in `src/lib/publication/` may reach a platform.** Asserted over the
+whole directory — no adapter, no dispatcher, no Meta host, no bare `fetch`, no
+credential-shaped env var. A prepared piece that can publish itself is the same
+failure as a match row that knows its own audience.
+
+**6. ⚠️ `figuresIn`'s character class is load-bearing.** `[\d.,\s]` — and `\s`
+is the only thing that sees the U+00A0 in `1 950 000`. Narrowing it to `[\d.,]`
+looks like tidying and turns the agency's own price into three invented figures.
+Pinned by codepoint in `publication-piece.test.ts`. Lesson 6i.
+
+## What waits on the operator
+
+**The same room as 03**, and 04 needs less from it:
+
+1. **One AMI licence number per client.** Asked once, recorded once, and every
+   piece for that agency carries it. Nothing publishes for a client without it.
+2. **An energy rating and its expiry date per property** — or a declared
+   exemption, with a name and a reason.
+3. ⚖️ **Two lawyer questions**, in `legal/fonte/nota-questoes-automacao-04.md`,
+   to batch with whatever next goes to Margarida. Neither blocks 04. Question 1
+   blocks *submitting 03's templates*, because approved text is immutable.
+
+**And one commercial constraint:** Portugal only. §8.A.3 and the findings
+register both say 04 cannot enter service in Spain without its own analysis.
+
+---
+
+# 0a. HANDOVER — Automation 03, 18 September 2026
 
 **Read this first if you have read nothing.**
 

@@ -3694,3 +3694,68 @@ reason to look again.
 
 The mechanical form: **if a sabotage's expected set is empty, do not write the
 empty set. Write the test that would make it non-empty.**
+
+---
+
+## 6i. Text that looks identical on screen is not identical in bytes
+
+**Three instances, and the third made it a family.** Each cost real time and
+each looked like a different bug until they were put side by side.
+
+| | The character | What it did |
+|---|---|---|
+| §6c | ASCII `\b` against `à ã ç ñ` | A guard silently stopped working in Portuguese and Spanish — the two languages it most existed for |
+| §6g | `'` U+0027 vs `’` U+2019 | iOS autocorrects the apostrophe, so *"we couldn't live without a garden"* had its hard constraint read as a preference |
+| 18 Sep | ` ` U+00A0 vs a plain space | `toLocaleString('pt-PT')` renders `1 950 000` with a no-break space. A test written with a plain space could not find a price that was right there |
+
+> **Every guard that reads rendered output is exposed to this**, because
+> rendering is exactly where a character becomes a *different* character that
+> looks the same.
+
+**And the third one has the worse shape, which is why it is worth the entry.**
+The defect was in a test. The dangerous part is the fix somebody would reach
+for: `figuresIn` matches `[\d.,\s]`, and narrowing that to `[\d.,]` **looks like
+tidying** — and turns the agency's own price into three invented figures. A
+guard firing on correct input is how a guard gets deleted by somebody who
+assumes it is broken (§13d's deafening half).
+
+**What to do about it, mechanically:**
+
+- A guard that reads rendered text is pinned **by codepoint**, not by typing the
+  character. `assert.ok(rendered.includes(' '))` says what a test written
+  with a plain space cannot.
+- When a character class looks wide, ask what it is *for* before narrowing it.
+  `\s` there is not laziness; it is the only thing that sees a locale separator.
+- Locale, keyboard and platform are all the same axis. `toLocaleString`,
+  autocorrect and a copy-paste from Word each substitute a character that
+  renders identically and compares differently.
+
+---
+
+## 5j. Never publish a number you computed as though it were a fact about the world
+
+**2026-09-18, arriving in two places within a day**, which is what suggested it
+is the principle rather than a special case.
+
+The publication gate's fifth check refuses a price that did not come from the
+agency — *"A automação não gera características, preços ou disponibilidades."*
+And the prepared piece refuses €/m² in a rephrasing, which is arithmetic on two
+numbers the agency did supply.
+
+Both are the same rule:
+
+> **A figure we computed, rounded, converted or derived is OURS. Presenting it
+> as a property of somebody else's asset is a claim we are not entitled to
+> make** — however true the arithmetic is.
+
+€/m² is the clarifying case precisely because the sum is correct. The price is
+theirs, the area is theirs, the quotient is not: they never chose to state it,
+and an agency asked to defend a figure in their own advertisement should not
+discover it was one we divided.
+
+The same shape is already elsewhere under other names — `guardDraft` refusing a
+figure nobody in the conversation used, and the Concierge never inventing
+inventory. Where the rule keeps reappearing, prefer the structure that cannot
+produce the defect: the prepared piece is **assembled from typed fields**, so
+there is nowhere for a computed number to enter, which beats a check that
+catches one.
