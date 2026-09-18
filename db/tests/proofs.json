@@ -163,9 +163,12 @@
         "db/migrations/0025_listing_matches.sql",
         "db/tests/0025_listing_matches.test.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0025_listing_matches.sql": "eca03d2656cde4dde65b1cb54f048bd499e2311225498a644098e2f791b41ba3",
+        "db/tests/0025_listing_matches.test.sql": "55a4393948914a4fe873f6475a7c2b90a8608ebac897b283a5e1104ccc944133"
+      },
+      "last_proved": "2026-09-18",
+      "proved_by": "Manuel Vale"
     },
     {
       "id": "0026-lead-requirements-guards",
@@ -175,9 +178,12 @@
         "db/migrations/0026_lead_requirements.sql",
         "db/tests/0026_lead_requirements.test.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0026_lead_requirements.sql": "52c825a67d50e441ad968b4fd8bf49ab6e7a20f8a9f34ae3a70c89bab8f799fc",
+        "db/tests/0026_lead_requirements.test.sql": "dcc6fb701b0c66dff277af57feb32947c930e896fa7c4924c13df33726615ac2"
+      },
+      "last_proved": "2026-09-18",
+      "proved_by": "Manuel Vale"
     },
     {
       "id": "0026-recompute-preserves-agent-rows",
@@ -192,7 +198,15 @@
         "runnable_when": "cockpit/src/lib/matching/run.ts"
       },
       "last_proved": null,
-      "proved_by": null
+      "proved_by": null,
+      "discharged": {
+        "by": [
+          "cockpit/tests/match-run.test.ts",
+          "cockpit/src/lib/matching/recompute.ts"
+        ],
+        "on": "2026-09-18",
+        "note": "The rule became provable in the suite rather than in a SQL editor, because the caller was built as a PURE PLANNER: planRecompute() is the only thing that produces ids to delete, so the store applies a plan by id and a delete scoped to the lead cannot be written. Three tests: every derived row is deleted and no agent row; the agent row keeps its ORIGINAL id (a delete-and-reinsert is the same defect with a new primary key); and a lead with only derived rows is fully replaced, so the rule is not 'delete nothing'."
+      }
     },
     {
       "id": "0025-gate-never-reads-listing-matches",
@@ -207,7 +221,14 @@
         "runnable_when": "cockpit/src/lib/matching/run.ts"
       },
       "last_proved": null,
-      "proved_by": null
+      "proved_by": null,
+      "discharged": {
+        "by": [
+          "cockpit/tests/matching-boundary.test.ts"
+        ],
+        "on": "2026-09-18",
+        "note": "A source-level boundary in both directions: nothing on the gate path reads listing_matches or agent_dismissed, and the matching run does not consult the gate, the ledger or the suppression list. Plus the two tests that stop it becoming vacuous -- every listed file must exist, and the matching side must still read listing_matches, so the boundary cannot be 'fixed' into a ban that blinds the candidate set."
+      }
     }
   ]
 }

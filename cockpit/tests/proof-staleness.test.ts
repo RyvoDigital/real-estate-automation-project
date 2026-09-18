@@ -47,6 +47,19 @@ type Proof = {
    * the record proves you knew.
    */
   blocked?: { reason: string; runnable_when: string }
+  /**
+   * The obligation was DISCHARGED, and by what.
+   *
+   * A blocked proof that becomes provable in the suite has served its purpose,
+   * and deleting it would lose the fact that the question was ever asked — the
+   * next person sees no entry and cannot tell "nobody thought of it" from
+   * "somebody thought of it and dealt with it".
+   *
+   * So it stays, pointing at the test that replaced it. `by` must exist: delete
+   * that test and the entry stops being discharged, which is the whole point —
+   * an obligation cannot be closed by removing the thing that closes it.
+   */
+  discharged?: { by: string[]; on: string; note: string }
 }
 
 const REPO = resolve(new URL('../..', import.meta.url).pathname)
@@ -61,7 +74,7 @@ test('every out-of-suite proof covers files that have not moved since it was run
   const stale: string[] = []
 
   for (const p of book.proofs) {
-    if (p.blocked) continue
+    if (p.blocked || p.discharged) continue
     for (const file of p.watches) {
       const now = sha(file)
       const recorded = p.hashes[file]
@@ -88,7 +101,7 @@ test('every out-of-suite proof covers files that have not moved since it was run
 test('a blocked proof becomes an alarm the moment the thing it needs exists', () => {
   const arrived: string[] = []
   for (const p of book.proofs) {
-    if (!p.blocked) continue
+    if (!p.blocked || p.discharged) continue
     if (!existsSync(resolve(REPO, p.blocked.runnable_when))) continue
     arrived.push(
       `${p.id}: ${p.blocked.runnable_when} now exists, so this proof is runnable ` +
@@ -116,6 +129,20 @@ test('the proof book itself is well formed, so a typo cannot silently watch noth
       assert.doesNotThrow(() => sha(f), `${p.id} watches ${f}, which does not exist`)
     }
     assert.ok(p.how?.trim(), `${p.id} does not say how to run the proof`)
+    if (p.discharged) {
+      // A discharge that names nothing, or names a file that has since been
+      // deleted, is an obligation closed by removing what closed it.
+      assert.ok(p.discharged.by.length > 0, `${p.id} is discharged by nothing`)
+      for (const f of p.discharged.by) {
+        assert.ok(
+          existsSync(resolve(REPO, f)),
+          `${p.id} says it was discharged by ${f}, which no longer exists. ` +
+            'The obligation is open again.',
+        )
+      }
+      assert.ok(p.discharged.note?.trim(), `${p.id} does not say what discharged it`)
+      continue
+    }
     if (p.blocked) {
       // A blocked proof with no trigger is a silence with extra steps.
       assert.ok(p.blocked.reason?.trim(), `${p.id} is blocked and does not say why`)
