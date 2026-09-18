@@ -31,6 +31,8 @@
 |---|---|
 | Regime da Lista Robinson | Se a consulta é exigível ou recomendável, e a quem incumbe |
 | Requisitos de anúncios imobiliários em Espanha | A Automação 04 não pode entrar em serviço em Espanha sem esta análise |
+| **Se uma mensagem de WhatsApp que menciona um imóvel é anúncio** | Determina se os modelos da Automação 03 têm de conter classe energética e AMI. **Urgente: os modelos ainda não foram submetidos à Meta e o texto aprovado é imutável.** Questão 1 de `nota-questoes-automacao-04.md` |
+| **Isenções de certificação energética** | Sem elas um imóvel legitimamente dispensado nunca é publicável e a agência contorna o sistema; com uma caixa «isento» a obrigação perde efeito. Questão 2 de `nota-questoes-automacao-04.md` |
 | Qualificação do pedido de consentimento como comunicação comercial | Determina se o segmento C é admissível em Portugal |
 | Caducidade do consentimento | Irlanda impõe 12 meses. Determinar se convém reconfirmação periódica por defeito |
 | Regimes fora da UE | Brasil (LGPD), Emirados, Reino Unido pós-Brexit — antes de qualquer cliente nesses mercados |
