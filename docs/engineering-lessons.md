@@ -3801,6 +3801,14 @@ So the mechanical form needs to be earlier than the run:
 - A matrix with no empty expectations is a matrix where every `ok` means
   something.
 
+And the reason to write them first rather than last is not ordering. **The test
+that makes an empty row non-empty is usually the test the feature most needed.**
+All three here were the cases the work had been done for — the exemptible check,
+the revoked licence, and a Catalan registration not satisfying Valencia. An
+empty row is not a loose end at the edge of a feature; it tends to sit exactly
+where the feature's reason for existing lives, because that is the code written
+last and covered least.
+
 ### And one thing that is NOT the same failure
 
 A *sweeping* sabotage — removing an entire mechanism — legitimately breaks half

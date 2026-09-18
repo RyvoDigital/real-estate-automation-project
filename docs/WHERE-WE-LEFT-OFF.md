@@ -1,6 +1,6 @@
 # Where we left off
 
-**Last updated:** 2026-09-18 (evening).
+**Last updated:** 2026-09-18 (late).
 **Where the work is:** Automations 03 and 04. Phase 1 (Concierge) and
 Automation 02's send path are done and are not what anyone is touching.
 **Next: nothing, until the operator has sat with an agency** — §0 is Automation
@@ -25,90 +25,111 @@ tripped us up. **Sections are newest first.**
 
 **A publication gate.** A property may not be advertised publicly unless it is
 lawful to advertise it; then a piece is prepared; then **a person at the agency
-publishes it**. Since 2013 every sale or rental advertisement in Portugal must
-carry the energy rating, and every piece of an agency's publicity must carry its
-AMI licence number — €250 to €3,741, and the fine lands on the client.
+publishes it**. It is not a content generator, and it does not alert interested
+buyers — that is 03. The value is that an agency publishing through us cannot
+publish an unlawful advertisement.
 
-**It is not a content generator**, and it does not alert interested buyers. That
-is 03, and it is built. The seeded description promised both; `0027` corrected
-it. The value is that an agency publishing through us cannot publish an unlawful
-advertisement — the copy is the part a client will think they are buying and the
-part worth least.
+**And since this morning it no longer knows what Portugal requires.** Portugal's
+answer — one energy class, one national AMI licence — had been mistaken for the
+question. Spain answers with **two** ratings whose validity comes from
+registration with one of **seventeen** regional registers, plus an agency
+registration mandatory in two regions and absent in most. A Barcelona property
+carries a requirement the same agency's Zaragoza property does not.
 
-`docs/automation-04-publication-gate-design.md` is the spec. §2 is the part to
-read before touching anything.
+So the jurisdiction is **data**: `advertising_policy`, keyed `(country, region)`,
+declaring *typed requirements* rather than columns. Adding a country is a row.
+
+Two design documents, and read them in this order:
+`docs/automation-04-advertising-jurisdiction-design.md` first (it supersedes the
+shape), then `docs/automation-04-publication-gate-design.md` §2, which is the
+two-gate boundary and the part to read before touching anything.
 
 ## Where it stands
 
 | | |
 |---|---|
-| The two-gate boundary | ✅ `tests/two-gates.test.ts`, written **before** any 04 code |
-| `0027` description, `0028` certificate + AMI | ✅ applied, verified, blessed |
-| The publication gate | ✅ five refusals, in order, pure |
-| Exemption declaration | ✅ screen + validator, reads like the segmentation one |
-| Standing re-check + notice | ✅ and the notice claims nothing it cannot do |
-| Prepared piece + invariant | ✅ invariant read on the artefact |
-| `0029 launch_pieces` | ❌ **deliberately not written.** Nothing to store until a real piece exists for a real property; a schema designed from imagination is expensive to be wrong about |
+| The two-gate boundary | ✅ `tests/two-gates.test.ts`, written **before** any 04 code, proved against six wrong F5s |
+| `0027`–`0032` | ✅ all applied, verified, blessed. `0032` is the destructive one and proved its own abort first |
+| The gate | ✅ **requirement-driven**. Refuses by naming the requirement, not the column |
+| Exemption declaration | ✅ reads like the segmentation one, against a *requirement* rather than a property |
+| Standing re-check + notice | ✅ soonest expiry across requirements; the notice claims nothing it cannot do |
+| Prepared piece + invariant | ✅ invariant read on the artefact; mentions are a registry that **throws** on an id it cannot say |
+| Spain's rows (step 5) | ⏸️ **deliberately held.** The etiqueta question could change what a Spanish piece *is*; a row built before that answer is built to a shape that may not survive it |
+| Re-check widened (step 6) | ❌ revoked registrations and newly-effective requirements not yet surfaced |
+| The lookup (step 7) | ❌ needs ADENE access, which is being registered for |
 
 ## What you cannot work out from the repo
 
-**1. The gate refuses everything, and that is correct.** Measured 18 Sep:
+**1. Everything refuses, and not for the reason you would guess.** Measured:
 
 ```
-client  Ryvo Test Client        ami = NULL
-client  ZZ TEST — Cascais Demo  ami = NULL
-listing A-1042  under_offer  class = NULL  expires = NULL  exempt = no
+policy PT/-  confirmed = NULL  requires = 2
+listing_facts = 0   agency_facts = 0   fact_proposals = 0
+listing A-1042  under_offer  region = NULL
 ```
 
-No client has an AMI number and no listing has an energy rating, so **every
-property refuses at check 1 or 2**. Same shape as 03's `thresholds_not_configured`:
-the refusal is the designed output of a system nobody has given the facts to.
+Portugal's row is **researched and unconfirmed**, so it permits nothing and
+every property refuses with `policy_not_confirmed` — *before* anybody's missing
+certificate is reached. That is deliberate: what is in doubt is **our encoding**
+of the obligations, not the obligations. Carving out the country we feel sure
+about would make the flag mean "somebody was confident" rather than "a lawyer
+confirmed", which is the only thing it can usefully mean.
 
-**2. 🔴 The one thing to get right if you build F5.** 03's lead-facing send is
-the path that needs BOTH gates — consent about the person, publication about the
-property — and it is not built. `two-gates.test.ts` passes today because nothing
-on the send path knows what a listing is, and **fails with a filename** the day a
-send-path file learns about a property without learning about its clearance. It
-was proved against six wrong versions of F5, including the two anybody would
-actually write: the runner carrying a `listingId`, and `campaign-plan` reading
-the listings table.
+**A lawyer setting `confirmed_at` and `confirmed_by` on that one row unblocks
+Portugal entirely.** It is question 4 in the batch.
 
-**3. The table accepts an incomplete property; the gate refuses to advertise
-one.** `0028` deliberately does *not* require a class or an exemption. A listing
-arrives from a WhatsApp message long before anyone has looked up its certificate,
-and refusing the row means an agent cannot record a property at all until they
-have the paperwork — which is the constraint that makes them stop using the
-system.
+**2. 🔴 The F5 tripwire is still the thing to get right.** 03's lead-facing send
+needs BOTH gates — consent about the person, publication about the property —
+and it is not built. `two-gates.test.ts` passes today only because nothing on
+the send path knows what a listing is, and **fails with a filename** the day
+that changes. Proved against the two shapes anybody would actually write: the
+runner carrying a `listingId`, and `campaign-plan` reading the listings table.
 
-**4. We cannot withdraw a post we did not publish.** Draft-for-a-human was
-chosen so that no mistake of ours can risk the client's Meta account, and the
-cost is this: the re-check produces **a notice, not an action**. A test fails on
-any verb claiming we acted on the advertisement. Do not add one.
+**3. The flat columns are gone and must not come back.** `0028`'s five columns
+were the right facts in the wrong home; `0032` dropped them after proving they
+were empty. `nothing reads the flat columns 0032 drops` guards the **shape**,
+not the drop: the next person wanting an energy class on a listing will reach
+for a column, and a column cannot hold Spain's two ratings or an agency's
+several regional registrations.
 
-**5. Nothing in `src/lib/publication/` may reach a platform.** Asserted over the
-whole directory — no adapter, no dispatcher, no Meta host, no bare `fetch`, no
-credential-shaped env var. A prepared piece that can publish itself is the same
-failure as a match row that knows its own audience.
+**4. The region is declared, never inferred.** `listings.region` is entered by a
+person. Deciding that "Sant Cugat" is in Cataluña applies a legal requirement or
+removes one — a string match producing a legal conclusion is a guess with a
+citation attached.
 
-**6. ⚠️ `figuresIn`'s character class is load-bearing.** `[\d.,\s]` — and `\s`
-is the only thing that sees the U+00A0 in `1 950 000`. Narrowing it to `[\d.,]`
-looks like tidying and turns the agency's own price into three invented figures.
-Pinned by codepoint in `publication-piece.test.ts`. Lesson 6i.
+**5. `'unknown'` passes at the gate, deliberately, against the design's own
+line.** A typed registration is the agency asserting their own licence number,
+and no register lookup exists. Refusing it would publish nothing until we build
+something we have not built. The gate refuses on facts; **decay is surfaced** by
+the re-check. Stated in the code where the decision is.
+
+**6. We cannot withdraw a post we did not publish.** A test fails on any verb
+claiming we acted on the advertisement. Do not add one.
+
+**7. The fines are the COMPANY range** — €2,500 to €44,890, not the €250–€3,741
+that §8.A carried until today. That sentence exists to make a conversation
+happen; understating it twelvefold is the opposite of what it is for.
 
 ## What waits on the operator
 
-**The same room as 03**, and 04 needs less from it:
+**Four questions, in `legal/fonte/nota-questoes-automacao-04.md`** — and note the
+batch is two documents: the 02 note's four, sent 17 September and unanswered,
+plus these four.
 
-1. **One AMI licence number per client.** Asked once, recorded once, and every
-   piece for that agency carries it. Nothing publishes for a client without it.
-2. **An energy rating and its expiry date per property** — or a declared
-   exemption, with a name and a reason.
-3. ⚖️ **Two lawyer questions**, in `legal/fonte/nota-questoes-automacao-04.md`,
-   to batch with whatever next goes to Margarida. Neither blocks 04. Question 1
-   blocks *submitting 03's templates*, because approved text is immutable.
+1. 🔴 Is a WhatsApp message naming a property an advertisement? **Blocks
+   submitting 03's templates**, because approved text is immutable.
+2. Energy-certificate exemptions, and who may declare one.
+3. 🔴 The **etiqueta** — may a text advertisement carry two letters, or must the
+   graphical label be shown? If the label must be shown, **the Spanish piece is
+   not text**, and that changes what 04 *is* in Spain. Step 5 is held for this.
+4. One sentence confirming Portugal's row. **The only one that unblocks
+   anything immediately.**
 
-**And one commercial constraint:** Portugal only. §8.A.3 and the findings
-register both say 04 cannot enter service in Spain without its own analysis.
+And per client: an **AMI licence number**, once. Per property: an **energy
+rating and its expiry**, or a declared exemption.
+
+**Portugal only.** §8.A.3 and the findings register both say 04 cannot enter
+service in Spain without its own analysis.
 
 ---
 
