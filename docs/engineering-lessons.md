@@ -942,6 +942,68 @@ the day someone adds a twelfth reason and forgets its wording.
 
 ---
 
+---
+
+## 11c. A default is a claim made on behalf of every writer who omits the field
+
+Logged 2026-09-18, from a migration that would have broken the live Concierge.
+
+`messages.attribution_state` says where a conversation came from: `organic`,
+`campaign`, or `unknown` when the lookup failed. The first draft was **NOT NULL
+with no default**, and the reasoning sounded right: *a writer cannot omit it, so
+nobody inherits a claim they did not make.*
+
+It would have rejected every inbound message on the day it was applied. The n8n
+workflow inserts into that table and knows nothing about the column.
+
+### The reusable half is how it was caught
+
+Not by reasoning harder about the migration. By reading **the schema the
+workflow writes to**, and asking what its insert looks like.
+
+> **A migration is written against a table. It lands on every writer of that
+> table, and most of them are not in front of you** — a workflow in another
+> system, a scheduled job, a webhook handler, a colleague's branch, a script
+> somebody runs quarterly. The table is the thing you can see; the writers are
+> the thing that breaks.
+
+The habit: before adding a NOT NULL, a check, or a foreign key, enumerate the
+writers. Not "who should write this" — who *does*. `git grep` the table name,
+then look outside the repository, because the ones outside are the ones that
+will not fail in CI.
+
+### And the corrected rule is better than the one it replaced
+
+The fix was a default of `unknown`. Which looks like a retreat — the writer can
+now omit the field after all — and is not, because of *which* value it inherits:
+
+> **What matters is not that a writer cannot omit a field, but that omitting it
+> yields the LOUD state rather than the quiet one.** Default to the value that
+> means *"we did not look"*, and an omission becomes a question instead of an
+> answer.
+
+A row inheriting `unknown` appears on its own line in the client's report, is
+excluded from every figure, and alerts. A row inheriting `organic` would have
+been a silent false claim about where a person came from — and the original
+"no default" rule, had it been applied to a table with no live writers, would
+have felt like the stricter choice while protecting nothing extra.
+
+### The general form
+
+Every nullable column and every default is a sentence spoken on behalf of
+absent writers. Ask what it says:
+
+| default | what it claims about a writer who omitted it |
+|---|---|
+| `attribution_state = 'organic'` | "we checked, and this came from nowhere" — **a lie** |
+| `attribution_state = 'unknown'` | "nobody has established this" — **true, and loud** |
+| `status = 'active'` | "this thing is live" — usually a lie about half-built rows |
+| `verified = false` | "not verified" — true |
+| `consent_status = 'unknown'` | true, and the reason that column survived three days of scrutiny before being retired for a different fault |
+
+Choose the value that is true of a writer who did not think about the field,
+because sooner or later every field has one.
+
 ## 11b. A record that justifies a past action may join only to immutable data
 
 Logged 2026-09-17, found by writing one row out by hand before designing the
