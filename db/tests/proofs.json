@@ -229,6 +229,28 @@
         "on": "2026-09-18",
         "note": "A source-level boundary in both directions: nothing on the gate path reads listing_matches or agent_dismissed, and the matching run does not consult the gate, the ledger or the suppression list. Plus the two tests that stop it becoming vacuous -- every listed file must exist, and the matching side must still read listing_matches, so the boundary cannot be 'fixed' into a ban that blinds the candidate set."
       }
+    },
+    {
+      "id": "0028-energy-certificate-and-ami",
+      "what": "A rating with no expiry date is refused (one we cannot date is one we cannot defend), and an exemption without an author or a basis is refused — because an exemption that is a blank cheque is the door everything walks through and the obligation loses all practical effect. With the neighbours: the same rating WITH a date is accepted, and a complete declaration is accepted. A table that refused everything would pass both refusals identically.",
+      "how": "Paste the VERIFY block at the foot of db/migrations/0028_energy_certificate_and_ami.sql into the Supabase SQL editor, inside begin/rollback. Expect: energy_class without a date refused by name; with a date accepted; an exemption missing `basis` refused by name; a complete exemption accepted. Roll it all back.",
+      "watches": [
+        "db/migrations/0028_energy_certificate_and_ami.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
+    },
+    {
+      "id": "0027-listing-launch-description",
+      "what": "The stale description of Automation 04 is corrected, and the OTHER FOUR are untouched. A description is what somebody reads when they arrive and want to know what an automation is for; a stale one is how the wrong thing gets built two years from now by somebody who trusted the row. The second half matters as much: an UPDATE whose WHERE clause matched everything would look identical in the first check.",
+      "how": "Run 0027, then `select key, left(description,40) from public.automations order by key` and confirm listing_launch carries the new text and the other four are unchanged.",
+      "watches": [
+        "db/migrations/0027_listing_launch_description.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
     }
   ]
 }
