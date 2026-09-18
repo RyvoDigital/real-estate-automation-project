@@ -340,7 +340,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify((() => { const c = $('FlattenClient').first().json; const existing = Array.isArray($json.body) && $json.body.length > 0; const row = { client_id: c.clientId, phone: c.from, source: 'whatsapp', last_contact_at: new Date().toISOString(), updated_at: new Date().toISOString() }; if (!existing) { row.stage = 'new'; row.consent_status = 'unknown'; if (c.profileName) row.full_name = c.profileName; } return row; })()) }}",
+        "jsonBody": "={{ JSON.stringify((() => { const c = $('FlattenClient').first().json; const existing = Array.isArray($json.body) && $json.body.length > 0; const row = { client_id: c.clientId, phone: c.from, last_contact_at: new Date().toISOString(), updated_at: new Date().toISOString() }; if (!existing) { row.stage = 'new'; row.source = 'whatsapp'; if (c.profileName) row.full_name = c.profileName; } return row; })()) }}",
         "options": {
           "response": {
             "response": {

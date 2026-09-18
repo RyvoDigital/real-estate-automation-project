@@ -1920,6 +1920,55 @@ destructive operation with no failure to report at all.
 
 ---
 
+---
+
+## 6h. Bundle a deploy by what can be PROVED, not by what shares a window
+
+Logged 2026-09-18, deciding what to put in one n8n deploy.
+
+Three changes were owed to the live Concierge: stop writing a column that is no
+longer authoritative, stop overwriting a lead's origin, and add an opt-out gate
+that must run before the model replies. One deploy was the obvious answer — the
+deploy itself carries risk (an `import` nulls `activeVersionId` and the webhook
+404s until `publish`), so fewer windows is fewer exposures.
+
+It is the wrong axis. The right question is **which of these can this deploy
+show to work**:
+
+| change | provable by this deploy? |
+|---|---|
+| stop writing `consent_status` | yes — read the served version's code |
+| guard `source` | yes — send one message, read the row |
+| opt-out gate on campaign replies | **no.** Nothing can send a campaign message yet |
+| attribution of campaign replies | **no.** Same |
+
+> **A change that cannot be exercised by the deploy that carries it is a change
+> deployed on faith. Putting it next to changes that CAN be exercised makes the
+> whole deploy look verified when half of it is not.**
+
+And the cost lands later, on whoever debugs the first anomaly: four suspects
+instead of two, and the two nobody could have checked are the ones they will
+reach for last.
+
+### The asymmetry that decided it here
+
+The opt-out gate sits between a person saying *stop* and us honouring it. If it
+is wrong it does not fail loudly — it silently suppresses legitimate replies, or
+silently lets an objection through to the model. Of all four changes it is the
+one most worth exercising and the only one that cannot be.
+
+So it waits for a deploy that can exercise it: send a campaign message to a test
+number, reply `SAIR`, confirm the objection is recorded and the model stayed
+silent. That deploy is not available until a campaign can send, and the gate is
+inert until then anyway — **the thing it guards does not exist, so it costs
+nothing to wait and costs a class of unverifiable failures not to.**
+
+### And the cost of splitting is small and nameable
+
+One extra deploy window. Which is a real cost, and a much smaller one than
+either half of the alternative: deploying an unexercisable change, or delaying
+two one-line fixes to live data loss until the campaign work is finished.
+
 ## 6e. "Pushed" and "deployed" are two different facts, and only one of them is visible
 
 **2026-09-07.** The cockpit redesign was committed, pushed to `main`, and
