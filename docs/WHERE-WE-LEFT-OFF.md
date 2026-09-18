@@ -1,12 +1,133 @@
 # Where we left off
 
-**Last updated:** 2026-09-03
-**Phase:** 0 complete (checklist + restore drill passed).
-Phase 1 **Checkpoints A, B1, B2 and B3 complete**, each verified end to end.
-**Next:** Phase 1 Checkpoint C — calendar booking. Operator is provisioning
-Google Cloud and the n8n credential; `GOOGLE_CALENDAR_ID` pending.
+**Last updated:** 2026-09-18.
+**Where the work is:** Automation 03 (listing match + nurture). Phase 1
+(Concierge) and Automation 02's send path are both done and are not what anyone
+is touching. **Next: nothing, until the operator has had the calibration
+conversation with an agency** — see §0 immediately below.
 
-**Server patch state:** fully patched and rebooted 2026-09-01 ~16:02 UTC.
+> ⚠️ The header used to say "Last updated 2026-09-03, next is Checkpoint C".
+> That was two automations ago. Sections below are newest-first and the older
+> ones are history, not instructions.
+
+This file is the running state-of-play for whoever (human or agent) picks the
+project up next. The durable *design* lives in the handoff and design documents
+under `docs/`; this file records what is actually deployed right now and what
+tripped us up. **Sections are newest first.**
+
+---
+
+# 0. HANDOVER — Automation 03, 18 September 2026
+
+**Read this first if you have read nothing.**
+
+## What 03 is, in one paragraph
+
+A property arrives from an agent over WhatsApp. The system works out which of
+the agency's past and current contacts genuinely want it, tells the agent who
+they are and *why* — quoting what the contact actually said — and, where consent
+allows, can reach them. The argument for it existing is that a CRM matches on
+form fields, and we match on the conversation: *"we could stretch for the right
+place"* is not a field, and it is decisive.
+
+**And the requirement that shapes everything current:** it must work for an
+agency with **no CRM and no structured contact data**, because most of the
+segment has none. That produced `docs/automation-03-no-crm-design.md`, which is
+the live spec for everything built in the last two days. Read it before the
+original handoff — where they disagree, the design doc is newer.
+
+## Where it stands
+
+| | |
+|---|---|
+| F1 ingestion | ✅ built, proven against a deliberately messy file |
+| F2 listings | ✅ built and live in the Concierge (an agent WhatsApps a property) |
+| F3 matching | ✅ engine + wired + `0025`/`0026` applied, every constraint seen to fire |
+| F4 agent notification | ✅ built against fixtures. Rides the 24h window the agent opened — **no template, no Meta dependency** |
+| triage floor | ✅ built — the product when nothing can be ranked. Needs no thresholds, works today |
+| silence (half of F6) | ✅ built — "N people told you what they wanted and nobody has spoken to them" |
+| F5 direct outreach | ❌ not built. Needs the declaration (below) before it has an audience |
+| F6 outcomes | ❌ not built. Nothing to record until something has been sent |
+
+Cockpit screens: `/listings`, `/listings/[id]`, `/listings/[id]/triage`,
+`/calibrate`, `/silence`. All standalone, not in the old Shell.
+
+## What you cannot work out from the repo
+
+**1. The database is nearly empty, and that is correct.** Measured 18 Sep:
+
+```
+clients 2 · leads 2 · inbound messages 11 · listings 1 (under offer)
+listing_matches 0 · lead_requirements 0 · consent_events 5 · sends 1
+```
+
+So every screen looks empty and every match run refuses. **Nothing is broken.**
+An empty screen and a refusal are the designed output of a system nobody has
+calibrated yet.
+
+**2. The refusal IS the product working.** `planMatchRun` returns
+`thresholds_not_configured` naming all six keys, because §4.6 refuses to invent
+matching thresholds — any value chosen now is a guess wearing an agency's name.
+**Do not make it pass by seeding data.** That is an explicit operator
+instruction, not a preference: inventing listings and thresholds invents both
+the input and the correct answer, which proves the code runs and says nothing
+about whether the matching is right.
+
+**3. `probe:dod` item 7 is `NODATA`, deliberately.** It reads a
+`lead.escalation_cleared` row and there is none. The probe exits 0. **Do not
+create a row to turn it green** — the note in the probe says so too.
+
+**4. `probe:layout` has two known failures**, both 10.5px type on
+`span.anom__stage` at `/` and `/queue`. Pre-existing, in the old cockpit
+surfaces the redesign replaces. Left alone on purpose.
+
+**5. `@playwright/mcp` is configured but its tools were not available** in the
+18 Sep session. It did not matter: `tests/lib/chrome.ts` drives headless Chrome
+over CDP with no dependency, and `probe:controls` uses it to answer the one
+question no token-level check can — does a selected control *look* selected.
+
+**6. Pushing deploys the cockpit.** Commit freely; push when asked.
+
+## The working rules that are not in any lint
+
+- **No writes to the production database without asking.**
+- **Check the artefact, not the execution status.** A green node, a 2xx and a
+  zero exit have each lied on this project.
+- **Sabotage every guard**, and assert the sabotage applied before believing the
+  result. A sabotage that changes nothing and a guard nothing tests produce the
+  same green.
+- **When a sabotage mismatches your prediction, investigate it — never adjust
+  the test to make the prediction right.** The predictions here were wrong six
+  times in one day and always too *narrow*; every one of them was a test that
+  should have failed and was not foreseen, and two of those investigations
+  found real defects.
+- **Say plainly when the agency conversation is the reason something cannot
+  proceed.** Standing instruction.
+
+## What is waiting on the operator, and only on them
+
+**One conversation, three outcomes.** `docs/calibration-conversation.md` is the
+script — written to be read aloud on a call.
+
+1. **The eight calibration questions** (half an hour). Until answered, every
+   match run refuses.
+2. **Whether the notification reads like something an agent would act on**, and
+   whether it works on a phone. Fixtures cannot answer this.
+3. **The declaration** — where each group of contacts came from. A separate,
+   longer sitting. Matching works without it; **nothing is ever sent without
+   it.** `improvements` §3.18.
+
+Calls were booked for Monday 22 September 2026; the agency conversation follows
+from whichever goes anywhere.
+
+**Until then the honest answer to "what should I build next" is: very little.**
+F5 has no audience, F6 has nothing to record, and the matcher's quality is
+unprovable from a keyboard. Ask before starting anything that needs a real
+agency to be meaningful.
+
+## 0. PHASE 1 COMPLETE — 2026-09-05. Phase 2 is next.
+
+**Server patch state, as of 2026-09-01 ~16:02 UTC:** fully patched and rebooted.
 Kernel `6.8.0-138-generic` (from `-117`, four kernel updates plus `libc6`);
 `/var/run/reboot-required` cleared. All three containers came back on their own
 via `restart: unless-stopped`, postgres healthy, and — the check that actually
@@ -14,14 +135,6 @@ matters — an unsigned `POST` to `/webhook/twilio-inbound` returned **403**,
 proving n8n re-registered the webhook from the database rather than merely
 starting. Both workflows still `active=true`.
 
-This file is the running state-of-play for whoever (human or agent) picks the
-project up next. The durable *design* lives in
-[`phase-0-infrastructure-handoff.md`](phase-0-infrastructure-handoff.md); this
-file records what is actually deployed right now and what tripped us up.
-
----
-
-## 0. PHASE 1 COMPLETE — 2026-09-05. Phase 2 is next.
 
 **The Inbound Concierge is built, deployed and proven.** It answers a WhatsApp
 enquiry in about six seconds, qualifies the lead, books a viewing into a real
