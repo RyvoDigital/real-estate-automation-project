@@ -7,11 +7,22 @@
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { proposeGroups, describeContact, type ContactRow } from '../src/lib/segmentation/groups'
 import { validateDeclaration, type DeclareInput } from '../src/lib/segmentation/declare'
 import {
-  STATE_LABEL, STATE_NOTE, SEGMENT_CHOICE, CLAIM_QUESTION, UI, FORBIDDEN_ON_SCREEN,
+  STATE_LABEL, STATE_NOTE, SEGMENT_CHOICE, CLAIM_QUESTION, UI, FORBIDDEN_ON_SCREEN, LOAD_BEARING, jurisdictionSentence,
 } from '../src/lib/segmentation/copy'
+
+/** Comment lines dropped, code kept — see one-sender.test.ts for why line-based. */
+function codeOnly(text: string): string {
+  return text.split('\n')
+    .filter((l) => {
+      const s = l.trimStart()
+      return !s.startsWith('//') && !s.startsWith('*') && !s.startsWith('/*') && !s.startsWith('{/*')
+    })
+    .join('\n')
+}
 
 const c = (over: Partial<ContactRow> = {}): ContactRow => ({
   id: 'c1', phone: '+351912345678', fullName: 'Maria Santos',
@@ -163,4 +174,164 @@ test('a contact is described without its internal state ever appearing', () => {
   assert.equal(shown.state, 'O seu ficheiro dizia que sim')
   assert.equal(shown.name, 'Sem nome no ficheiro')
   assert.equal(/claimed|unevidenced/i.test(JSON.stringify(shown)), false)
+})
+
+test('THE THREE LOAD-BEARING SENTENCES ARE STILL THERE, VERBATIM', () => {
+  // Each is doing a job a shorter version would drop, and each is exactly the
+  // kind of sentence trimmed for brevity by somebody who was not in the room.
+  const all = everyRenderedString().map(([, s]) => s).join(' ')
+  for (const sentence of LOAD_BEARING) {
+    assert.ok(all.includes(sentence), `the copy no longer contains: "${sentence}"`)
+  }
+})
+
+test('the objection is explained, not just stated', () => {
+  // "É definitivo" is correct and cold: in a meeting an agency owner hears a
+  // system being rigid rather than a person being protected. The permanence
+  // stays; the reason comes with it.
+  assert.match(STATE_NOTE.objected, /pediu para não receber/)
+  assert.match(STATE_NOTE.objected, /Respeitamos isso/)
+})
+
+test('the jurisdiction sentence comes FROM THE TABLE, and names the limit', () => {
+  // "Noutros países depende do país" is true and says nothing; an agency with
+  // Spanish contacts would find out the hard way. But the sentence must also
+  // never assert a conclusion the table does not hold.
+  const s = jurisdictionSentence([
+    { country: 'PT', existingCustomer: 'available', confirmed: true, platformBlocked: false },
+    { country: 'ES', existingCustomer: 'unavailable', confirmed: true, platformBlocked: false },
+  ])
+  assert.match(s, /Em Portugal podemos escrever-lhes/)
+  assert.match(s, /Em Espanha não/)
+})
+
+test('AN UNCONFIRMED COUNTRY IS "WE DO NOT KNOW YET", NEVER "YOU CANNOT"', () => {
+  // Spain is `unknown` pending a lawyer. A screen saying "in Spain you cannot"
+  // would state as settled law something our own record calls unanalysed — the
+  // system disagreeing with itself in front of the person it protects.
+  const s = jurisdictionSentence([
+    { country: 'ES', existingCustomer: 'unknown', confirmed: false, platformBlocked: false },
+  ])
+  assert.match(s, /ainda não sabemos/)
+  assert.match(s, /à espera da confirmação de uma advogada/)
+  assert.match(s, /até lá não escrevemos/)
+  assert.equal(/a lei lá é mais restritiva/.test(s), false,
+    'an unconfirmed country must not be described as prohibited')
+})
+
+test('the wording changes because the TABLE changed, not the other way round', () => {
+  // The same country, before and after a confirmation. Nothing in the copy is
+  // edited between these two calls.
+  const before = jurisdictionSentence([
+    { country: 'ES', existingCustomer: 'unknown', confirmed: false, platformBlocked: false },
+  ])
+  const after = jurisdictionSentence([
+    { country: 'ES', existingCustomer: 'available', confirmed: true, platformBlocked: false },
+  ])
+  assert.notEqual(before, after)
+  assert.match(after, /Em Espanha podemos escrever-lhes/)
+})
+
+test('a platform block is stated as a limit even when nobody has confirmed anything', () => {
+  // Meta not delivering to +1 is a fact about delivery, not a legal conclusion,
+  // so it does not wait for a lawyer.
+  const s = jurisdictionSentence([
+    { country: 'US', existingCustomer: 'unknown', confirmed: false, platformBlocked: true },
+  ])
+  assert.match(s, /Em Estados Unidos não/)
+})
+
+test('and the static fallback claims nothing about any country', () => {
+  assert.equal(/Portugal|Espanha/.test(SEGMENT_CHOICE.A.consequence), false,
+    'the hardcoded sentence must not be a second source of truth about the law')
+})
+
+test('segment D leads with what survives, because the bias must point TOWARDS it', () => {
+  // A false A authorises a send; a false D costs a contact. The wording must
+  // not push away from the answer whose error is cheaper.
+  assert.match(SEGMENT_CHOICE.D.consequence, /^Fica guardado/)
+  assert.match(SEGMENT_CHOICE.D.consequence, /não escrevemos/)
+})
+
+test('THE PAGE NEVER PRE-SELECTS A SEGMENT', () => {
+  // The most consequential line on the screen, and the easiest to add by
+  // accident: `defaultChecked` on the first radio would look like a convenience
+  // and would collect a click carrying the weight of a declaration.
+  // Read as CODE, not as prose: the first version tripped on its own comment
+  // explaining why pre-selection is forbidden. A check that fires on the words
+  // describing it is measuring the wrong artefact (§6b).
+  const page = codeOnly(readFileSync(
+    new URL('../src/app/segmentation/[clientId]/page.tsx', import.meta.url), 'utf8'))
+  assert.equal(/defaultChecked|defaultValue=\{?['"][ABCD]/.test(page), false,
+    'the page pre-selects a segment — the system proposes, the agency confirms')
+  assert.match(page, /type="radio" name="segment"/)
+})
+
+test('the page takes the RECORDER from the session, never from the form', () => {
+  // A form field for it would let both names be set to the same value from the
+  // browser, which is the collapse declare.ts refuses.
+  const actions = readFileSync(new URL('../src/lib/segmentation/actions.ts', import.meta.url), 'utf8')
+  assert.match(actions, /recordedBy: operator\.email/)
+  assert.equal(/get\(['"]recordedBy['"]\)/.test(actions), false,
+    'recordedBy is being read from the form — it must come from the session')
+})
+
+test('a failed declaration is SHOWN, never swallowed', () => {
+  // A form action must resolve to void, and the obvious consequence — discard
+  // the result — is unacceptable here: somebody says a sentence, nothing
+  // visibly happens, and everyone in the room assumes it was recorded.
+  const actions = readFileSync(new URL('../src/lib/segmentation/actions.ts', import.meta.url), 'utf8')
+  assert.match(actions, /erro=\$\{encodeURIComponent\(result\.reason\)\}/)
+  const page = readFileSync(
+    new URL('../src/app/segmentation/[clientId]/page.tsx', import.meta.url), 'utf8')
+  assert.match(page, /role="alert"/)
+})
+
+test('the page is standalone: no cockpit Shell in front of a client', () => {
+  // §3.17 says not to build into the old frame. And a nav bar listing other
+  // clients' leads and queues is not a thing to show somebody across a table.
+  for (const f of ['../src/app/segmentation/[clientId]/page.tsx', '../src/app/segmentation/page.tsx']) {
+    const src = readFileSync(new URL(f, import.meta.url), 'utf8')
+    assert.equal(/<Shell/.test(src), false, `${f} renders the cockpit Shell`)
+  }
+})
+
+test('THE PAGE CONTAINS NO PROSE AT ALL: every word comes from copy.ts', () => {
+  // The first version tried to extract JSX text with a regex and matched CODE —
+  // `const jurisdiction = …` and `c.claimRaw !== null` — because telling text
+  // from code needs a parser. A crude heuristic produces false positives now
+  // and false negatives later.
+  //
+  // So the rule is stronger and exactly checkable instead: ALL rendered text
+  // lives in copy.ts, and the page therefore contains no string literal that
+  // reads as a sentence. Two consecutive words of three or more letters is
+  // prose; CSS ("1px solid #eee"), attributes and identifiers are not.
+  //
+  // And it caught a real leak on its first run: four Portuguese strings written
+  // straight into the JSX, which would have bypassed the vocabulary guard
+  // entirely without anybody meaning to.
+  const page = codeOnly(readFileSync(
+    new URL('../src/app/segmentation/[clientId]/page.tsx', import.meta.url), 'utf8'))
+  // Newlines excluded, or the quotes pair across the whole file and one
+  // "literal" spans three hundred lines of code.
+  // TWO places prose can hide, and the first version only looked in one.
+  //
+  // Sabotage proved it: replacing {UI.noContacts} with bare JSX text passed
+  // clean, because a text node is not a quoted literal. A guard that survives
+  // its own sabotage has not been shown to work (§0.7) — and the hole was in
+  // the more likely direction, since writing text straight into JSX is easier
+  // than quoting it.
+  const PROSE = /[a-zà-ú]{3,}\s+[a-zà-ú]{3,}/i
+
+  // Newlines excluded, or the quotes pair across the whole file and one
+  // "literal" spans three hundred lines of code.
+  const literals = [...page.matchAll(/'([^'\n]{6,})'|"([^"\n]{6,})"/g)].map((m) => m[1] ?? m[2])
+  // And JSX text nodes: a run between > and < on one line, containing no
+  // braces, which is what distinguishes text from an expression.
+  const textNodes = [...page.matchAll(/>([^<>{}\n]+)</g)].map((m) => m[1].trim())
+
+  const prose = [...literals, ...textNodes].filter((s) => PROSE.test(s))
+  assert.deepEqual(prose, [],
+    'these strings are prose and belong in copy.ts, where the vocabulary guard can see them:\n' +
+    prose.map((s) => `  ${JSON.stringify(s)}`).join('\n'))
 })
