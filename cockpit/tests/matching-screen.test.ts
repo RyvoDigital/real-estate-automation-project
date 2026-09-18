@@ -216,3 +216,11 @@ test('the agency can recognise its own answer months later', () => {
   assert.equal(e.bedrooms, true)
   assert.deepEqual(e.areas.map(([k]) => k), ['Cascais', 'Estoril', 'Parede'])
 })
+
+test('the screen does not promise a number of questions it does not ask', () => {
+  // It said "Seis perguntas" and asked eight — three about budget, one about
+  // typology, three about when it is worth showing, and one about areas. Six
+  // is what is STORED, which is our number and not theirs. Somebody reads this
+  // aloud to an agency and then counts the fields.
+  assert.doesNotMatch(CALIBRATE.intro, /\b(tr[êe]s|quatro|cinco|seis|sete|oito|nove|dez|\d+)\s+perguntas/i)
+})

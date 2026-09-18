@@ -150,8 +150,8 @@ export const SILENCE = {
 export const CALIBRATE = {
   title: 'O que é uma boa proposta',
   intro:
-    'Seis perguntas sobre como trabalha. As respostas ficam guardadas para esta ' +
-    'agência e podem ser mudadas a qualquer momento.',
+    'Algumas perguntas sobre como trabalha. As respostas ficam guardadas para ' +
+    'esta agência e podem ser mudadas a qualquer momento.',
   why:
     'Ninguém escolheu estes valores por si, e não há um valor certo — depende do ' +
     'mercado e de como a agência trabalha. Por isso perguntamos em vez de adivinhar.',
