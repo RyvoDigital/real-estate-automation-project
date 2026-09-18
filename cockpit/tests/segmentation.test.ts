@@ -11,6 +11,7 @@ import { readFileSync } from 'node:fs'
 import { proposeGroups, describeContact, sharedClaimCell, type ContactRow } from '../src/lib/segmentation/groups'
 import { validateDeclaration, type DeclareInput } from '../src/lib/segmentation/declare'
 import { presentStep2 } from '../src/lib/segmentation/present'
+import { SURFACE, contrastRatio } from '../src/lib/segmentation/surface'
 import {
   STATE_LABEL, STATE_NOTE, SEGMENT_CHOICE, CLAIM_QUESTION, UI, FORBIDDEN_ON_SCREEN, LOAD_BEARING,
   jurisdictionSentence, scopeFor, CLAIM_SCOPE,
@@ -600,4 +601,48 @@ test('the page and the probe compose the screen ONCE', () => {
         `${where} composes ${term} itself instead of reading present.ts`)
     }
   }
+})
+
+// --- can it actually be read ---------------------------------------------------
+
+test('EVERY SURFACE CARRIES TEXT THAT CAN BE READ ON IT', () => {
+  // The claim panel rendered near-white on near-white: it pinned a background
+  // and left the foreground to the browser, which on a machine in dark mode
+  // supplied white. Contrast ~1.05. The three load-bearing sentences were
+  // invisible on the one screen that exists to say them, and every guard in
+  // this file passed — because they all check what the page COMPOSES and none
+  // could see what it RENDERS.
+  //
+  // This is the vacuity family one layer further out. A vocabulary rule about
+  // words nobody can see is a rule about nothing.
+  for (const [name, s] of Object.entries(SURFACE)) {
+    assert.ok(contrastRatio(s.color, s.background) >= 4.5,
+      `${name}: body text at ${contrastRatio(s.color, s.background).toFixed(2)}:1 on its own background`)
+    assert.ok(contrastRatio(s.muted, s.background) >= 4.5,
+      `${name}: secondary text at ${contrastRatio(s.muted, s.background).toFixed(2)}:1 on its own background`)
+  }
+})
+
+test('and the check is not vacuous: it fails the exact pair that shipped', () => {
+  // §5c. A contrast function with a bug passes every surface perfectly.
+  assert.ok(contrastRatio('#ffffff', '#fbf6f3') < 1.1, 'white on the claim panel must read as invisible')
+  assert.ok(contrastRatio('#000000', '#ffffff') > 20, 'and black on white as maximal')
+})
+
+test('THE PAGE PINS NO BACKGROUND OF ITS OWN', () => {
+  // A background set by hand is a background with no foreground attached — the
+  // half-specified contract that caused this. Every surface comes in a pair or
+  // it does not come at all.
+  const offences = PAGE.split('\n').filter((l) => /background:/.test(l))
+  assert.deepEqual(offences, [], `a background with no foreground beside it:\n${offences.join('\n')}`)
+  assert.match(PAGE, /\.\.\.SURFACE\.note/, 'and the claim panel must use one')
+  assert.match(PAGE, /\.\.\.SURFACE\.error/, 'the error box especially: an unreadable error looks like no error')
+})
+
+test('the uncertainty box sits with the answer it qualifies', () => {
+  // Below the name field it read as uncertainty about the NAME — a different
+  // claim, and not one anybody was making.
+  const step2 = PAGE.slice(PAGE.indexOf('function Step2'))
+  assert.ok(step2.indexOf('name="uncertainty"') < step2.indexOf('name="declaredBy"'),
+    'the checkbox follows the name field, so it qualifies the wrong thing')
 })

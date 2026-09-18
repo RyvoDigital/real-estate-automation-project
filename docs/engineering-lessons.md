@@ -3160,3 +3160,62 @@ Two things that fall out of this, and they are why it is worth the file:
 The general rule: **when you build a tool to check a thing, make the tool read
 the thing — never re-describe it.** A second description of the same behaviour
 is a second thing to keep true, and the one nobody looks at is the one that rots.
+
+## 15. Every guard in the feature passed on a screen where nothing could be read
+
+The claim panel rendered near-white text on a near-white background. The shape
+of the paragraphs was visible; not one word was. The three sentences the whole
+screen exists to say — *uma célula num ficheiro não é prova de nada*, *foi um
+erro nosso, não seu*, *resposta perfeitamente normal numa lista com anos* — were
+invisible, on the one screen that exists to say them.
+
+The cause is a half-specified contract, not a style slip:
+
+```ts
+const noteBox = { background: '#fbf6f3', /* and no color */ }
+```
+
+Pinning a background without pinning a foreground inherits one half of a pair
+from an environment that is free to change it. On a machine in dark mode the
+browser supplied white. Contrast ratio **1.05**. The error box and the success
+box had the identical bug, which is worse in kind: an unreadable error message,
+in a meeting, is indistinguishable from a screen where nothing went wrong.
+
+### The part that generalises, and it is not about colour
+
+By this point the feature had thirteen guards. A vocabulary guard over every
+rendered string. A guard that no constant carries a quotation. A guard that the
+origin step asks nothing about evidence. A guard binding the screen's questions
+to the validator's requirements. A guard that the page and the probe compose the
+screen once.
+
+**All thirteen passed.** Every one of them checks what the page *composes*, and
+not one can see what it *renders*. A vocabulary rule about words nobody can see
+is a rule about nothing.
+
+This is the vacuity family (§5c) one layer further out. §5c says a guard must be
+paired with a check that the thing guarded actually exists. This says something
+harder: **a guard is bounded by the artefact it can observe, and an entire class
+of failure lives one layer beyond that boundary.** Asking "what would still pass
+if this were completely broken?" is not enough — you have to ask "broken in what
+*medium*?" Composition, rendering, layout, the network, the eye.
+
+You cannot close that gap in general. You can usually close it cheaply in
+particular, and cheaply is the whole point:
+
+```ts
+for (const [name, s] of Object.entries(SURFACE)) {
+  assert.ok(contrastRatio(s.color, s.background) >= 4.5, name)
+}
+```
+
+Thirty lines, no browser, no screenshot, no dependency — and it fails on the
+exact pair that shipped. Paired with a guard that the page pins no background of
+its own, so every surface arrives with its foreground or does not arrive.
+
+**When a class of defect is invisible to your guards, the fix is rarely a
+harness that renders the real thing. It is finding the cheapest artefact that
+still carries the property** — here, two hex strings and a luminance formula.
+The expensive version of this check never gets written; this one took an hour
+and will outlive the styling it was written against, because what it defends is
+not the palette, it is that text and the thing behind it are decided together.

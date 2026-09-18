@@ -255,7 +255,7 @@ export const UI = {
   unsure: 'Não tenho a certeza desta resposta',
   otherGroups: 'Os outros grupos ficam para a seguir',
   backToAll: 'Ver todos os grupos',
-  nothingMoreNeeded: 'Não é preciso mais nada. Falta só quem está a dizer isto.',
+  nothingMoreNeeded: 'Não é preciso mais nada sobre estes contactos.',
 } as const
 
 /**

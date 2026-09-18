@@ -6,6 +6,7 @@ import {
   UI, SEGMENT_CHOICE, STATE_LABEL, STATE_NOTE, jurisdictionSentence,
 } from '@/lib/segmentation/copy'
 import { presentStep2 } from '@/lib/segmentation/present'
+import { SURFACE } from '@/lib/segmentation/surface'
 
 /**
  * TWO STEPS, AND THE ORDER IS THE WHOLE POINT.
@@ -28,14 +29,18 @@ import { presentStep2 } from '@/lib/segmentation/present'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-const muted = { color: '#666' }
+// Secondary text always names the surface it sits on, so it cannot end up the
+// wrong side of a background somebody changed.
+const muted = { color: SURFACE.page.muted }
+const mutedOnNote = { color: SURFACE.note.muted }
 const card = { border: '1px solid #e4e4e4', borderRadius: 10, padding: 20, marginBottom: 18 }
 const optionCard = {
   display: 'block', border: '1px solid #dcdcdc', borderRadius: 8,
   padding: '14px 16px', marginBottom: 12, cursor: 'pointer',
 }
+// The pair, together. `...SURFACE.note` carries the foreground with it.
 const noteBox = {
-  background: '#fbf6f3', border: '1px solid #f0e2da', borderRadius: 8,
+  ...SURFACE.note, border: '1px solid #f0e2da', borderRadius: 8,
   padding: 16, margin: '0 0 20px',
 }
 
@@ -61,17 +66,20 @@ export default async function SegmentationScreen({
   const openGroup = grupo ? groups.find((g) => g.id === grupo) ?? null : null
 
   return (
-    <main style={{ maxWidth: 820, margin: '0 auto', padding: '40px 24px', fontSize: 16, lineHeight: 1.6 }}>
+    <main style={{
+      ...SURFACE.page, minHeight: '100vh',
+      maxWidth: 820, margin: '0 auto', padding: '40px 24px', fontSize: 16, lineHeight: 1.6,
+    }}>
       <h1 style={{ fontSize: 28, marginBottom: 8 }}>{UI.title}</h1>
       <p style={{ ...muted, marginTop: 0 }}>{UI.intro}</p>
 
       {erro && (
-        <p role="alert" style={{ background: '#fdf0ee', border: '1px solid #e8c4bc', borderRadius: 8, padding: 14 }}>
+        <p role="alert" style={{ ...SURFACE.error, border: '1px solid #e8c4bc', borderRadius: 8, padding: 14 }}>
           {erro}
         </p>
       )}
       {guardado && (
-        <p role="status" style={{ background: '#f1f7f1', border: '1px solid #cbe2cb', borderRadius: 8, padding: 14 }}>
+        <p role="status" style={{ ...SURFACE.ok, border: '1px solid #cbe2cb', borderRadius: 8, padding: 14 }}>
           {UI.saved(Number(guardado))}
         </p>
       )}
@@ -223,9 +231,9 @@ function Step2({ clientId, group, contacts, segment, jurisdiction }: {
           <p style={{ margin: '8px 0' }}>{view.note.body}</p>
           <p style={{ margin: '8px 0 0' }}>{view.note.scope}</p>
           {view.note.extra && (
-            <p style={{ ...muted, fontSize: 14, margin: '8px 0 0' }}>{view.note.extra}</p>
+            <p style={{ ...mutedOnNote, fontSize: 14, margin: '8px 0 0' }}>{view.note.extra}</p>
           )}
-          <p style={{ ...muted, fontSize: 14, margin: '10px 0 0' }}>{view.note.count}</p>
+          <p style={{ ...mutedOnNote, fontSize: 14, margin: '10px 0 0' }}>{view.note.count}</p>
         </div>
       )}
 
@@ -243,15 +251,18 @@ function Step2({ clientId, group, contacts, segment, jurisdiction }: {
         <p style={{ ...muted, fontSize: 14, margin: '0 0 20px' }}>{view.ask.text}</p>
       )}
 
+      {/* Directly under the answer it qualifies. Below the name field it read as
+          uncertainty about the NAME — which is a different claim, and not one
+          anybody was making. */}
+      <label style={{ display: 'block', margin: '0 0 24px', fontSize: 15 }}>
+        <input type="checkbox" name="uncertainty" />{' '}
+        {UI.unsure}
+      </label>
+
       <label style={{ display: 'block', marginBottom: 20 }}>
         <strong>{UI.whoIsDeclaring}</strong>
         <span style={{ display: 'block', ...muted, fontSize: 14 }}>{UI.whoIsDeclaringHint}</span>
         <input name="declaredBy" required style={{ width: '100%', padding: 8, marginTop: 6 }} />
-      </label>
-
-      <label style={{ display: 'block', margin: '0 0 24px', fontSize: 15 }}>
-        <input type="checkbox" name="uncertainty" />{' '}
-        {UI.unsure}
       </label>
 
       <details style={{ marginBottom: 24 }}>
