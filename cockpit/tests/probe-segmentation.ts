@@ -28,8 +28,12 @@ const { readScreen } = require('../src/lib/segmentation/read') as
   { readScreen: (id: string) => Promise<ScreenData> }
 const { proposeGroups, sharedClaimCell, describeContact } = require('../src/lib/segmentation/groups') as
   typeof import('../src/lib/segmentation/groups')
-const { UI, CLAIM_QUESTION, SEGMENT_CHOICE, jurisdictionSentence } = require('../src/lib/segmentation/copy') as
-  typeof import('../src/lib/segmentation/copy')
+const { UI, SEGMENT_CHOICE, jurisdictionSentence } =
+  require('../src/lib/segmentation/copy') as typeof import('../src/lib/segmentation/copy')
+// The SAME composition the page renders. Printing it a second way is how this
+// probe told me about an arrangement the screen had already stopped using.
+const { presentStep2 } = require('../src/lib/segmentation/present') as
+  typeof import('../src/lib/segmentation/present')
 
 const clientId = process.argv[2]
 if (!clientId) throw new Error('give me a client id')
@@ -40,37 +44,53 @@ async function main() {
 const data = await readScreen(clientId)
 const groups = proposeGroups(data.contacts)
 
-console.log(`\n${UI.title}\n${'='.repeat(UI.title.length)}\n`)
-console.log(UI.intro)
-console.log(`\n[segmento A] ${jurisdictionSentence(data.jurisdictions)}`)
-console.log(`\n${UI.groupHeading}`)
-
-if (data.contacts.length === 0) console.log(`  ${UI.noContacts}`)
+const line = (s: string) => console.log(s)
+line(`\n${UI.title}\n${'='.repeat(UI.title.length)}\n`)
+line(UI.intro)
+line(`\n${UI.groupHeading}`)
+if (data.contacts.length === 0) line(`  ${UI.noContacts}`)
 
 for (const g of groups) {
   const contacts: ContactRow[] = g.contactIds.map((id: string) => data.contacts.find((c) => c.id === id)!)
   const withClaim = contacts.filter((c) => c.hasClaim)
   const cell = sharedClaimCell(withClaim)
-  console.log(`\n  ── ${g.label}`)
-  console.log(`     ${g.proposal ? `${UI.proposalPrefix} ${g.proposal.why}. ${UI.proposalHint}` : UI.noProposal}`)
-  if (withClaim.length > 0) {
-    console.log(`\n     ${cell
-      ? `${CLAIM_QUESTION.headingWithCell.before}«${cell}»${CLAIM_QUESTION.headingWithCell.after}`
-      : CLAIM_QUESTION.headingCellNotKept}`)
-    console.log(`     ${CLAIM_QUESTION.body}${cell ? '' : ` ${CLAIM_QUESTION.bodyCellNotKept}`}`)
-    console.log(`     ${cell
-      ? `${CLAIM_QUESTION.questionWithCell.before}«${cell}»${CLAIM_QUESTION.questionWithCell.after}`
-      : CLAIM_QUESTION.questionCellNotKept}`)
-    for (const o of Object.values(CLAIM_QUESTION.options)) console.log(`       · ${o.label}`)
-    console.log(`     ${UI.claimCount(withClaim.length, contacts.length)}`)
+
+  line(`\n  ── ${g.label}`)
+  line(`     ${g.proposal ? `${UI.proposalPrefix} ${g.proposal.why}. ${UI.proposalHint}` : UI.noProposal}`)
+
+  line(`\n     STEP 1 ─ ${UI.segmentLegend}`)
+  for (const s of ['A', 'B', 'C', 'D'] as const) {
+    line(`       ( ) ${SEGMENT_CHOICE[s].label}`)
+    line(`           ${s === 'A' ? jurisdictionSentence(data.jurisdictions) : SEGMENT_CHOICE[s].consequence}`)
   }
-  console.log(`\n     ${UI.segmentLegend}`)
-  for (const s of ['A', 'B', 'C', 'D'] as const) console.log(`       ( ) ${SEGMENT_CHOICE[s].label}`)
-  console.log(`\n     ${UI.exceptions}`)
-  for (const c of contacts) {
-    const d = describeContact(c)
-    console.log(`       [ ] ${d.name} · ${d.phone} · ${d.state}${c.claimRaw ? ` · ${UI.fromFile(c.claimRaw)}` : ''}`)
+  line(`       [ ${UI.continueToDetail} ]`)
+
+  for (const s of ['A', 'B', 'C', 'D'] as const) {
+    const v = presentStep2({ contacts, segment: s, jurisdiction: jurisdictionSentence(data.jurisdictions) })
+    line(`\n     STEP 2 (${s}) ─ ${v.youSaid}`)
+    line(`       ${v.consequence}`)
+    line(`       ${UI.changeAnswer}`)
+    if (v.note) {
+      line(`       ┌ ${v.note.heading}`)
+      line(`       │ ${v.note.body}`)
+      line(`       │ ${v.note.scope}`)
+      if (v.note.extra) line(`       │ ${v.note.extra}`)
+      line(`       └ ${v.note.count}`)
+    }
+    if (v.ask.kind === 'basis') {
+      line(`       ${v.ask.question}  (obrigatório)`)
+      line(`         ${v.ask.hint}`)
+    } else {
+      line(`       ${v.ask.text}`)
+    }
+    line(`       ${UI.whoIsDeclaring}: ____   [ ] ${UI.unsure}`)
+    line(`       ${UI.exceptions}`)
+    for (const c of contacts) {
+      const d = describeContact(c)
+      line(`         [ ] ${d.name} · ${d.phone} · ${d.state}${c.claimRaw ? ` · ${UI.fromFile(c.claimRaw)}` : ''}`)
+    }
+    line(`       [ ${UI.confirm} ]`)
   }
 }
-console.log()
+line('')
 }

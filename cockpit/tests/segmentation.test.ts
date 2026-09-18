@@ -10,8 +10,10 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { proposeGroups, describeContact, sharedClaimCell, type ContactRow } from '../src/lib/segmentation/groups'
 import { validateDeclaration, type DeclareInput } from '../src/lib/segmentation/declare'
+import { presentStep2 } from '../src/lib/segmentation/present'
 import {
-  STATE_LABEL, STATE_NOTE, SEGMENT_CHOICE, CLAIM_QUESTION, UI, FORBIDDEN_ON_SCREEN, LOAD_BEARING, jurisdictionSentence,
+  STATE_LABEL, STATE_NOTE, SEGMENT_CHOICE, CLAIM_QUESTION, UI, FORBIDDEN_ON_SCREEN, LOAD_BEARING,
+  jurisdictionSentence, scopeFor, CLAIM_SCOPE,
 } from '../src/lib/segmentation/copy'
 
 /** Comment lines dropped, code kept — see one-sender.test.ts for why line-based. */
@@ -269,7 +271,27 @@ test('THE PAGE NEVER PRE-SELECTS A SEGMENT', () => {
     new URL('../src/app/segmentation/[clientId]/page.tsx', import.meta.url), 'utf8'))
   assert.equal(/defaultChecked|defaultValue=\{?['"][ABCD]/.test(page), false,
     'the page pre-selects a segment — the system proposes, the agency confirms')
-  assert.match(page, /type="radio" name="segment"/)
+  // The origin radios are the thing that must not be pre-ticked. The hidden
+  // `segment` field carries the already-made choice into step 2 and is not a
+  // selection; asserting on it would have made this guard vacuous the moment
+  // the radios were renamed, which is exactly what happened.
+  assert.match(page, /type="radio" name="origem"/)
+  assert.match(page, /type="hidden" name="segment" value=\{segment\}/)
+})
+
+test('and an origin that no agency may declare cannot be smuggled through the URL', () => {
+  // Step 2 is now reached by `?origem=`, so the query string reaches a field
+  // that ends up in a consent record. E is the consequence of an objection and
+  // comes from the CONTACT — an agency that could assign it could also remove
+  // it — so the page must not open step 2 for it at all, and declare.ts must
+  // refuse it even if it did.
+  const page = codeOnly(readFileSync(
+    new URL('../src/app/segmentation/[clientId]/page.tsx', import.meta.url), 'utf8'))
+  assert.match(page,
+    /origem === 'A' \|\| origem === 'B' \|\| origem === 'C' \|\| origem === 'D'[\s\S]{0,40}: null/,
+    'the page must whitelist the four declarable origins rather than trust the query string')
+  // declare.ts refusing E is already covered above; what is new here is that the
+  // query string now reaches that field at all.
 })
 
 test('the page takes the RECORDER from the session, never from the form', () => {
@@ -419,11 +441,20 @@ test('and the screen asks about a claim, not about its text', () => {
   // `claimRaw !== null` as the has-a-claim test made the hard question vanish
   // for the contacts whose wording was not kept — silently, on the screen whose
   // entire purpose is to ask it.
-  const page = codeOnly(readFileSync(
-    new URL('../src/app/segmentation/[clientId]/page.tsx', import.meta.url), 'utf8'))
-  assert.equal(/filter\(\(c\) => c\.claimRaw !== null\)/.test(page), false,
+  const src = codeOnly(readFileSync(
+    new URL('../src/lib/segmentation/present.ts', import.meta.url), 'utf8'))
+  assert.equal(/filter\(\(c\) => c\.claimRaw !== null\)/.test(src), false,
     'filtering on the wording drops the claims whose wording we never kept')
-  assert.match(page, /filter\(\(c\) => c\.hasClaim\)/)
+  assert.match(src, /filter\(\(c\) => c\.hasClaim\)/)
+
+  // And the behaviour the scan is a proxy for: a claim we cannot quote is still
+  // a claim, so it still produces the admission and the question.
+  const v = presentStep2({
+    contacts: [c({ hasClaim: true, claimRaw: null })], segment: 'B', jurisdiction: 'x',
+  })
+  assert.notEqual(v.note, null, 'the claim whose wording was not kept produced no note at all')
+  assert.match(v.note!.heading, /tinha alguma coisa/, 'and it must not pretend to quote one')
+  assert.equal(v.note!.heading.includes('«'), false)
 })
 
 // --- n=1, everywhere, not just where it was noticed ---------------------------
@@ -453,4 +484,120 @@ test('NOTHING SAYS "1 contactos"', () => {
   const offences = [...rendered, ...groups].filter(([, s]) => /\b1 \w+s\b/.test(s))
   assert.deepEqual(offences, [],
     `plural after a count of one:\n${offences.map(([w, s]) => `${w}: ${s}`).join('\n')}`)
+})
+
+// --- origin first, evidence second, scoped ------------------------------------
+
+const SEGMENTS = ['A', 'B', 'C', 'D'] as const
+
+test('THE SCREEN ASKS FOR EVIDENCE EXACTLY WHERE THE RECORD REQUIRES IT', () => {
+  // The screen used to ask every group for a basis, before the origin was even
+  // chosen, while validateDeclaration has always required one for B alone. Two
+  // ways to be wrong: ask where it is not needed and waste the room's time, or
+  // fail to ask where it is and produce a refusal AFTER the sentence was spoken
+  // in front of the client. Binding them makes both impossible.
+  for (const segment of SEGMENTS) {
+    const refusedWithoutBasis = validateDeclaration(d({ segment })) !== null
+    assert.equal(scopeFor(segment).basisRequired, refusedWithoutBasis,
+      `segment ${segment}: the screen and declare.ts disagree about whether evidence is needed`)
+  }
+})
+
+test('and every origin says what it means for the file it came from', () => {
+  // §5c pairing: the binding above is satisfiable by asking nothing anywhere.
+  for (const segment of SEGMENTS) {
+    const s = scopeFor(segment)
+    assert.ok(s.scope.length > 40, `segment ${segment} has no sentence explaining what its answer means`)
+    assert.equal(s.scope, CLAIM_SCOPE[segment])
+  }
+  assert.equal(scopeFor('A').note, null, 'a past client needs no reassurance about a cell we do not rely on')
+  assert.match(scopeFor('C').note ?? '', /não se perde/)
+  assert.match(scopeFor('D').note ?? '', /perfeitamente normal/)
+})
+
+// --- the four structural faults, each with its own guard ----------------------
+
+const PAGE = codeOnly(readFileSync(
+  new URL('../src/app/segmentation/[clientId]/page.tsx', import.meta.url), 'utf8'))
+
+test('1. the origin step asks nothing about evidence', () => {
+  // The ordering fault, made structural: whatever else Step1 renders, it cannot
+  // reach the evidence copy at all.
+  const step1 = PAGE.slice(PAGE.indexOf('function Step1'), PAGE.indexOf('function Step2'))
+  assert.ok(step1.length > 200, 'Step1 not found — this guard would pass vacuously')
+  for (const term of ['CLAIM_QUESTION', 'scopeFor', 'claimHeading', 'name="basis"']) {
+    assert.equal(step1.includes(term), false, `the origin question renders ${term}, which belongs after it`)
+  }
+})
+
+test('2. each origin option is its own block, not a line in a paragraph', () => {
+  const step1 = PAGE.slice(PAGE.indexOf('function Step1'), PAGE.indexOf('function Step2'))
+  assert.match(step1, /style=\{optionCard\}/, 'the four options need visible separation to be heard read aloud')
+  assert.equal(/<br \/>/.test(step1), false,
+    'a <br> between a label and its consequence puts the consequence nearer the NEXT option')
+  assert.match(PAGE, /const optionCard = \{[^}]*border:/, 'optionCard must actually draw a boundary')
+})
+
+const view = (segment: 'A' | 'B' | 'C' | 'D', rows: ContactRow[] = [c({ hasClaim: true })]) =>
+  presentStep2({ contacts: rows, segment, jurisdiction: 'Em Portugal podemos escrever-lhes.' })
+
+test('3a. only the answer that claims evidence is asked for evidence', () => {
+  assert.equal(view('B').ask.kind, 'basis')
+  for (const s of ['A', 'C', 'D'] as const) {
+    assert.equal(view(s).ask.kind, 'none', `segment ${s} is asked for something nobody requires`)
+  }
+  const ask = view('B').ask
+  assert.equal(ask.kind === 'basis' && ask.question.length > 0, true)
+})
+
+test('3b. and the file note never promises a question that is not asked', () => {
+  // The admission used to end "…e é por isso que estamos a perguntar agora",
+  // which stayed true only for B once the question was scoped. On the other
+  // three screens it announced a question that never came.
+  for (const s of ['A', 'C', 'D'] as const) {
+    const v = view(s)
+    assert.equal(v.ask.kind, 'none')
+    assert.equal(/estamos a perguntar|perguntamos/.test(v.note?.body ?? ''), false,
+      `segment ${s} announces a question it does not ask`)
+  }
+})
+
+test('3c. a group whose file claimed nothing gets no admission at all', () => {
+  // The note is about THEIR file. A group with no claim in it has nothing to
+  // admit to, and an apology for something that did not happen reads as noise.
+  assert.equal(view('A', [c({ hasClaim: false })]).note, null)
+  assert.equal(view('B', [c({ hasClaim: false })]).note, null)
+  assert.notEqual(view('A').note, null)
+})
+
+test('3. the detail field appears only with the answer that needs it', () => {
+  const step2 = PAGE.slice(PAGE.indexOf('function Step2'))
+  assert.match(step2, /view\.ask\.kind === 'basis' \? \(/, 'the basis field must be behind the scoping decision')
+  const stray = step2.slice(0, step2.indexOf("view.ask.kind === 'basis'"))
+  assert.equal(stray.includes('name="basis"'), false, 'a detail field renders before anything asks for it')
+  // And the uncertainty box no longer borrows the evidence question's wording,
+  // which left "Não sei" stranded a screenful from the question it answered.
+  assert.match(step2, /\{UI\.unsure\}/)
+  assert.equal(step2.includes('options.dont_know.label'), false)
+})
+
+test('4. the objection note appears only when somebody objected', () => {
+  assert.match(PAGE, /contacts\.some\(\(c\) => c\.state === 'objected'\)[\s\S]{0,200}STATE_NOTE\.objected/,
+    'a note about a person who asked not to be contacted, on a screen where nobody did, describes nobody')
+})
+
+test('the page and the probe compose the screen ONCE', () => {
+  // probe-segmentation.ts is how this screen gets read before anyone is shown
+  // it. It started as a second implementation of the page's composition and
+  // drifted within the hour — still printing an arrangement the page had
+  // already abandoned. A predictor that duplicates what it predicts fails by
+  // looking right.
+  const probe = codeOnly(readFileSync(new URL('../tests/probe-segmentation.ts', import.meta.url), 'utf8'))
+  for (const [where, src] of [['page', PAGE], ['probe', probe]] as const) {
+    assert.match(src, /presentStep2/, `${where} does not use the shared composition`)
+    for (const term of ['CLAIM_SCOPE[', 'scopeFor(', 'headingCellNotKept', 'questionCellNotKept']) {
+      assert.equal(src.includes(term), false,
+        `${where} composes ${term} itself instead of reading present.ts`)
+    }
+  }
 })

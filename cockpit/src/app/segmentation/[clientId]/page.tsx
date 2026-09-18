@@ -1,26 +1,53 @@
 import { requireOperator } from '@/lib/auth'
 import { readScreen } from '@/lib/segmentation/read'
-import { proposeGroups, describeContact, sharedClaimCell } from '@/lib/segmentation/groups'
+import { proposeGroups, describeContact, sharedClaimCell, type ContactRow, type Group } from '@/lib/segmentation/groups'
 import { declareGroupAction } from '@/lib/segmentation/actions'
 import {
-  UI, SEGMENT_CHOICE, STATE_LABEL, STATE_NOTE, CLAIM_QUESTION, jurisdictionSentence,
+  UI, SEGMENT_CHOICE, STATE_LABEL, STATE_NOTE, jurisdictionSentence,
 } from '@/lib/segmentation/copy'
+import { presentStep2 } from '@/lib/segmentation/present'
+
+/**
+ * TWO STEPS, AND THE ORDER IS THE WHOLE POINT.
+ *
+ *   step 1   where did these contacts come from?        (origin)
+ *   step 2   given that answer, what is still needed?   (evidence, scoped)
+ *
+ * The first version asked both at once and in the wrong order: the question
+ * about the file's consent marker sat ABOVE the question about who these people
+ * are. A client who bought through the agency is segment A whether or not the
+ * marker means anything, so the screen opened the conversation on something that
+ * may be irrelevant — and opened a meeting on an admission of our error, which
+ * is the right sentence in the wrong place. See CLAIM_SCOPE.
+ *
+ * Step 1 is a GET form: it writes nothing, carries its answer in the URL
+ * (`?grupo=…&origem=…`), and is therefore back-buttonable and re-readable.
+ * Only step 2 posts, and it posts once, so the record is still one action.
+ */
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 const muted = { color: '#666' }
 const card = { border: '1px solid #e4e4e4', borderRadius: 10, padding: 20, marginBottom: 18 }
+const optionCard = {
+  display: 'block', border: '1px solid #dcdcdc', borderRadius: 8,
+  padding: '14px 16px', marginBottom: 12, cursor: 'pointer',
+}
+const noteBox = {
+  background: '#fbf6f3', border: '1px solid #f0e2da', borderRadius: 8,
+  padding: 16, margin: '0 0 20px',
+}
 
 export default async function SegmentationScreen({
   params, searchParams,
 }: {
   params: Promise<{ clientId: string }>
-  searchParams: Promise<{ erro?: string; guardado?: string }>
+  searchParams: Promise<{ erro?: string; guardado?: string; grupo?: string; origem?: string }>
 }) {
   await requireOperator()
   const { clientId } = await params
-  const { erro, guardado } = await searchParams
+  const { erro, guardado, grupo, origem } = await searchParams
   const screen = await readScreen(clientId)
   const groups = proposeGroups(screen.contacts)
   const byId = new Map(screen.contacts.map((c) => [c.id, c]))
@@ -28,6 +55,10 @@ export default async function SegmentationScreen({
   // Derived from the policy table, never hardcoded: when the table changes the
   // sentence changes, and the screen never asserts what the table does not hold.
   const jurisdiction = jurisdictionSentence(screen.jurisdictions)
+
+  const chosenSegment =
+    origem === 'A' || origem === 'B' || origem === 'C' || origem === 'D' ? origem : null
+  const openGroup = grupo ? groups.find((g) => g.id === grupo) ?? null : null
 
   return (
     <main style={{ maxWidth: 820, margin: '0 auto', padding: '40px 24px', fontSize: 16, lineHeight: 1.6 }}>
@@ -49,17 +80,16 @@ export default async function SegmentationScreen({
 
       {groups.map((g) => {
         const contacts = g.contactIds.map((id) => byId.get(id)!).filter(Boolean)
-        // `hasClaim`, not `claimRaw !== null`: a claim whose wording was not
-        // retained is still a claim, and filtering on the text would have made
-        // the hard question disappear for exactly the contacts it is about.
-        const withClaim = contacts.filter((c) => c.hasClaim)
-        const cell = sharedClaimCell(withClaim)
-        const claimHeading = cell
-          ? `${CLAIM_QUESTION.headingWithCell.before}«${cell}»${CLAIM_QUESTION.headingWithCell.after}`
-          : CLAIM_QUESTION.headingCellNotKept
-        const claimQuestion = cell
-          ? `${CLAIM_QUESTION.questionWithCell.before}«${cell}»${CLAIM_QUESTION.questionWithCell.after}`
-          : CLAIM_QUESTION.questionCellNotKept
+        const isOpen = openGroup?.id === g.id
+
+        // One group at a time once a question is being answered: the others
+        // collapse to a line, so the screen in front of the room holds one
+        // question rather than four stacked forms.
+        if (openGroup && !isOpen) {
+          return (
+            <p key={g.id} style={{ ...muted, fontSize: 14, margin: '0 0 10px' }}>{g.label}</p>
+          )
+        }
 
         return (
           <section key={g.id} style={card}>
@@ -68,96 +98,23 @@ export default async function SegmentationScreen({
               {g.proposal ? `${UI.proposalPrefix} ${g.proposal.why}. ${UI.proposalHint}` : UI.noProposal}
             </p>
 
-            {withClaim.length > 0 && (
-              <div style={{ background: '#fbf6f3', border: '1px solid #f0e2da', borderRadius: 8, padding: 16, marginBottom: 16 }}>
-                <strong>{claimHeading}</strong>
-                <p style={{ margin: '8px 0' }}>
-                  {CLAIM_QUESTION.body}{cell ? '' : ` ${CLAIM_QUESTION.bodyCellNotKept}`}
-                </p>
-                <p style={{ margin: '8px 0 4px' }}><strong>{claimQuestion}</strong></p>
-                <ul style={{ margin: 0, paddingLeft: 18 }}>
-                  {Object.entries(CLAIM_QUESTION.options).map(([key, o]) => (
-                    <li key={key} style={{ marginBottom: 6 }}>
-                      {o.label}<br />
-                      <span style={{ ...muted, fontSize: 14 }}>{o.note}</span>
-                    </li>
-                  ))}
-                </ul>
-                <p style={{ ...muted, fontSize: 14, marginBottom: 0 }}>
-                  {UI.claimCount(withClaim.length, contacts.length)}
-                </p>
-              </div>
-            )}
-
-            <form action={declareGroupAction}>
-              <input type="hidden" name="clientId" value={clientId} />
-              <input type="hidden" name="groupId" value={g.id} />
-              <input type="hidden" name="groupLabel" value={g.label} />
-              {contacts.map((c) => <input key={c.id} type="hidden" name="contact" value={c.id} />)}
-
-              <fieldset style={{ border: 0, padding: 0, margin: '0 0 16px' }}>
-                <legend style={{ fontWeight: 600, marginBottom: 8 }}>{UI.segmentLegend}</legend>
-                {(['A', 'B', 'C', 'D'] as const).map((seg) => (
-                  <label key={seg} style={{ display: 'block', marginBottom: 10 }}>
-                    {/* No pre-selection: a pre-ticked option collects a click
-                        rather than a decision, and the click carries the weight
-                        of a declaration (§11d). */}
-                    <input type="radio" name="segment" value={seg} required />{' '}
-                    {SEGMENT_CHOICE[seg].label}
-                    <br />
-                    <span style={{ ...muted, fontSize: 14, marginLeft: 22 }}>
-                      {seg === 'A' ? jurisdiction : SEGMENT_CHOICE[seg].consequence}
-                    </span>
-                  </label>
-                ))}
-              </fieldset>
-
-              <label style={{ display: 'block', marginBottom: 6 }}>
-                <strong>{UI.whoIsDeclaring}</strong><br />
-                <span style={{ ...muted, fontSize: 14 }}>{UI.whoIsDeclaringHint}</span><br />
-                <input name="declaredBy" required style={{ width: '100%', padding: 8, marginTop: 6 }} />
-              </label>
-
-              <label style={{ display: 'block', marginBottom: 6 }}>
-                <span style={{ fontSize: 14 }}>{CLAIM_QUESTION.options.have_record.detailPrompt}</span>
-                <input name="basis" style={{ width: '100%', padding: 8, marginTop: 6 }} />
-              </label>
-
-              <label style={{ display: 'block', margin: '10px 0 16px', fontSize: 14 }}>
-                <input type="checkbox" name="uncertainty" />{' '}
-                {CLAIM_QUESTION.options.dont_know.label}
-              </label>
-
-              <details style={{ marginBottom: 16 }}>
-                <summary style={{ cursor: 'pointer' }}>{UI.exceptions}</summary>
-                <ul style={{ listStyle: 'none', padding: '10px 0 0', margin: 0 }}>
-                  {contacts.map((c) => {
-                    const d = describeContact(c)
-                    return (
-                      <li key={c.id} style={{ padding: '6px 0', fontSize: 15 }}>
-                        <label>
-                          <input type="checkbox" name="exclude" value={c.id} />{' '}
-                          {d.name} · {d.phone}
-                          <span style={{ ...muted, marginLeft: 8, fontSize: 13 }}>{d.state}</span>
-                          {c.claimRaw && (
-                            <span style={{ ...muted, marginLeft: 8, fontSize: 13 }}>
-                              {UI.fromFile(c.claimRaw)}
-                            </span>
-                          )}
-                        </label>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </details>
-
-              <button type="submit" style={{ padding: '10px 18px', fontSize: 16 }}>
-                {UI.declareGroup}
-              </button>
-            </form>
+            {isOpen && chosenSegment
+              ? (
+                <Step2
+                  clientId={clientId} group={g} contacts={contacts}
+                  segment={chosenSegment} jurisdiction={jurisdiction}
+                />
+              )
+              : <Step1 clientId={clientId} groupId={g.id} jurisdiction={jurisdiction} />}
           </section>
         )
       })}
+
+      {openGroup && (
+        <p style={{ marginTop: 8, fontSize: 14 }}>
+          <a href={`/segmentation/${clientId}`}>{UI.backToAll}</a>
+        </p>
+      )}
 
       {screen.history.length > 0 && (
         <section style={{ marginTop: 40 }}>
@@ -179,13 +136,150 @@ export default async function SegmentationScreen({
         </section>
       )}
 
-      {screen.contacts.length === 0 && (
-        <p style={muted}>{UI.noContacts}</p>
+      {screen.contacts.length === 0 && <p style={muted}>{UI.noContacts}</p>}
+
+      {/* Only when somebody actually has. A note explaining what "pediu para não
+          ser contactado" means, standing alone at the foot of a screen where
+          nobody did, describes a person who is not in the room. Same rule as a
+          clean week not mentioning unattributed conversations. */}
+      {screen.contacts.some((c) => c.state === 'objected') && (
+        <p style={{ ...muted, fontSize: 13, marginTop: 48 }}>
+          {STATE_LABEL.objected}: {STATE_NOTE.objected}
+        </p>
+      )}
+    </main>
+  )
+}
+
+/** Step 1: one question, four answers, nothing else on the card. */
+function Step1({ clientId, groupId, jurisdiction }: {
+  clientId: string; groupId: string; jurisdiction: string
+}) {
+  return (
+    <form method="get" action={`/segmentation/${clientId}`}>
+      <input type="hidden" name="grupo" value={groupId} />
+      <fieldset style={{ border: 0, padding: 0, margin: '0 0 16px' }}>
+        <legend style={{ fontWeight: 600, marginBottom: 12, padding: 0 }}>{UI.segmentLegend}</legend>
+        {(['A', 'B', 'C', 'D'] as const).map((seg) => (
+          // Each answer is its own bordered block. Before this they were four
+          // labels and four consequence lines separated only by a <br>, which
+          // read aloud as one continuous paragraph — the listener could not hear
+          // where an option ended, and each consequence sat nearer the NEXT
+          // option's label than its own.
+          <label key={seg} style={optionCard}>
+            <span style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              {/* No pre-selection: a pre-ticked option collects a click rather
+                  than a decision, and the click carries the weight of a
+                  declaration (§11d). */}
+              <input type="radio" name="origem" value={seg} required style={{ marginTop: 6 }} />
+              <span>
+                <span style={{ fontWeight: 600 }}>{SEGMENT_CHOICE[seg].label}</span>
+                <span style={{ display: 'block', ...muted, fontSize: 14, marginTop: 4 }}>
+                  {seg === 'A' ? jurisdiction : SEGMENT_CHOICE[seg].consequence}
+                </span>
+              </span>
+            </span>
+          </label>
+        ))}
+      </fieldset>
+      <button type="submit" style={{ padding: '10px 18px', fontSize: 16 }}>
+        {UI.continueToDetail}
+      </button>
+    </form>
+  )
+}
+
+/** Step 2: what that answer still needs — and nothing it does not. */
+function Step2({ clientId, group, contacts, segment, jurisdiction }: {
+  clientId: string
+  group: Group
+  contacts: ContactRow[]
+  segment: 'A' | 'B' | 'C' | 'D'
+  jurisdiction: string
+}) {
+  // Composed in present.ts, which the probe also reads — see the box there.
+  const view = presentStep2({ contacts, segment, jurisdiction })
+
+  return (
+    <form action={declareGroupAction}>
+      <input type="hidden" name="clientId" value={clientId} />
+      <input type="hidden" name="groupId" value={group.id} />
+      <input type="hidden" name="groupLabel" value={group.label} />
+      <input type="hidden" name="segment" value={segment} />
+      {contacts.map((c) => <input key={c.id} type="hidden" name="contact" value={c.id} />)}
+
+      <p style={{ margin: '0 0 6px' }}>{view.youSaid}</p>
+      <p style={{ ...muted, fontSize: 14, margin: '0 0 4px' }}>{view.consequence}</p>
+      <p style={{ fontSize: 14, margin: '0 0 20px' }}>
+        <a href={`/segmentation/${clientId}?grupo=${encodeURIComponent(group.id)}`}>{UI.changeAnswer}</a>
+      </p>
+
+      {/* The file note comes AFTER the origin, and only when this group's file
+          actually claimed something. It is an admission, so it belongs to the
+          question it explains rather than to the opening of a meeting. */}
+      {view.note && (
+        <div style={noteBox}>
+          <strong>{view.note.heading}</strong>
+          <p style={{ margin: '8px 0' }}>{view.note.body}</p>
+          <p style={{ margin: '8px 0 0' }}>{view.note.scope}</p>
+          {view.note.extra && (
+            <p style={{ ...muted, fontSize: 14, margin: '8px 0 0' }}>{view.note.extra}</p>
+          )}
+          <p style={{ ...muted, fontSize: 14, margin: '10px 0 0' }}>{view.note.count}</p>
+        </div>
       )}
 
-      <p style={{ ...muted, fontSize: 13, marginTop: 48 }}>
-        {STATE_LABEL.objected}: {STATE_NOTE.objected}
-      </p>
-    </main>
+      {/* B is the only answer that claims evidence exists, and it is the only
+          one asked for it. declare.ts has always refused a B with no basis, so
+          asking every segment for it was the screen disagreeing with the record
+          it writes — and asking it BEFORE the origin was worse than that. */}
+      {view.ask.kind === 'basis' ? (
+        <label style={{ display: 'block', marginBottom: 20 }}>
+          <strong>{view.ask.question}</strong>
+          <span style={{ display: 'block', ...muted, fontSize: 14 }}>{view.ask.hint}</span>
+          <input name="basis" required style={{ width: '100%', padding: 8, marginTop: 6 }} />
+        </label>
+      ) : (
+        <p style={{ ...muted, fontSize: 14, margin: '0 0 20px' }}>{view.ask.text}</p>
+      )}
+
+      <label style={{ display: 'block', marginBottom: 20 }}>
+        <strong>{UI.whoIsDeclaring}</strong>
+        <span style={{ display: 'block', ...muted, fontSize: 14 }}>{UI.whoIsDeclaringHint}</span>
+        <input name="declaredBy" required style={{ width: '100%', padding: 8, marginTop: 6 }} />
+      </label>
+
+      <label style={{ display: 'block', margin: '0 0 24px', fontSize: 15 }}>
+        <input type="checkbox" name="uncertainty" />{' '}
+        {UI.unsure}
+      </label>
+
+      <details style={{ marginBottom: 24 }}>
+        <summary style={{ cursor: 'pointer' }}>{UI.exceptions}</summary>
+        <ul style={{ listStyle: 'none', padding: '10px 0 0', margin: 0 }}>
+          {contacts.map((c) => {
+            const d = describeContact(c)
+            return (
+              <li key={c.id} style={{ padding: '6px 0', fontSize: 15 }}>
+                <label>
+                  <input type="checkbox" name="exclude" value={c.id} />{' '}
+                  {d.name} · {d.phone}
+                  <span style={{ ...muted, marginLeft: 8, fontSize: 13 }}>{d.state}</span>
+                  {c.claimRaw && (
+                    <span style={{ ...muted, marginLeft: 8, fontSize: 13 }}>
+                      {UI.fromFile(c.claimRaw)}
+                    </span>
+                  )}
+                </label>
+              </li>
+            )
+          })}
+        </ul>
+      </details>
+
+      <button type="submit" style={{ padding: '10px 18px', fontSize: 16 }}>
+        {UI.confirm}
+      </button>
+    </form>
   )
 }

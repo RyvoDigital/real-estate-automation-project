@@ -24,7 +24,8 @@ import { admin } from '@/lib/supabase/admin'
  * gate, no permit, no adapter.
  */
 
-export type Segment = 'A' | 'B' | 'C' | 'D'
+export type { Segment } from '@/lib/segmentation/declare-types'
+import type { Segment } from '@/lib/segmentation/declare-types'
 
 export type DeclareInput = {
   clientId: string

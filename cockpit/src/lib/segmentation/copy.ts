@@ -100,7 +100,11 @@ export const CLAIM_QUESTION = {
     'Nós registámos isso como autorização — e isso foi um erro nosso, não seu. ' +
     'Uma célula num ficheiro não é prova de nada: pode ter sido preenchida por ' +
     'qualquer razão, há muitos anos, por alguém que já não trabalha consigo. ' +
-    'Corrigimos o registo, e é por isso que estamos a perguntar agora.',
+    // It used to end "…e é por isso que estamos a perguntar agora". Once the
+    // evidence question was scoped to B, that clause was false on three screens
+    // out of four: nothing is being asked of a past client. The question now
+    // travels with the field that asks it.
+    'Corrigimos o registo.',
   /** Appended to `body` when we cannot show them the cell. Admitting the gap is
    *  cheaper than inventing a word, and it is also simply true. */
   bodyCellNotKept:
@@ -141,6 +145,71 @@ export function plural(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`
 }
 
+/**
+ * WHERE THE EVIDENCE QUESTION BELONGS, ONCE THE ORIGIN IS KNOWN.
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │ ORIGIN FIRST, EVIDENCE SECOND — AND THE EVIDENCE QUESTION IS SCOPED.    │
+ * │                                                                         │
+ * │ The screen used to ask what lay behind the file's consent marker BEFORE │
+ * │ asking whether these people were past clients at all. That is backwards │
+ * │ twice over. A client who bought through the agency is segment A whether │
+ * │ or not the marker means anything, so the first question framed the      │
+ * │ conversation around something that may be irrelevant — and it opened a  │
+ * │ meeting with an admission of our error, which is the right sentence in  │
+ * │ the wrong place.                                                        │
+ * │                                                                         │
+ * │ Scoping it also removes a duplicate nobody had noticed: the three       │
+ * │ answers to the evidence question ARE segments B, C and D.               │
+ * │                                                                         │
+ * │     have_record  → B  "deu autorização e temos o registo"               │
+ * │     no_record    → C  "contactou-nos, mas nunca avançou"                │
+ * │     dont_know    → D  "já não sabemos de onde veio"                     │
+ * │                                                                         │
+ * │ declare.ts knew this before the screen did: validateDeclaration()       │
+ * │ requires `basis` for B ALONE. So after the origin is declared there is  │
+ * │ exactly one thing left to ask, and only of B — which record, and when.  │
+ * │ The other two segments get the note that belongs to their answer.       │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ */
+export const CLAIM_SCOPE: Record<'A' | 'B' | 'C' | 'D', string> = {
+  A:
+    'Como estes contactos já negociaram consigo, não é dessa célula que depende ' +
+    'podermos escrever-lhes — é dessa relação. Não precisamos de saber mais nada sobre ela.',
+  // Not a third phrasing of the question — the field below asks it. This says
+  // what changes: the record is what counts now, not the cell.
+  B: 'Nesse caso o que conta é o registo em si, e já não o que estava na célula.',
+  C: 'Nesse caso essa célula era a única coisa que alguma vez disse que sim, e não chega.',
+  D: 'Nesse caso fica a dúvida registada como dúvida, que é melhor do que uma certeza inventada.',
+}
+
+/**
+ * What step 2 must ask, given the origin just declared.
+ *
+ * A FUNCTION, not a shape the page decides inline, because it has to agree with
+ * validateDeclaration(): that function refuses a B with no basis and accepts
+ * A, C and D without one. A screen asking for evidence where the writer does
+ * not require it wastes the room's time; a screen NOT asking where the writer
+ * does require it produces a refusal after the sentence was spoken, in front of
+ * the client. segmentation.test.ts asserts the two agree, segment by segment.
+ */
+export function scopeFor(segment: 'A' | 'B' | 'C' | 'D'): {
+  basisRequired: boolean
+  /** Why this origin makes the file's marker matter, or stop mattering. */
+  scope: string
+  /** The reassurance belonging to this answer, when it has one. */
+  note: string | null
+} {
+  return {
+    basisRequired: segment === 'B',
+    scope: CLAIM_SCOPE[segment],
+    note:
+      segment === 'C' ? CLAIM_QUESTION.options.no_record.note
+      : segment === 'D' ? CLAIM_QUESTION.options.dont_know.note
+      : null,
+  }
+}
+
 export const UI = {
   title: 'De onde vieram estes contactos',
   intro:
@@ -178,6 +247,15 @@ export const UI = {
   missingGroup: 'Faltam dados do grupo.',
   noneSelected: 'Nenhum contacto seleccionado.',
   cancel: 'Voltar',
+  continueToDetail: 'Continuar',
+  youSaid: 'Disse:',
+  changeAnswer: 'Mudar a resposta',
+  // Its own words. It used to borrow the evidence question's "Não sei", which
+  // left that option stranded a screenful away from the question it answered.
+  unsure: 'Não tenho a certeza desta resposta',
+  otherGroups: 'Os outros grupos ficam para a seguir',
+  backToAll: 'Ver todos os grupos',
+  nothingMoreNeeded: 'Não é preciso mais nada. Falta só quem está a dizer isto.',
 } as const
 
 /**

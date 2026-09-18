@@ -3077,3 +3077,86 @@ renders are requirements, not polish** — and if the feature is being rolled ou
 to a small group first, they are the *only* renders that will be seen for days.
 Write them into the test as literal expected strings, because that is the form
 in which the defect is visible.
+
+## 14. Two questions in the wrong order, and the validator that had known for a week
+
+The segmentation screen asked the agency what lay behind their file's consent
+marker, and *then* asked whether these people were past clients at all.
+
+Backwards, for a reason that has nothing to do with software. A client who
+bought through the agency is segment A **whether or not the marker means
+anything** — so the first question framed the conversation around something that
+may be irrelevant. And because that question opens with an admission of our
+error, the screen opened a meeting by apologising for a mistake that, for those
+contacts, did not matter. The right sentence in the wrong place.
+
+### The duplicate nobody had seen
+
+Reordering exposed something better. The three answers to the evidence question
+*were* three of the four segments:
+
+| evidence answer | segment |
+|---|---|
+| "we have the record" | **B** — deu autorização e temos o registo |
+| "we have no record" | **C** — contactou-nos, mas nunca avançou |
+| "I don't know" | **D** — já não sabemos de onde veio |
+
+The screen was asking one question twice, the second time worse — and the write
+path had known this the whole time. `validateDeclaration()` requires `basis` for
+**B alone**:
+
+```ts
+if (input.segment === 'B' && !input.basis?.trim()) return '…which form, which system, what date'
+```
+
+So the screen asked every group for evidence that the record required of one,
+and asked it before it knew which. **When a UI and its validator disagree about
+which question belongs to which answer, the validator is usually right** — it
+was written against the record, and the record is the thing that has to survive
+being read back.
+
+The fix made the agreement structural rather than remembered: `scopeFor()`
+returns what step 2 must ask, and a test asserts, segment by segment, that
+`scopeFor(s).basisRequired` equals whether `validateDeclaration` refuses that
+segment without a basis. Neither can move without the other.
+
+### What scoping broke, which is the part worth remembering
+
+The admission ended *"Corrigimos o registo, e é por isso que estamos a perguntar
+agora."* True while everyone was asked. After scoping it was true on one screen
+in four: the other three announced a question that never came.
+
+**A sentence's truth can depend on control flow that is nowhere near it.** When
+a question becomes conditional, every sentence that referred to it is now a
+claim about a branch it cannot see. Grep for the promise, not just the code.
+
+## 14b. A predictor that duplicates what it predicts will eventually lie
+
+`probe-segmentation.ts` prints what the screen will say without rendering it.
+Every defect in this feature was found by reading its output — the invented
+«sim», the `1 contactos`, the stranded question.
+
+Then it drifted. The page moved the evidence question onto the field that
+answers it; the probe was still printing the old arrangement. **It was wrong in
+the worst possible direction: it looked right.** A prediction that no longer
+matches the thing predicted is more dangerous than no prediction, because the
+whole point of reading it is to stop looking at the real screen.
+
+The cause was structural, not carelessness: the probe was a *second
+implementation* of the page's composition. So the composition moved into
+`present.ts` — pure, no `server-only`, no database — and the page renders it, the
+probe prints it, and the tests assert on it. Three readers, one sentence.
+
+Two things that fall out of this, and they are why it is worth the file:
+
+1. **The guards got better.** Assertions that had to scan JSX text
+   (`/\{ask\.basisRequired \? \(/`) became assertions on a returned value
+   (`view('A').ask.kind === 'none'`). A source scan proves a line exists; a
+   composition test proves the screen says the right thing.
+2. **The staleness is now itself guarded.** A test reads both files and fails if
+   either composes the copy directly instead of calling `present.ts`, so the
+   next person to add a sentence cannot add it to only one of them.
+
+The general rule: **when you build a tool to check a thing, make the tool read
+the thing — never re-describe it.** A second description of the same behaviour
+is a second thing to keep true, and the one nobody looks at is the one that rots.
