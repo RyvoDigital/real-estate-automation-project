@@ -1,4 +1,5 @@
 import type { MatchRunPlan, MatchRunRefusal } from './run'
+import { renderReasons, type Lang, type Reason } from './reason'
 
 /**
  * What the agent is told when a listing arrives.
@@ -62,7 +63,8 @@ export type NotifiableMatch = {
   monthsSinceContact: number | null
   strength: 'strong' | 'possible' | 'weak'
   filterWouldFind: boolean
-  reasons: string[]
+  /** Structured. Rendered here, in the agent's language, and nowhere earlier. */
+  reasons: Reason[]
 }
 
 export type ChosenMatch = {
@@ -147,8 +149,8 @@ export const FRAMES: Record<'en', Frame> = {
  * kind of thing that is obvious only after it has happened. Asserted in the
  * tests, not just avoided here.
  */
-function leadLine(m: NotifiableMatch, f: Frame): string {
-  const parts = [`*${m.name}* — ${m.reasons.join(' ')}`]
+function leadLine(m: NotifiableMatch, f: Frame, lang: Lang): string {
+  const parts = [`*${m.name}* — ${renderReasons(m.reasons, lang).join(' ')}`]
   if (m.monthsSinceContact === null) parts.push(f.neverContacted)
   else if (m.monthsSinceContact > 0) parts.push(f.notContacted(m.monthsSinceContact))
   if (!m.filterWouldFind) parts.push(f.filterWouldNotFind)
@@ -163,6 +165,7 @@ export function composeAgentNotification(input: {
   chosen: ChosenMatch[]
   language?: 'en'
 }): Notification {
+  const lang: Lang = 'en'
   const f = FRAMES[input.language ?? 'en']
   const blocks: Notification['blocks'] = []
 
@@ -203,7 +206,7 @@ export function composeAgentNotification(input: {
 
   const named = input.matches.slice(0, NAME_AT_MOST)
   const omitted = input.matches.length - named.length
-  for (const m of named) blocks.push({ kind: 'computed', text: leadLine(m, f) })
+  for (const m of named) blocks.push({ kind: 'computed', text: leadLine(m, f, lang) })
 
   /*
    * CHOSEN IS NOT MATCHED, AND THE BLOCKS SAY SO SEPARATELY.

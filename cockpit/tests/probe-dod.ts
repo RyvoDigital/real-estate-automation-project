@@ -29,7 +29,27 @@ const db = createClient(
   { auth: { persistSession: false } },
 )
 
-type Verdict = 'PASS' | 'FAIL' | 'HUMAN' | 'N/A'
+/**
+ * FIVE VERDICTS, AND THE FIFTH IS THE ONE THAT WAS MISSING.
+ *
+ * 'NODATA' — the check ran, the path is not known to be broken, and THERE IS
+ * NOTHING IN THE DATABASE TO JUDGE IT ON.
+ *
+ * Item 7 flipped PASS→FAIL on 18 Sep 2026 with no code change, because the
+ * `lead.escalation_cleared` row it reads had been cleaned out of the database.
+ * A two-state check turns "the path is broken" and "the evidence is gone" into
+ * the same red, and the cheapest way to make that red go away is to perform a
+ * hand-back so a row exists — which is manufacturing evidence to satisfy a
+ * check, and the exact shape this whole file exists to refuse.
+ *
+ * So the absence gets its own verdict. It does not fail the probe, because
+ * nothing is known to be wrong; it is never counted as a pass, because nothing
+ * has been shown to be right; and it says what would have to exist for the
+ * check to mean anything. The distinction from 'N/A' matters: N/A is a check
+ * that CANNOT fire (a consumer with no producer), and this is one that can and
+ * had nothing to read.
+ */
+type Verdict = 'PASS' | 'FAIL' | 'HUMAN' | 'N/A' | 'NODATA'
 const results: { n: number; verdict: Verdict; title: string; note: string }[] = []
 const record = (n: number, verdict: Verdict, title: string, note = '') =>
   results.push({ n, verdict, title, note })
@@ -181,11 +201,14 @@ async function main() {
   }
   record(
     7,
-    ev && keyAbsent ? 'PASS' : 'FAIL',
+    !ev ? 'NODATA' : keyAbsent ? 'PASS' : 'FAIL',
     'Handing back is explicit and confirmed; nothing resumes automatically',
     ev
       ? `event exists, previous_reasons preserved, and the escalated KEY is ${keyAbsent ? 'absent (not null)' : 'STILL PRESENT'}`
-      : 'no hand-back event found',
+      : 'no lead.escalation_cleared row exists, so there is nothing to judge the hand-back on. ' +
+        'This is NOT a pass and NOT a failure: the path may be perfect or broken and this check ' +
+        'cannot tell. To make it mean something, hand a real escalation back — do not create a ' +
+        'row to turn this green.',
   )
 
   // ---- 8. replied-in-WhatsApp -------------------------------------------
@@ -411,8 +434,18 @@ async function main() {
   }
   const tally = (v: Verdict) => results.filter((r) => r.verdict === v).length
   console.log(
-    `\nPASS ${tally('PASS')}   HUMAN ${tally('HUMAN')}   N/A ${tally('N/A')}   FAIL ${tally('FAIL')}`,
+    `\nPASS ${tally('PASS')}   HUMAN ${tally('HUMAN')}   N/A ${tally('N/A')}` +
+    `   NODATA ${tally('NODATA')}   FAIL ${tally('FAIL')}`,
   )
+  // NODATA never counts toward the pass total anywhere. A summary that folded
+  // it into PASS would restore the thing this verdict exists to prevent: a
+  // green line standing for a check that read nothing.
+  if (tally('NODATA') > 0) {
+    console.log(
+      `\n${tally('NODATA')} check(s) had nothing to read. They are not failures and they are ` +
+      'not passes — see the notes above for what would have to exist.',
+    )
+  }
   process.exit(tally('FAIL') === 0 ? 0 : 1)
 }
 

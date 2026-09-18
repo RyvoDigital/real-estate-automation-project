@@ -84,8 +84,20 @@ function widest(a: Requirement, b: Requirement): Requirement {
   return (b.value as number) < (a.value as number) ? b : a
 }
 
-function supersede(loser: Requirement, winner: Requirement, why: string): Requirement {
-  return { ...loser, supersededBy: { evidence: winner.evidence, why } }
+/**
+ * `rule` is the CODE and `why` is the English gloss.
+ *
+ * The renderer reads the code — a reason composed in Portuguese must not be
+ * produced by parsing an English sentence, which is what "why" would force.
+ * `why` survives for logs and for a reader of the raw row.
+ */
+function supersede(
+  loser: Requirement,
+  winner: Requirement,
+  rule: 'later' | 'widest',
+  why: string,
+): Requirement {
+  return { ...loser, supersededBy: { evidence: winner.evidence, why, rule } }
 }
 
 /**
@@ -179,7 +191,7 @@ export function resolveRequirements(reqs: Requirement[]): Requirement[] {
     if (orderable) {
       const winner = group.reduce((a, b) => ((b.order as number) > (a.order as number) ? b : a))
       for (const r of group) {
-        out.push(r === winner ? r : supersede(r, winner, 'a later statement replaced it'))
+        out.push(r === winner ? r : supersede(r, winner, 'later', 'a later statement replaced it'))
       }
       continue
     }
@@ -192,6 +204,7 @@ export function resolveRequirements(reqs: Requirement[]): Requirement[] {
           : supersede(
               r,
               winner,
+              'widest',
               'two statements could not be ordered, so the one excluding least was used',
             ),
       )

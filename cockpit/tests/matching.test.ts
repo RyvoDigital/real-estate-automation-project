@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { budgetFlexibility, keepOnlyVerifiedEvidence, strengthOf, verifyQuote, type Requirement } from '../src/lib/matching/criteria'
 import { missingThresholds, scoreListing, type Listing, type Thresholds } from '../src/lib/matching/score'
+import { renderReasons } from '../src/lib/matching/reason'
 
 const T: Thresholds = {
   budget_stretch: 0.03,
@@ -131,10 +132,13 @@ test('THE MATCH A FIELD-ONLY FILTER WOULD HAVE MISSED', () => {
   // 0.00 and refused it, which is the CRM filter rebuilt by accident.
   assert.equal(r.strength, 'weak')
   assert.equal(r.hardFailed.length, 0)
-  assert.ok(r.reasons.some((x) => /could stretch for the right place/.test(x)), 'the reasoning quotes what made it match')
-  assert.ok(r.reasons.some((x) => /couldn’t live without a garden/.test(x)), 'and the hard constraint that held')
+  // Reasons are DATA now (reason.ts). Rendered here for the assertion, in the
+  // language the agent would read, which is the whole point of the change.
+  const rendered = renderReasons(r.reasons, 'en')
+  assert.ok(rendered.some((x) => /could stretch for the right place/.test(x)), 'the reasoning quotes what made it match')
+  assert.ok(rendered.some((x) => /couldn’t live without a garden/.test(x)), 'and the hard constraint that held')
   assert.equal(r.preferencesMissed.length, 1)
-  assert.match(r.preferencesMissed[0].detail, /no south facing/)
+  assert.deepEqual(r.preferencesMissed[0].detail, { t: 'feature_no', feature: 'south facing' })
 })
 
 test('without the stated flexibility, the same listing does NOT match', () => {
@@ -148,7 +152,7 @@ test('without the stated flexibility, the same listing does NOT match', () => {
     fields: { budget_max: 2_000_000, area: 'Cascais', bedrooms: 4 },
   })
   assert.equal(r.matched, false, 'the same listing, same lead, no stated flexibility — no match')
-  assert.match(r.reasons.join(' '), /beyond €2,060,000/)
+  assert.match(renderReasons(r.reasons, 'en').join(' '), /beyond €2,060,000/)
 })
 
 test('a failed HARD constraint is not a weak match, it is no match', () => {
@@ -165,7 +169,9 @@ test('a failed HARD constraint is not a weak match, it is no match', () => {
   // any list ordered by score. The ratio stays visible in preferencesMet.
   assert.equal(r.score, 0)
   assert.equal(r.preferencesMet.length, 1, 'the pool is still recorded as met')
-  assert.match(r.reasons.join(' '), /Fails: no garden/)
+  assert.match(renderReasons(r.reasons, 'en').join(' '), /Fails: no garden/)
+  // …and the same verdict, said to the Portuguese agency that will read it.
+  assert.match(renderReasons(r.reasons, 'pt').join(' '), /Não serve: não tem jardim/)
 })
 
 test('geography adjacency comes from config and is explained', () => {
@@ -174,7 +180,8 @@ test('geography adjacency comes from config and is explained', () => {
   const r = scoreListing({ requirements, listing: estoril, thresholds: T, budgetFlexible: false, fields: { budget_max: 2_000_000, area: 'Cascais', bedrooms: 4 } })
   assert.equal(r.matched, true)
   assert.equal(r.filterWouldFind, false, 'string equality on area would have missed it')
-  assert.match(r.reasons.join(' '), /next to Cascais, which this agency treats as interchangeable/)
+  assert.match(renderReasons(r.reasons, 'en').join(' '), /next to Cascais, which this agency treats as interchangeable/)
+  assert.match(renderReasons(r.reasons, 'pt').join(' '), /ao lado de Cascais, que esta agência trata como equivalente/)
 
   const faro: Listing = { ...listing, area: 'Faro', price: 1_900_000 }
   const r2 = scoreListing({ requirements, listing: faro, thresholds: T, budgetFlexible: false, fields: { budget_max: 2_000_000, area: 'Cascais', bedrooms: 4 } })
@@ -282,5 +289,5 @@ test('a lead with nothing binding produces no matches at all', () => {
   const oneBed: Listing = { id: 'X', reference: 'R', area: 'Cascais', price: 800_000, bedrooms: 1, property_type: 'house', features: [], status: 'available' }
   const r = scoreListing({ requirements: e.requirements, listing: oneBed, thresholds: T, budgetFlexible: false, fields: { budget_max: null, area: null, bedrooms: null } })
   assert.equal(r.matched, false)
-  assert.match(r.reasons[0], /nothing to match on yet/)
+  assert.equal(r.reasons[0].role, 'nothing_binding')
 })

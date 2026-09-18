@@ -3524,3 +3524,46 @@ The `guardDraft` instance is the one to keep in mind, because it was **live**: a
 hole that only opens on round numbers is worse than no guard, since a guard is
 trusted precisely by people who tested it with a realistic-looking number and
 saw it work.
+
+---
+
+## 5i. A boolean cast is a decision, and casting an absence is a decision to invent
+
+**2026-09-18.** The calibration screen asks an agency whether they would show a
+buyer one bedroom fewer than they asked for. The select submits `''` when the
+question is skipped, and the action read it as:
+
+```ts
+showsOneFewerBedroom: String(formData.get('showsOneFewerBedroom')) === 'yes'
+```
+
+`String('') === 'yes'` is `false`. **A question nobody answered was recorded as
+the agency saying no** — a definite position, in their name, about their own
+market, which they never took. And it was unrecoverable: the validator that
+exists to refuse an incomplete form found a complete one, because `false` is a
+perfectly good answer.
+
+This is the spreadsheet-consent cell from three days earlier, pointed at an
+agency's judgement instead of a contact's. There the fix was that a cell is an
+assertion and not evidence. Here it is smaller and identical in shape:
+
+> **A cast to boolean has exactly two outputs and absence is not one of them.
+> Every absent value that reaches one therefore becomes a definite answer, and
+> the definite answer it becomes was chosen by whoever wrote the comparison —
+> not by the person the record will name.**
+
+The direction the default falls is almost never neutral, either. `=== 'yes'`
+defaults to *no*, which reads as conservative and is not: it fabricated a
+restriction the agency had not asked for, narrowing what their own buyers would
+be shown, invisibly.
+
+**What to look for.** Any `=== 'yes'`, `=== 'true'`, `Boolean(x)`, `!!x` or
+`x === 'on'` standing between a form, a spreadsheet, an API or a config file and
+a stored fact. If the source can be empty — and a form control can always be
+empty — the absence needs its own branch *before* the cast, and it has to
+survive as absent all the way to whatever refuses it. A three-state read
+(`yes` / `no` / not answered) is one extra line and it is the whole of the fix.
+
+Same family as lesson 10 (two clocks collapsed into one column) and as the
+nullable `consent_at`: **a type too small to hold the truth will hold something
+else instead, and nothing will report it.**

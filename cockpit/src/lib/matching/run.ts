@@ -1,5 +1,6 @@
 import type { Requirement } from './criteria'
 import { missingThresholds, scoreListing, type Listing, type MatchResult, type Thresholds } from './score'
+import type { Reason } from './reason'
 
 /**
  * The matching run: one listing against every lead we hold requirements for.
@@ -77,7 +78,8 @@ export type MatchRow = {
     preferencesMet: unknown[]
     preferencesMissed: unknown[]
     superseded: unknown[]
-    reasons: string[]
+    /** Structured (reason.ts). Rendered in the reader's language, not here. */
+    reasons: Reason[]
   }
   listingStatusAtMatch: string
   listingStatusChangedAtAtMatch: string | null
@@ -93,7 +95,7 @@ export type MatchRunPlan =
       ran: true
       matches: MatchRow[]
       /** Considered and not matched, with the reason, per lead. */
-      rejected: { leadId: string; reasons: string[] }[]
+      rejected: { leadId: string; reasons: Reason[] }[]
       /** No hard constraint at all — the triage candidate set. */
       unmatchableNoRequirements: string[]
       considered: number
@@ -151,7 +153,7 @@ export function planMatchRun(input: {
 
   const thresholds = input.config as Thresholds
   const matches: MatchRow[] = []
-  const rejected: { leadId: string; reasons: string[] }[] = []
+  const rejected: { leadId: string; reasons: Reason[] }[] = []
   const unmatchableNoRequirements: string[] = []
 
   for (const c of input.candidates) {

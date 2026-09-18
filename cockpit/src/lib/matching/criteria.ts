@@ -55,7 +55,7 @@ export type Requirement = {
    * absorb). The scorer does not judge it; the reasoning still shows it, so an
    * agent can tell a correction from an extraction bug.
    */
-  supersededBy?: { evidence: string | null; why: string } | null
+  supersededBy?: { evidence: string | null; why: string; rule?: 'later' | 'widest' } | null
 }
 
 /** Budget flexibility stated in words: "we could stretch for the right place". */

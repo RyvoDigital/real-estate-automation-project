@@ -377,23 +377,19 @@ unvalidated and are named in `src/lib/matching/notify.ts` rather than left to be
 discovered:
 
 1. **Whether an agent would act on it at all.** Needs an agent.
-2. **The language.** The frame is fixed strings keyed by language; the *reasons*
-   come from `score.ts` as English prose — *"Cascais is exactly what they asked
-   for"* — and the agency is Portuguese. `score.ts` must emit structured reasons
-   with a per-language renderer before a real agent reads one. This is a real
-   seam, not a translation task.
+2. ~~**The language.**~~ ✅ **CLOSED 18 Sep 2026.** `score.ts` emitted English
+   prose four files below anything that knew who was reading. It now emits
+   structured reasons — a code and its values — and `src/lib/matching/reason.ts`
+   is the only place any of it becomes words, in PT/EN/ES. The exhaustiveness is
+   structural: a new variant does not compile until it can be said in every
+   language, and a test asserts the three renderings actually DIFFER, because a
+   silent fallback to English reads as working and is the exact thing that would
+   reach an agent's screen.
 3. **Length in practice.** Six matches with long evidence quotes may be a wall
    of text on a phone. The five-name cap is a guess with its reasoning attached.
 
-**Item 2 is a PREREQUISITE for the calibration conversation, not a follow-up to
-it.** The agent in that room will be reading the output. An English sentence
-composed into a Portuguese notification is the first thing they will see and the
-last thing anybody wants to explain in person — and it would have been found in
-front of a client rather than in a test. `score.ts` emits prose today; it must
-emit structured reasons with a per-language renderer BEFORE the afternoon is
-arranged.
-
-Items 1 and 3 are the opposite: they can only be answered in that room.
+**Item 2 was a PREREQUISITE and is now done.** Items 1 and 3 are the opposite:
+they can only be answered in that room, which is the whole of what is left.
 
 Like §3.18, this cannot be closed from a keyboard. It belongs to the calibration
 conversation — and it is the same conversation, because an agent reading a real

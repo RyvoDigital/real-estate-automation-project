@@ -36,11 +36,14 @@ export const MARIA: NotifiableMatch = {
   strength: 'weak',
   filterWouldFind: false,
   reasons: [
-    '€2,200,000 is over their €2,000,000, within the 15% they said they could stretch — they said: “We could stretch for the right place.”',
-    'Cascais is exactly what they asked for.',
-    '4 bedrooms against 4 asked for.',
-    'has garden — they said: “And we couldn’t live without a garden — the kids need somewhere to play.”',
-    'Misses: no south facing — “It’d be nice if it faced south.”',
+    { role: 'met', detail: { t: 'budget_stretched', price: 2_200_000, max: 2_000_000, pct: 15, stated: true },
+      evidence: 'We could stretch for the right place.' },
+    { role: 'met', detail: { t: 'area_exact', area: 'Cascais' }, evidence: null },
+    { role: 'met', detail: { t: 'bedrooms_ok', has: 4, want: 4 }, evidence: null },
+    { role: 'met', detail: { t: 'feature_has', feature: 'garden' },
+      evidence: 'And we couldn’t live without a garden — the kids need somewhere to play.' },
+    { role: 'missed', detail: { t: 'feature_no', feature: 'south facing' },
+      evidence: 'It’d be nice if it faced south.' },
   ],
 }
 
@@ -50,7 +53,10 @@ export const JOAO: NotifiableMatch = {
   monthsSinceContact: null,
   strength: 'strong',
   filterWouldFind: true,
-  reasons: ['Cascais is exactly what they asked for.', 'has garden.'],
+  reasons: [
+    { role: 'met', detail: { t: 'area_exact', area: 'Cascais' }, evidence: null },
+    { role: 'met', detail: { t: 'feature_has', feature: 'garden' }, evidence: null },
+  ],
 }
 
 export const CHOSEN_BY_AGENT: ChosenMatch = {

@@ -17,13 +17,12 @@
  *
  * Portuguese, because the agency is Portuguese and this is read aloud.
  *
- * ⚠️ ONE EXCEPTION, NAMED RATHER THAN HIDDEN. The *reasons* on the matches
- * screen come from score.ts as English prose — "Cascais is exactly what they
- * asked for" — because the engine composes them one layer down. They are shown
- * verbatim, in a block the copy below labels as the engine's own words, and
- * they are NOT client-facing yet. Making them so is improvements §3.20 item 2,
- * and it is a prerequisite for the calibration afternoon rather than a
- * follow-up to it: the agent in that room will be reading this output.
+ * The reasons shown on the matches screen are NOT an exception any more. They
+ * used to be English prose composed by score.ts one layer down — the seam that
+ * would have been discovered by an agent reading their own screen. The engine
+ * now emits structured reasons (reason.ts) and screen-read.ts renders them in
+ * Portuguese at the boundary, so everything on these screens is in one
+ * language and this file still holds every word of the frame.
  */
 
 export const LISTINGS = {
@@ -76,11 +75,7 @@ export const MATCHES = {
   neverContacted: 'Nunca foi contactado.',
   lastSpokeOne: 'Sem falar há 1 mês.',
   lastSpokeMany: (n: number) => `Sem falar há ${n} meses.`,
-  /** ⚠️ The label on the untranslated block. See the header. */
   engineWordsHeading: 'Como o sistema chegou aí',
-  engineWordsNote:
-    'Estas frases são escritas pelo motor e ainda estão em inglês. Não são para ' +
-    'mostrar a ninguém de fora.',
   strengthWord: { strong: 'Forte', possible: 'Possível', weak: 'Fraco' } as Record<string, string>,
 } as const
 

@@ -1,4 +1,5 @@
 import type { Requirement } from './criteria'
+import type { Detail, Reason } from './reason'
 
 /**
  * Scoring a listing against what a lead requires.
@@ -48,7 +49,7 @@ export type Listing = {
   status: string
 }
 
-export type Judged = Requirement & { met: boolean; detail: string }
+export type Judged = Requirement & { met: boolean; detail: Detail }
 
 export type MatchResult = {
   /** Every hard constraint held. This, and only this, is what "a match" means. */
@@ -72,20 +73,20 @@ export type MatchResult = {
    * form fields could not have produced.
    */
   filterWouldFind: boolean
-  reasons: string[]
+  reasons: Reason[]
 }
 
-function areaAccepted(listingArea: string | null, wanted: string[], adjacency: Record<string, string[]>): { ok: boolean; how: string } {
-  if (!listingArea) return { ok: false, how: 'the listing has no area' }
+function areaAccepted(listingArea: string | null, wanted: string[], adjacency: Record<string, string[]>): { ok: boolean; detail: Detail } {
+  if (!listingArea) return { ok: false, detail: { t: 'area_none' } }
   const l = listingArea.toLowerCase()
   for (const w of wanted) {
-    if (w.toLowerCase() === l) return { ok: true, how: `${listingArea} is exactly what they asked for` }
+    if (w.toLowerCase() === l) return { ok: true, detail: { t: 'area_exact', area: listingArea } }
   }
   for (const w of wanted) {
     const near = (adjacency[w] ?? []).map((a) => a.toLowerCase())
-    if (near.includes(l)) return { ok: true, how: `${listingArea} is next to ${w}, which this agency treats as interchangeable` }
+    if (near.includes(l)) return { ok: true, detail: { t: 'area_adjacent', area: listingArea, near: w } }
   }
-  return { ok: false, how: `${listingArea} is not ${wanted.join(' or ')}, and not adjacent to them` }
+  return { ok: false, detail: { t: 'area_no', area: listingArea, wanted } }
 }
 
 export function scoreListing(input: {
@@ -117,46 +118,48 @@ export function scoreListing(input: {
 
   for (const r of active) {
     let met = false
-    let detail = ''
+    let detail: Detail = { t: 'budget_nothing_to_compare' }
 
     switch (r.kind) {
       case 'budget': {
         const v = r.value as { min: number | null; max: number | null }
-        if (listing.price === null || v.max === null) { met = true; detail = 'no price or no budget to compare'; break }
+        if (listing.price === null || v.max === null) { met = true; detail = { t: 'budget_nothing_to_compare' }; break }
         const stretch = input.budgetFlexible ? t.budget_stretch_with_evidence : t.budget_stretch
         const ceiling = v.max * (1 + stretch)
         met = listing.price <= ceiling
         detail = met
           ? listing.price <= v.max
-            ? `€${listing.price.toLocaleString('en-GB')} is inside their €${v.max.toLocaleString('en-GB')}`
-            : `€${listing.price.toLocaleString('en-GB')} is over their €${v.max.toLocaleString('en-GB')}, within the ${Math.round(stretch * 100)}% ${input.budgetFlexible ? 'they said they could stretch' : 'allowance'}`
-          : `€${listing.price.toLocaleString('en-GB')} is beyond €${Math.round(ceiling).toLocaleString('en-GB')}`
+            ? { t: 'budget_inside', price: listing.price, max: v.max }
+            : { t: 'budget_stretched', price: listing.price, max: v.max, pct: Math.round(stretch * 100), stated: input.budgetFlexible }
+          : { t: 'budget_beyond', price: listing.price, ceiling: Math.round(ceiling) }
         break
       }
       case 'area': {
         const a = areaAccepted(listing.area, r.value as string[], t.area_adjacency)
-        met = a.ok; detail = a.how
+        met = a.ok; detail = a.detail
         break
       }
       case 'bedrooms': {
         const want = r.value as number
-        if (listing.bedrooms === null) { met = false; detail = 'the listing does not say how many bedrooms'; break }
+        if (listing.bedrooms === null) { met = false; detail = { t: 'bedrooms_unknown' }; break }
         met = listing.bedrooms >= want - t.bedrooms_tolerance
         detail = met
-          ? `${listing.bedrooms} bedrooms against ${want} asked for`
-          : `${listing.bedrooms} bedrooms, and they asked for ${want}`
+          ? { t: 'bedrooms_ok', has: listing.bedrooms, want }
+          : { t: 'bedrooms_no', has: listing.bedrooms, want }
         break
       }
       case 'property_type': {
         const types = (r.value as string[]).map((x) => x.toLowerCase())
         met = !listing.property_type || types.includes(listing.property_type.toLowerCase())
-        detail = met ? `${listing.property_type ?? 'unspecified'} is what they wanted` : `it is a ${listing.property_type}, they asked for ${types.join(' or ')}`
+        detail = met
+          ? { t: 'type_ok', type: listing.property_type }
+          : { t: 'type_no', type: listing.property_type, wanted: types }
         break
       }
       case 'feature': {
         const f = String(r.value).toLowerCase()
         met = listing.features.map((x) => x.toLowerCase()).includes(f)
-        detail = met ? `has ${f}` : `no ${f}`
+        detail = met ? { t: 'feature_has', feature: f } : { t: 'feature_no', feature: f }
         break
       }
     }
@@ -225,18 +228,24 @@ export function scoreListing(input: {
     (fields.area === null || (listing.area ?? '').toLowerCase() === fields.area.toLowerCase()) &&
     (fields.bedrooms === null || (listing.bedrooms ?? -1) >= fields.bedrooms)
 
-  const reasons: string[] = []
+  /*
+   * REASONS ARE DATA. This function no longer writes a sentence in any
+   * language — see reason.ts. The agency is Portuguese and this code sits four
+   * files away from anything that knows who is reading.
+   */
+  const reasons: Reason[] = []
   for (const r of superseded) {
-    const said = r.evidence ? `they also said “${r.evidence}”` : 'an earlier statement'
-    const beat = r.supersededBy?.evidence ? `: “${r.supersededBy.evidence}”` : ''
-    reasons.push(`Not judged — ${said}, and ${r.supersededBy?.why}${beat}`)
+    reasons.push({
+      role: 'superseded',
+      rule: r.supersededBy?.rule ?? 'later',
+      evidence: r.evidence,
+      instead: r.supersededBy?.evidence ?? null,
+    })
   }
-  if (!hasSomethingBinding) {
-    reasons.push('Nothing this lead said has to be true of a listing, so there is nothing to match on yet.')
-  }
-  for (const h of hard.filter((j) => j.met)) reasons.push(`${h.detail}${h.evidence ? ` — they said: “${h.evidence}”` : ''}`)
-  for (const p of preferencesMissed) reasons.push(`Misses: ${p.detail}${p.evidence ? ` — “${p.evidence}”` : ''}`)
-  for (const h of hardFailed) reasons.push(`Fails: ${h.detail}${h.evidence ? ` — “${h.evidence}”` : ''}`)
+  if (!hasSomethingBinding) reasons.push({ role: 'nothing_binding' })
+  for (const h of hard.filter((j) => j.met)) reasons.push({ role: 'met', detail: h.detail, evidence: h.evidence })
+  for (const p of preferencesMissed) reasons.push({ role: 'missed', detail: p.detail, evidence: p.evidence })
+  for (const h of hardFailed) reasons.push({ role: 'failed', detail: h.detail, evidence: h.evidence })
 
   return { matched, score, strength, hardMet: hard.filter((j) => j.met), hardFailed, preferencesMet, preferencesMissed, superseded, filterWouldFind, reasons }
 }

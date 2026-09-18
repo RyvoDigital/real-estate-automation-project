@@ -3,6 +3,7 @@ import 'server-only'
 import { admin } from '@/lib/supabase/admin'
 import { missingThresholds, type Thresholds } from './score'
 import { explainSaved } from './thresholds'
+import { renderReasons, type Reason } from './reason'
 
 /**
  * What the three screens read. Reads only — nothing here writes.
@@ -129,14 +130,16 @@ export async function readMatches(listingId: string): Promise<MatchesScreen> {
     missingThresholds: missingThresholds(cfg),
     matches: (rows ?? []).map((r) => {
       const l = byId.get(r.lead_id as string)
-      const reasoning = (r.reasoning ?? {}) as { reasons?: string[] }
+      const reasoning = (r.reasoning ?? {}) as { reasons?: Reason[] }
       return {
         leadId: r.lead_id as string,
         name: l?.full_name ?? null,
         origin: r.origin as 'computed' | 'agent',
         strength: (r.strength as string) ?? null,
         filterWouldFind: (r.filter_would_find as boolean) ?? null,
-        reasons: reasoning.reasons ?? [],
+        // Rendered HERE, in the language the screen is written in. score.ts
+        // emits data; this is the only place it becomes Portuguese.
+        reasons: renderReasons(reasoning.reasons ?? [], 'pt'),
         chosenBy: (r.chosen_by as string) ?? null,
         chosenReason: (r.chosen_reason as string) ?? null,
         monthsSinceContact: monthsSince(l?.last_contact_at ?? null),

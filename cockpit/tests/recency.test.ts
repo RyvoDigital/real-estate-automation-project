@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import * as extract from '../src/lib/matching/extract'
 import { strengthOf, type Requirement } from '../src/lib/matching/criteria'
 import { scoreListing, type Listing, type Thresholds } from '../src/lib/matching/score'
+import { renderReasons } from '../src/lib/matching/reason'
 
 const { extractFromMessages } = extract
 
@@ -140,7 +141,7 @@ test('a superseded requirement is still reported, with both statements', () => {
     budgetFlexible: e.budgetFlexible,
     fields: NO_FIELDS,
   })
-  const said = r.reasons.join(' // ')
+  const said = renderReasons(r.reasons, 'en').join(' // ')
   assert.match(said, /800 mil/, 'the earlier statement is still shown to the agent')
   assert.match(said, /1 milhao|1 milhão/, 'and so is the one it was judged against')
 })
@@ -167,11 +168,17 @@ test('an unordered source takes the widest budget and says so in the reasoning',
   })
 
   assert.equal(r.matched, true, 'the widest reading binds when nothing can be ordered')
-  assert.match(
-    r.reasons.join(' // '),
-    /could not be ordered/,
-    'and the reasoning says that is what happened',
-  )
+
+  // Asserted on the STRUCTURE, not the sentence. The reason is data now
+  // (reason.ts), so a test pinned to English wording would break every time
+  // the Portuguese phrasing was improved — and would go on passing if the
+  // Portuguese said something else entirely.
+  const sup = r.reasons.find((x) => x.role === 'superseded')
+  assert.ok(sup, 'the unresolved pair is reported, not absorbed')
+  assert.equal(sup.role === 'superseded' ? sup.rule : null, 'widest')
+
+  // And it is sayable in the language the agency reads.
+  assert.match(renderReasons(r.reasons, 'pt').join(' // '), /sem se saber o que veio primeiro/)
 })
 
 // ---------------------------------------------------------------------------

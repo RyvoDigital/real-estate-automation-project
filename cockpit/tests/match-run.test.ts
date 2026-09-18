@@ -6,6 +6,7 @@ import { planRecompute } from '../src/lib/matching/recompute'
 import { extractFromMessages } from '../src/lib/matching/extract'
 import type { Listing, Thresholds } from '../src/lib/matching/score'
 import type { Requirement } from '../src/lib/matching/criteria'
+import { renderReasons } from '../src/lib/matching/reason'
 
 /**
  * The matching run, and the recompute rule that could destroy the only thing
@@ -137,7 +138,7 @@ test('a match is produced, carries its reasoning, and a near-miss is rejected wi
 
   const missed = plan.rejected.find((r) => r.leadId === 'lead-no')
   assert.ok(missed, 'the near-miss is reported, not silently dropped')
-  assert.match(missed.reasons.join(' '), /Faro|not Cascais|not Faro/)
+  assert.match(renderReasons(missed.reasons, 'en').join(' '), /Faro|not Cascais|not Faro/)
 })
 
 test('matches are ordered strongest first, and ties are total so a run is reproducible', () => {

@@ -86,10 +86,6 @@ export default async function ListingMatches({ params }: { params: Promise<{ id:
                   <summary style={{ minHeight: 44, lineHeight: '44px', fontSize: 14, cursor: 'pointer' }}>
                     {MATCHES.engineWordsHeading}
                   </summary>
-                  {/* ⚠️ score.ts composes these in English. Labelled as the
-                      engine's own words rather than dressed up as finished
-                      copy — improvements §3.20 item 2. */}
-                  <p style={{ color: '#8a6d1f', fontSize: 13 }}>{MATCHES.engineWordsNote}</p>
                   <ul style={{ fontSize: 14, color: '#333' }}>
                     {m.reasons.map((r, i) => (
                       <li key={i}>{r}</li>
