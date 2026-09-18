@@ -185,6 +185,7 @@ async function main() {
   const BY_ROUTE: Record<string, string> = { '/leads/[id]': leadId || '' }
   if (listing?.[0]?.id) BY_ROUTE['/listings/[id]'] = listing[0].id as string
   if (listing?.[0]?.id) BY_ROUTE['/listings/[id]/triage'] = listing[0].id as string
+  if (listing?.[0]?.id) BY_ROUTE['/listings/[id]/exemption'] = listing[0].id as string
   if (client?.[0]?.id) BY_ROUTE['/segmentation/[clientId]'] = client[0].id as string
   if (client?.[0]?.id) BY_ROUTE['/calibrate/[clientId]'] = client[0].id as string
   if (process.env.PROBE_IMPORT_BATCH) BY_ROUTE['/import/[id]'] = process.env.PROBE_IMPORT_BATCH

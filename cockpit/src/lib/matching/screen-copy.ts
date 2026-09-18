@@ -116,6 +116,90 @@ export const TRIAGE = {
   notAvailable: 'Este imóvel não está disponível. Pode escolher, mas não o proponha a ninguém.',
 } as const
 
+/**
+ * The exemption declaration — written to read like the segmentation one.
+ *
+ * The phrasing of `whoIsDeclaring` and its hint is taken from
+ * `segmentation/copy.ts` deliberately and almost word for word. An agency that
+ * has sat through the contact declaration will recognise this immediately, and
+ * that recognition is worth more than anything we could improve.
+ */
+export const EXEMPTION = {
+  title: 'Este imóvel não precisa de certificado?',
+  intro:
+    'Desde 2013, qualquer anúncio de venda ou arrendamento tem de indicar a classe ' +
+    'energética. Nem todo o edificado está sujeito a certificação — se este for um ' +
+    'desses casos, é a agência que o diz, e fica registado quem o disse.',
+  whatItDoesNot:
+    'Não somos nós a decidir se o imóvel está dispensado. Registamos quem o afirmou ' +
+    'e com que fundamento, e é esse registo que responde a uma fiscalização.',
+  whoIsDeclaring: 'Quem está a dizer isto',
+  whoIsDeclaringHint:
+    'O nome de quem na agência sabe a resposta — mesmo que sejamos nós a escrever. ' +
+    'Fica no registo.',
+  basis: 'Porquê',
+  basisHint:
+    'Nas suas palavras. Uma frase que alguém da agência assine — é o que a ' +
+    'fiscalização pergunta.',
+  save: 'Registar',
+  saved: 'Registado.',
+  already: 'Este imóvel já tem classe energética, por isso não precisa de dispensa.',
+  current: (who: string, when: string) => `Dispensa registada por ${who} em ${when}.`,
+  currentBasis: 'Fundamento:',
+  nothingYet: 'Não há nenhuma dispensa registada para este imóvel.',
+} as const
+
+/**
+ * The notice — and every word of it is chosen to STOP SHORT of claiming an act.
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │ WE CANNOT WITHDRAW A POST WE DID NOT PUBLISH.                           │
+ * │                                                                         │
+ * │ A person at the agency published it, wherever they publish. All this    │
+ * │ can do is tell them, and record that they were told. That is the whole  │
+ * │ of it.                                                                  │
+ * │                                                                         │
+ * │ A notice that reads like an action is worse than one that reads like a  │
+ * │ warning: somebody reads "corrigido" or "retirado", believes the problem │
+ * │ is closed, and the unlawful advertisement is still up — with our own    │
+ * │ record saying it was handled. `notice.test.ts` fails on any verb that   │
+ * │ claims we did something to the advertisement.                           │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ */
+export const NOTICE = {
+  title: 'Certificados a expirar',
+  intro:
+    'Um certificado energético tem prazo. Quando expira, o anúncio deixa de ' +
+    'cumprir a lei sem que nada no imóvel tenha mudado.',
+  /** What we can do, said before the list rather than after it. */
+  whatWeCanDo:
+    'O que podemos fazer é avisar. Os anúncios foram publicados pela agência, nos ' +
+    'canais da agência, por isso é a agência que tem de decidir o que fazer com eles. ' +
+    'Fica registado que foram avisados e quando.',
+  lapsedHeading: 'Já expirados',
+  lapsedOne: 'Há 1 imóvel cujo certificado já expirou.',
+  lapsedMany: (n: number) => `Há ${n} imóveis cujos certificados já expiraram.`,
+  expiredOn: (when: string, days: number) => `Expirou em ${when}, há ${days} dias.`,
+  expiringHeading: 'A expirar em breve',
+  expiringOne: (days: number) => `1 imóvel com certificado a expirar nos próximos ${days} dias.`,
+  expiringMany: (n: number, days: number) =>
+    `${n} imóveis com certificados a expirar nos próximos ${days} dias.`,
+  // Zero whole days left means it expires TODAY and is still valid today — the
+  // gate agrees. "Daqui a 0 dias" is what a number says; "hoje" is what a
+  // person says, and this is read aloud.
+  expiresToday: (when: string) => `Expira hoje, ${when}.`,
+  expiresTomorrow: (when: string) => `Expira amanhã, ${when}.`,
+  expiresOn: (when: string, days: number) => `Expira em ${when}, daqui a ${days} dias.`,
+  toldOn: (when: string) => `Agência avisada em ${when}.`,
+  notToldYet: 'A agência ainda não foi avisada.',
+  markTold: 'Registar que a agência foi avisada',
+  nothing: 'Nenhum certificado expirou nem está prestes a expirar.',
+  /** The sentence to say to the agency. Also stops short of an act. */
+  whatToTellThem: (ref: string) =>
+    `O certificado energético de ${ref} expirou. Enquanto não houver um certificado ` +
+    'válido, qualquer anúncio deste imóvel fica sem a menção obrigatória.',
+} as const
+
 export const SILENCE = {
   title: 'Quem ficou à espera',
   intro:
@@ -210,5 +294,7 @@ export const FORBIDDEN_ON_SCREEN = [
   'filter_would_find', 'filterWouldFind', 'unmatchable', 'thresholds_not_configured',
   'listing_matches', 'lead_requirements', 'origin', 'computed', 'superseded',
   'triage', 'rankable', 'hard constraint',
+  'energy_class', 'energy_exemption', 'ami_licence', 'declared_by',
+  'publication_clearances', 'cleared', 'not_on_the_market', 'no_energy_class',
   'agent_dismissed', 'claimed_unevidenced', 'null', 'undefined', 'NaN',
 ]

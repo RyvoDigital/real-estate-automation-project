@@ -237,9 +237,11 @@
       "watches": [
         "db/migrations/0028_energy_certificate_and_ami.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0028_energy_certificate_and_ami.sql": "c2d87937b2978c7cf2c069800e6a297e8cb961d04fa09f83b5420f422f62c27b"
+      },
+      "last_proved": "2026-09-18",
+      "proved_by": "Manuel Vale"
     },
     {
       "id": "0027-listing-launch-description",
@@ -248,9 +250,11 @@
       "watches": [
         "db/migrations/0027_listing_launch_description.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0027_listing_launch_description.sql": "80d426684e0eca7ed9aa989f4ce14e79f26880f817ed3352c9fda1df62d68239"
+      },
+      "last_proved": "2026-09-18",
+      "proved_by": "Manuel Vale"
     }
   ]
 }
