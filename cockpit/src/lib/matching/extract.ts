@@ -1,6 +1,7 @@
 import { budgetFlexibility, strengthOf, verifyQuote, type Requirement } from './criteria'
 import { parseBedrooms, parseMoney } from '@/lib/import/normalise'
 import { decomposeBedrooms } from './hedge'
+import { resolveRequirements } from './recency'
 
 /**
  * Turning a lead's own messages into requirements.
@@ -115,25 +116,68 @@ export function extractForLead(input: {
   return extractFromMessages(input.messages, input.knownAreas)
 }
 
+/**
+ * One thing the lead — or their file — said, and whether it can be placed in a
+ * sequence relative to the others.
+ *
+ * `conversation` statements are ordered by their position in the list, which
+ * is the order they arrived in. Everything else is UNORDERABLE: a notes cell
+ * is one statement written over years by several people with no inside order,
+ * and nothing can be said about where an agent's remark sits relative to what
+ * the lead said. See recency.ts for what each case does.
+ *
+ * An agent's remark is deliberately unorderable rather than "now". Treating it
+ * as the latest word would let it narrow what the lead themselves said, and
+ * whether an agent's reading outranks the lead's own words is a decision for
+ * when the triage flow is built, not a side effect of a type.
+ */
+export type Statement = {
+  text: string
+  source: 'conversation' | 'note' | 'agent'
+  /** Recorded, never used to order. Null where the moment is unknown. */
+  at?: string | null
+}
+
 export function extractFromMessages(leadMessages: string[], knownAreas: string[]): Extraction {
+  return extractFromStatements(
+    leadMessages.map((text) => ({ text, source: 'conversation' as const })),
+    knownAreas,
+  )
+}
+
+export function extractFromStatements(statements: Statement[], knownAreas: string[]): Extraction {
   const requirements: Requirement[] = []
   const unparsed: string[] = []
+  const leadMessages = statements.map((st) => st.text)
   const flex = budgetFlexibility(leadMessages)
 
-  for (const message of leadMessages) {
+  // Longest first, so "Quinta da Marinha" is found before "Marinha" and the
+  // shorter name inside it is not reported as a second area. Same rule as the
+  // listing parser, for the same reason.
+  const areasByLength = [...knownAreas].sort((a, b) => b.length - a.length)
+
+  let seq = 0
+  for (const statement of statements) {
+    const message = statement.text
+    const ordered = statement.source === 'conversation'
+    /** Requirements the PREVIOUS sentence produced, for the §1.4 attachment. */
+    let previous: Requirement[] = []
+
     for (const s of sentences(message)) {
-      const { strength, evidence, dismissed } = strengthOf(s)
+      const order = ordered ? seq++ : null
+      const { strength, evidence, dismissed, marker } = strengthOf(s)
       // "Not fussed about a pool" mentions a pool and asks for nothing.
-      if (dismissed) { unparsed.push(`${s}  (read as indifference, not a requirement)`); continue }
+      if (dismissed) { unparsed.push(`${s}  (read as indifference, not a requirement)`); previous = []; continue }
       let found = false
+      const mine: Requirement[] = []
 
       for (const [re, feature] of FEATURE_WORDS) {
         if (!re.test(s)) continue
         found = true
-        requirements.push({
+        mine.push({
           kind: 'feature', value: feature, strength,
           evidence: evidence ?? s,
-          source: 'conversation',
+          source: statement.source, order, statedAt: statement.at ?? null,
           why: evidence ? 'stated with a phrase that marks its strength' : 'mentioned, with nothing marking it as essential',
         })
       }
@@ -147,17 +191,19 @@ export function extractFromMessages(leadMessages: string[], knownAreas: string[]
       const hedge = decomposeBedrooms(s)
       if (hedge) {
         found = true
-        requirements.push({
+        mine.push({
           kind: 'bedrooms', value: hedge.floor,
           strength: hedge.floorIsHard ? 'hard' : strength,
-          evidence: evidence ?? s, source: 'conversation',
+          evidence: evidence ?? s,
+          source: statement.source, order, statedAt: statement.at ?? null,
           why: hedge.floorIsHard ? `said at least ${hedge.floor}` : `said ${hedge.floor}`,
         })
         if (hedge.preferred !== null && hedge.preferred !== hedge.floor) {
-          requirements.push({
+          mine.push({
             kind: 'bedrooms', value: hedge.preferred,
             strength: 'preference',
-            evidence: evidence ?? s, source: 'conversation',
+            evidence: evidence ?? s,
+            source: statement.source, order, statedAt: statement.at ?? null,
             why: `and said ${hedge.preferred} would be better`,
           })
         }
@@ -171,13 +217,27 @@ export function extractFromMessages(leadMessages: string[], knownAreas: string[]
         const v = parseMoney(money[0].replace(/milh[õo]es|milhao|million/i, 'M'))
         if (v !== null) {
           found = true
-          requirements.push({ kind: 'budget', value: { min: null, max: v }, strength: 'hard', evidence: flex.evidence ?? evidence ?? s, source: 'conversation', why: `said ${money[0].trim()}` })
+          mine.push({ kind: 'budget', value: { min: null, max: v }, strength: 'hard', evidence: flex.evidence ?? evidence ?? s, source: statement.source, order, statedAt: statement.at ?? null, why: `said ${money[0].trim()}` })
         }
       }
 
       const area = s.match(AREA_HINT)
-      const named = knownAreas.find((a) => new RegExp(`(?:^|[^\\p{L}])${a}(?![\\p{L}])`, 'iu').test(s))
-      if (named) {
+      /*
+       * EVERY area named, not the first one found.
+       *
+       * This was `knownAreas.find(...)`, so "Procuro T3 em Cascais ou Estoril"
+       * produced a hard constraint for Cascais and DROPPED Estoril — silently,
+       * and in the invisible direction: the lead is shown fewer properties and
+       * nothing reports the town that went missing. Longest-first so a name
+       * contained inside a longer one is not counted twice.
+       */
+      const named: string[] = []
+      for (const a of areasByLength) {
+        if (!new RegExp(`(?:^|[^\\p{L}])${a}(?![\\p{L}])`, 'iu').test(s)) continue
+        if (named.some((already) => already.toLowerCase().includes(a.toLowerCase()))) continue
+        named.push(a)
+      }
+      if (named.length > 0) {
         found = true
         /*
          * AREA IS HARD BY DEFAULT, unlike a feature.
@@ -193,7 +253,7 @@ export function extractFromMessages(leadMessages: string[], knownAreas: string[]
          * Adjacency (§4.3) is what gives this the flexibility it needs, and it
          * is configured per client rather than inferred from a hedge.
          */
-        requirements.push({ kind: 'area', value: [named], strength: 'hard', evidence: evidence ?? s, source: 'conversation', why: `named ${named} — a place is where they will live, not a preference` })
+        mine.push({ kind: 'area', value: named, strength: 'hard', evidence: evidence ?? s, source: statement.source, order, statedAt: statement.at ?? null, why: `named ${named.join(' and ')} — a place is where they will live, not a preference` })
       } else if (area) {
         // A place we were not told about. Reported, never invented into a
         // requirement — §4.3, no hardcoded gazetteer.
@@ -203,6 +263,38 @@ export function extractFromMessages(leadMessages: string[], knownAreas: string[]
       if (!found && /\b(quer|procur|looking|want|need|precis|busco|gostar)\w*/i.test(s)) {
         unparsed.push(s)
       }
+
+      /*
+       * A MARKER-ONLY SENTENCE ATTACHES TO THE ONE BEFORE IT.
+       *
+       *   "Um jardim seria bom. É essencial."
+       *
+       * `strengthOf` runs per sentence, so "É essencial." had its strength
+       * computed and then thrown away — it names no criterion for the strength
+       * to attach to. The lead's clearest possible upgrade of a wish into a
+       * requirement was read as having said it twice, weakly, and a preference
+       * never decides admission.
+       *
+       * DIRECTIONAL AND ADJACENT-ONLY, deliberately. A sentence carrying its
+       * own criterion does not absorb the previous sentence's marker, so
+       * "Precisamos de garagem. Um jardim seria bom." keeps the garage hard
+       * and leaves the garden a preference. Widening this into a general
+       * window is how the garage's marker reaches the garden.
+       */
+      if (!found && marker && strength === 'hard' && previous.length > 0) {
+        for (const r of previous) {
+          if (r.strength === 'hard') continue
+          r.strength = 'hard'
+          // Both sentences, because the agent reading this needs the thing and
+          // the words that made it binding. Joined as they appear, so the quote
+          // still survives verification against the original message.
+          r.evidence = r.evidence ? `${r.evidence} ${s}` : s
+          r.why = `${r.why}, and the sentence after it said so`
+        }
+      }
+
+      requirements.push(...mine)
+      previous = found ? mine : []
     }
   }
 
@@ -213,5 +305,17 @@ export function extractFromMessages(leadMessages: string[], knownAreas: string[]
     r.evidence && !verifyQuote(r.evidence, leadMessages) ? { ...r, evidence: null } : r,
   )
 
-  return { requirements: verified, budgetFlexible: flex.flexible, budgetEvidence: flex.evidence, unparsed }
+  /*
+   * RESOLVED HERE, so the only producer of conversation requirements cannot
+   * skip it. Two statements about the same single-valued thing contradict, and
+   * two about the same set of alternatives accumulate — `scoreListing` requires
+   * every hard requirement to hold, so leaving them separate turns "Cascais or
+   * Estoril" into "Cascais AND Estoril" and matches nothing anywhere.
+   */
+  return {
+    requirements: resolveRequirements(verified),
+    budgetFlexible: flex.flexible,
+    budgetEvidence: flex.evidence,
+    unparsed,
+  }
 }

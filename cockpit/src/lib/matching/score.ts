@@ -60,6 +60,8 @@ export type MatchResult = {
   hardFailed: Judged[]
   preferencesMet: Judged[]
   preferencesMissed: Judged[]
+  /** Statements a later or wider one replaced. Reported, never judged. */
+  superseded: Requirement[]
   /**
    * Would a field-only CRM filter have produced this match?
    *
@@ -97,7 +99,23 @@ export function scoreListing(input: {
   const { requirements, listing, thresholds: t, fields } = input
   const judged: Judged[] = []
 
-  for (const r of requirements) {
+  /*
+   * A SUPERSEDED REQUIREMENT IS NOT JUDGED — and this is what makes the mark
+   * load-bearing rather than decorative.
+   *
+   * "ate 800 mil" followed by "afinal podemos ir ate 1 milhao" produced TWO
+   * hard budgets, and every hard requirement must hold, so the lead was
+   * refused a €950,000 listing by their own earlier sentence while the
+   * reasoning printed both facts side by side. Recency.ts decides which one is
+   * the lead's current position; this line is where that decision takes effect.
+   *
+   * They are still REPORTED below, because an agent who cannot see the earlier
+   * statement cannot tell a correction from an extraction bug (§4.7).
+   */
+  const superseded = requirements.filter((r) => r.supersededBy)
+  const active = requirements.filter((r) => !r.supersededBy)
+
+  for (const r of active) {
     let met = false
     let detail = ''
 
@@ -208,6 +226,11 @@ export function scoreListing(input: {
     (fields.bedrooms === null || (listing.bedrooms ?? -1) >= fields.bedrooms)
 
   const reasons: string[] = []
+  for (const r of superseded) {
+    const said = r.evidence ? `they also said “${r.evidence}”` : 'an earlier statement'
+    const beat = r.supersededBy?.evidence ? `: “${r.supersededBy.evidence}”` : ''
+    reasons.push(`Not judged — ${said}, and ${r.supersededBy?.why}${beat}`)
+  }
   if (!hasSomethingBinding) {
     reasons.push('Nothing this lead said has to be true of a listing, so there is nothing to match on yet.')
   }
@@ -215,5 +238,5 @@ export function scoreListing(input: {
   for (const p of preferencesMissed) reasons.push(`Misses: ${p.detail}${p.evidence ? ` — “${p.evidence}”` : ''}`)
   for (const h of hardFailed) reasons.push(`Fails: ${h.detail}${h.evidence ? ` — “${h.evidence}”` : ''}`)
 
-  return { matched, score, strength, hardMet: hard.filter((j) => j.met), hardFailed, preferencesMet, preferencesMissed, filterWouldFind, reasons }
+  return { matched, score, strength, hardMet: hard.filter((j) => j.met), hardFailed, preferencesMet, preferencesMissed, superseded, filterWouldFind, reasons }
 }

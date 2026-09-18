@@ -3275,3 +3275,114 @@ happens to beliefs that stop being true.
 The trigger for closing it, when it comes, is not this screen: it is the second
 screen where a control's *appearance* carries a decision. One instance is a note;
 two is a harness.
+
+---
+
+## 7c. A requirement whose value is a set of alternatives cannot be ANDed
+
+**2026-09-18.** The matching engine requires every hard requirement to hold —
+that is what makes a hard constraint hard rather than a heavy weight, and it is
+correct. A lead said two things:
+
+> *"Procuro T3 em Cascais."* … *"Também estamos a ver em Estoril."*
+
+Two hard area requirements, `['Cascais']` and `['Estoril']`. **Nothing matched,
+anywhere.** A Cascais listing failed for not being Estoril and an Estoril
+listing failed for not being Cascais, and the reasoning printed both:
+
+```
+Cascais is exactly what they asked for — "Procuro T3 em Cascais."
+Fails: Cascais is not Estoril, and not adjacent to them — "Também estamos a ver em Estoril."
+```
+
+The code reads as obviously correct. The output is obviously wrong the moment
+anybody looks at it, which is the whole distance between the two.
+
+> **When a requirement's value is itself a set of acceptable options, combining
+> two of them with AND inverts the requirement rather than tightening it.**
+
+`areaAccepted(listing, wanted[])` passes if the listing matches ANY entry — the
+OR already lives *inside* one requirement. So a second requirement of that kind
+is not "and also this", it is "and simultaneously not that". Accumulating has to
+mean one requirement holding both values, never two requirements holding one
+each.
+
+**How to spot the family.** Look at the judge, not the extractor: any criterion
+whose comparison is `includes`, `some`, or "matches any of", and whose value is
+a list, is an alternatives kind. Every other kind — a garden and a pool — is a
+genuine AND and must be left alone. The two are indistinguishable in the
+requirement type and completely different in meaning, which is why the
+distinction now lives in a named list (`ALTERNATIVE_KINDS`) with the reason
+attached rather than in whoever is editing.
+
+And it is §7 again from a new angle: the defect is invisible in what the filter
+*returns* — an empty result reads exactly like a lead with nothing suitable on
+the books — and only visible in what it refuses and why.
+
+---
+
+## 5h. Fix the visible half, leave the invisible half live
+
+**2026-09-18, twice in two days.** §1e records a guard that existed, was written
+the same day, and was not applied to the second caller. This is its sibling and
+it is harder to see, because there is no second caller to forget — there is a
+second *instance of the same defect inside the thing you just fixed*.
+
+Two in one session:
+
+| Found | The half that was nearly missed |
+|---|---|
+| Portuguese had no hard marker for *"precisamos"*, so a stated requirement read as a wish | **Spanish had the identical gap.** English had carried `we need` all along, so the defect was in two of three languages |
+| Two areas stated in two messages ANDed together and matched nothing (§7c) | `knownAreas.find()` returned the **first match only**, so two areas in *one* sentence silently dropped the second |
+
+In both cases the fix to the found half would have shipped, the tests would have
+been green, and the remaining half would have gone on failing in the invisible
+direction — a lead shown fewer properties, with nothing reporting the
+constraint that was quietly dropped.
+
+> **A defect is a member of a family until you have enumerated the family.**
+> The question after finding one is never "is it fixed" — it is "what is the
+> set this belongs to, and have I looked at every member".
+
+The enumeration is mechanical and cheap, which is the point: for a marker list,
+every language; for a lookup, `find` vs `filter`, `some` vs `every`, first-match
+vs all-matches; for a guard, every call site. Doing it by grep takes a minute.
+Relying on the judgement that just failed to produce the list is how the second
+half survives.
+
+---
+
+## 1j. A guard whose removal breaks nothing may be a guard the test rescued
+
+**2026-09-18.** §1f says a sabotage that turns nothing red means *"did my edit
+land"* before it means *"which test is missing"*. Here is the third answer, and
+it is the one that nearly shipped.
+
+The negation guard was changed to stop at a clause boundary, so that
+
+> *"Na verdade não, precisamos mesmo de um jardim."*
+
+is read as a requirement — the `não` refutes the previous clause, not the one
+stating the requirement. The edit landed. The test that should have covered it
+was green **with the guard removed**, and for a reason that looks like nothing:
+the scenario used two sentences, and the second one (*"É essencial."*) upgraded
+the requirement through a different rule entirely. The outcome was right; the
+guard under test had contributed nothing to it.
+
+> **A second mechanism that produces the correct outcome hides the first one
+> completely.** The test is not wrong, and it is not missing — it is *rescued*,
+> and a rescued test reports on the rescuer.
+
+The pair that fixes it, and both halves are needed:
+
+1. **Isolate it with no rescue.** One sentence, no following sentence to
+   upgrade anything, so the only thing that can produce the right answer is the
+   guard being tested.
+2. **A control against over-widening.** *"Não precisamos de um jardim"* must
+   still be a non-requirement, or "stop at the clause boundary" quietly becomes
+   "negation never applies".
+
+**Where to look for this.** Any time a sabotage fails to turn a test red and the
+edit is confirmed to have landed, ask what *else* in the path produces the
+correct answer. If something does, the test is measuring that instead — and the
+guard you believe you have has never been shown to work.

@@ -40,14 +40,30 @@ export function normaliseForMatching(s: string): string {
 }
 
 /**
- * Does a negator appear in the ~28 characters before `index`?
+ * Does a negator appear in the ~28 characters before `index`, in the same clause?
  *
  * A window rather than the whole sentence: "we don't want a pool, but the
  * garden is essential" must not have `essential` negated by the `don't` at the
  * start.
+ *
+ * AND THE WINDOW STOPS AT A CLAUSE BOUNDARY, which the first version did not:
+ *
+ *   "Na verdade não, precisamos mesmo de um jardim."
+ *
+ * The `não` refutes what the lead said BEFORE — it is the "actually, no" of a
+ * correction — and the clause after the comma is the requirement being stated.
+ * Read across the comma, the lead's clearest possible upgrade of a wish into a
+ * requirement is silently inverted into no requirement at all. A negator in a
+ * different clause negates a different thing, and the punctuation is the only
+ * evidence of that we get.
  */
+const CLAUSE_END = /[,;:]/g
+
 export function negatedAt(text: string, index: number, window = 28): boolean {
-  const before = normaliseForMatching(text).slice(Math.max(0, index - window), index)
+  let before = normaliseForMatching(text).slice(Math.max(0, index - window), index)
+  let cut = -1
+  for (const m of before.matchAll(CLAUSE_END)) cut = m.index
+  if (cut !== -1) before = before.slice(cut + 1)
   return NEGATORS.some((n) => new RegExp(`(?:^|[^\\p{L}])${n}(?![\\p{L}])`, 'iu').test(before))
 }
 

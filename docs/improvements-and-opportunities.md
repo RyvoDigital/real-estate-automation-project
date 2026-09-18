@@ -631,7 +631,7 @@ Recorded so they are not re-proposed.
 | Email marketing, content repurposing, HR, e-commerce, legal automation | Wrong segment or wrong business |
 | Generalist workflow-automation consulting | The generalist trap; contradicts the vertical positioning that is working |
 | 50% recurring referral discount | Two referrals take the client below the price floor and turn them into a reseller |
-| Listing-match sold to an agency with no structured contact data | Dishonest — the data cannot support it |
+| *"Matching"* sold to an agency with no structured contact data | Dishonest — the data cannot support the word. **Superseded in part, 18 Sep 2026.** The *matching* claim stays rejected and is not revisitable: with no hard constraint every listing matches, which is the §4.1 correction. What was wrong was concluding there is no product. For that agency 03 is **agent triage** — the system brings the right names when a listing arrives, writes the message, and keeps what the agent decides, so the list improves every time it is used. Sold as that it is honest, and the tier ladder says which one they are getting. See [`automation-03-no-crm-design.md`](automation-03-no-crm-design.md) |
 | Grok Bot as a platform to build on | GDPR (shared-VM credential access, no EU inference route, no ISO 27001), $300/mo before revenue, and it solves an API-less problem this stack does not have. Design patterns taken; product rejected. See 5.6 |
 
 ---

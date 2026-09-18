@@ -29,9 +29,33 @@ export type Requirement = {
   strength: 'hard' | 'preference'
   /** The lead's own words. Null when it came from a stored field. */
   evidence: string | null
-  source: 'field' | 'conversation'
+  source: 'field' | 'conversation' | 'note' | 'agent'
   /** Why we read it that way — shown to the agent, never to the lead. */
   why: string
+  /**
+   * WHERE THIS SITS IN THE SEQUENCE — and it is a sequence, not a clock.
+   *
+   * Two conversation messages are ordered by the order they arrived, which we
+   * know exactly. `statedAt` is the record; THIS is what decides which of two
+   * contradictory statements is the lead's current position, because a
+   * timestamp we do not have would otherwise have to be invented, and an
+   * invented clock in a field people reason from is worse than an absent one
+   * (the `consent_at` correction, af4fba6).
+   *
+   * `null` means UNORDERABLE: a notes cell written over years by several
+   * people has no inside order, and nothing can be said about where an agent's
+   * remark sits relative to what the lead said. See recency.ts.
+   */
+  order?: number | null
+  /** When it was said, where that is known. Recorded; never used to order. */
+  statedAt?: string | null
+  /**
+   * Set when a later — or wider — statement about the same single-valued thing
+   * took its place. MARKED, NEVER DELETED (§4.7: record, do not silently
+   * absorb). The scorer does not judge it; the reasoning still shows it, so an
+   * agent can tell a correction from an extraction bug.
+   */
+  supersededBy?: { evidence: string | null; why: string } | null
 }
 
 /** Budget flexibility stated in words: "we could stretch for the right place". */
@@ -43,12 +67,20 @@ const HARD_MARKERS = [
   'essencial', 'imprescindível', 'imprescindivel', 'obrigatório', 'obrigatorio',
   'tem de ter', 'tem que ter', 'tem mesmo de', 'sem isso não', 'sem isso nao',
   'não prescindo', 'nao prescindo', 'condição', 'condicao',
+  // The ordinary way to say it, and it was missing. English has carried `we
+  // need` since the first version; Portuguese and Spanish did not, so
+  // "precisamos mesmo de um jardim" and "necesitamos un jardín" were read as
+  // wishes while "we need a garden" was read as a requirement. The gap was in
+  // TWO of the three languages, which is why it was checked rather than
+  // assumed to be a Portuguese problem.
+  'precisamos', 'preciso de', 'temos de ter', 'temos que ter',
   // English
   "couldn't live without", "could not live without", "can't live without",
   'non-negotiable', 'nonnegotiable', 'must have', 'must be', 'essential',
   'deal breaker', 'dealbreaker', 'we need', 'has to have', 'have to have',
   // Spanish
   'imprescindible', 'innegociable', 'tiene que tener', 'no podemos vivir sin',
+  'necesitamos', 'necesito', 'tenemos que tener', 'tengo que tener',
 ]
 
 const PREFERENCE_MARKERS = [
