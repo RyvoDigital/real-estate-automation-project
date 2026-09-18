@@ -3567,3 +3567,50 @@ survive as absent all the way to whatever refuses it. A three-state read
 Same family as lesson 10 (two clocks collapsed into one column) and as the
 nullable `consent_at`: **a type too small to hold the truth will hold something
 else instead, and nothing will report it.**
+
+---
+
+## 13e. A comparison is only as strong as the thing it compares
+
+**2026-09-18.** A guard existed to catch exactly one failure: a reason rendered
+in Portuguese silently falling back to the English. It compared the two
+renderings and reported any that were identical.
+
+Sabotaged — the Portuguese template replaced by a verbatim copy of the English —
+it turned **nothing** red.
+
+```
+pt  "€900 000 cabe nos €1 000 000 que indicou"
+en  "€900,000 is inside their €1,000,000"
+```
+
+Numbers are formatted for the locale. Two **identical templates** therefore
+produce two **different strings**, differing on the group separator alone. The
+guard was blind to a fallback in any reason carrying a number — eight of fifteen
+variants, every budget case among them, which is to say the cases that matter.
+
+> **A guard that compares rendered output cannot see a difference it was written
+> to detect, if any *other* part of the rendering varies for an unrelated
+> reason.** The unrelated variation does the guard's job for it, and does it
+> wrongly: everything looks distinct, so nothing is ever reported.
+
+The fix is to compare the thing the rule is actually about. Here that is the
+WORDS, so the comparison strips digits, separators and symbols and compares what
+is left. The rule was never about the whole string; the first version just
+happened to compare the whole string because that was what was to hand.
+
+**Neither reading the guard nor reading the templates would have shown it.** The
+guard is three lines and obviously correct; the templates are obviously
+different. Only trying to break it made the locale visible — and the general
+form of that is worth more than the instance:
+
+**Where else this shape lives.** Any equality, `deepEqual`, hash or snapshot
+over a value carrying something incidental — a timestamp, an id, a locale, an
+ordering, a formatting choice, a whitespace convention. The incidental part
+makes every comparison come out "different", and a check whose failure condition
+is "these are the same" then never fires at all. The inverse is the more famous
+bug (a snapshot that changes every run and gets deleted for being noisy); this
+one is quieter, because it is green.
+
+Same family as §13d, one level in: there the check could not *see* part of its
+subject, here it sees all of it and compares the wrong part.

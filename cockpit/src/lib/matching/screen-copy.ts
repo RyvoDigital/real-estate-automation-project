@@ -76,7 +76,44 @@ export const MATCHES = {
   lastSpokeOne: 'Sem falar há 1 mês.',
   lastSpokeMany: (n: number) => `Sem falar há ${n} meses.`,
   engineWordsHeading: 'Como o sistema chegou aí',
+  goToTriage: 'Ver quem o sistema não sabe ordenar',
   strengthWord: { strong: 'Forte', possible: 'Possível', weak: 'Fraco' } as Record<string, string>,
+} as const
+
+export const TRIAGE = {
+  title: 'Para quem é este imóvel',
+  intro:
+    'Estes contactos não têm nada registado sobre o que procuram, por isso o ' +
+    'sistema não os sabe ordenar. Quem os conhece é a agência.',
+  /** The honest framing of what the screen is, said before anything is asked. */
+  what:
+    'Escolha quem lhe ocorre. O que disser fica guardado, e da próxima vez o ' +
+    'sistema já sabe alguma coisa sobre essas pessoas.',
+  noneLeft: 'Já passou por todos. Não há mais ninguém por ver nesta lista.',
+  emptyList: 'Ainda não há contactos importados para esta agência.',
+  groupRest: 'Sem ficheiro, sem data e sem zona',
+  groupYear: (y: string) => `Falámos pela última vez em ${y}`,
+  groupArea: (a: string) => `Contactos em ${a}`,
+  groupBatch: (f: string) => `Do ficheiro ${f}`,
+  countOne: '1 contacto',
+  countMany: (n: number) => `${n} contactos`,
+  chosenAlready: 'Já escolhido',
+  nameless: 'Sem nome no ficheiro',
+  pick: 'Escolher',
+  whoDecides: 'Quem está a decidir',
+  whoDecidesNote:
+    'O nome de quem, na agência, diz que este imóvel serve para esta pessoa. ' +
+    'Não é quem está a mexer no ecrã.',
+  why: 'Porquê esta pessoa?',
+  whyNote: 'Uma linha chega. Pode deixar em branco.',
+  /** ⚠️ The claim that must NOT be overstated — see triage.ts. */
+  whyHelps:
+    'Se disser o que essa pessoa procura — a zona, a tipologia, o que não ' +
+    'dispensa — o sistema passa a saber isso. Se for outra coisa qualquer, ' +
+    'fica guardado na mesma, mas não ajuda a ordenar.',
+  chosenSoFarOne: '1 pessoa escolhida para este imóvel.',
+  chosenSoFarMany: (n: number) => `${n} pessoas escolhidas para este imóvel.`,
+  notAvailable: 'Este imóvel não está disponível. Pode escolher, mas não o proponha a ninguém.',
 } as const
 
 export const CALIBRATE = {
@@ -141,5 +178,6 @@ export const FORBIDDEN_ON_SCREEN = [
   'budget_stretch', 'min_score', 'bedrooms_tolerance', 'area_adjacency',
   'filter_would_find', 'filterWouldFind', 'unmatchable', 'thresholds_not_configured',
   'listing_matches', 'lead_requirements', 'origin', 'computed', 'superseded',
+  'triage', 'rankable', 'hard constraint',
   'agent_dismissed', 'claimed_unevidenced', 'null', 'undefined', 'NaN',
 ]

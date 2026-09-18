@@ -62,6 +62,15 @@ export default async function ListingMatches({ params }: { params: Promise<{ id:
         <p style={{ marginTop: 32 }}>{MATCHES.none}</p>
       )}
 
+      {/* The triage floor is reachable whatever the run did — it needs no
+          thresholds, so it is the one path that works before the calibration
+          conversation has happened. */}
+      <p style={{ marginTop: 24 }}>
+        <Link href={`/listings/${id}/triage`} style={{ minHeight: 44, display: 'inline-block', lineHeight: '44px' }}>
+          {MATCHES.goToTriage}
+        </Link>
+      </p>
+
       {computed.length > 0 && (
         <section style={{ marginTop: 40 }}>
           <h2 style={{ fontSize: 20 }}>{MATCHES.computedHeading}</h2>
