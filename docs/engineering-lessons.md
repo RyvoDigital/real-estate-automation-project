@@ -1259,6 +1259,101 @@ row, because the person writing them knows which one is right.
 
 The check is three lines and turns a caller's mistake into a refusal.
 
+---
+
+## 5e. "At most N" is satisfied by zero, so a check written before its subject exists is vacuous by construction
+
+Logged 2026-09-18, on the day the thing being guarded finally appeared.
+
+`one-sender.test.ts` asserts the property the send path rests on: **at most one
+file may hold the credential that can cause a message to exist.** It was written
+days before `twilio-adapter.ts` existed, ran on every commit, and passed.
+
+Of course it passed. **Zero files satisfy "at most one".** For as long as the
+slot was empty the assertion was true for a reason that had nothing to do with
+the property it was written to defend, and it passed *most* convincingly exactly
+when it proved *least*.
+
+Worse than a test that never runs: a green check produces evidence. Somebody
+cites it as the reason the boundary holds.
+
+### The tell
+
+> **Has this check ever been seen to fail for the reason it exists?** Not "has it
+> failed" — a typo makes anything fail. For its reason.
+
+An upper bound answers no by default, and keeps answering no while its subject
+is missing, renamed, moved, or not yet written. It is §0.7 arriving through a
+bound rather than through a missing branch: the same vacuity, wearing a number.
+
+### The family, which is larger than it looks
+
+Every one of these is green on an empty world:
+
+- `at most one file imports X` — with X unused anywhere
+- `no route handler lacks auth` — with no route handlers
+- `every migration has a rollback` — with no migrations
+- `all campaign rows have a client` — with no campaign rows
+- `no user has an expired token` — after the user table was dropped
+
+### What to do
+
+**Pair every upper bound with an existence assertion.** The fix was two lines:
+the sender must now *exist*, must hold the sending credential, and must not hold
+the read one. The bound is unchanged; what changed is that it is now about a
+file rather than about an absence, and the suite fails if the slot empties
+again.
+
+And where the subject genuinely does not exist yet, **say so in the test name or
+message** rather than letting a green tick imply a guarantee that is years away
+from meaning anything.
+
+---
+
+## 5f. A boundary crossed in both directions has a loud half and a quiet half, and the defect lives in the quiet one
+
+Logged 2026-09-18, from the same mistake on two sides of one API.
+
+Twilio addresses WhatsApp as `whatsapp:+351…`; every table here stores bare
+E.164. The same omission on the two directions of that boundary:
+
+```
+READ    GET  Messages?From=+14155238886     200, zero messages     SILENT
+WRITE   POST Messages To=+351…              error 21910            LOUD
+```
+
+The write path refuses, by documented error code, immediately. The read path
+returns success and an empty list, which every consumer downstream reads as a
+fact about the world — and did, for as long as it took a dry run to print the
+query beside the result.
+
+### Why this is not a coincidence
+
+**Writes are validated by the receiver and reads are not.** A write asserts
+something and the far side has every reason to check it — that is what its
+error codes are for. A read asks a question, and *every* well-formed question
+has an answer, including the questions you did not mean to ask. An empty result
+is a perfectly good answer to a slightly wrong question.
+
+> **Wherever data crosses a boundary in both directions, expect the outbound
+> half to fail loudly and the inbound half to fail silently — and put the tests
+> on the inbound half.** The loud half is tested by production; the quiet half
+> is tested by nobody.
+
+### The same shape elsewhere
+
+- **Writing** to a queue with a bad topic errors; **reading** from a topic that
+  does not exist returns no messages.
+- **Inserting** with a wrong foreign key is refused; **selecting** by one
+  returns no rows.
+- **Publishing** to a webhook URL that 404s is visible; **filtering** an inbound
+  webhook on a field that was renamed is not.
+- **Setting** a feature flag that does not exist may throw; **reading** one
+  returns the default, for ever.
+
+In every pair the second is where a system quietly does nothing while reporting
+that all is well.
+
 ## 5. The failure you can see is rarely the failure that matters
 
 Related to §1 but distinct, and worth stating separately.
