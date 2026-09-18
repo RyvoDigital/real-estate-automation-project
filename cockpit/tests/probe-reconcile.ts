@@ -19,11 +19,13 @@
 import { readFileSync } from 'node:fs'
 import { createClient } from '@supabase/supabase-js'
 import {
-  reconcilePending, sweepOrphans, templateMatcherFromSends, GRACE_MS,
+  reconcilePending, sweepOrphans, templateMatcher, GRACE_MS,
   type PendingRow, type ReconcileStore, type ProviderReader,
 } from '../src/lib/send/reconcile'
 import { listMessages } from '../src/lib/send/provider-reader'
 import { toChannelAddress } from '../src/lib/send/provider-address'
+import { buildVocabulary } from '../src/lib/send/template'
+import { loadVocabulary } from '../src/lib/send/template-record'
 import type { ProviderMessage } from '../src/lib/send/match'
 
 for (const l of readFileSync(new URL('../.env.local', import.meta.url), 'utf8').split('\n')) {
@@ -137,30 +139,35 @@ async function main() {
   line('-'.repeat(74))
   const since = new Date(now.getTime() - 48 * 3600 * 1000)
   const { data: clients } = await db.from('clients').select('id, name, whatsapp_number')
-  const { data: known } = await db.from('sends').select('provider_message_id, body_intended')
+  const { data: known } = await db.from('sends').select('provider_message_id')
   const knownIds = new Set((known ?? []).map((r) => r.provider_message_id).filter(Boolean) as string[])
-  const knownBodies = (known ?? []).map((r) => r.body_intended).filter(Boolean) as string[]
 
   line(`  window             ${since.toISOString()}  →  ${now.toISOString()}  (48h)`)
   line(`  known provider ids ${knownIds.size}`)
-  line(`  known template bodies ${knownBodies.length}  ← the interim matcher's whole vocabulary`)
-  if (knownBodies.length === 0) {
-    line('    With no known bodies the template test matches NOTHING, so this sweep')
-    line('    cannot report an orphan however many messages it examines. That is a')
-    line('    property of having sent nothing yet, not a clean result.')
-  }
   line()
 
   for (const c of clients ?? []) {
     line(`  ${c.name}  ${c.whatsapp_number}`)
     if (!c.whatsapp_number) { line('    no number configured — skipped'); continue }
     try {
+      // The vocabulary is per client and unfiltered by status (§4e).
+      const templates = await loadVocabulary(c.id as string)
+      const vocab = buildVocabulary(templates)
+      line(`    vocabulary ${templates.length} recorded, ${vocab.usable} usable, ${vocab.refused.length} refused`)
+      if (vocab.usable === 0) {
+        line('    ⚠ AN EMPTY VOCABULARY MATCHES NOTHING, so this sweep cannot report an')
+        line('      orphan however many messages it examines. Not a clean result — a')
+        line('      property of having recorded no templates for this client.')
+      }
+      for (const r of vocab.refused) {
+        if (!r.ok) line(`    ⚠ refused from the vocabulary: ${r.detail}`)
+      }
       const sweep = await sweepOrphans({
         clientId: c.id as string,
         clientNumber: c.whatsapp_number as string,
         reader: loggingReader(),
         knownProviderIds: knownIds,
-        looksLikeTemplate: templateMatcherFromSends(knownBodies),
+        looksLikeTemplate: templateMatcher(vocab),
         since, until: now,
       })
       line(`    examined ${sweep.examined}, orphans ${sweep.orphans.length}, halt=${sweep.halt}`)

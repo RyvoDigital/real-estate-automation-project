@@ -44,12 +44,16 @@ Reading a sender is not sending. By the boundary settled for reconciliation —
 exist* — this belongs with the **read** key, in `provider-reader.ts`, not in the
 adapter.
 
-**But the read key is scoped to Messaging → messages → Read and List**, and a
-Sender is a different resource. So the key needs one more permission, and the
-honest sequence is the one used for the key itself: check the Console's grid
-for a Senders read permission, add it to the same restricted key, and only then
-write the call. **If Senders cannot be granted read-only, that is a finding to
-report rather than a reason to reach for the sending credential.**
+**Settled 18 Sep 2026, in the Console.** `whatsapp-senders` offers all five
+actions separately, so Read and List were ticked on it alongside the existing
+`messages` Read and List — **the same restricted key, edited in place.** No new
+credential, no new environment variable, nothing to change on Vercel.
+
+So the boundary holds unchanged: one read key, now covering two resources, still
+unable to create anything. That it was a permission edit rather than a second
+key matters — a second credential would have been a second thing
+`one-sender.test.ts` had to reason about, and the count that assertion protects
+only stays meaningful while it stays small.
 
 ---
 

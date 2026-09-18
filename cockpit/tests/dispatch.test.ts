@@ -60,7 +60,10 @@ after(async () => { if (made.length) await db.from('sends').delete().in('id', ma
  * vocabulary for this client, and a fixture body that resembled real traffic
  * could match a genuine message and report it as one of ours.
  */
-const FIXTURE_APPROVAL_ID = 'HX_FIXTURE_DISPATCH_TEST'
+// A real Content SID shape (HX + 32 hex), because recordApprovedTemplate
+// refuses anything else and a fixture that could not be recorded by the
+// ordinary path is a fixture waved through.
+const FIXTURE_APPROVAL_ID = 'HX000000000000000000000000000f1a7'
 const FIXTURE_BODY =
   'FIXTURE — dispatch test row for {{1}}. Not a real template and never sent to anybody.'
 

@@ -10,12 +10,19 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import {
-  reconcilePending, sweepOrphans, templateMatcherFromSends, GRACE_MS,
+  reconcilePending, sweepOrphans, templateMatcher, GRACE_MS,
   type PendingRow, type ReconcileStore, type ProviderReader,
 } from '../src/lib/send/reconcile'
 import type { ProviderMessage } from '../src/lib/send/match'
+import { buildVocabulary } from '../src/lib/send/template'
 
-const TEMPLATE = 'Olá Maria, fala a Ana da Cascais Demo.'
+const TEMPLATE_BODY = 'Olá {{1}}, fala a Ana da Cascais Demo sobre a sua casa em {{2}}.'
+const TEMPLATE_RENDERED = 'Olá Maria, fala a Ana da Cascais Demo sobre a sua casa em Cascais.'
+const TEMPLATE = TEMPLATE_RENDERED
+const fixtureTemplate = {
+  approvalId: 'HX00000000000000000000000000000001', clientId: 'c1',
+  name: 'reactivacao_a_1', language: 'pt_PT', version: 1, body: TEMPLATE_BODY,
+}
 const NOW = new Date('2026-09-22T10:00:00.000Z')
 const INTENT = '2026-09-22T09:03:11.331Z'
 
@@ -119,7 +126,7 @@ test('ORPHANS: a template with no send row halts the client', async () => {
   const out = await sweepOrphans({
     clientId: 'c1', clientNumber: '+351912000001', reader,
     knownProviderIds: new Set(['SMknown']),
-    looksLikeTemplate: templateMatcherFromSends([TEMPLATE]),
+    looksLikeTemplate: templateMatcher(buildVocabulary([fixtureTemplate])),
     since: new Date('2026-09-20T00:00:00.000Z'),
   })
   assert.equal(out.orphans.length, 1)
@@ -135,7 +142,7 @@ test('ORPHANS: a quiet night halts nothing and says how much it looked at', asyn
   const out = await sweepOrphans({
     clientId: 'c1', clientNumber: '+351912000001', reader,
     knownProviderIds: new Set(),
-    looksLikeTemplate: templateMatcherFromSends([TEMPLATE]),
+    looksLikeTemplate: templateMatcher(buildVocabulary([fixtureTemplate])),
     since: new Date('2026-09-20T00:00:00.000Z'),
   })
   assert.equal(out.halt, false)
@@ -144,10 +151,13 @@ test('ORPHANS: a quiet night halts nothing and says how much it looked at', asyn
     'a clean sweep must say what it examined — "no orphans" over an empty listing proves nothing (§5c)')
 })
 
-test('the interim template test catches a reused body and misses a novel one, as documented', () => {
-  const looks = templateMatcherFromSends([TEMPLATE])
-  assert.equal(looks(TEMPLATE), true)
+test('the vocabulary now recognises a template it has never seen SENT', () => {
+  // The interim matcher worked from bodies already sent, so a novel template
+  // used outside the gate was invisible. The real vocabulary is built from what
+  // was APPROVED, so a first-ever use is recognised — which is the whole point,
+  // since a bypass's first message is the one worth catching.
+  const looks = templateMatcher(buildVocabulary([fixtureTemplate]))
+  assert.equal(looks(TEMPLATE_RENDERED), true, 'a rendered template is recognised')
   assert.equal(looks('Uma campanha totalmente nova que nunca enviámos'), false,
-    'a novel template sent outside the gate is NOT caught until the templates table exists — ' +
-    'asserted so the gap is a decision rather than a surprise')
+    'and something that is not one of ours is not')
 })

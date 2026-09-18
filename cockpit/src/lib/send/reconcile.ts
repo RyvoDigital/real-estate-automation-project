@@ -191,21 +191,22 @@ export async function sweepOrphans(deps: {
 }
 
 /**
- * The interim template test, and what it misses — stated rather than implied.
+ * The template test, from the real vocabulary.
  *
- * A real one compares against the approved template bodies, which needs the
- * templates table Automation 02 will require anyway for Meta's approval ids.
- * Until that exists, the best available signal is "we have sent this exact body
- * before", built from `sends.body_intended`.
+ * REPLACES `templateMatcherFromSends`, which worked from bodies we had sent
+ * before. That was the best available signal while message_templates did not
+ * exist, and it had a hole recorded beside it: a NOVEL template sent outside the
+ * gate was invisible, because a body never sent could not be in the set of
+ * bodies sent. Deleted rather than left beside the real one — two matchers for
+ * one question is how the weaker gets called by accident.
  *
- * WHAT THAT CATCHES: a bypass that re-uses a template we already send — the
- * likely shape, since a bypass is usually a second code path doing the same job.
- *
- * WHAT IT MISSES: a NOVEL template sent outside the gate. Nothing in this
- * design sees that until the templates table lands, and it is written here so
- * the coverage claim stays honest rather than being discovered later.
+ * What remains uncovered is now much smaller and worth naming precisely: a
+ * template sent outside the gate that was never RECORDED here. Recording is an
+ * operator action, so the gap is "somebody submitted and used a template without
+ * writing it down", not "somebody invented a template".
  */
-export function templateMatcherFromSends(knownBodies: Iterable<string>): (body: string) => boolean {
-  const set = new Set(knownBodies)
-  return (body: string) => set.has(body)
+export function templateMatcher(vocabulary: {
+  matches: (body: string) => string | null
+}): (body: string) => boolean {
+  return (body: string) => vocabulary.matches(body) !== null
 }
