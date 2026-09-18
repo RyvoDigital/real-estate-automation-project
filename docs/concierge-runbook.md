@@ -2377,6 +2377,21 @@ actually changed. Either way, confirm behaviourally afterwards: query
 `webhook_entity`, and curl the path expecting its rejection code rather than a
 404.
 
+### Before a deploy you intend to TEST: the sandbox membership expires
+
+**The Twilio WhatsApp sandbox drops a number after 72 hours of silence.** Rejoin
+by sending the sandbox join phrase from the test handset before starting a
+deploy you plan to verify with a real message.
+
+Not a defect and not a Ryvo behaviour — a property of the sandbox. It bites
+exactly when there has been a gap between tests, which is exactly when a deploy
+is most likely to need verifying. Observed 18 Sep 2026: last test Wednesday
+night, deploy Friday, membership lapsed in between.
+
+Worth doing as step zero rather than discovering at step five, because the
+symptom is a message that simply never arrives — indistinguishable, from the
+operator's side, from a deploy that broke the reply path.
+
 ### Deploying a workflow from the CLI: import, **publish**, restart
 
 **`import:workflow` + `active=true` is not enough on n8n 2.28.** A workflow must

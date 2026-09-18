@@ -363,7 +363,7 @@ account for in an afternoon, and the answer may be "less than they hoped", which
 is §1.4 of the Automation 02 specification arriving as a practical matter rather
 than a legal one.
 
-### 3.19 🔴 The Concierge overwrites a lead's origin on every inbound message
+### 3.19 ✅ The Concierge overwrites a lead's origin on every inbound message — FIXED 18 Sep 2026
 
 **Found 18 Sep 2026 while designing the handoff contract, by asking what the
 Concierge READS to tell a campaign reply from a fresh lead rather than how it
@@ -419,6 +419,25 @@ soon.
 
 **Until then, nothing may attribute from `leads.source`**, and the handoff
 design does not.
+
+### Closed on the live system, 18 September 2026
+
+Deploy A: `source` moved inside the `if (!existing)` branch, `consent_status`
+removed entirely. Proven rather than assumed, against an expectation stated
+before the message was sent:
+
+```
+served-version query   t, f, t, t   (was t, t, f, t on the failed attempt)
+lead after one inbound source = import, last_contact_at 12:11:08
+```
+
+`source = import` **with a fresh `last_contact_at`** is the proof — the guard
+held on a row the old code would have overwritten, and the upsert demonstrably
+ran. Either fact alone is ambiguous.
+
+The `consent_status` half is invisible in any row, because the column default
+supplies the same value: behaviour identical, authorship changed. It was proved
+in the served code instead, which is the only place that difference exists.
 
 ---
 
