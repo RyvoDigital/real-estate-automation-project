@@ -23,7 +23,9 @@ Agradeço desde já, com a mesma consciência de que faz isto por favor.
 
 ## O que a lei exige
 
-Desde 2013, qualquer anúncio de venda ou arrendamento deve indicar a **classificação energética** do imóvel, com coimas entre 250 e 3.741 euros. E o **número de licença AMI**, ao abrigo da Lei n.º 15/2013, deve constar de toda a publicidade e documentação da empresa de mediação.
+Desde 2013, qualquer anúncio de venda ou arrendamento deve indicar a **classificação energética** do imóvel. E o **número de licença AMI**, ao abrigo da Lei n.º 15/2013, deve constar de toda a publicidade e documentação da empresa de mediação.
+
+**As coimas aplicáveis situam-se entre 2.500 e 44.890 euros** — é o escalão das **pessoas colectivas**, e é esse que aqui releva, porque os clientes desta automação são empresas de mediação e não particulares. (O escalão das pessoas singulares, de 250 a 3.741 euros, não é o que está em causa.)
 
 Isto está incorporado no enquadramento em §8.A e foi desenhado para a Automação 04, que publica anúncios.
 
