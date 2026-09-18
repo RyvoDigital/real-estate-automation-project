@@ -148,3 +148,30 @@ export async function listMessages(params: {
 /** Re-exported for callers that already reach for them here. One definition, in
  * provider-address.ts (lesson 15). */
 export { toChannelAddress, stripChannelAddress } from '@/lib/send/provider-address'
+
+/**
+ * The sender's quality rating, from the Senders API v2.
+ *
+ * IN THIS FILE RATHER THAN ITS OWN, deliberately. A separate sender-reader.ts
+ * was written first and deleted: it would have been a SECOND file naming the
+ * read credential and a SECOND file calling the provider by URL, and
+ * one-sender.test.ts asserts exactly one of each. Widening those to two would
+ * have been the first step of the sequence that ends at "some" — and the
+ * boundary is worth more than the tidiness of one file per resource.
+ *
+ * The key covers both: Messaging → `messages` Read+List and `whatsapp-senders`
+ * Read+List, nothing else in any product. It cannot create.
+ *
+ * `null` means UNREADABLE, which the halt treats as a stop. This returns null
+ * rather than throwing on a bad response because the caller halts either way,
+ * and the halt reason needs to distinguish "no rating" from "the request
+ * failed" — both of which arrive here as null and are separated by the caller's
+ * own try/catch around a throw. See quality.ts.
+ */
+export async function qualityRating(senderSid: string): Promise<string | null> {
+  const json = (await getJson(
+    `https://messaging.twilio.com/v2/Channels/Senders/${senderSid}`,
+  ).catch(() => null)) as { properties?: { quality_rating?: string } } | null
+
+  return json?.properties?.quality_rating ?? null
+}

@@ -97,6 +97,19 @@
       "watches": [
         "db/migrations/0021_clients_sender_sid.sql"
       ],
+      "hashes": {
+        "db/migrations/0021_clients_sender_sid.sql": "75f586172e8e94734a32261f4bb8bd5b2524178bc00a5184cf8bd0944247ccd0"
+      },
+      "last_proved": "2026-09-18",
+      "proved_by": "Manuel Vale"
+    },
+    {
+      "id": "0022-campaign-run-id",
+      "what": "sends.campaign_run_id exists and its foreign key refuses a run that does not exist. Without it, a run's refusal rows are not attributable to the run, and a second run of the same campaign would read the first's rows as its own.",
+      "how": "Paste db/migrations/0022_sends_campaign_run_id.sql, then its verify block inside begin/rollback. Expect the column to exist and an invented campaign_run_id to be refused by the foreign key.",
+      "watches": [
+        "db/migrations/0022_sends_campaign_run_id.sql"
+      ],
       "hashes": {},
       "last_proved": null,
       "proved_by": null

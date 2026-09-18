@@ -34,6 +34,7 @@ export type SendPlan = {
   variables?: Record<string, string>
   automation: string
   campaignId?: string | null
+  campaignRunId?: string | null
   templateName: string
   templateLanguage: string
   /** Required: 0020 refuses a sent row that names no template. */
@@ -86,6 +87,7 @@ export class SendPermit {
         phone_e164: plan.to,
         automation: plan.automation,
         campaign_id: plan.campaignId ?? null,
+        campaign_run_id: plan.campaignRunId ?? null,
         idempotency_key: idempotencyKey,
         status: 'intended',
 

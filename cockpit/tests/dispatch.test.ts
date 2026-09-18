@@ -168,8 +168,7 @@ async function run(sendId: string, key: string, provider: ProviderAdapter) {
 test('accepted: the row becomes sent, with the provider id and the body from the WIRE', async () => {
   const key = `disp-ok-${Date.now()}`
   const id = await intendedRow(key)
-  const { out, row } = await run(id, key, {
-    async send() { return { accepted: true, providerMessageId: 'SMtest1', bodySent: 'test body' } },
+  const { out, row } = await run(id, key, { isConfigured: () => true, async send() { return { accepted: true, providerMessageId: 'SMtest1', bodySent: 'test body' } },
   })
   assert.equal(out.kind, 'sent')
   assert.equal(row.status, 'sent')
@@ -182,8 +181,7 @@ test('a 4xx rejection is terminal: failed, ONE attempt, no retry', async () => {
   const key = `disp-4xx-${Date.now()}`
   const id = await intendedRow(key)
   let calls = 0
-  const { out, row, slept } = await run(id, key, {
-    async send() { calls++; return { accepted: false, retryable: 'never', error: '63016 template not approved' } },
+  const { out, row, slept } = await run(id, key, { isConfigured: () => true, async send() { calls++; return { accepted: false, retryable: 'never', error: '63016 template not approved' } },
   })
   assert.equal(out.kind, 'failed')
   assert.equal(calls, 1, 'a rejection must not be retried — the same content fails identically')
@@ -199,8 +197,7 @@ test('SILENCE: the row stays intended, ONE attempt, and nothing is retried', asy
   const key = `disp-silent-${Date.now()}`
   const id = await intendedRow(key)
   let calls = 0
-  const { out, row, slept } = await run(id, key, {
-    async send() { calls++; throw new Error('ETIMEDOUT after 30000ms') },
+  const { out, row, slept } = await run(id, key, { isConfigured: () => true, async send() { calls++; throw new Error('ETIMEDOUT after 30000ms') },
   })
   assert.equal(out.kind, 'ambiguous')
   assert.equal(calls, 1, 'silence must NEVER be retried')
@@ -216,8 +213,7 @@ test('429 is the one retryable answer: bounded at 3, backing off 2s/8s/32s', asy
   const key = `disp-429-${Date.now()}`
   const id = await intendedRow(key)
   let calls = 0
-  const { out, row, slept } = await run(id, key, {
-    async send() { calls++; return { accepted: false, retryable: 'later', error: '429 too many requests' } },
+  const { out, row, slept } = await run(id, key, { isConfigured: () => true, async send() { calls++; return { accepted: false, retryable: 'later', error: '429 too many requests' } },
   })
   assert.equal(calls, MAX_ATTEMPTS, `expected ${MAX_ATTEMPTS} attempts`)
   assert.equal(calls, 3)
@@ -233,8 +229,7 @@ test('a 429 that clears mid-way sends, and the attempt count records the struggl
   const key = `disp-429ok-${Date.now()}`
   const id = await intendedRow(key)
   let calls = 0
-  const { out, row } = await run(id, key, {
-    async send() {
+  const { out, row } = await run(id, key, { isConfigured: () => true, async send() {
       calls++
       if (calls < 3) return { accepted: false, retryable: 'later', error: '429' }
       return { accepted: true, providerMessageId: 'SMlate', bodySent: 'test body' }
@@ -249,8 +244,7 @@ test('a 429 that clears mid-way sends, and the attempt count records the struggl
 test('a forged permit cannot dispatch: the row is re-read and disagrees', async () => {
   const key = `disp-forge-${Date.now()}`
   const id = await intendedRow(key)
-  const provider: ProviderAdapter = {
-    async send() { throw new Error('the provider must never be reached') },
+  const provider: ProviderAdapter = { isConfigured: () => true, async send() { throw new Error('the provider must never be reached') },
   }
   // A cast can forge the object. It cannot forge the row it points at.
   await assert.rejects(
@@ -266,10 +260,10 @@ test('a forged permit cannot dispatch: the row is re-read and disagrees', async 
 test('a row that already sent cannot be dispatched again', async () => {
   const key = `disp-twice-${Date.now()}`
   const id = await intendedRow(key)
-  await run(id, key, { async send() { return { accepted: true, providerMessageId: 'SMonce', bodySent: 'test body' } } })
+  await run(id, key, { isConfigured: () => true, async send() { return { accepted: true, providerMessageId: 'SMonce', bodySent: 'test body' } } })
   await assert.rejects(
     () => dispatch(permitFor(id, key), {
-      provider: { async send() { throw new Error('must not be reached') } }, store,
+      provider: { isConfigured: () => true, async send() { throw new Error('must not be reached') } }, store,
     }),
     /row is "sent", not "intended"/,
     'the status check is what stops a double send through the same row',

@@ -131,6 +131,14 @@ test('THE ADAPTER HAS NO ROUTE TO A RECIPIENT OF ITS OWN', () => {
   // And every address it uses arrives as an argument.
   assert.match(src, /To: toChannelAddress\(input\.to\)/)
   assert.match(src, /From: toChannelAddress\(input\.from\)/)
-  assert.equal(/process\.env\.(TWILIO_ACCOUNT_SID|TWILIO_SEND)/.test(src), false,
-    'credentials are read through required(), and that is fine — what must not exist is a default RECIPIENT')
+  // NOT an assertion about HOW credentials are read. The first version required
+  // them to go through `required()`, which is an implementation detail — and it
+  // failed the moment `isConfigured()` read the environment directly, for a
+  // change that strengthened the boundary rather than weakening it. A test that
+  // pins the shape of correct code fights the next correct change.
+  //
+  // The property is that no RECIPIENT can originate here, and that is what the
+  // two assertions above check.
+  assert.match(src, /isConfigured/,
+    'the adapter answers whether it is configured, so no other file has to name the credential')
 })

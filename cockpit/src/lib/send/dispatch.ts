@@ -90,6 +90,17 @@ export type SendStore = {
 
 /** What a provider adapter must offer. The real one is not written yet. */
 export type ProviderAdapter = {
+  /**
+   * Whether this adapter could send if asked.
+   *
+   * On the port rather than in the caller so that the ONLY file naming the
+   * sending credential stays the one that holds it. An assembly that checked
+   * `process.env.TWILIO_SEND_KEY_SID` itself would be a second file naming it,
+   * and one-sender.test.ts would be right to fail — the assertion's whole value
+   * is that the count stays one.
+   */
+  isConfigured(): boolean
+
   send(input: {
     to: string
     /** The client's own number. The adapter has no default sender. */
@@ -109,6 +120,7 @@ export type ProviderAdapter = {
 
 /** Deliberately unimplemented, so the path is testable before a message can leave. */
 export const notImplementedProvider: ProviderAdapter = {
+  isConfigured: () => false,
   async send() {
     throw new Error('provider adapter not implemented: no message can physically be sent yet')
   },

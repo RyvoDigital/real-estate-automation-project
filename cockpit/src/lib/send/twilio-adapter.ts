@@ -59,6 +59,9 @@ export function twilioAdapter(deps: TwilioAdapterDeps = {}): ProviderAdapter {
   const doFetch = deps.fetchImpl ?? fetch
 
   return {
+    isConfigured: () =>
+      Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_SEND_KEY_SID && process.env.TWILIO_SEND_KEY_SECRET),
+
     async send(input) {
       const accountSid = required('TWILIO_ACCOUNT_SID')
       const keySid = required('TWILIO_SEND_KEY_SID')
