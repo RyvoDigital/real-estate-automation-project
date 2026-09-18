@@ -166,8 +166,12 @@ export const UI = {
   saved: (n: number) => `Guardado: ${plural(n, 'contacto', 'contactos')}.`,
   noContacts: 'Não há contactos importados para este cliente.',
   fromFile: (raw: string) => `no ficheiro: «${raw}»`,
+  // "1 de 1 contacto deste grupo" is grammatical and reads like a machine. The
+  // three cases are the three things a person would actually say.
   claimCount: (withClaim: number, total: number) =>
-    `${withClaim} de ${plural(total, 'contacto', 'contactos')} deste grupo.`,
+    total === 1 ? 'É o único contacto deste grupo.'
+    : withClaim === total ? `Todos os ${total} contactos deste grupo.`
+    : `${withClaim} de ${total} contactos deste grupo.`,
   declaredInGroup: (label: string) => `em grupo (${label})`,
   declaredOneByOne: 'contacto a contacto',
   wasUnsure: 'não tinha a certeza',
