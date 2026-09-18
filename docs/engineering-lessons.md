@@ -3654,3 +3654,43 @@ one is quieter, because it is green.
 
 Same family as §13d, one level in: there the check could not *see* part of its
 subject, here it sees all of it and compares the wrong part.
+
+---
+
+## 1l. A predicted empty result is the one prediction that must be investigated
+
+**2026-09-18.** The sabotage matrix asks two questions at once: *does removing
+this turn something red* and *is it the thing I expected*. Nine sabotages, and
+one of them was predicted to break **nothing** — the exemption short-circuit in
+the publication re-check. It broke nothing. The matrix printed `ok`.
+
+It was a real gap. The existing test for exempt properties also had a null
+expiry date, so the *second* half of the condition was doing all the work and
+the exemption clause had never been exercised once. A property rated in 2015,
+certificate long expired, then declared exempt is an **ordinary property**, and
+the gate was clearing it on the strength of a branch nobody had run.
+
+> **A sabotage that breaks nothing exactly as predicted is indistinguishable
+> from a sabotage that found nothing — and the tell is that you knew why in
+> advance.** Confirming the prediction is what it looks like either way.
+
+Every other prediction in a matrix is falsifiable: predict tests 3 and 7, get 3
+and 7, and the agreement means something because it could have disagreed. An
+empty prediction cannot disagree with anything. It is the one cell where
+"as predicted" carries no information at all, and it reads as the strongest
+result in the table.
+
+**So the rule is asymmetric, and deliberately so:**
+
+- a MISMATCH is investigated — §1k, and it has found two live defects
+- an EMPTY PREDICTION is investigated *too*, and before it is run: if you can
+  say in advance why removing a guard breaks nothing, you have just described an
+  untested branch, and the next step is a test rather than a prediction
+
+**Predicting a gap and letting it stand is worse than not noticing it**, because
+the note makes it look considered. A reader of that matrix — including you, in
+three weeks — sees a row that says `ok` and a comment explaining why, and has no
+reason to look again.
+
+The mechanical form: **if a sabotage's expected set is empty, do not write the
+empty set. Write the test that would make it non-empty.**
