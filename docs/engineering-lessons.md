@@ -1238,6 +1238,83 @@ statement about one execution.
 
 ---
 
+---
+
+## 11d. A binary question forces a lie when the truth is "I do not know"
+
+Logged 2026-09-18, designing the one screen that asks an agency something they
+may not want to answer.
+
+The question: *your file said `sim` in a consent column for this contact — what
+is behind it?* It is asked of a person, in a meeting, about a list assembled
+over ten years, and the answer decides whether somebody may lawfully be
+messaged. **How it is phrased decides whether it is answered honestly**, and
+four separate phrasings manufacture a false yes:
+
+| | the failure |
+|---|---|
+| **Blame** | *"Your file claimed consent. Can you prove it?"* invites defence, and a defensive person says *yes, of course* to make the question stop |
+| **A cheap yes** | a checkbox marked *"we have consent"* costs nothing to tick |
+| **An expensive no** | if *no* reads as *this contact is lost*, the answer will be *yes*. Nobody deletes four hundred contacts to be tidy |
+| **No third option** | **the one that generalises** |
+
+### The fourth, which is not about consent at all
+
+> **A yes/no question has no room for the most common true answer, so it
+> converts uncertainty into whichever of the two is socially easier.** And
+> socially easier is almost always the affirmative, because the affirmative is
+> the one that does not require admitting something.
+
+For a ten-year-old contact list, *"I do not know"* is not an edge case — it is
+the modal answer, and a two-option question guarantees it is recorded as
+consent. The data then looks complete, every row is populated, and every
+populated row that should have said *unknown* says *yes*.
+
+**Offering the third option is not enough. It has to be first-class.** A *"not
+sure"* tucked under two real buttons reads as the answer for people who are not
+paying attention, and a person in a meeting, being watched, will not choose the
+option that looks like inattention. So it is offered at the same weight as the
+others and it is **normalised in the text**: *"resposta perfeitamente normal
+numa lista com anos"*.
+
+### And honesty has to be affordable
+
+The third and fourth failures compound. Even with an *I do not know* option, if
+*no* and *don't know* both mean *this contact is dead*, the incentive still
+points at *yes*.
+
+> **Show the cost of each answer before it is given, and make sure the honest
+> answers have a route.** *"O contacto não se perde: pedimos autorização por
+> outra via"* is the sentence that makes the truth affordable. Without it the
+> screen is compliance theatre — a form that collects the answers it was built
+> to receive.
+
+### The general form, because this system will ask humans other things
+
+Every question a system puts to a person is a measuring instrument, and a
+badly-shaped one does not fail to measure — it returns a confident wrong number.
+Before asking:
+
+1. **Name the true answers first**, including the uncomfortable ones and the
+   uncertain one, then design the options around them. Not the reverse.
+2. **Ask what each answer costs the person.** If one is cheaper, expect it, and
+   expect it whether or not it is true.
+3. **Require specificity for the answer that carries the most weight.** *"Which
+   form, which system, what date"* is much harder to invent than a tick, and if
+   they can answer it, that IS the evidence.
+4. **Start from your own error where there is one.** *"We recorded this as
+   consent, and that was our mistake"* is true here, and it removes the thing
+   being defended before the question is asked.
+5. **Record the uncertain answer as an answer**, with its own name, so a later
+   change is visibly a change of KNOWLEDGE rather than a change of mind.
+
+### The related trap, in the same screen
+
+**A pre-selected default is not a proposal.** The Enquadramento requires that
+the system propose and the agency confirm; a pre-ticked radio button collects a
+click rather than a decision, and the click carries the legal weight of a
+declaration. Show the proposal as text, beside choices that are all unselected.
+
 ## 12. The next obvious step is often the one that breaks the property you just argued for
 
 Logged 2026-09-17, two messages after arguing the opposite.
@@ -2395,6 +2472,73 @@ because it is filed as evidence. Capture the count (`grep -c`) and branch on the
 number, never on the exit status of a pipeline.
 
 ---
+
+---
+
+## 7b. A constraint is proved by the cases it must LEAVE ALONE
+
+Logged 2026-09-18, from a migration whose obvious form would have broken the one
+row that must never be refused.
+
+`0024` requires a declaration to name its author. The obvious way to write that:
+
+```sql
+-- the version that looks right
+alter table public.consent_events
+  alter column declared_by set not null;
+```
+
+It would have made **a contact's own opt-out unrecordable.** An `objection`
+comes from the contact — nobody at the agency declares it, `declared_by` is
+correctly null, and a NOT NULL on the column would refuse the single row in that
+table that must always be accepted. The one we would find out about by a person
+saying *stop* and the system dropping it.
+
+The shipped version governs one kind and leaves the rest alone:
+
+```sql
+check (kind <> 'declared' or declared_by is not null)
+```
+
+### The general form
+
+> **A constraint is not proved by the case it exists for.** That case is the one
+> you had in mind while writing it, and it will pass. It is proved by the cases
+> it must NOT govern — and those are the ones nobody enumerates, because they
+> are not what the constraint is about.
+
+So the verify block for `0024` has three cases, and the third is the one that
+earns its place:
+
+```
+declaration with no author   → REFUSED     ← the case it exists for
+declaration with an author   → accepted    ← the happy path
+OBJECTION with no author     → accepted    ← the case it must leave alone
+```
+
+Without the third, a constraint that refused every objection would have passed
+its own verification.
+
+### This is §7 turned around
+
+§7 says a filter is tested by what it **refuses**, because a filter returning
+the right rows may be excluding nothing. A constraint is the mirror: it is
+tested by what it **permits**, because a constraint that refuses the wrong thing
+still refuses the right thing too, and a test that only tries the violation sees
+a green tick either way.
+
+### Where to look for the cases it must leave alone
+
+Whenever a constraint applies to a table holding more than one kind of thing —
+and most tables do — enumerate the kinds and try one of each:
+
+- a check on `kind = 'X'` → try every other kind
+- a NOT NULL on a column some rows legitimately lack → try those rows
+- a foreign key → try the rows where the reference is genuinely absent
+- a uniqueness constraint → try the duplicates that are real events
+
+The ledger is a single table holding eight event kinds, which is exactly the
+shape where a constraint written for one of them quietly governs all eight.
 
 ## 6b. Fixing the test instead of the code, and the check that cries wolf
 

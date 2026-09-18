@@ -93,7 +93,7 @@
     {
       "id": "0021-sender-sid-shape",
       "what": "clients.whatsapp_sender_sid exists and its shape is enforced (XE + 32 hex). Without this column the quality halt cannot read the number it exists to watch.",
-      "how": "Paste db/migrations/0021_clients_sender_sid.sql, then its verify block inside begin/rollback. Expect 'not-a-sid' refused by clients_sender_sid_shape and a well-formed XE\u2026 accepted.",
+      "how": "Paste db/migrations/0021_clients_sender_sid.sql, then its verify block inside begin/rollback. Expect 'not-a-sid' refused by clients_sender_sid_shape and a well-formed XE… accepted.",
       "watches": [
         "db/migrations/0021_clients_sender_sid.sql"
       ],
@@ -110,20 +110,37 @@
       "watches": [
         "db/migrations/0022_sends_campaign_run_id.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0022_sends_campaign_run_id.sql": "d6bd4bb10adde1d490a7ce42d8df1c40e5e4063cea2dcd0e4258a90e70c47c70"
+      },
+      "last_proved": "2026-09-18",
+      "proved_by": "Manuel Vale"
     },
     {
       "id": "0023-message-attribution",
-      "what": "Attribution is a three-state fact: a campaign attribution must name its send, an organic one must name nothing, and \u2014 the one that matters \u2014 an insert omitting the column entirely (which the live workflow does) inherits `unknown`, the LOUD state, rather than `organic`.",
+      "what": "Attribution is a three-state fact: a campaign attribution must name its send, an organic one must name nothing, and — the one that matters — an insert omitting the column entirely (which the live workflow does) inherits `unknown`, the LOUD state, rather than `organic`.",
       "how": "Paste db/migrations/0023_messages_attribution.sql, then its verify block inside begin/rollback. Expect existing rows all 'unknown'; campaign-without-send refused; organic-with-run refused; and an insert omitting attribution_state to SUCCEED returning 'unknown'.",
       "watches": [
         "db/migrations/0023_messages_attribution.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0023_messages_attribution.sql": "d8a475c31a2d7d282123be1b8194105737fd38e1460a1a89cfd42ca72016a050"
+      },
+      "last_proved": "2026-09-18",
+      "proved_by": "Manuel Vale"
+    },
+    {
+      "id": "0024-declaration-author",
+      "what": "A `declared` event without declared_by is refused; one with it is accepted; and every other kind is untouched — an objection has no declarer, and requiring one would make a contact's own opt-out unrecordable.",
+      "how": "Paste db/migrations/0024_declaration_author.sql, then its verify block inside begin/rollback. Expect: declaration without author REFUSED, with author accepted, and an objection with no declared_by accepted.",
+      "watches": [
+        "db/migrations/0024_declaration_author.sql"
+      ],
+      "hashes": {
+        "db/migrations/0024_declaration_author.sql": "cfbe8fdc3ff2b6bdc08b83407fdec697c8181133a8eebc24f61de01c4ea72299"
+      },
+      "last_proved": "2026-09-18",
+      "proved_by": "Manuel Vale"
     }
   ]
 }
