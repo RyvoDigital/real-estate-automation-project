@@ -3055,6 +3055,23 @@ sentence. A screen is judged on its worst sentence long before it is judged on
 its best behaviour, and `${n} contactos` is the cheapest possible way to look
 careless while being correct.
 
+### And then it happened twice more, in the same hour
+
+The group label was fixed and the lesson above was written — and predicting the
+render before handing over the URL found `UI.saved(1)` → *"Guardado: 1
+contactos."* and `UI.claimCount(1, 1)` → *"1 de 1 contactos deste grupo."*
+
+Writing down that a rule is general and then fixing only the instance you
+happened to see is the most common way a lesson fails to take. The tell is the
+shape of the guard: the first test asserted one expected label, so it could only
+ever catch the one site. The replacement **derives its cases from the copy
+object** — every function-valued key, called with 1 for each argument, checked
+against `\b1 \w+s\b` — which covers the two that were missed and every string
+added after today, without anyone maintaining a list.
+
+**A guard over a hand-kept list of cases passes by being forgotten.** When the
+rule is general, enumerate from the data structure, not from memory.
+
 The general form: **when a UI string interpolates a count, the n=0 and n=1
 renders are requirements, not polish** — and if the feature is being rolled out
 to a small group first, they are the *only* renders that will be seen for days.

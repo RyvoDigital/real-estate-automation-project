@@ -130,6 +130,17 @@ export const CLAIM_QUESTION = {
   },
 } as const
 
+/**
+ * "1 contacto", not "1 contactos".
+ *
+ * Exported and used by EVERY count-bearing string: the first live run of
+ * anything cautious is a handful of rows, so n=1 is not an edge case, it is the
+ * only render anyone sees for the first few days (lesson 13b).
+ */
+export function plural(n: number, one: string, many: string): string {
+  return `${n} ${n === 1 ? one : many}`
+}
+
 export const UI = {
   title: 'De onde vieram estes contactos',
   intro:
@@ -152,10 +163,11 @@ export const UI = {
      ask about origin; the claim question asks about evidence. Two questions. */
   segmentLegend: 'De onde é que vieram os contactos deste grupo?',
   confirm: 'Guardar',
-  saved: (n: number) => `Guardado: ${n} contactos.`,
+  saved: (n: number) => `Guardado: ${plural(n, 'contacto', 'contactos')}.`,
   noContacts: 'Não há contactos importados para este cliente.',
   fromFile: (raw: string) => `no ficheiro: «${raw}»`,
-  claimCount: (withClaim: number, total: number) => `${withClaim} de ${total} contactos deste grupo.`,
+  claimCount: (withClaim: number, total: number) =>
+    `${withClaim} de ${plural(total, 'contacto', 'contactos')} deste grupo.`,
   declaredInGroup: (label: string) => `em grupo (${label})`,
   declaredOneByOne: 'contacto a contacto',
   wasUnsure: 'não tinha a certeza',

@@ -1,4 +1,4 @@
-import { STATE_LABEL } from '@/lib/segmentation/copy'
+import { plural, STATE_LABEL } from '@/lib/segmentation/copy'
 
 /**
  * Grouping contacts the way an agency remembers them.
@@ -48,11 +48,6 @@ export type Group = {
    * (§11d).
    */
   proposal: { segment: 'A' | 'B' | 'C' | 'D'; why: string } | null
-}
-
-/** "1 contacto", not "1 contactos". Degenerate cases are read aloud too. */
-function plural(n: number, one: string, many: string): string {
-  return `${n} ${n === 1 ? one : many}`
 }
 
 const MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']

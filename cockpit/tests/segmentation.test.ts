@@ -425,3 +425,32 @@ test('and the screen asks about a claim, not about its text', () => {
     'filtering on the wording drops the claims whose wording we never kept')
   assert.match(page, /filter\(\(c\) => c\.hasClaim\)/)
 })
+
+// --- n=1, everywhere, not just where it was noticed ---------------------------
+
+test('NOTHING SAYS "1 contactos"', () => {
+  // The group label was fixed first and UI.saved/UI.claimCount were missed,
+  // which is the point: the rule is general, so the guard is too.
+  //
+  // The list is DERIVED from UI rather than written out, so a new copy function
+  // is covered the moment it exists — a hand-kept list of cases is a guard that
+  // passes by being forgotten. Every function is called with 1 for each of its
+  // arguments; for the non-count ones ('no ficheiro: «1»') that is harmless.
+  const rendered: Array<[string, string]> = Object.entries(UI)
+    .filter(([, v]) => typeof v === 'function')
+    .map(([k, v]) => {
+      const f = v as (...a: unknown[]) => string
+      return [`UI.${k}`, f(...Array.from({ length: f.length }, () => 1))] as [string, string]
+    })
+
+  const groups = [
+    ...proposeGroups([c({ batchId: 'b1', batchFilename: 'x.csv', batchCommittedAt: '2026-09-08T10:00:00Z' })]),
+    ...proposeGroups([c({ id: 'z', batchId: null, lastContactAt: null, area: null })]),
+    ...proposeGroups([c({ id: 'y', batchId: null, lastContactAt: '2023-04-15T00:00:00Z', area: 'Cascais' })]),
+  ].map((g) => [`group.${g.kind}`, g.label] as [string, string])
+
+  assert.ok(rendered.length >= 4, 'too few copy functions rendered for the guard to mean anything')
+  const offences = [...rendered, ...groups].filter(([, s]) => /\b1 \w+s\b/.test(s))
+  assert.deepEqual(offences, [],
+    `plural after a count of one:\n${offences.map(([w, s]) => `${w}: ${s}`).join('\n')}`)
+})
