@@ -352,4 +352,81 @@ export const FORBIDDEN_ON_SCREEN = [
   'energy_class', 'energy_exemption', 'ami_licence', 'declared_by',
   'publication_clearances', 'cleared', 'not_on_the_market', 'no_energy_class',
   'agent_dismissed', 'claimed_unevidenced', 'null', 'undefined', 'NaN',
+  // Automation 05. `unaccounted` is the one that would do real damage on a
+  // screen: it is our word for a finding, and an agency reading it would hear
+  // an accusation about their bookkeeping rather than a gap in ours.
+  'unaccounted', 'disposition', 'party_not_named', 'gate_refused',
+  'window_expired', 'reported_after_window', 'send_failed', 'agency_disabled',
+  'no_review_destination', 'close_id', 'review_link',
 ]
+
+export const REVIEW = {
+  title: 'Pedidos de opinião',
+  intro:
+    'Concluída uma venda, pedimos a opinião à pessoa que a agência indicar. ' +
+    'A todas, sem escolher.',
+  pick: 'Escolha a agência.',
+
+  // --- the three counts, side by side -------------------------------------
+  closesLabel: 'Vendas comunicadas',
+  askedLabel: 'Pedidos enviados',
+  pendingLabel: 'Ainda dentro do prazo',
+
+  /*
+   * 🔴 THE SENTENCE THE WHOLE SCREEN EXISTS FOR.
+   *
+   * The asked list is always shorter than the sales list, because the gate
+   * refuses people for reasons that have nothing to do with what they would
+   * write. Somebody will read that difference as a bug, and closing it is the
+   * offence. A discrepancy displayed and explained does not get investigated.
+   */
+  gapHeading: 'Porque é que os dois números não são iguais',
+  gapWhy:
+    'A lista de pedidos é sempre mais curta do que a lista de vendas, e isso ' +
+    'está certo. Cada exclusão em baixo tem uma razão que nada tem que ver com a ' +
+    'opinião da pessoa sobre a agência: é consentimento, jurisdição ou uma ' +
+    'oposição já manifestada — regras que se aplicam antes de alguém poder saber ' +
+    'o que essa pessoa escreveria.',
+  gapDoNotClose:
+    'Esta diferença não é um erro e não deve ser fechada. Pedir a todos é ' +
+    'permitido; escolher a quem pedir não é, e é por isso que não existe aqui ' +
+    'nenhum botão para saltar uma venda.',
+  gapLine: (count: number, means: string) => `${count} — ${means}`,
+
+  // --- the finding ---------------------------------------------------------
+  findingNone: 'Todas as vendas comunicadas estão explicadas.',
+  findingOne: '1 venda sem pedido e sem explicação.',
+  findingMany: (n: number) => `${n} vendas sem pedido e sem explicação.`,
+  findingWhy:
+    'Estas pessoas concluíram uma venda, podiam ter sido contactadas, e o prazo ' +
+    'passou sem pedido e sem qualquer recusa registada. Nada impediu o envio — ' +
+    'nada o tentou. É o único resultado desta página que exige uma acção nossa.',
+  findingRow: (ref: string, when: string) => `${ref} — venda concluída em ${when}`,
+  findingNoReference: 'Sem referência de imóvel',
+
+  // --- 🔴 what it cannot see, on the screen and not in a footnote ----------
+  limitsHeading: 'O que esta página não consegue ver',
+  limits: [
+    'Vê as vendas que a agência nos comunicou. Não vê uma venda que não nos ' +
+      'tenham comunicado.',
+    'Não vê se alguém chegou a escrever uma opinião. Não consultamos a ' +
+      'plataforma, e isso é deliberado.',
+    'Não vê se a agência pediu a alguém por sua conta, pessoalmente ou por outra via.',
+    'Sabe que uma mensagem chegou ao operador telefónico. Não sabe se foi lida.',
+    'Ou seja: mostra que não ficou ninguém por perguntar de entre quem nos foi ' +
+      'comunicado. Não mostra — nem pode — que a agência nos comunicou tudo.',
+  ],
+
+  // --- states that are not findings ---------------------------------------
+  notChecked:
+    'Não foi possível comparar os envios, por isso esta página não está ' +
+    'completa. Uma lista vazia aqui não quer dizer que esteja tudo bem — quer ' +
+    'dizer que não foi possível ver.',
+  noLink:
+    'Esta agência não tem ligação de avaliação registada, por isso não há para ' +
+    'onde enviar ninguém e nada é pedido.',
+  switchedOff: 'Esta agência tem os pedidos de opinião desligados.',
+  nothingYet:
+    'Ainda não há vendas comunicadas. Isto muda assim que a agência começar a ' +
+    'dizer-nos quando fecha uma.',
+} as const

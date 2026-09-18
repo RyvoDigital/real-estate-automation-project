@@ -98,6 +98,37 @@ test('every out-of-suite proof covers files that have not moved since it was run
   )
 })
 
+test('🔴 a proof nobody has run is an alarm, whatever its hashes say', () => {
+  /*
+   * ⚠️ FOUND BY GETTING IT WRONG, 19 September 2026.
+   *
+   * Registering `0033-closes` I pre-filled its hash from the file on disk. The
+   * staleness check above compares recorded to current, they matched, and the
+   * suite went green over a proof with `last_proved: null` — an obligation
+   * recorded, never run, and never mentioned again. Which is the exact silence
+   * the proof book exists to break.
+   *
+   * The hash answers "has the file moved since it was proved". It cannot answer
+   * "was it ever proved", and reading one as the other is how a registration
+   * becomes a receipt. So that question gets asked separately.
+   *
+   * A proof is exempt only by being BLOCKED — recorded, with a reason and a
+   * trigger — which is a different claim from silence.
+   */
+  const unrun = book.proofs
+    .filter((p) => !p.blocked && !p.discharged && !p.last_proved)
+    .map((p) => `${p.id}\n    ${p.how}`)
+
+  assert.deepEqual(
+    unrun, [],
+    'These proofs are recorded and have never been run:\n\n' +
+      unrun.map((s) => `  • ${s}`).join('\n') +
+      '\n\n  Run it, then: npm run proof:bless <id>\n' +
+      '  If it cannot be run yet, mark it `blocked` with a reason and a trigger.\n' +
+      '  Pre-filling a hash is not a proof — it is a claim with the evidence removed.\n',
+  )
+})
+
 test('a blocked proof becomes an alarm the moment the thing it needs exists', () => {
   const arrived: string[] = []
   for (const p of book.proofs) {

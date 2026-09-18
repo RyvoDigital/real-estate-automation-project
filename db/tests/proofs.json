@@ -307,6 +307,28 @@
       },
       "last_proved": "2026-09-18",
       "proved_by": "Manuel Vale"
+    },
+    {
+      "id": "0033-closes",
+      "what": "The trigger for Automation 05, and the three constraints that carry its design. `close_party_is_whole` — the four party columns are all null or all present, because a party recorded without a declarer is a lawful basis nobody declared, arriving through a side door the segmentation screen exists to close. A close with NO party inserts fine, which is the normal first state and not a degraded one. `close_is_not_in_the_future`. The widened `consent_events.source`, which must accept `close_report` and still refuse anything else — a constraint dropped and re-added is the one place a widening can silently become an opening. And the privileges, which come from 0002's default privileges and are confirmed rather than trusted.",
+      "how": "psql: has_table_privilege('service_role','public.closes','INSERT') is t and has_table_privilege('anon','public.closes','SELECT') is f. Then each constraint by TRYING TO BREAK IT, per the migration's own verification block: a party with no declarer expects 23514 on close_party_is_whole; a declarer with no party expects the same; a close with neither inserts cleanly; closed_on = current_date + 1 expects 23514 on close_is_not_in_the_future; party_role = 'landlord' expects 23514; the same (client, listing, day) twice expects a duplicate key on closes_client_listing_day, while two closes with listing_id null both insert because NULLs are distinct; consent_events accepts source = 'close_report' and refuses 'guessed'. Delete the fixtures and confirm zero rows remain.",
+      "watches": [
+        "db/migrations/0033_closes.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
+    },
+    {
+      "id": "0034-review-destination",
+      "what": "The host allow-list on `clients.review_link`, which is a POLICY BOUNDARY and not a format check: §8.B is Google's policy, and a link to another platform would run Automation 05 under rules nobody has read. The anchor matters as much as the list — `^https://` must refuse a lookalike host that merely contains a permitted one, and must refuse http. The path is deliberately unconstrained, so the proof must also show a REAL link in two different Google shapes being accepted, or the constraint is tight in a way that rejects what an agency pastes from their own dashboard. And the absence that carries §6.2: no per-sale skip column on `closes`.",
+      "how": "psql or the Supabase editor, on a test client, restoring review_link afterwards: 'https://g.page/r/CXyzAbC123/review' and 'https://search.google.com/local/writereview?placeid=ChIJxyz' both update cleanly; 'https://facebook.com/x/reviews' expects 23514 on clients_review_link_is_google; 'https://evil.com/g.page/r/x/review' expects the same refusal, which is what proves the anchor; 'http://g.page/r/x/review' expects the same; null updates cleanly and means the automation does not run. Then: select review_requests_enabled from clients — all true. Then the absence: select column_name from information_schema.columns where table_name = 'closes' and column_name ~ 'skip|exclud|disabl|opt_out' — expect zero rows.",
+      "watches": [
+        "db/migrations/0034_review_destination.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
     }
   ]
 }

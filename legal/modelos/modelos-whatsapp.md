@@ -288,3 +288,89 @@ A Meta indica a categoria da recusa mas raramente a linha exacta. Causas habitua
 **Versão 1 · 17 de Setembro de 2026**
 
 *Rever quando a Meta alterar as regras de modelos, quando a questão do Segmento C for resolvida, ou quando uma recusa revelar um critério não previsto neste documento.*
+
+---
+
+# 7. Automação 05 — Pedido de opinião após a venda
+
+> ⚠️ **Não submeter.** Este modelo aguarda resposta às duas questões da
+> `nota-questoes-automacao-05.md`. A segunda — se a excepção de cliente
+> existente cobre um pedido de avaliação — determina a quem ele pode ser
+> enviado, e um modelo aprovado é texto imutável.
+
+## 7.1 O que torna este modelo diferente de todos os anteriores
+
+Os modelos das secções 3 a 6 são limitados pela Meta e pela Lei n.º 41/2004.
+**Este é limitado por uma terceira ordem de regras: a política da Google**, que
+o §8.B do Enquadramento descreve e cuja fiscalização é automatizada.
+
+A consequência prática é que **o que o modelo não diz importa mais do que o que
+diz**, e está registado em 7.3 para que quem escrever o próximo não reintroduza
+nada por parecer simpático.
+
+## 7.2 `avaliacao_pos_venda_pt`
+
+**Categoria** · MARKETING
+
+> Não submeter como UTILITY. A regra de 1.3 aplica-se sem alteração: a
+> fiscalização de categoria da Meta recai sobre a conta do cliente, e a
+> tentação é maior aqui porque um pedido de opinião *parece* utilitário.
+
+**Corpo**
+
+> Olá {{1}}, fala a {{2}} da {{3}}. Agradecemos a confiança ao longo deste processo.
+>
+> Se quiser deixar a sua opinião sobre a experiência, pode fazê-lo aqui: [ligação]. Fica inteiramente ao seu critério, e qualquer opinião é útil.
+
+**Rodapé** · `Para não receber mais mensagens, toque em Não contactar mais.`
+
+**Botões** · `Não contactar mais`
+
+**Variáveis** · `{{1}}` nome próprio · `{{2}}` nome do agente · `{{3}}` nome da agência
+
+## 7.3 O que este modelo deliberadamente não faz
+
+| Não faz | Porquê |
+|---|---|
+| **Não pergunta como correu** | É triagem por sentimento. Perguntar primeiro e encaminhar só os satisfeitos é exactamente o *review gating* que o §8.B.1 identifica como infracção |
+| **Não oferece nada** | Incentivos são proibidos mesmo quando associados a opiniões honestas e não apenas positivas |
+| **Não pede menção a ninguém** | Proibição introduzida em Abril de 2026. Note-se a distinção: o modelo pode dizer quem escreve — «fala a {{2}}» — o que não pode é pedir que *a pessoa* mencione um colaborador |
+| **Não sugere o que escrever** | Conteúdo guionado. «Se ficou satisfeito, diga-o» transforma o pedido num guião |
+| **Não insiste** | Um único pedido, sem repetição. §4.2 do desenho |
+
+**E uma frase que faz trabalho a sério:** *«qualquer opinião é útil»*. Diz na
+própria mensagem que não se pedem apenas elogios. É a postura do §8.B enunciada
+à pessoa e não apenas ao regulador, e é a frase a defender se alguém questionar
+a redacção.
+
+## 7.4 A ligação vai no corpo e não numa variável
+
+Cada agência tem o seu próprio modelo — 3.3 — e a ligação nunca muda para essa
+agência. Fixá-la no corpo evita duas coisas: uma variável que contém um URL, que
+convida a recusa na submissão, e uma variável a mais na relação entre texto
+fixo e variável que a Meta avalia.
+
+## 7.5 Um botão e não dois
+
+Os modelos anteriores levam `Sim, tenho interesse` e `Não contactar mais`. Aqui
+o primeiro não tem significado: não há proposta a aceitar, e um botão de
+interesse ao lado de um pedido de opinião sugere que se espera uma resposta
+determinada — que é precisamente o que 7.3 evita.
+
+Fica o botão de oposição, pela razão de 1.5: quem sai facilmente bloqueia menos.
+
+> ⚠️ **Por verificar antes da submissão.** Um botão de acção com URL seria
+> provavelmente melhor do que a ligação no corpo, mas as regras da Meta quanto à
+> combinação de botões de resposta rápida com botões de acção mudaram e **não as
+> confirmei**: o servidor de documentação (context7) não está ligado nesta
+> sessão e a resposta não deve ser reconstruída de memória. A redacção acima não
+> depende dessa confirmação e funciona em qualquer dos casos.
+
+## 7.6 Só português, por enquanto
+
+Espanha e outros mercados não têm modelo aqui. A política da Google é a mesma em
+toda a parte, mas o fundamento de licitude do envio não é — e o §8.A.3 já
+estabelece que cada jurisdição é analisada antes da entrada em serviço.
+Traduzir este modelo antes dessa análise seria produzir texto pronto a submeter
+para um mercado onde ainda não sabemos se pode ser enviado.
+
