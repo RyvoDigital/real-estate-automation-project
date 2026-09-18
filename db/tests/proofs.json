@@ -255,6 +255,17 @@
       },
       "last_proved": "2026-09-18",
       "proved_by": "Manuel Vale"
+    },
+    {
+      "id": "0029-advertising-policy",
+      "what": "The advertising jurisdiction table: keyed (country, region) with a null region meaning the national row, requirements typed rather than columns, and the PT row RESEARCHED AND NOT CONFIRMED so it permits nothing. Four constraints, each proven by trying to break it — a lower-case country, a region NAME instead of a code, a region row claiming regions_exhaustive, and a confirmation with no author — plus the national row refusing to be duplicated.",
+      "how": "Apply db/migrations/0029_advertising_policy.sql, then run its VERIFY block inside begin/rollback. Expect: PT present with confirmed_at NULL and 2 requirements; grants t for service_role and f for anon; each of the four constraint violations by NAME; and the duplicate national row refused. Roll back everything except the PT row.",
+      "watches": [
+        "db/migrations/0029_advertising_policy.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
     }
   ]
 }

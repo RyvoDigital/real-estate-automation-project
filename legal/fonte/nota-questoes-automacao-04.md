@@ -1,4 +1,4 @@
-# Duas questões
+# Três questões
 
 **Publicidade de imóveis — Automações 03 e 04**
 
@@ -11,7 +11,7 @@
 
 ---
 
-**Estas duas questões são independentes das quatro anteriores** e podem ser respondidas separadamente. Tal como as outras, não dizem respeito à redacção de um contrato: dizem respeito ao que pode ou não ser construído — e, no caso da primeira, ao que deve ou não ser submetido à Meta para aprovação.
+**Estas três questões são independentes das quatro anteriores** e podem ser respondidas separadamente. Tal como as outras, não dizem respeito à redacção de um contrato: dizem respeito ao que pode ou não ser construído — e, no caso da primeira, ao que deve ou não ser submetido à Meta para aprovação.
 
 **A primeira é urgente por uma razão prática e não jurídica:** os modelos de mensagem ainda não foram submetidos à Meta. Um modelo aprovado é texto imutável — alterá-lo obriga a nova submissão e nova aprovação. Corrigir agora custa uma tarde; corrigir depois custa o tempo de aprovação e, se já houver mensagens enviadas ao abrigo do modelo antigo, custa mais do que isso.
 
@@ -75,6 +75,46 @@ Agradeço confirmação de que esta é a abordagem adequada, ou indicação de o
 
 ---
 
+# 3. 🔴 Espanha: a etiqueta energética cabe num anúncio de texto?
+
+**Esta pergunta não é sobre configuração. Pode mudar o que a Automação 04 é em
+Espanha.**
+
+## O que apurámos
+
+Em Espanha, tal como em Portugal, todo o anúncio de venda ou arrendamento tem de
+indicar a classificação energética — RD 390/2021, com a redacção do RD 659/2025,
+validade de dez anos. Há duas diferenças de forma que nos parecem materiais:
+
+1. **São duas classificações, não uma:** emissões e consumo, cada uma com letra
+   **e cor** — a *etiqueta*.
+2. **O certificado é registado junto do órgão competente da comunidade autónoma**
+   e, até estar registado, não tem validade oficial. São dezassete registos, sem
+   equivalente nacional da ADENE.
+
+## A dúvida
+
+**Um anúncio em texto que indique as duas letras cumpre a obrigação, ou tem de
+ser exibida a etiqueta na sua forma gráfica, com as cores?**
+
+## Porque a resposta muda o desenho e não apenas a configuração
+
+O que a automação prepara é **texto**, para que uma pessoa da agência publique
+onde publica. Não produzimos imagens e não temos a etiqueta de nenhum imóvel.
+
+- **Se as letras bastarem**, Espanha é uma linha de configuração: os mesmos
+  mecanismos, com dois valores em vez de um.
+- **Se a etiqueta tiver de ser exibida**, a peça preparada para Espanha **não é
+  texto**. Ou a agência nos fornece a imagem da etiqueta e a peça passa a levá-la,
+  ou a automação não consegue produzir um anúncio conforme para o mercado
+  espanhol. Isso é uma decisão sobre o que o produto faz em Espanha, e prefiro
+  conhecê-la antes de construir a estrutura do que depois.
+
+**Não é urgente como a primeira questão** — nada em Espanha entra em serviço sem
+a análise que o §8.A.3 já exige. É apenas muito mais barata agora.
+
+---
+
 # Nota final
 
-Nenhuma destas questões impede o trabalho de continuar: a Automação 04 pode ser construída inteiramente à volta da recusa, e a recusa não depende da resposta. **O que depende é o texto dos modelos da Automação 03, que ainda não foram submetidos** — e é por isso que a primeira questão vem primeiro.
+Nenhuma destas questões impede o trabalho de continuar: a Automação 04 pode ser construída inteiramente à volta da recusa, e a recusa não depende da resposta. **O que depende é o texto dos modelos da Automação 03, que ainda não foram submetidos** — e é por isso que a primeira questão vem primeiro. A terceira não bloqueia nada hoje; bloqueia Espanha, e é bastante mais barata antes de a estrutura estar construída do que depois.

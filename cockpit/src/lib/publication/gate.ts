@@ -20,10 +20,16 @@
  *
  * Since 2013 every sale or rental advertisement in Portugal must state the
  * energy rating; the AMI licence number must appear in all of an agency's
- * publicity (Lei n.º 15/2013, IMPIC). Fines are €250–€3,741 and fall on
- * whoever puts the property on the market — which can be the mediator, so on
- * our client. Same shape as Meta category misuse: our defect, their penalty,
- * their regulator.
+ * publicity (Lei n.º 15/2013, IMPIC). Fines fall on whoever puts the property
+ * on the market — which can be the mediator, so on our client. Same shape as
+ * Meta category misuse: our defect, their penalty, their regulator.
+ *
+ * ⚠️ €2,500 TO €44,890, NOT €250 TO €3,741. The lower range is the one for
+ * INDIVIDUALS and it is what §8.A said until 18 September 2026. Our clients are
+ * companies. The refusal text below quotes the figure specifically so that an
+ * operator's conversation with an agency actually happens — and understating
+ * the consequence twelvefold is the exact opposite of what that sentence is
+ * for.
  *
  * THIS FILE HOLDS NO IO AND NO `server-only`, DELIBERATELY — the same call
  * `gate.ts` makes and for the same reason. A gate whose decision cannot be
@@ -53,7 +59,7 @@ export const REFUSAL_MEANS: Record<PublicationRefusal, string> = {
   no_energy_class:
     'Every sale or rental advertisement in Portugal has had to state the energy rating since ' +
     '2013. There is none recorded for this property and no exemption has been declared, so ' +
-    'publishing it would expose the agency to a fine of €250 to €3,741.',
+    'publishing it would expose the agency to a fine of €2,500 to €44,890.',
   certificate_expired:
     'The energy certificate has expired. An expired certificate counts as an absent one, so ' +
     'this property cannot be advertised until a current certificate is recorded — even though ' +

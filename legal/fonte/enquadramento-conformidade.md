@@ -244,7 +244,11 @@ PECR. Excepção de cliente existente disponível para produtos similares, com o
 
 ## 8.A.1 Obrigações em Portugal
 
-**Classe energética.** Desde 2013, qualquer anúncio de venda ou arrendamento deve indicar a classificação energética do imóvel. O certificado é emitido por técnicos autorizados pela ADENE. **As coimas para particulares situam-se entre 250 e 3.741 euros.** A obrigação recai sobre quem coloca o imóvel no mercado, seja o proprietário ou o mediador.
+**Classe energética.** Desde 2013, qualquer anúncio de venda ou arrendamento deve indicar a classificação energética do imóvel. O certificado é emitido por técnicos autorizados pela ADENE. A obrigação recai sobre quem coloca o imóvel no mercado, seja o proprietário ou o mediador.
+
+> ⚠️ **Corrigido em 18 de Setembro de 2026.** Esta secção indicava «250 a 3.741 euros». **Esse é o escalão das pessoas singulares.** Para pessoas colectivas as coimas situam-se entre **2.500 e 44.890 euros** — e os clientes são empresas. A correcção não é de redacção: o texto da recusa no portão de publicação cita o valor precisamente para que a conversa com a agência aconteça, e subestimá-lo doze vezes é o contrário do que essa frase serve para fazer.
+
+**Licença AMI — é um estado, não um facto.** O IMPIC suspende e cancela licenças, e publica a lista. Uma licença presente no nosso registo não é, por si, uma licença válida hoje. Tem a mesma forma de um certificado que caduca: **uma permissão que pode cessar sem que ninguém actue tem de ser reperguntada, e não concedida.** A reverificação periódica da Automação 04 abrange-a.
 
 **Número de licença AMI.** A licença de mediação imobiliária, emitida pelo IMPIC ao abrigo da Lei n.º 15/2013, deve ser divulgada em toda a documentação e em todas as acções de publicidade e marketing da empresa.
 

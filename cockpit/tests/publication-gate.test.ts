@@ -68,9 +68,13 @@ test('🔴 no energy rating, no advertisement', () => {
     assert.equal(v.cleared, false)
     if (v.cleared) continue
     assert.equal(v.reason, 'no_energy_class')
-    // The operator has to go back to an agency and ask for something. "€250 to
-    // €3,741" is what makes that conversation happen.
-    assert.match(v.detail, /250/)
+    // The operator has to go back to an agency and ask for something. The figure
+    // is what makes that conversation happen — and it must be the COMPANY range.
+    // §8.A said €250–€3,741 until 18 Sep 2026; that is the range for
+    // individuals, and our clients are companies. Understating the consequence
+    // twelvefold is the opposite of what this sentence is for.
+    assert.match(v.detail, /€2,500 to €44,890/)
+    assert.doesNotMatch(v.detail, /3,741/, 'the individual range must never be quoted to a company')
   }
 })
 
