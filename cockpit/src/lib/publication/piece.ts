@@ -1,4 +1,5 @@
 import type { PublicationVerdict } from './gate'
+import { mentionsFor, type Mention } from './mentions'
 
 /**
  * The prepared piece: what a person at the agency publishes.
@@ -49,30 +50,10 @@ export type Piece = {
   /** Every figure that was interpolated, as it appears. */
   figures: string[]
   /** The mandatory statements, rendered. Present in `text` by construction. */
-  mentions: { energy: string; ami: string }
+  mentions: Mention[]
 }
 
 const euro = (n: number) => `€${n.toLocaleString('pt-PT')}`
-
-/**
- * The mandatory statements, rendered from the clearance and nothing else.
- *
- * ⚖️ The EXEMPTION wording is a lawyer question (question 2). Saying "isento de
- * certificação" in an advertisement is us repeating the agency's declaration,
- * which is the only thing we may do with it — but whether that is the right
- * form of words in a published advertisement is not ours to decide, and it is
- * flagged rather than assumed.
- */
-export function mandatoryMentions(
-  evidence: Extract<PublicationVerdict, { cleared: true }>['evidence'],
-): { energy: string; ami: string } {
-  return {
-    energy: evidence.exemption
-      ? 'Imóvel isento de certificação energética.'
-      : `Classe energética: ${evidence.energyClass}.`,
-    ami: `AMI ${evidence.amiLicence.replace(/^AMI\s*/i, '')}`,
-  }
-}
 
 /**
  * Assemble the piece.
@@ -85,7 +66,9 @@ export function assemblePiece(
   facts: PieceFacts,
   evidence: Extract<PublicationVerdict, { cleared: true }>['evidence'],
 ): Piece {
-  const mentions = mandatoryMentions(evidence)
+  // Whatever this jurisdiction requires, said in its own words. Throws rather
+  // than rendering nothing for a requirement we cannot say — see mentions.ts.
+  const mentions = mentionsFor(evidence.satisfied)
 
   // Every slot is a value or nothing. A slot that is absent leaves no gap and
   // no placeholder — a piece saying "T null" is worse than one that does not
@@ -113,8 +96,7 @@ export function assemblePiece(
     // The mandatory statements are PART OF THE PIECE, not a footer somebody
     // trims. The invariant below reads the assembled text, so a piece that
     // loses them is not a piece with a formatting problem — it is not a piece.
-    mentions.energy,
-    mentions.ami,
+    ...mentions.map((m) => m.text),
   ]
     .filter((l) => l !== null)
     .join('\n')
@@ -144,15 +126,13 @@ export function missingMandatoryMentions(
   text: string,
   evidence: Extract<PublicationVerdict, { cleared: true }>['evidence'],
 ): string[] {
-  const want = mandatoryMentions(evidence)
-  const missing: string[] = []
   // Compared on the normalised text so spacing and case cannot hide a
   // difference — and on the WHOLE phrase, because a bare "B" appears in any
   // Portuguese sentence and would make this pass on nothing.
   const flat = text.replace(/\s+/g, ' ').toLowerCase()
-  if (!flat.includes(want.energy.replace(/\s+/g, ' ').toLowerCase())) missing.push('energy')
-  if (!flat.includes(want.ami.replace(/\s+/g, ' ').toLowerCase())) missing.push('ami')
-  return missing
+  return mentionsFor(evidence.satisfied)
+    .filter((m) => !flat.includes(m.text.replace(/\s+/g, ' ').toLowerCase()))
+    .map((m) => m.requirementId)
 }
 
 // ---------------------------------------------------------------------------

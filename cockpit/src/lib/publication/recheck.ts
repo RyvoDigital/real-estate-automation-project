@@ -41,10 +41,22 @@ export type ClearanceRow = {
   clearanceId: string
   listingId: string
   reference: string | null
-  energyClass: string | null
-  energyCertificateExpiresAt: string | null
-  exemption: { declaredBy: string; basis: string; at: string } | null
-  amiLicence: string
+  /**
+   * What the clearance was granted on, per requirement — the same snapshot the
+   * gate returns.
+   *
+   * Was `energyClass` + `amiLicence` + one expiry date, which was Portugal's
+   * answer standing in for the question. A Spanish property holds two ratings
+   * and a registration, each with its own validity, and the SOONEST of them is
+   * what decides whether the clearance still holds.
+   */
+  satisfied: {
+    requirementId: string
+    validUntil: string | null
+    exemption: { declared_by: string; basis: string; at: string } | null
+  }[]
+  country: string
+  region: string | null
   decidedAt: string
   /** When the agency was last told about this one, if ever. */
   noticeSentAt: string | null
@@ -108,37 +120,47 @@ export function recheckClearances(
     const holds = clearanceStillHolds(
       {
         listingId: r.listingId,
-        energyClass: r.energyClass,
-        energyCertificateExpiresAt: r.energyCertificateExpiresAt,
-        exemption: r.exemption
-          ? { declaredBy: r.exemption.declaredBy, basis: r.exemption.basis, at: r.exemption.at }
-          : null,
-        amiLicence: r.amiLicence,
+        country: r.country,
+        region: r.region,
+        satisfied: r.satisfied.map((x) => ({
+          requirementId: x.requirementId, kind: 'property_rating' as const,
+          values: {}, number: null, validUntil: x.validUntil, exemption: x.exemption,
+        })),
         decidedAt: r.decidedAt,
       },
       now,
     )
 
+    /*
+     * THE SOONEST EXPIRY IS THE ONE THAT MATTERS. A property with two ratings
+     * is advertisable only while BOTH hold, so the date to warn about is the
+     * earliest — warning on the latest would tell an agency they have eight
+     * months when they have three weeks.
+     */
+    const dated = r.satisfied
+      .filter((x) => !x.exemption && x.validUntil)
+      .map((x) => x.validUntil as string)
+      .sort()
+    const soonest = dated[0] ?? null
+
     if (!holds) {
-      const t = r.energyCertificateExpiresAt
-        ? new Date(r.energyCertificateExpiresAt).getTime()
-        : NaN
+      const t = soonest ? new Date(soonest).getTime() : NaN
       lapsed.push({
         clearanceId: r.clearanceId,
         listingId: r.listingId,
         reference: r.reference,
-        expiredOn: r.energyCertificateExpiresAt,
+        expiredOn: soonest,
         daysAgo: Number.isFinite(t) ? Math.max(0, Math.floor((now.getTime() - t) / DAY)) : 0,
         noticeSentAt: r.noticeSentAt,
       })
       continue
     }
 
-    // An exempt property has no certificate, so it has nothing to expire and
-    // nothing to warn about.
-    if (r.exemption || !r.energyCertificateExpiresAt) { stillGood += 1; continue }
+    // Nothing dated to expire — every requirement is satisfied by a declared
+    // exemption, or by something with no validity window at all.
+    if (!soonest) { stillGood += 1; continue }
 
-    const t = new Date(r.energyCertificateExpiresAt).getTime()
+    const t = new Date(soonest).getTime()
     /*
      * END OF THE EXPIRY DAY, matching the gate exactly.
      *
@@ -158,7 +180,7 @@ export function recheckClearances(
         clearanceId: r.clearanceId,
         listingId: r.listingId,
         reference: r.reference,
-        expiresOn: r.energyCertificateExpiresAt,
+        expiresOn: soonest,
         daysLeft: Math.max(0, daysLeft),
       })
       continue

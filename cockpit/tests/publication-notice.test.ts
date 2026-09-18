@@ -20,27 +20,30 @@ const row = (over: Partial<ClearanceRow> = {}): ClearanceRow => ({
   clearanceId: Math.random().toString(36).slice(2),
   listingId: 'l1',
   reference: 'A-1042',
-  energyClass: 'B',
-  energyCertificateExpiresAt: day(400),
-  exemption: null,
-  amiLicence: 'AMI 12345',
+  satisfied: [{ requirementId: 'pt_energy_class', validUntil: day(400), exemption: null }],
+  country: 'PT',
+  region: null,
   decidedAt: '2026-09-18T00:00:00Z',
   noticeSentAt: null,
   ...over,
 })
 
+/** One dated requirement, without restating the rest of the row. */
+const expiring = (until: string | null) =>
+  ({ satisfied: [{ requirementId: 'pt_energy_class', validUntil: until, exemption: null }] })
+
 // --- the re-check -----------------------------------------------------------
 
 test('a clearance lapses without anybody acting', () => {
   // Nothing about the property changed. The clock moved.
-  const r = recheckClearances([row({ energyCertificateExpiresAt: day(-40) })], { now: NOW })
+  const r = recheckClearances([row(expiring(day(-40)))], { now: NOW })
   assert.equal(r.lapsed.length, 1)
   assert.equal(r.lapsed[0].daysAgo, 40)
   assert.equal(r.stillGood, 0)
 })
 
 test('a certificate expiring soon is warned about, not yet lapsed', () => {
-  const r = recheckClearances([row({ energyCertificateExpiresAt: day(10) })], { now: NOW })
+  const r = recheckClearances([row(expiring(day(10)))], { now: NOW })
   assert.deepEqual(r.lapsed, [])
   assert.equal(r.expiringSoon.length, 1)
   assert.equal(r.expiringSoon[0].daysLeft, 10)
@@ -48,8 +51,8 @@ test('a certificate expiring soon is warned about, not yet lapsed', () => {
 
 test('an exempt property has nothing to expire and nothing to warn about', () => {
   const r = recheckClearances([row({
-    energyClass: null, energyCertificateExpiresAt: null,
-    exemption: { declaredBy: 'A. Ferreira', basis: 'Imóvel em ruína, sem uso', at: '2020-01-01' },
+    satisfied: [{ requirementId: 'pt_energy_class', validUntil: null,
+                  exemption: { declared_by: 'A. Ferreira', basis: 'Imóvel em ruína, sem uso', at: '2020-01-01' } }],
   })], { now: NOW })
   assert.deepEqual(r.lapsed, [])
   assert.deepEqual(r.expiringSoon, [])
@@ -58,22 +61,22 @@ test('an exempt property has nothing to expire and nothing to warn about', () =>
 
 test('the longest-lapsed is first, because it has been unlawful longest', () => {
   const r = recheckClearances([
-    row({ listingId: 'a', energyCertificateExpiresAt: day(-5) }),
-    row({ listingId: 'b', energyCertificateExpiresAt: day(-200) }),
+    row({ listingId: 'a', ...expiring(day(-5)) }),
+    row({ listingId: 'b', ...expiring(day(-200)) }),
   ], { now: NOW })
   assert.deepEqual(r.lapsed.map((l) => l.listingId), ['b', 'a'])
 })
 
 test('having already been told is carried, so a second notice is a choice', () => {
   const r = recheckClearances(
-    [row({ energyCertificateExpiresAt: day(-40), noticeSentAt: '2026-09-01T00:00:00Z' })],
+    [row({ ...expiring(day(-40)), noticeSentAt: '2026-09-01T00:00:00Z' })],
     { now: NOW },
   )
   assert.equal(r.lapsed[0].noticeSentAt, '2026-09-01T00:00:00Z')
 })
 
 test('nothing to report is reported as nothing, and the totals add up', () => {
-  const r = recheckClearances([row(), row(), row({ energyCertificateExpiresAt: day(-1) })], { now: NOW })
+  const r = recheckClearances([row(), row(), row(expiring(day(-1)))], { now: NOW })
   assert.equal(r.checked, 3)
   assert.equal(r.lapsed.length + r.expiringSoon.length + r.stillGood, 3,
     'every clearance lands in exactly one bucket')
@@ -198,14 +201,14 @@ test('🔴 the warning and the gate agree about when a certificate expires', () 
   // certificate as valid THROUGH its expiry day, and the re-check counted from
   // the start of it. A certificate the gate still accepted would have been
   // reported with "0 days left".
-  const onTheDay = row({ energyCertificateExpiresAt: day(0) })
+  const onTheDay = row(expiring(day(0)))
   const r = recheckClearances([onTheDay], { now: NOW })
   assert.deepEqual(r.lapsed, [], 'the gate says this is still valid today, so the notice must too')
   assert.equal(r.expiringSoon[0].daysLeft, 0,
     'zero WHOLE days left, and still valid today — which is what the gate says too')
 
   // And the day after it expires, both agree it has lapsed.
-  const gone = recheckClearances([row({ energyCertificateExpiresAt: day(-1) })], { now: NOW })
+  const gone = recheckClearances([row(expiring(day(-1)))], { now: NOW })
   assert.equal(gone.lapsed.length, 1)
 })
 
@@ -226,9 +229,8 @@ test('an exempt property with an old certificate date is still not warned about'
   // certificate long expired, then declared exempt, is the realistic shape —
   // and the gate clears it, so the notice must not contradict the gate.
   const r = recheckClearances([row({
-    energyClass: null,
-    energyCertificateExpiresAt: day(-900),
-    exemption: { declaredBy: 'A. Ferreira', basis: 'Imóvel em ruína, sem uso', at: '2026-01-01' },
+    satisfied: [{ requirementId: 'pt_energy_class', validUntil: day(-900),
+                  exemption: { declared_by: 'A. Ferreira', basis: 'Imóvel em ruína, sem uso', at: '2026-01-01' } }],
   })], { now: NOW })
   assert.deepEqual(r.lapsed, [], 'the gate clears an exempt property; the notice must agree')
   assert.deepEqual(r.expiringSoon, [])

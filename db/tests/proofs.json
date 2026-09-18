@@ -302,9 +302,11 @@
       "watches": [
         "db/migrations/0032_drop_flat_publication_columns.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0032_drop_flat_publication_columns.sql": "4b77a8b9597427ca9039f24e5f6ac6a37d4710a7efe467ffb45fe33a83498ab6"
+      },
+      "last_proved": "2026-09-18",
+      "proved_by": "Manuel Vale"
     }
   ]
 }

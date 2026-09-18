@@ -4,18 +4,37 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 
 import {
-  assemblePiece, figuresIn, inventedFigures, mandatoryMentions, missingMandatoryMentions,
+  assemblePiece, figuresIn, inventedFigures, missingMandatoryMentions,
   type PieceFacts,
 } from '../src/lib/publication/piece'
+import { mentionsFor, UnrenderableRequirement } from '../src/lib/publication/mentions'
 import { decidePublication } from '../src/lib/publication/gate'
+import type { PolicyRow } from '../src/lib/publication/requirements'
 
 const NOW = new Date('2026-09-18T12:00:00Z')
 
-const cleared = (over = {}) => {
+const PT: PolicyRow[] = [{
+  country: 'PT', region: null, regions_exhaustive: true, region_required: false,
+  confirmed_at: '2026-09-18T00:00:00Z', confirmed_by: 'M. de Sousa Pereira',
+  requires: [
+    { id: 'pt_energy_class', kind: 'property_rating', exemptible: true },
+    { id: 'pt_ami', kind: 'agency_registration', scope: 'national' },
+  ],
+}]
+
+const cleared = (over: { rating?: Record<string, unknown> } = {}) => {
   const v = decidePublication({
     listingId: 'A-1042', status: 'available', price: 1_950_000, fromTheAgency: true,
-    energyClass: 'B', energyCertificateExpiresAt: '2031-01-01', energyExemption: null,
-    amiLicence: 'AMI 12345', ...over,
+    country: 'PT', region: null, policy: PT,
+    propertyFacts: [{
+      requirementId: 'pt_energy_class', values: { class: 'B' }, certificateNumber: 'CE-1',
+      validUntil: '2031-01-01', registrationStatus: 'not_required', exemption: null,
+      ...(over.rating ?? {}),
+    }],
+    agencyFacts: [{
+      requirementId: 'pt_ami', country: 'PT', region: null,
+      number: 'AMI 12345', status: 'valid', statusCheckedAt: '2026-09-01T00:00:00Z',
+    }],
   }, NOW)
   assert.ok(v.cleared, 'the fixture must clear, or every test below is about nothing')
   return v.evidence
@@ -51,31 +70,31 @@ test('🔴 a piece that lost its statements fails the invariant, whatever produc
   const e = cleared()
   assert.deepEqual(
     missingMandatoryMentions('Moradia T4 em Cascais. €1.950.000', e).sort(),
-    ['ami', 'energy'],
+    ['pt_ami', 'pt_energy_class'],
   )
-  assert.deepEqual(missingMandatoryMentions('Classe energética: B.', e), ['ami'])
-  assert.deepEqual(missingMandatoryMentions('AMI 12345', e), ['energy'])
+  assert.deepEqual(missingMandatoryMentions('Classe energética: B.', e), ['pt_ami'])
+  assert.deepEqual(missingMandatoryMentions('AMI 12345', e), ['pt_energy_class'])
 })
 
 test('a WRONG energy class fails the invariant, not just a missing one', () => {
   // A piece carrying "Classe energética: C" for a property cleared as B is not
   // a piece with the mention present — it is a piece making a different claim.
   const e = cleared()
-  assert.deepEqual(missingMandatoryMentions('Classe energética: C.\nAMI 12345', e), ['energy'])
+  assert.deepEqual(missingMandatoryMentions('Classe energética: C.\nAMI 12345', e), ['pt_energy_class'])
 })
 
 test('the check cannot be satisfied by a letter that happens to be in the text', () => {
   // A bare "B" appears in any Portuguese sentence. Matching the whole phrase is
   // what stops this passing on nothing.
   const e = cleared()
-  assert.deepEqual(missingMandatoryMentions('Boa moradia em Cascais. AMI 12345', e), ['energy'])
+  assert.deepEqual(missingMandatoryMentions('Boa moradia em Cascais. AMI 12345', e), ['pt_energy_class'])
 })
 
 test('an exempt property states the exemption, and satisfies the invariant that way', () => {
-  const e = cleared({
-    energyClass: null, energyCertificateExpiresAt: null,
-    energyExemption: { declaredBy: 'A. Ferreira', basis: 'Imóvel em ruína, sem uso', at: '2026-09-18' },
-  })
+  const e = cleared({ rating: {
+    values: {}, validUntil: null,
+    exemption: { declared_by: 'A. Ferreira', basis: 'Imóvel em ruína, sem uso', at: '2026-09-18' },
+  } })
   const p = assemblePiece(facts(), e)
   assert.deepEqual(missingMandatoryMentions(p.text, e), [])
   assert.match(p.text, /isento de certificação energética/)
@@ -137,9 +156,11 @@ test('a fact the agency did not supply leaves no placeholder', () => {
 })
 
 test('the AMI number is rendered once, however the agency stored it', () => {
-  for (const amiLicence of ['AMI 12345', '12345', 'ami 12345']) {
-    const e = cleared({ amiLicence })
-    assert.equal(mandatoryMentions(e).ami, 'AMI 12345', amiLicence)
+  for (const number of ['AMI 12345', '12345', 'ami 12345']) {
+    const e = { ...cleared() }
+    e.satisfied = e.satisfied.map((r) => r.requirementId === 'pt_ami' ? { ...r, number } : r)
+    const ami = mentionsFor(e.satisfied).find((m) => m.requirementId === 'pt_ami')
+    assert.equal(ami?.text, 'AMI 12345', number)
   }
 })
 
@@ -216,4 +237,15 @@ test('🔴 the price separator is a NO-BREAK space, and the guard sees through i
   const p = assemblePiece(facts(), cleared())
   assert.deepEqual(inventedFigures(`Por €${rendered}`, p), [],
     'the agency’s own price must never be reported as invented')
+})
+
+test('🔴 a requirement with no words THROWS rather than rendering nothing', () => {
+  // The registry is keyed by requirement id, and a jurisdiction added without
+  // wording must fail at the suite rather than at an agency. Rendering nothing
+  // would produce a piece that LOOKS finished and is missing a statement the
+  // law requires — which is the §8.A invariant's failure, arriving silently.
+  const e = cleared()
+  const unknown = { ...e, satisfied: [{ ...e.satisfied[0], requirementId: 'es_energy_label' }] }
+  assert.throws(() => mentionsFor(unknown.satisfied), UnrenderableRequirement)
+  assert.throws(() => assemblePiece(facts(), unknown), /es_energy_label/)
 })

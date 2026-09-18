@@ -3759,3 +3759,57 @@ inventory. Where the rule keeps reappearing, prefer the structure that cannot
 produce the defect: the prepared piece is **assembled from typed fields**, so
 there is nowhere for a computed number to enter, which beats a check that
 catches one.
+
+---
+
+## 1m. The empty prediction, three at once, the day after the rule was written
+
+**2026-09-18, and this is §1l's second entry because the first one did not stop
+its own author.**
+
+§1l says: *if a sabotage's expected set is empty, do not write the empty set —
+write the test that would make it non-empty.* The next matrix, on the same day,
+contained **three** empty predictions. All three confirmed. All three were real
+gaps, and all three were the exact cases the feature had been redesigned for:
+
+| Removed | Broke | What was actually untested |
+|---|---|---|
+| the exemptible check | nothing | a jurisdiction that does not allow an exemption |
+| the revoked check | nothing | a suspended or cancelled agency licence |
+| the region/scope match | nothing | **a Catalan registration satisfying Valencia** |
+
+The third is the one to sit with. The entire redesign existed because a
+Barcelona property carries a requirement a Zaragoza property does not — and the
+code that makes a regional registration regional was reachable by nothing.
+
+### Why the rule did not stop me, which is the part worth having
+
+Writing `set()` **feels like a prediction**. It has the same shape as the others
+in the table, it sits in the same column, and when the run agrees it prints the
+same `ok`. Nothing about the moment signals that this row is different in kind.
+
+> **An empty expectation is not a weak prediction. It is the absence of one,
+> wearing a prediction's clothes.**
+
+So the mechanical form needs to be earlier than the run:
+
+- **Before running the matrix**, look for rows whose expectation is empty. Each
+  one is a branch you have already worked out is untested — you did the analysis
+  to write the empty set.
+- **Write those tests first.** Then run the matrix, and every row can disagree
+  with you.
+- A matrix with no empty expectations is a matrix where every `ok` means
+  something.
+
+### And one thing that is NOT the same failure
+
+A *sweeping* sabotage — removing an entire mechanism — legitimately breaks half
+the suite, and enumerating exactly which half tells you nothing you would act
+on. Those are asserted as a required subset plus a floor.
+
+That is a weaker check and it is fine **for that case only**: the information a
+targeted sabotage carries is "this test and no other covers this branch", which
+is precisely what is lost by loosening. Loosening a targeted assertion to make
+it pass is the thing this file has been refusing all week; loosening a sweeping
+one is proportionate. The difference is worth stating because both look like
+"relaxing the check".
