@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { requireOperator } from '@/lib/auth'
 import { admin } from '@/lib/supabase/admin'
+import { alreadyRated, listingFacts } from '@/lib/publication/facts-store'
 import { declareExemptionAction } from '@/lib/publication/exemption-actions'
 import { EXEMPTION } from '@/lib/matching/screen-copy'
 
@@ -28,14 +29,36 @@ export default async function Exemption({ params }: { params: Promise<{ id: stri
 
   const { data: listing } = await admin()
     .from('listings')
-    .select('id, reference, area, energy_class, energy_exemption')
+    .select('id, reference, area, region, client_id')
     .eq('id', id)
     .maybeSingle()
   if (!listing) notFound()
 
-  const rated = Boolean((listing.energy_class as string | null)?.trim())
-  const current = listing.energy_exemption as
-    { declared_by?: string; basis?: string; at?: string } | null
+  /*
+   * WHICH requirement is being exempted comes from the jurisdiction, not from
+   * this file. Portugal's rating is `pt_energy_class`; Spain's is a different
+   * id with a different shape, and whether either is exemptible at all is the
+   * policy row's answer.
+   *
+   * ⚠️ Until the gate is requirement-driven the screen resolves the single
+   * Portuguese rating requirement, and it does so by READING THE POLICY ROW
+   * rather than by knowing the id — so the day a second exemptible requirement
+   * exists, this asks for a choice instead of silently exempting the first.
+   */
+  const { data: policy } = await admin()
+    .from('advertising_policy')
+    .select('requires')
+    .eq('country', 'PT')
+    .is('region', null)
+    .maybeSingle()
+  const exemptible = (((policy?.requires ?? []) as { id: string; exemptible?: boolean }[]))
+    .filter((r) => r.exemptible)
+  const requirementId = exemptible.length === 1 ? exemptible[0].id : null
+
+  const facts = await listingFacts(id)
+  const fact = requirementId ? facts.find((f) => f.requirementId === requirementId) : undefined
+  const rated = requirementId ? alreadyRated(facts, requirementId) : false
+  const current = fact?.exemption ?? null
 
   return (
     <main style={{ maxWidth: 720, margin: '0 auto', padding: '48px 24px', fontSize: 16, lineHeight: 1.6 }}>
@@ -63,9 +86,13 @@ export default async function Exemption({ params }: { params: Promise<{ id: stri
         <p style={{ ...muted, marginTop: 24 }}>{EXEMPTION.nothingYet}</p>
       )}
 
-      {!rated && (
+      {/* No exemptible requirement resolved — no form. A screen that offered
+          an exemption against nothing would write a declaration nobody could
+          act on. */}
+      {!rated && requirementId && (
         <form action={declareExemptionAction} style={{ marginTop: 32 }}>
           <input type="hidden" name="listingId" value={id} />
+          <input type="hidden" name="requirementId" value={requirementId} />
 
           <label style={{ display: 'block', marginBottom: 20 }}>
             <strong>{EXEMPTION.basis}</strong>

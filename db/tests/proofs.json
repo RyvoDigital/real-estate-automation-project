@@ -263,9 +263,11 @@
       "watches": [
         "db/migrations/0029_advertising_policy.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0029_advertising_policy.sql": "2e490afdeb53ce457b3f0688c9ef27fc975154648b2c12f3419caea8ecf2be73"
+      },
+      "last_proved": "2026-09-18",
+      "proved_by": "Manuel Vale"
     },
     {
       "id": "0030-publication-facts",
@@ -274,9 +276,11 @@
       "watches": [
         "db/migrations/0030_publication_facts.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0030_publication_facts.sql": "a7819b570bb05ce952c233d8d7603aee535d9b8c7045b3ab8553eccbd6fbd75c"
+      },
+      "last_proved": "2026-09-18",
+      "proved_by": "Manuel Vale"
     },
     {
       "id": "0031-listing-region",
@@ -284,6 +288,19 @@
       "how": "Apply db/migrations/0031_listing_region.sql, then: set region='CT' (ok), set region='Cataluña' (expect: violates listing_region_code), set region=null (ok). Roll back.",
       "watches": [
         "db/migrations/0031_listing_region.sql"
+      ],
+      "hashes": {
+        "db/migrations/0031_listing_region.sql": "8cb435155bdce5a33b09f748cb309646e32ef305bb3107838e90a0f5a3aa1e73"
+      },
+      "last_proved": "2026-09-18",
+      "proved_by": "Manuel Vale"
+    },
+    {
+      "id": "0032-drop-flat-publication-columns",
+      "what": "The ONLY destructive migration in the series. It PROVES the five columns are empty before dropping them — a do-block that counts each one and RAISES, naming what it found, rather than a comment asking somebody to check. And the neighbours: the listing and the clients survive with every other column intact, because a migration that dropped too much would pass 'the columns are gone' perfectly.",
+      "how": "FIRST prove the abort works, or the guard is a claim nobody has tested: in a transaction you roll back, set clients.ami_licence on one row and run the do-block alone — expect 'REFUSING TO DROP … clients.ami_licence=1 … Nothing has been dropped.' Then rollback, apply db/migrations/0032_drop_flat_publication_columns.sql, and run its VERIFY block: no energy% columns on listings, no ami_licence on clients, and listings/clients row counts and remaining columns unchanged.",
+      "watches": [
+        "db/migrations/0032_drop_flat_publication_columns.sql"
       ],
       "hashes": {},
       "last_proved": null,

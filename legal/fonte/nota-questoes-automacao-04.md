@@ -1,4 +1,4 @@
-# Três questões
+# Quatro questões
 
 **Publicidade de imóveis — Automações 03 e 04**
 
@@ -11,7 +11,7 @@
 
 ---
 
-**Estas três questões são independentes das quatro anteriores** e podem ser respondidas separadamente. Tal como as outras, não dizem respeito à redacção de um contrato: dizem respeito ao que pode ou não ser construído — e, no caso da primeira, ao que deve ou não ser submetido à Meta para aprovação.
+**Estas quatro questões são independentes das quatro anteriores** e podem ser respondidas separadamente. Tal como as outras, não dizem respeito à redacção de um contrato: dizem respeito ao que pode ou não ser construído — e, no caso da primeira, ao que deve ou não ser submetido à Meta para aprovação.
 
 **A primeira é urgente por uma razão prática e não jurídica:** os modelos de mensagem ainda não foram submetidos à Meta. Um modelo aprovado é texto imutável — alterá-lo obriga a nova submissão e nova aprovação. Corrigir agora custa uma tarde; corrigir depois custa o tempo de aprovação e, se já houver mensagens enviadas ao abrigo do modelo antigo, custa mais do que isso.
 
@@ -115,6 +115,39 @@ a análise que o §8.A.3 já exige. É apenas muito mais barata agora.
 
 ---
 
+# 4. Uma confirmação, e é uma frase
+
+**A mais curta das quatro, e a única que desbloqueia alguma coisa hoje.**
+
+O sistema guarda, por país, o que a lei exige que conste de um anúncio de
+imóvel. A linha de Portugal está escrita — classe energética e número AMI, com o
+diploma e a autoridade — e está marcada como **não confirmada**, pelo que não
+permite publicar nada.
+
+Isso é deliberado. **O que está em dúvida não são as obrigações: é a nossa
+leitura delas.** A tabela distingue as duas coisas de propósito, e abrir uma
+excepção para o país sobre o qual nos sentimos seguros faria a marca significar
+«alguém estava confiante» em vez de «uma jurista confirmou» — que é a única
+coisa que ela pode utilmente significar.
+
+**O que peço é a confirmação de que, para efeitos de um anúncio de venda ou
+arrendamento em Portugal, as menções obrigatórias são estas duas e não há uma
+terceira que nos esteja a escapar:**
+
+1. a **classificação energética** do imóvel;
+2. o **número de licença AMI** da empresa de mediação.
+
+Se houver mais alguma — e é precisamente por não saber que pergunto — basta
+indicá-la. Se forem estas duas, uma confirmação nesse sentido é suficiente e o
+sistema passa a poder preparar anúncios para clientes portugueses.
+
+> Tenho presente que já tem em mãos o enquadramento. Pergunto à mesma porque a
+> revisão do documento e a confirmação desta linha específica não são
+> necessariamente a mesma coisa, e prefiro perguntar uma frase agora a descobrir
+> mais tarde que presumi.
+
+---
+
 # Nota final
 
-Nenhuma destas questões impede o trabalho de continuar: a Automação 04 pode ser construída inteiramente à volta da recusa, e a recusa não depende da resposta. **O que depende é o texto dos modelos da Automação 03, que ainda não foram submetidos** — e é por isso que a primeira questão vem primeiro. A terceira não bloqueia nada hoje; bloqueia Espanha, e é bastante mais barata antes de a estrutura estar construída do que depois.
+Nenhuma destas questões impede o trabalho de continuar: a Automação 04 pode ser construída inteiramente à volta da recusa, e a recusa não depende da resposta. **O que depende é o texto dos modelos da Automação 03, que ainda não foram submetidos** — e é por isso que a primeira questão vem primeiro. A terceira não bloqueia nada hoje; bloqueia Espanha, e é bastante mais barata antes de a estrutura estar construída do que depois. **A quarta é a única que desbloqueia algo de imediato**, e é uma frase.

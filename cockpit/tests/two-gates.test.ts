@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { existsSync, readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { join, relative, resolve } from 'node:path'
 
 /*
  * TWO GATES, TWO SUBJECTS, AND NEITHER STANDS IN FOR THE OTHER.
@@ -178,4 +178,42 @@ test('the boundary is not guarding something that stopped happening', () => {
   }
   assert.match(src, /energy/i, 'the publication gate must read the energy certificate')
   assert.match(src, /ami/i, 'and the AMI licence')
+})
+
+test('🔴 nothing reads the flat columns 0032 drops', () => {
+  // 0028's columns were the right facts in the wrong home, and 0030's typed
+  // facts replaced them. Once 0032 has run, a file still naming one of them
+  // queries a column that does not exist — a runtime failure on a screen rather
+  // than a compile error, because Supabase selects are strings.
+  //
+  // This is also what stops them being REINTRODUCED. The next person to want an
+  // energy class on a listing will reach for a column, and the column is the
+  // shape that cannot hold Spain's two ratings or an agency's several
+  // registrations.
+  const DROPPED = /\benergy_class\b|\benergy_certificate_number\b|\benergy_certificate_expires_at\b|\benergy_exemption\b|\bami_licence\b/
+
+  const offenders: string[] = []
+  const walk = (dir: string) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, e.name)
+      if (e.isDirectory()) { walk(full); continue }
+      if (!/\.tsx?$/.test(e.name)) continue
+      // screen-copy.ts lists them as FORBIDDEN WORDS for the vocabulary guard —
+      // naming them in order to refuse them is the opposite of reading them.
+      if (full.endsWith('screen-copy.ts')) continue
+      const src = readFileSync(full, 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/^\s*\/\/.*$/gm, '')
+      const m = src.match(DROPPED)
+      if (m) offenders.push(`${relative(REPO, full)}: ${m[0]}`)
+    }
+  }
+  walk(resolve(REPO, 'cockpit/src'))
+
+  assert.deepEqual(
+    offenders, [],
+    'These read a column 0032 drops. The facts live in listing_facts and agency_facts (0030),\n' +
+    'because a single column cannot hold Spain\'s two ratings or an agency\'s several regional\n' +
+    'registrations:\n\n' + offenders.map((f) => `  • ${f}`).join('\n') + '\n',
+  )
 })

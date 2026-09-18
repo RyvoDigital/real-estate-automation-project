@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { admin } from '@/lib/supabase/admin'
 import { requireOperator } from '@/lib/auth'
 import { exemptionRecord, validateExemption } from './exemption'
+import { alreadyRated, listingFacts, recordExemption } from './facts-store'
 
 /**
  * Recording that a property is exempt from certification.
@@ -21,31 +22,39 @@ export async function declareExemptionAction(formData: FormData): Promise<void> 
   const who = await requireOperator()
   const listingId = String(formData.get('listingId') ?? '')
 
+  // WHICH requirement this exemption is against comes from the form, resolved
+  // from the property's jurisdiction by the screen. Hardcoding
+  // `pt_energy_class` here would spend the generality the redesign bought.
+  const requirementId = String(formData.get('requirementId') ?? '')
+  if (!requirementId) throw new Error('exemption: which requirement is being exempted?')
+
   const db = admin()
   const { data: listing } = await db
     .from('listings')
-    .select('id, client_id, energy_class')
+    .select('id, client_id')
     .eq('id', listingId)
     .maybeSingle()
   if (!listing) throw new Error(`exemption: no listing ${listingId}`)
 
+  const facts = await listingFacts(listingId)
   const input = {
     listingId,
     basis: String(formData.get('basis') ?? ''),
     declaredBy: String(formData.get('declaredBy') ?? ''),
     recordedBy: who.email,
-    alreadyRated: Boolean((listing.energy_class as string | null)?.trim()),
+    alreadyRated: alreadyRated(facts, requirementId),
   }
 
   const problem = validateExemption(input)
   // Shown, never swallowed. The screen re-renders carrying the sentence.
   if (problem) throw new Error(`exemption:${problem}`)
 
-  const { error } = await db
-    .from('listings')
-    .update({ energy_exemption: exemptionRecord(input), updated_at: new Date().toISOString() })
-    .eq('id', listingId)
-  if (error) throw new Error(`exemption: write failed: ${error.message}`)
+  await recordExemption({
+    clientId: listing.client_id as string,
+    listingId,
+    requirementId,
+    exemption: exemptionRecord(input),
+  })
 
   // The append-only record of the act itself, beside the current value — so
   // "who said this property needed no certificate, and when" survives the value
@@ -55,8 +64,9 @@ export async function declareExemptionAction(formData: FormData): Promise<void> 
     type: 'listing.exemption_declared',
     severity: 'info',
     summary: `${input.declaredBy.trim()} declared this property exempt from certification`,
-    data: { listing_id: listingId, declared_by: input.declaredBy.trim(),
-            basis: input.basis.trim(), recorded_by: who.email },
+    data: { listing_id: listingId, requirement_id: requirementId,
+            declared_by: input.declaredBy.trim(), basis: input.basis.trim(),
+            recorded_by: who.email },
   })
 
   revalidatePath(`/listings/${listingId}`)
