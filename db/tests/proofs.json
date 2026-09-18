@@ -266,6 +266,28 @@
       "hashes": {},
       "last_proved": null,
       "proved_by": null
+    },
+    {
+      "id": "0030-publication-facts",
+      "what": "Four constraints, each with its neighbour: a rating with neither an expiry nor an exemption is refused and the same row WITH an expiry is accepted; an exemption missing its basis is refused and a complete one accepted; a lookup nobody confirmed is not a fact; and an agency status other than 'unknown' must say when it was checked. Plus the region CODE check — a name rather than a code is refused, because Cataluña/Catalunya/Catalonia are three rows for one place.",
+      "how": "Apply db/migrations/0030_publication_facts.sql, then run its VERIFY block inside begin/rollback. Every refusal by NAME, and every neighbour accepted — a table that refused everything would pass all the refusals identically. Roll it all back.",
+      "watches": [
+        "db/migrations/0030_publication_facts.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
+    },
+    {
+      "id": "0031-listing-region",
+      "what": "The region is a CODE and never a name, and null stays lawful because Portugal does not regulate advertising regionally. The column exists so that adding it later is not adding it to a table with rows.",
+      "how": "Apply db/migrations/0031_listing_region.sql, then: set region='CT' (ok), set region='Cataluña' (expect: violates listing_region_code), set region=null (ok). Roll back.",
+      "watches": [
+        "db/migrations/0031_listing_region.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
     }
   ]
 }
