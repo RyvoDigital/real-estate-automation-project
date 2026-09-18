@@ -3219,3 +3219,59 @@ still carries the property** — here, two hex strings and a luminance formula.
 The expensive version of this check never gets written; this one took an hour
 and will outlive the styling it was written against, because what it defends is
 not the palette, it is that text and the thing behind it are decided together.
+
+## 15b. The guard from lesson 15 had a hole exactly its own size, found an hour later
+
+All four origin radios rendered as **filled dark circles**. Every option looked
+selected, on the screen whose no-pre-selection rule exists precisely so that
+nobody glances and thinks a choice has been made. The name input rendered dark
+grey on the white page.
+
+Same root cause, and it is the lesson 15 defect one layer further in. The page
+pinned a background and a foreground — and said nothing about `color-scheme`.
+Radios, checkboxes and text inputs are painted by the **user agent**, so with no
+scheme declared the browser kept painting them for dark mode on a surface we had
+pinned light. A surface declares three things, not two: what is behind the text,
+what the text is, and **what the browser should draw on it**.
+
+The guard written an hour earlier could not see this. It compared text colours
+to background colours, and the failing elements had neither — their colours came
+from the environment. A guard closes the medium it can observe and leaves the
+one next to it wide open, which is lesson 15 applied to lesson 15.
+
+The check is four lines and no browser: **a light background must declare a
+light scheme.**
+
+```ts
+const expected = luminance(s.background) > 0.5 ? 'light' : 'dark'
+assert.equal(s.colorScheme, expected)
+```
+
+Plus a guard that every text input takes a surface rather than inheriting one,
+which folds the controls into the contrast check that already exists.
+
+### THE GAP THAT IS STILL OPEN, recorded rather than closed
+
+What is now checked is that we **declare** a light scheme. What was actually
+wrong is that four radios **looked identical when none was selected** — and no
+token-level check can see that. Proving it needs a real render: a headless
+browser, a screenshot, a pixel comparison of a checked control against an
+unchecked one. That is not cheap, and it is not being built today.
+
+So the honest statement of coverage is:
+
+| | covered |
+|---|---|
+| text unreadable against its own surface | yes, by contrast ratio |
+| controls painted in the wrong scheme | yes, by the luminance/scheme check |
+| a control that *looks* selected when it is not | **no** |
+
+The third line is a real residual risk on a screen where a mistaken glance
+becomes a legal declaration. It is written down here rather than left as an
+assumption that it was handled, because **a gap you have named is a decision and
+a gap you have not is a belief** — and §8 is the whole file's answer to what
+happens to beliefs that stop being true.
+
+The trigger for closing it, when it comes, is not this screen: it is the second
+screen where a control's *appearance* carries a decision. One instance is a note;
+two is a harness.

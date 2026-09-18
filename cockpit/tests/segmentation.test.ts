@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs'
 import { proposeGroups, describeContact, sharedClaimCell, type ContactRow } from '../src/lib/segmentation/groups'
 import { validateDeclaration, type DeclareInput } from '../src/lib/segmentation/declare'
 import { presentStep2 } from '../src/lib/segmentation/present'
-import { SURFACE, contrastRatio } from '../src/lib/segmentation/surface'
+import { SURFACE, contrastRatio, luminance } from '../src/lib/segmentation/surface'
 import {
   STATE_LABEL, STATE_NOTE, SEGMENT_CHOICE, CLAIM_QUESTION, UI, FORBIDDEN_ON_SCREEN, LOAD_BEARING,
   jurisdictionSentence, scopeFor, CLAIM_SCOPE,
@@ -645,4 +645,48 @@ test('the uncertainty box sits with the answer it qualifies', () => {
   const step2 = PAGE.slice(PAGE.indexOf('function Step2'))
   assert.ok(step2.indexOf('name="uncertainty"') < step2.indexOf('name="declaredBy"'),
     'the checkbox follows the name field, so it qualifies the wrong thing')
+})
+
+test('A SURFACE ALSO DECLARES WHAT THE BROWSER PAINTS ON IT', () => {
+  // The contrast guard, written an hour earlier, had a hole exactly its own
+  // size: it checked TEXT against its background and could not see the controls
+  // the user agent paints. With no `color-scheme` declared, the browser kept
+  // painting radios, checkboxes and inputs for dark mode on a surface we had
+  // pinned light — and all four origin radios rendered as filled dark circles,
+  // so every option looked selected on the one screen whose rule is that none
+  // may be.
+  //
+  // The check: a light background must say so. It catches the exact shape of
+  // this defect — a surface that pins one scheme and lets the widgets come from
+  // another — for four lines and no browser.
+  for (const [name, s] of Object.entries(SURFACE)) {
+    const expected = luminance(s.background) > 0.5 ? 'light' : 'dark'
+    assert.equal(s.colorScheme, expected,
+      `${name}: background is ${expected} but the controls are painted ${s.colorScheme}`)
+  }
+})
+
+test('and the form controls are pinned rather than inherited', () => {
+  // The name field was dark grey on white from the same cause. Every text input
+  // now takes the page surface, so it is covered by the contrast check above
+  // instead of by whatever the environment supplies.
+  const inputs = PAGE.split('\n').filter((l) => /<input name=/.test(l))
+  assert.ok(inputs.length >= 2, 'no text inputs found — this guard would pass vacuously')
+  for (const l of inputs) {
+    assert.match(l, /style=\{field\}/, `an input takes its colours from the user agent: ${l.trim()}`)
+  }
+  assert.match(PAGE, /const field = \{\s*\.\.\.SURFACE\.page/)
+})
+
+test('THE ESCAPE HATCH IS NOT THE QUIETEST THING ON THE SCREEN', () => {
+  // "Mudar a resposta" is what the agency needs the moment they realise they
+  // answered wrong. It was rendering as the faintest element on the page.
+  // The ENCLOSING element, not a fixed window: a 600-character lookbehind
+  // reached back into the previous paragraph and read its style instead.
+  const at = PAGE.indexOf('UI.changeAnswer')
+  const hatch = PAGE.slice(PAGE.lastIndexOf('<p style=', at), at)
+  assert.equal(/\.\.\.muted|color: SURFACE\.page\.muted/.test(hatch), false,
+    'the way back from a wrong answer is rendered in the secondary text colour')
+  const size = hatch.match(/fontSize: (\d+)/)
+  assert.ok(size && Number(size[1]) >= 16, `the escape hatch renders at ${size?.[1]}px, below body size`)
 })

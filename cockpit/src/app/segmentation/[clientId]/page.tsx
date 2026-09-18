@@ -32,6 +32,12 @@ export const revalidate = 0
 // Secondary text always names the surface it sits on, so it cannot end up the
 // wrong side of a background somebody changed.
 const muted = { color: SURFACE.page.muted }
+// The field is a surface too. It was rendering as dark grey on the white page,
+// inherited from the same unpinned scheme as the radios.
+const field = {
+  ...SURFACE.page, width: '100%', padding: 8, marginTop: 6,
+  border: '1px solid #b9b9b9', borderRadius: 6, fontSize: 16,
+}
 const mutedOnNote = { color: SURFACE.note.muted }
 const card = { border: '1px solid #e4e4e4', borderRadius: 10, padding: 20, marginBottom: 18 }
 const optionCard = {
@@ -218,8 +224,17 @@ function Step2({ clientId, group, contacts, segment, jurisdiction }: {
 
       <p style={{ margin: '0 0 6px' }}>{view.youSaid}</p>
       <p style={{ ...muted, fontSize: 14, margin: '0 0 4px' }}>{view.consequence}</p>
-      <p style={{ fontSize: 14, margin: '0 0 20px' }}>
-        <a href={`/segmentation/${clientId}?grupo=${encodeURIComponent(group.id)}`}>{UI.changeAnswer}</a>
+      {/* The escape hatch. If they realise they answered wrong, this is the
+          control they need, so it is not allowed to be the faintest element on
+          the screen — it renders at body size in the surface's own text colour,
+          never muted. */}
+      <p style={{ fontSize: 16, margin: '0 0 20px' }}>
+        <a
+          href={`/segmentation/${clientId}?grupo=${encodeURIComponent(group.id)}`}
+          style={{ color: SURFACE.page.color, fontWeight: 600 }}
+        >
+          {UI.changeAnswer}
+        </a>
       </p>
 
       {/* The file note comes AFTER the origin, and only when this group's file
@@ -245,7 +260,7 @@ function Step2({ clientId, group, contacts, segment, jurisdiction }: {
         <label style={{ display: 'block', marginBottom: 20 }}>
           <strong>{view.ask.question}</strong>
           <span style={{ display: 'block', ...muted, fontSize: 14 }}>{view.ask.hint}</span>
-          <input name="basis" required style={{ width: '100%', padding: 8, marginTop: 6 }} />
+          <input name="basis" required style={field} />
         </label>
       ) : (
         <p style={{ ...muted, fontSize: 14, margin: '0 0 20px' }}>{view.ask.text}</p>
@@ -262,7 +277,7 @@ function Step2({ clientId, group, contacts, segment, jurisdiction }: {
       <label style={{ display: 'block', marginBottom: 20 }}>
         <strong>{UI.whoIsDeclaring}</strong>
         <span style={{ display: 'block', ...muted, fontSize: 14 }}>{UI.whoIsDeclaringHint}</span>
-        <input name="declaredBy" required style={{ width: '100%', padding: 8, marginTop: 6 }} />
+        <input name="declaredBy" required style={field} />
       </label>
 
       <details style={{ marginBottom: 24 }}>

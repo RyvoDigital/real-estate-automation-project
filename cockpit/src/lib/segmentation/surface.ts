@@ -31,17 +31,32 @@ export type Surface = {
   color: string
   /** Secondary text ON THIS SURFACE. Also contrast-checked. */
   muted: string
+  /**
+   * WHAT THE BROWSER PAINTS THE CONTROLS IN.
+   *
+   * The pair was still half-specified after the first fix. Text got a
+   * foreground; radios, checkboxes and text inputs are painted by the USER
+   * AGENT, and with no `color-scheme` declared it kept painting them for dark
+   * mode on a surface we had pinned light. The visible result: all four origin
+   * radios rendered as filled dark circles, so every option looked selected —
+   * on the screen whose no-pre-selection rule exists precisely to stop somebody
+   * glancing and thinking a choice had been made.
+   *
+   * A surface therefore declares three things, not two: what is behind the
+   * text, what the text is, and what the browser should draw on it.
+   */
+  colorScheme: 'light' | 'dark'
 }
 
 export const SURFACE: Record<'page' | 'note' | 'error' | 'ok', Surface> = {
-  page: { background: '#ffffff', color: '#1b1b1b', muted: '#595959' },
-  note: { background: '#fbf6f3', color: '#2a1f18', muted: '#5f5046' },
-  error: { background: '#fdf0ee', color: '#4a1a10', muted: '#6b3226' },
-  ok: { background: '#f1f7f1', color: '#16351a', muted: '#3a5a3d' },
+  page: { background: '#ffffff', color: '#1b1b1b', muted: '#595959', colorScheme: 'light' },
+  note: { background: '#fbf6f3', color: '#2a1f18', muted: '#5f5046', colorScheme: 'light' },
+  error: { background: '#fdf0ee', color: '#4a1a10', muted: '#6b3226', colorScheme: 'light' },
+  ok: { background: '#f1f7f1', color: '#16351a', muted: '#3a5a3d', colorScheme: 'light' },
 }
 
-/** WCAG relative luminance. */
-function luminance(hex: string): number {
+/** WCAG relative luminance. Exported so the scheme check can read a surface. */
+export function luminance(hex: string): number {
   const v = hex.replace('#', '')
   const ch = [0, 2, 4].map((i) => {
     const s = parseInt(v.slice(i, i + 2), 16) / 255
