@@ -1444,9 +1444,40 @@ rule; §5c, §5d and §4e are three faces of it.
 | **the address** | the orphan sweep listing provider messages | the `whatsapp:` prefix on the query | *"0 messages examined, all accounted for"* |
 | **the vocabulary** | the same sweep matching bodies | any recorded template to match against | *"0 orphans"* |
 | **the identifier** | the quality halt reading a sender | the column holding the Sender SID | *"quality unreadable"*, halting everything |
+| **the artefact** | a deploy's four health checks | the changed file, which never reached the container | 404 → 403 → 403 → 200, all green, nothing deployed |
 
 Three different subsystems, three different absences, one report: **nothing
 wrong here.**
+
+### The deploy instance, which is the clearest of the four
+
+Deploy A of 18 September ran four checks and passed all of them:
+
+```
+after import    404   ← the expected window
+after publish   403   ← the window closed
+after restart   403
+healthz         200
+```
+
+Every one confirmed the *mechanism*. The import ran, the publish restored the
+active version, the restart held, the edge answered. **And the workflow served
+afterwards was byte-identical to the one served before**, because the import
+command read from `/dev/stdin` instead of a path inside the container and the
+changed file never arrived.
+
+Four green checks on a deploy that deployed nothing. None of them could see it,
+because **none of them looks at what was deployed** — they look at whether the
+deploying worked, which it did, perfectly, on no input.
+
+What caught it was the served-version query: `position('consent_status' in
+h.nodes::text)` came back `t` when the file on disk contains that string zero
+times. That check reaches the *subject* — the code now being served — rather
+than the mechanism that put it there.
+
+> **A deploy's health checks confirm that deploying happened. Only reading the
+> deployed artefact confirms that something was deployed.** They are different
+> questions and the first one is the one everybody automates.
 
 ### Why reading the code cannot find these
 
@@ -1493,6 +1524,9 @@ was ever made.
    rating at contact one.
 3. **Never let "none found" and "could not look" share a message.** They need
    different sentences, because they need different afternoons.
+4. **Verify the artefact ARRIVED before acting on it.** A deploy that copies a
+   file somewhere should checksum it at the far end. The step that failed above
+   would have failed loudly one command earlier.
 
 ## 5f. A boundary crossed in both directions has a loud half and a quiet half, and the defect lives in the quiet one
 
