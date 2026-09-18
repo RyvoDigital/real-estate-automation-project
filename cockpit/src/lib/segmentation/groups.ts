@@ -22,8 +22,15 @@ export type ContactRow = {
   batchCommittedAt: string | null
   /** From consent_by_contact. Internal vocabulary; never rendered raw. */
   state: string
-  /** The exact cell the agency's file held, when there was one. */
+  /**
+   * The exact cell the agency's file held — or null when a claim exists and its
+   * text was NOT RETAINED. Never a substitute: quoting a cell we do not have
+   * back to the person whose file it came from is the one thing the hard
+   * question cannot afford.
+   */
   claimRaw: string | null
+  /** Whether there is a claim at all, which is a different fact from its text. */
+  hasClaim: boolean
 }
 
 export type Group = {
@@ -41,6 +48,11 @@ export type Group = {
    * (§11d).
    */
   proposal: { segment: 'A' | 'B' | 'C' | 'D'; why: string } | null
+}
+
+/** "1 contacto", not "1 contactos". Degenerate cases are read aloud too. */
+function plural(n: number, one: string, many: string): string {
+  return `${n} ${n === 1 ? one : many}`
 }
 
 const MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
@@ -72,7 +84,7 @@ export function proposeGroups(contacts: ContactRow[]): Group[] {
     groups.push({
       id, kind, label,
       contactIds: fresh.map((r) => r.id),
-      withClaim: fresh.filter((r) => r.claimRaw !== null).length,
+      withClaim: fresh.filter((r) => r.hasClaim).length,
       proposal,
     })
   }
@@ -87,7 +99,8 @@ export function proposeGroups(contacts: ContactRow[]): Group[] {
     const file = rows[0].batchFilename
     build(
       `batch:${batchId}`, 'batch',
-      [`${rows.length} contactos`, file, when ? `importados ${when}` : null]
+      [plural(rows.length, 'contacto', 'contactos'), file,
+       when ? `${rows.length === 1 ? 'importado' : 'importados'} ${when}` : null]
         .filter(Boolean).join(' · '),
       rows,
       null,
@@ -101,7 +114,8 @@ export function proposeGroups(contacts: ContactRow[]): Group[] {
     byYear.set(y, [...(byYear.get(y) ?? []), c])
   }
   for (const [year, rows] of [...byYear].sort((a, b) => b[0].localeCompare(a[0]))) {
-    build(`year:${year}`, 'year', `${rows.length} contactos · última conversa em ${year}`, rows, null)
+    build(`year:${year}`, 'year',
+      `${plural(rows.length, 'contacto', 'contactos')} · última conversa em ${year}`, rows, null)
   }
 
   // 3. Area.
@@ -110,12 +124,13 @@ export function proposeGroups(contacts: ContactRow[]): Group[] {
     byArea.set(c.area, [...(byArea.get(c.area) ?? []), c])
   }
   for (const [area, rows] of [...byArea].sort((a, b) => b[1].length - a[1].length)) {
-    build(`area:${area}`, 'area', `${rows.length} contactos · ${area}`, rows, null)
+    build(`area:${area}`, 'area', `${plural(rows.length, 'contacto', 'contactos')} · ${area}`, rows, null)
   }
 
   // 4. Whatever is left, which is honest rather than tidy.
   const rest = contacts.filter((c) => !taken.has(c.id))
-  build('rest', 'unknown', `${rest.length} contactos sem nada em comum que possamos ver`, rest, null)
+  build('rest', 'unknown',
+    `${plural(rest.length, 'contacto', 'contactos')} sem nada em comum que possamos ver`, rest, null)
 
   return groups
 }
@@ -127,4 +142,16 @@ export function describeContact(c: ContactRow): { name: string; phone: string; s
     phone: c.phone,
     state: STATE_LABEL[c.state] ?? STATE_LABEL.undetermined,
   }
+}
+
+/**
+ * The cell a group may quote, or null.
+ *
+ * Null when nothing was retained AND when the group's claims disagree: a group
+ * holding «sim» and «y» has no single cell, and picking either one shows the
+ * agency a quotation that is wrong for half the rows under it.
+ */
+export function sharedClaimCell(rows: ContactRow[]): string | null {
+  const distinct = new Set(rows.map((r) => r.claimRaw).filter((x): x is string => x !== null))
+  return distinct.size === 1 ? [...distinct][0] : null
 }

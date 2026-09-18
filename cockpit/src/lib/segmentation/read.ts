@@ -40,6 +40,7 @@ export async function readScreen(clientId: string): Promise<ScreenData> {
   const phones = (leads ?? []).map((l) => l.phone as string)
 
   const states = new Map<string, string>()
+  /** null in the map means: a claim exists, its text was not retained. */
   const claims = new Map<string, string | null>()
   if (phones.length > 0) {
     const { data: consent } = await db
@@ -57,7 +58,20 @@ export async function readScreen(clientId: string): Promise<ScreenData> {
       .in('kind', ['quarantined', 'claimed'])
     for (const e of events ?? []) {
       const ev = e.evidence as { claimed_consent?: { raw?: string } } | null
-      claims.set(e.phone_e164 as string, (e.wording as string) ?? ev?.claimed_consent?.raw ?? 'sim')
+      // NEVER a fallback string here. `wording` is null when the cell was NOT
+      // RETAINED — `import_batches.staged` is cleared on commit, so for
+      // everything imported before the September fix the exact text is gone.
+      //
+      // The first version ended `?? 'sim'`, which would have quoted «sim» back
+      // to the agency as what their file said, for a contact whose ledger row
+      // explicitly records that we do not know. Inventing it is bad enough in a
+      // table; in quotation marks, in front of the person whose file it came
+      // from, it is the one thing the question cannot afford.
+      //
+      // `claimRaw: null` means "there was a claim and we cannot show you the
+      // cell", which the screen says in so many words.
+      const raw = (e.wording as string | null) ?? ev?.claimed_consent?.raw ?? null
+      claims.set(e.phone_e164 as string, raw)
     }
   }
 
@@ -91,7 +105,11 @@ export async function readScreen(clientId: string): Promise<ScreenData> {
       batchFilename: batch?.filename ?? null,
       batchCommittedAt: batch?.committedAt ?? null,
       state: states.get(l.phone as string) ?? 'undetermined',
+      // `has` rather than the value: a claim whose text is unknown is still a
+      // claim, and `?? null` would erase the difference between "no claim" and
+      // "a claim we cannot quote".
       claimRaw: claims.get(l.phone as string) ?? null,
+      hasClaim: claims.has(l.phone as string),
     }
   })
 

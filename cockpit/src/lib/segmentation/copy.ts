@@ -73,14 +73,41 @@ export const SEGMENT_CHOICE: Record<'A' | 'B' | 'C' | 'D', { label: string; cons
  * would ask for; shows "no" as a route rather than a loss; and offers "I don't
  * know" at the same weight as the others, normalised in the text.
  */
+/*
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │ THE QUOTED CELL IS A FACT ABOUT THEIR FILE, SO IT CANNOT BE A CONSTANT. │
+ * │                                                                         │
+ * │ The first version read `heading: 'O seu ficheiro dizia «sim»…'` — one   │
+ * │ fixed string, rendered for every group. It asserted «sim» for a file    │
+ * │ that said «y», for a group of mixed cells, and — the case that found it │
+ * │ — for a contact whose ledger row records that THE TEXT WAS NOT RETAINED.│
+ * │                                                                         │
+ * │ Quoting a word back to the agency as what their own file said, on the   │
+ * │ one screen whose whole force comes from quoting their file accurately,  │
+ * │ is the cheapest possible way to lose the room. So: quote only what we   │
+ * │ actually hold, and when we hold nothing, SAY we hold nothing.           │
+ * │                                                                         │
+ * │ Split rather than a function so the vocabulary guard still walks it —   │
+ * │ a function body is invisible to `everyRenderedString()` (§5c).          │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ */
 export const CLAIM_QUESTION = {
-  heading: 'O seu ficheiro dizia «sim» na coluna de autorização',
+  /** The cell goes between the two, in guillemets. */
+  headingWithCell: { before: 'O seu ficheiro dizia ', after: ' na coluna de autorização' },
+  /** When a claim exists but its text was not kept — see read.ts. */
+  headingCellNotKept: 'O seu ficheiro tinha alguma coisa na coluna de autorização',
   body:
     'Nós registámos isso como autorização — e isso foi um erro nosso, não seu. ' +
     'Uma célula num ficheiro não é prova de nada: pode ter sido preenchida por ' +
     'qualquer razão, há muitos anos, por alguém que já não trabalha consigo. ' +
     'Corrigimos o registo, e é por isso que estamos a perguntar agora.',
-  question: 'O que é que está por trás desse «sim»?',
+  /** Appended to `body` when we cannot show them the cell. Admitting the gap is
+   *  cheaper than inventing a word, and it is also simply true. */
+  bodyCellNotKept:
+    'Não guardámos o que lá estava exactamente, e por isso não lho podemos mostrar ' +
+    '— mais uma coisa que ficou mal do nosso lado.',
+  questionWithCell: { before: 'O que é que está por trás desse ', after: '?' },
+  questionCellNotKept: 'O que é que está por trás dessa indicação?',
   options: {
     have_record: {
       label: 'Temos o registo — formulário, e-mail ou sistema, com data',
@@ -120,6 +147,10 @@ export const UI = {
   proposalHint: 'É só uma sugestão nossa. A resposta é sua.',
   noProposal: 'Não temos indicação nenhuma sobre este grupo.',
   historyHeading: 'O que já foi dito sobre este contacto',
+  /* The radios were labelled with the CLAIM question, which for a group with no
+     claim at all asked what was behind a «sim» that never existed. The radios
+     ask about origin; the claim question asks about evidence. Two questions. */
+  segmentLegend: 'De onde é que vieram os contactos deste grupo?',
   confirm: 'Guardar',
   saved: (n: number) => `Guardado: ${n} contactos.`,
   noContacts: 'Não há contactos importados para este cliente.',

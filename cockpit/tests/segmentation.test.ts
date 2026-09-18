@@ -8,7 +8,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { proposeGroups, describeContact, type ContactRow } from '../src/lib/segmentation/groups'
+import { proposeGroups, describeContact, sharedClaimCell, type ContactRow } from '../src/lib/segmentation/groups'
 import { validateDeclaration, type DeclareInput } from '../src/lib/segmentation/declare'
 import {
   STATE_LABEL, STATE_NOTE, SEGMENT_CHOICE, CLAIM_QUESTION, UI, FORBIDDEN_ON_SCREEN, LOAD_BEARING, jurisdictionSentence,
@@ -28,7 +28,12 @@ const c = (over: Partial<ContactRow> = {}): ContactRow => ({
   id: 'c1', phone: '+351912345678', fullName: 'Maria Santos',
   lastContactAt: '2023-04-15T00:00:00Z', area: 'Cascais',
   batchId: null, batchFilename: null, batchCommittedAt: null,
-  state: 'undetermined', claimRaw: null, ...over,
+  state: 'undetermined', claimRaw: null,
+  // `hasClaim` derives from `claimRaw` unless a case states it: a row with a
+  // quoted cell and no claim is not a state read.ts can produce, and a fixture
+  // that can build impossible rows tests a system nobody runs.
+  hasClaim: over.hasClaim ?? over.claimRaw != null,
+  ...over,
 })
 
 // --- grouping ---------------------------------------------------------------
@@ -334,4 +339,89 @@ test('THE PAGE CONTAINS NO PROSE AT ALL: every word comes from copy.ts', () => {
   assert.deepEqual(prose, [],
     'these strings are prose and belong in copy.ts, where the vocabulary guard can see them:\n' +
     prose.map((s) => `  ${JSON.stringify(s)}`).join('\n'))
+})
+
+// --- the degenerate case, which is the one people watch ------------------------
+
+test('a group of one reads as one', () => {
+  // The first real run had a single contact, and the label said "1 contactos".
+  // A screen turned around in a meeting is judged on sentences like this one
+  // long before it is judged on whether the grouping is correct.
+  const g = proposeGroups([
+    c({ id: '1', batchId: 'b1', batchFilename: 'lista.csv', batchCommittedAt: '2026-09-08T10:00:00Z' }),
+  ])
+  assert.equal(g[0].label, '1 contacto · lista.csv · importado 8 Set 2026')
+  for (const [, s] of g.map((x) => [x.kind, x.label] as const)) {
+    assert.equal(/\b1 contactos\b|\b1 \w+s\b/.test(s) && !/1 contacto\b/.test(s), false, s)
+  }
+})
+
+// --- what we may quote back to them -------------------------------------------
+
+test('THE QUOTED CELL COMES FROM THE FILE OR IT DOES NOT APPEAR', () => {
+  // A claim whose wording was not retained. `?? 'sim'` in read.ts used to fill
+  // this in, which put a word in the agency's mouth, in quotation marks, on the
+  // one screen whose force depends on quoting their file exactly.
+  assert.equal(sharedClaimCell([c({ hasClaim: true, claimRaw: null })]), null)
+
+  // Disagreeing cells cannot be summarised by picking one of them.
+  assert.equal(sharedClaimCell([
+    c({ id: '1', hasClaim: true, claimRaw: 'sim' }),
+    c({ id: '2', hasClaim: true, claimRaw: 'y' }),
+  ]), null)
+
+  assert.equal(sharedClaimCell([
+    c({ id: '1', hasClaim: true, claimRaw: 'y' }),
+    c({ id: '2', hasClaim: true, claimRaw: 'y' }),
+  ]), 'y')
+})
+
+test('and no constant carries a quotation of its own', () => {
+  // The quotation is DATA. A constant containing one is a claim about a file
+  // nobody has read — which is how 'O seu ficheiro dizia «sim»' shipped.
+  const q = CLAIM_QUESTION
+  for (const [where, s] of [
+    ['headingWithCell.before', q.headingWithCell.before],
+    ['headingWithCell.after', q.headingWithCell.after],
+    ['headingCellNotKept', q.headingCellNotKept],
+    ['questionWithCell.before', q.questionWithCell.before],
+    ['questionWithCell.after', q.questionWithCell.after],
+    ['questionCellNotKept', q.questionCellNotKept],
+  ] as const) {
+    assert.equal(s.includes('«'), false, `${where} quotes a cell that no file was read for: ${s}`)
+  }
+})
+
+test('a claim with no retained wording is still asked about', () => {
+  // The page filtered on `claimRaw !== null`, so the honest null made the hard
+  // question disappear for precisely the contacts it exists to ask about.
+  const rows = [c({ hasClaim: true, claimRaw: null })]
+  assert.equal(rows.filter((r) => r.hasClaim).length, 1)
+})
+
+test('NO FALLBACK EVER SUPPLIES A WORDING', () => {
+  // read.ts is a database read, so nothing above covers the line that caused
+  // this: `(e.wording as string) ?? ev?.claimed_consent?.raw ?? 'sim'`.
+  //
+  // Falling back to 'undetermined' or 'unknown' elsewhere in that file is fine
+  // — those are the LOUD state, an admission. Falling back to a WORDING is the
+  // opposite: it manufactures evidence, and the ledger design says in as many
+  // words that `wording = null` means NOT RETAINED and is never invented.
+  const src = codeOnly(readFileSync(new URL('../src/lib/segmentation/read.ts', import.meta.url), 'utf8'))
+  const offences = src.split('\n')
+    .filter((l) => /wording|claimRaw|claimed_consent/.test(l) && /\?\?\s*['\`"]/.test(l))
+  assert.deepEqual(offences, [], `a literal stands in for a cell we do not hold:\n${offences.join('\n')}`)
+  assert.match(src, /wording as string \| null\) \?\? ev\?\.claimed_consent\?\.raw \?\? null/,
+    'the chain must end in null, which is what "we did not keep it" looks like')
+})
+
+test('and the screen asks about a claim, not about its text', () => {
+  // `claimRaw !== null` as the has-a-claim test made the hard question vanish
+  // for the contacts whose wording was not kept — silently, on the screen whose
+  // entire purpose is to ask it.
+  const page = codeOnly(readFileSync(
+    new URL('../src/app/segmentation/[clientId]/page.tsx', import.meta.url), 'utf8'))
+  assert.equal(/filter\(\(c\) => c\.claimRaw !== null\)/.test(page), false,
+    'filtering on the wording drops the claims whose wording we never kept')
+  assert.match(page, /filter\(\(c\) => c\.hasClaim\)/)
 })

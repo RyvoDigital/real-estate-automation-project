@@ -1,6 +1,6 @@
 import { requireOperator } from '@/lib/auth'
 import { readScreen } from '@/lib/segmentation/read'
-import { proposeGroups, describeContact } from '@/lib/segmentation/groups'
+import { proposeGroups, describeContact, sharedClaimCell } from '@/lib/segmentation/groups'
 import { declareGroupAction } from '@/lib/segmentation/actions'
 import {
   UI, SEGMENT_CHOICE, STATE_LABEL, STATE_NOTE, CLAIM_QUESTION, jurisdictionSentence,
@@ -49,7 +49,17 @@ export default async function SegmentationScreen({
 
       {groups.map((g) => {
         const contacts = g.contactIds.map((id) => byId.get(id)!).filter(Boolean)
-        const withClaim = contacts.filter((c) => c.claimRaw !== null)
+        // `hasClaim`, not `claimRaw !== null`: a claim whose wording was not
+        // retained is still a claim, and filtering on the text would have made
+        // the hard question disappear for exactly the contacts it is about.
+        const withClaim = contacts.filter((c) => c.hasClaim)
+        const cell = sharedClaimCell(withClaim)
+        const claimHeading = cell
+          ? `${CLAIM_QUESTION.headingWithCell.before}«${cell}»${CLAIM_QUESTION.headingWithCell.after}`
+          : CLAIM_QUESTION.headingCellNotKept
+        const claimQuestion = cell
+          ? `${CLAIM_QUESTION.questionWithCell.before}«${cell}»${CLAIM_QUESTION.questionWithCell.after}`
+          : CLAIM_QUESTION.questionCellNotKept
 
         return (
           <section key={g.id} style={card}>
@@ -60,9 +70,11 @@ export default async function SegmentationScreen({
 
             {withClaim.length > 0 && (
               <div style={{ background: '#fbf6f3', border: '1px solid #f0e2da', borderRadius: 8, padding: 16, marginBottom: 16 }}>
-                <strong>{CLAIM_QUESTION.heading}</strong>
-                <p style={{ margin: '8px 0' }}>{CLAIM_QUESTION.body}</p>
-                <p style={{ margin: '8px 0 4px' }}><strong>{CLAIM_QUESTION.question}</strong></p>
+                <strong>{claimHeading}</strong>
+                <p style={{ margin: '8px 0' }}>
+                  {CLAIM_QUESTION.body}{cell ? '' : ` ${CLAIM_QUESTION.bodyCellNotKept}`}
+                </p>
+                <p style={{ margin: '8px 0 4px' }}><strong>{claimQuestion}</strong></p>
                 <ul style={{ margin: 0, paddingLeft: 18 }}>
                   {Object.entries(CLAIM_QUESTION.options).map(([key, o]) => (
                     <li key={key} style={{ marginBottom: 6 }}>
@@ -84,7 +96,7 @@ export default async function SegmentationScreen({
               {contacts.map((c) => <input key={c.id} type="hidden" name="contact" value={c.id} />)}
 
               <fieldset style={{ border: 0, padding: 0, margin: '0 0 16px' }}>
-                <legend style={{ fontWeight: 600, marginBottom: 8 }}>{CLAIM_QUESTION.question}</legend>
+                <legend style={{ fontWeight: 600, marginBottom: 8 }}>{UI.segmentLegend}</legend>
                 {(['A', 'B', 'C', 'D'] as const).map((seg) => (
                   <label key={seg} style={{ display: 'block', marginBottom: 10 }}>
                     {/* No pre-selection: a pre-ticked option collects a click

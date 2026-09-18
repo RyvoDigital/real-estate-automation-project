@@ -2957,3 +2957,106 @@ shown to fire has not been shown to work (§0.7).
 trick entirely: never stage content without also writing it to the working
 tree on a file they are holding edits in. Ask them to commit theirs first.
 That costs one message and has no failure mode.**
+
+## 13. A fallback is an assertion, so decide what it asserts
+
+Found in the segmentation screen on 18 September 2026, in the read that builds
+the one question the screen exists to ask:
+
+```ts
+claims.set(phone, (e.wording as string) ?? ev?.claimed_consent?.raw ?? 'sim')
+```
+
+`wording` is null whenever the imported cell was NOT RETAINED — which is the
+normal case for everything imported before the September fix, because
+`import_batches.staged` is cleared on commit. The ledger design says so in as
+many words: *`wording = null` means NOT RETAINED, never invented.*
+
+So the `?? 'sim'` did not fill in a display default. It **manufactured
+evidence**, and then rendered it inside guillemets, under the heading *"o seu
+ficheiro dizia «sim»"*, on a screen designed to be turned around in front of the
+agency whose file it claimed to be quoting. The one screen whose persuasive
+force comes entirely from quoting their file accurately was the screen inventing
+the quotation.
+
+### The distinction that matters, because not all fallbacks are this
+
+Two lines further down the same file:
+
+```ts
+state: states.get(phone) ?? 'undetermined',
+existingCustomer: p?.existing_customer ?? 'unknown',
+```
+
+Both are fine, and the difference is not subtlety — it is direction:
+
+| Fallback | Asserts | Failure mode |
+|---|---|---|
+| `?? 'undetermined'`, `?? 'unknown'` | **we do not know** | loud; refuses; costs a question |
+| `?? 'sim'`, `?? 'yes'`, `?? true`, `?? now()` | **we know, and here it is** | silent; permits; costs the record |
+
+A fallback to the loud state is an admission. A fallback to a *value the domain
+treats as evidence* is a lie the code tells on your behalf, every time the
+absence occurs, without a log line. **In any regulatory record, a recorded gap
+beats an invented value — always, and not by a small margin.** The gap costs a
+conversation. The invention costs the document's standing as a record, including
+for every row that was accurate.
+
+Checklist when writing `??` or `COALESCE` in a path that produces a record:
+if the right-hand side is something you would be willing to **quote, testify
+to, or act on**, it does not belong there. Return null and make the caller say
+"we did not keep it".
+
+### It had three symptoms and only one cause
+
+The same hardcoded «sim» had spread into places that looked unrelated:
+
+1. `heading: 'O seu ficheiro dizia «sim»…'` — a *constant* quoting a file no
+   reader had opened. Wrong for a file that said `y`, wrong for a mixed group.
+2. The radio `<legend>` reused that same question, so a group **with no claim at
+   all** was asked what lay behind a «sim» that never existed.
+3. `contacts.filter((c) => c.claimRaw !== null)` as the has-a-claim test — so
+   once the fallback was removed, the honest `null` made the hard question
+   **disappear for exactly the contacts it exists to ask about**.
+
+(3) is the one to remember: removing an invention exposes every place that was
+silently depending on it. Deleting the fabrication is half the fix; the other
+half is finding what had been leaning on it. The repair was to split the fact in
+two — `hasClaim` (is there a claim?) and `claimRaw` (what did it say?) — because
+they are different questions and only one of them is always answerable.
+
+### The guard, since the file talks to a database and no unit test reaches it
+
+A line-level scan, in the same suite:
+
+```ts
+src.split('\n').filter((l) => /wording|claimRaw|claimed_consent/.test(l)
+                           && /\?\?\s*['`"]/.test(l))
+```
+
+Narrow on purpose. It permits `?? 'unknown'` on the state lines and forbids a
+string literal standing in for a *cell*, which is the actual rule. Paired with a
+guard that no copy constant contains `«` in the heading/question fields — the
+quotation is data, and a constant holding one is a claim about a file nobody
+read. Both were proved by reverting the fix and watching the right test fail.
+
+## 13b. The degenerate case is the first one anyone sees
+
+The same screen's group heading read **"1 contactos · lista.csv · importados 8
+Set 2026"**.
+
+The grouping was correct. The label was not Portuguese. And n=1 was not an edge
+case here — it was the *first live run*, deliberately: ten contacts, watched,
+before anything larger. The first render of a cautiously-staged rollout is
+almost always the degenerate one, because that is what caution looks like.
+
+Nobody in the room assesses whether the grouping logic is sound. They read the
+sentence. A screen is judged on its worst sentence long before it is judged on
+its best behaviour, and `${n} contactos` is the cheapest possible way to look
+careless while being correct.
+
+The general form: **when a UI string interpolates a count, the n=0 and n=1
+renders are requirements, not polish** — and if the feature is being rolled out
+to a small group first, they are the *only* renders that will be seen for days.
+Write them into the test as literal expected strings, because that is the form
+in which the defect is visible.
