@@ -41,7 +41,8 @@ A análise é organizada por **tipo de acção** e não por automação, por tr�
 | I | Responder dentro da janela de 24 horas | 01 | Baixo risco. Consentimento implícito na iniciativa do titular | §3 |
 | II | Comunicação por iniciativa da empresa | 02, 03, 05 | **O mais exigente.** Consentimento, jurisdição, modelos aprovados | §§4–8 |
 | III | **Publicação de conteúdo publicitário de imóveis** | 04 | **Regime próprio, independente do RGPD** | §8.A |
-| IV | **Pedido de avaliação ou recomendação** | 05 | Políticas de plataforma, com proibições recentes | §8.B |
+| IV | **Pedido de avaliação** | 05 | Políticas de plataforma, com proibições recentes | §8.B |
+| IV-A | **Pedido de recomendação a terceiro** | — | **Por analisar.** Ver §8.B.4 | — |
 | V | Conservação e movimentação de dados pessoais | Todas | RGPD, tratado no ATD | Anexo II do Contrato |
 
 **Toda a automação futura deve ser classificada numa ou mais destas acções antes de ser concebida.** Uma automação que não se enquadre em nenhuma exige análise autónoma antes de qualquer construção.
@@ -276,6 +277,13 @@ Espanha e outros Estados-Membros dispõem de regimes próprios quanto à informa
 
 > Aplica-se à Automação 05. **A concepção intuitiva desta automação constitui infracção.**
 
+> ⚠️ **Âmbito desta secção, delimitado em 19 de Setembro de 2026.** Esta secção
+> trata **exclusivamente do pedido de avaliação pública** dirigido a quem
+> concluiu transacção com a agência. Na versão 2 a Acção IV intitulava-se
+> «pedido de avaliação **ou recomendação**» e o texto abaixo analisava apenas a
+> primeira — o documento dava por analisado o que não estava. O pedido de
+> recomendação é matéria distinta e consta do §8.B.4 como **por analisar**.
+
 ## 8.B.1 A armadilha
 
 O desenho natural — perguntar ao cliente como correu e, se a resposta for positiva, encaminhá-lo para deixar uma avaliação pública — é aquilo que a Google designa por **review gating**, isto é, a triagem de clientes por sentimento antes do pedido de avaliação.
@@ -304,6 +312,27 @@ O desenho natural — perguntar ao cliente como correu e, se a resposta for posi
 - Uma eventual recolha interna de opinião é **posterior e autónoma**, nunca condicionando o pedido público
 
 > A distinção operativa é simples: **pedir a todos é permitido; escolher a quem pedir não é.**
+
+## 8.B.4 Pedido de recomendação — matéria por analisar
+
+**Não analisada. Registada para que a ausência de análise seja visível.**
+
+Um pedido de recomendação é acto distinto de um pedido de avaliação, e as regras
+do §8.B.2 não lhe são aplicáveis: **não é a política da Google que o governa.**
+
+A questão que levanta é outra e é anterior: pedir a alguém que recomende a
+agência a um conhecido tem por resultado, quando corre bem, **a entrega de dados
+pessoais de um terceiro que nada consentiu.** O regime aplicável é, por isso, o
+do tratamento desses dados e não o de qualquer política de plataforma.
+
+**Consequência actual, independentemente da análise.** Um contacto obtido por
+esta via chega sem origem documentada, o que o coloca no **segmento D**, que o
+sistema recusa contactar (§5.2). Nenhuma automação da Ryvo Digital pede
+recomendações, e a arquitectura recusaria o resultado se pedisse.
+
+**Esta secção não resolve a questão. Assinala que não está resolvida**, e que
+qualquer automação futura que a pretenda abordar carece de análise autónoma antes
+de ser concebida, nos termos do §2.A.
 
 
 ---
@@ -354,6 +383,9 @@ Registam-se expressamente, por constituírem o elemento mais demonstrativo da po
 | Declaração de IA anteposta a toda a conversa | Assumidamente menos natural do que a alternativa |
 | Pedido de avaliação enviado a todos, sem triagem | Produz avaliações negativas que uma triagem evitaria |
 | Recusa de publicar anúncio sem classe energética | Bloqueia publicações que a agência pretende fazer |
+| Um único pedido de avaliação, sem insistência | Menos avaliações do que uma sequência produziria |
+| Ausência de qualquer controlo que permita saltar um cliente em concreto | A agência irá pedi-lo, e a resposta é não |
+| Recusa de registar que avaliação resultou de que pedido | Prescinde de análise sobre que clientes avaliam bem — e é esse o conjunto de dados que a triagem exigiria |
 
 ---
 
@@ -367,7 +399,9 @@ Registam-se expressamente, por constituírem o elemento mais demonstrativo da po
 6. **Repartição de deveres entre fornecedor e responsável pela implantação** no âmbito do Regulamento da Inteligência Artificial
 7. **Obrigações de informação em anúncios imobiliários** em cada jurisdição onde a Automação 04 venha a operar
 8. **Responsabilidade pela exactidão da classe energética publicada** — se recai sobre a agência, sobre o mediador, ou sobre ambos
-9. **Qualificação do pedido de avaliação** enquanto comunicação comercial para efeitos da Lei n.º 41/2004
+9. **Qualificação do pedido de avaliação** enquanto comunicação comercial para efeitos da Lei n.º 41/2004 — *submetida a 19 de Setembro de 2026, questão 1 da nota da Automação 05. Registada desde 17 de Setembro e omitida dos dois lotes anteriores*
+10. 🔴 **Se a excepção de cliente existente cobre um pedido de avaliação**, não sendo este comunicação relativa a produto ou serviço análogo. Determina se a Automação 05 se dirige ao segmento A ou apenas ao segmento B — *submetida a 19 de Setembro de 2026, questão 2 da mesma nota*
+11. **O pedido de recomendação a terceiro** (§8.B.4), por analisar
 
 ---
 
@@ -375,6 +409,12 @@ Registam-se expressamente, por constituírem o elemento mais demonstrativo da po
 
 Este documento é revisto sempre que: seja alterada a política da Meta; seja publicada orientação de autoridade de controlo relevante; entre em vigor legislação aplicável, designadamente o Regulamento ePrivacy; ou seja acrescentada jurisdição à tabela.
 
-**Versão 2 · 17 de Setembro de 2026 · Pendente de revisão jurídica**
+**Versão 2.1 · 19 de Setembro de 2026 · Pendente de revisão jurídica**
 
 *Versão 1 cobria as Acções I, II e V. A versão 2 acrescenta as Acções III (publicidade de imóveis) e IV (pedidos de avaliação), bem como o mapa de acções do §2.A.*
+
+*Versão 2.1 (19 de Setembro de 2026) corrige duas coisas e não acrescenta análise
+nova: as coimas do §8.A, que indicavam o escalão das pessoas singulares quando os
+clientes são pessoas colectivas; e o âmbito da Acção IV, que se intitulava «pedido
+de avaliação ou recomendação» analisando apenas o primeiro. **Ambas as correcções
+são de alcance e não de redacção: o documento afirmava mais do que sustentava.***
