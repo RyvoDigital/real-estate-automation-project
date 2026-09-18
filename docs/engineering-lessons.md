@@ -606,6 +606,64 @@ lead with nothing left to ask.
   Spanish "reservo el jueves" and English "I'm booking you in for Thursday"
   had the identical gap.
 
+---
+
+## 1j. A fixture that needs an exemption is telling you something, and the exemption is the finding
+
+Logged 2026-09-18, the second time in three days.
+
+**First time.** `dispatch.test.ts` built a send row and could not mark it `sent`:
+`send_requires_permission` and `send_requires_confirmed_policy` refused it. The
+fixture carried a permission and a basis but no consent event and no policy
+confirmation. The fix was not to relax the constraints — it was to hang the
+fixture off a **real** consent event from the ledger, which the foreign key
+would have refused to invent.
+
+**Second time.** The same file's template fixture used the approval id
+`HX_FIXTURE_DISPATCH_TEST`, and the moment `recordApprovedTemplate` began
+validating the Twilio Content SID shape, that fixture became a row **no
+supported path could have created.** It was replaced with a real shape.
+
+Twice is a pattern:
+
+> **A fixture should have to satisfy every constraint a real row satisfies. The
+> moment it needs an exemption, the exemption is the finding** — either the
+> constraint is wrong, or the fixture is testing something that cannot happen.
+
+### Why this is not pedantry
+
+A fixture that bypasses a constraint is a test that runs against a database
+state production can never reach. Everything it then proves is about an
+imaginary system. Worse, it usually proves the *happy* path — because the
+exemption was needed precisely to get past the thing that would have stopped it
+— so the suite stays green while the real path is untested.
+
+And the exemption tends to arrive as a small kindness: a nullable column filled
+with a placeholder, a check disabled "only in tests", a seed script with
+`ON CONFLICT DO NOTHING`. Each reads as unblocking a test rather than as
+weakening one.
+
+### The diagnostic, which is quick
+
+When a fixture will not insert, ask **which of these is true**:
+
+1. **The constraint is right and the fixture is wrong** — build the fixture
+   properly, out of real rows. Most common, and the answer both times here.
+2. **The constraint is right and the test is about an impossible state** —
+   delete the test. It was testing something the system cannot do.
+3. **The constraint is wrong** — a genuine finding, and the reason to look
+   rather than to reach for an exemption.
+
+The one answer never available is "add an exemption and move on", because that
+converts a question into a silence.
+
+### And it works forwards, too
+
+A fixture built only out of real rows is a small integration test of the write
+path nobody wrote: `dispatch.test.ts` now proves, incidentally and on every run,
+that a consent event can be found, a template can be recorded, and a send row
+satisfying all four constraints can exist at all.
+
 ## 1c. A wrong invocation that produces a valid-looking config
 
 `cd infra && docker compose up -d` is the natural thing to type and it took the

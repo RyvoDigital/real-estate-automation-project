@@ -74,6 +74,14 @@ async function ensureFixtureTemplate(clientId: string): Promise<string> {
   if (readErr) throw new Error(`template read failed (is 0020 applied?): ${readErr.message}`)
   if (found) return FIXTURE_APPROVAL_ID
 
+  // CHECK-THEN-INSERT IS A RACE, and this one lost: two `npm test` runs against
+  // the same database — one backgrounded, one in the foreground — both saw the
+  // row absent and both inserted, and the second failed on the unique
+  // constraint inside the first test that called this.
+  //
+  // The constraint did its job. The fixture's job is to be idempotent under
+  // concurrency, not to assume it is alone: a duplicate key here means somebody
+  // else created the row we wanted, which is success arriving by another route.
   const { error } = await db.from('message_templates').insert({
     client_id: clientId, name: 'fixture_dispatch_test', language: 'pt_PT', version: 1,
     body: FIXTURE_BODY, category: 'marketing',
@@ -81,7 +89,11 @@ async function ensureFixtureTemplate(clientId: string): Promise<string> {
     submitted_at: new Date().toISOString(), approved_at: new Date().toISOString(),
     source_document: 'cockpit/tests/dispatch.test.ts — fixture, not a submitted template',
   })
-  if (error) throw new Error(`template fixture insert failed: ${error.message}`)
+  if (error) {
+    // 23505 is unique_violation. Anything else is a real failure.
+    if (error.code === '23505') return FIXTURE_APPROVAL_ID
+    throw new Error(`template fixture insert failed: ${error.message}`)
+  }
   return FIXTURE_APPROVAL_ID
 }
 
