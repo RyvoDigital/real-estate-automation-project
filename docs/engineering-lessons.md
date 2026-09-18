@@ -1528,6 +1528,39 @@ was ever made.
    file somewhere should checksum it at the far end. The step that failed above
    would have failed loudly one command earlier.
 
+### And the fifth instance, which the fourth's own fix walked into
+
+The habit added above — checksum the file at the far end — was used on the next
+attempt, and it passed. Both sides printed the same hash. The deploy was still
+wrong: **the server's checkout was seventeen commits behind, and `docker cp`
+had faithfully copied the wrong file.**
+
+```
+shasum (host)      cfe4e31e…          ← the OLD file
+sha256sum (in n8n) cfe4e31e…          ← the same OLD file
+```
+
+A consistency check between two copies confirms the **copy**. It cannot confirm
+the **source**, and it will agree enthusiastically about the wrong one.
+
+> **"Both sides agree" and "this is the right file" are different claims, and
+> the first is the one that is easy to write.** Compare against a value known
+> independently of both copies — a hash recorded when the artefact was built,
+> or the content of the change itself — or the check is a tautology with a
+> reassuring shape.
+
+What actually caught it was two things neither of which is a consistency check:
+a hash **given in advance** from the authoring side, and greps for the change
+itself (`row.source = 'whatsapp'` → expect 1, `consent_status` → expect 0). Both
+compare against an expectation rather than against another copy, which is why
+they could disagree with reality.
+
+The generalisation is uncomfortable, because self-consistency is what most
+verification is made of: replicas agreeing, a cache matching its source, two
+services reporting the same total, a backup restoring to an identical checksum.
+Each proves the plumbing between copies and none proves the thing being copied
+is the thing intended.
+
 ## 5f. A boundary crossed in both directions has a loud half and a quiet half, and the defect lives in the quiet one
 
 Logged 2026-09-18, from the same mistake on two sides of one API.
