@@ -324,7 +324,7 @@ nada por parecer simpático.
 
 **Rodapé** · `Para não receber mais mensagens, toque em Não contactar mais.`
 
-**Botões** · `Não contactar mais`
+**Botões** · `Deixar a minha opinião` (acção · URL fixo) · `Não contactar mais` (resposta rápida)
 
 **Variáveis** · `{{1}}` nome próprio · `{{2}}` nome do agente · `{{3}}` nome da agência
 
@@ -350,21 +350,35 @@ agência. Fixá-la no corpo evita duas coisas: uma variável que contém um URL,
 convida a recusa na submissão, e uma variável a mais na relação entre texto
 fixo e variável que a Meta avalia.
 
-## 7.5 Um botão e não dois
+## 7.5 Os botões
 
 Os modelos anteriores levam `Sim, tenho interesse` e `Não contactar mais`. Aqui
 o primeiro não tem significado: não há proposta a aceitar, e um botão de
 interesse ao lado de um pedido de opinião sugere que se espera uma resposta
 determinada — que é precisamente o que 7.3 evita.
 
-Fica o botão de oposição, pela razão de 1.5: quem sai facilmente bloqueia menos.
+Em vez dele, **um botão de acção com o URL fixo da agência**, e o botão de
+oposição mantém-se pela razão de 1.5: quem sai facilmente bloqueia menos.
 
-> ⚠️ **Por verificar antes da submissão.** Um botão de acção com URL seria
-> provavelmente melhor do que a ligação no corpo, mas as regras da Meta quanto à
-> combinação de botões de resposta rápida com botões de acção mudaram e **não as
-> confirmei**: o servidor de documentação (context7) não está ligado nesta
-> sessão e a resposta não deve ser reconstruída de memória. A redacção acima não
-> depende dessa confirmação e funciona em qualquer dos casos.
+**Confirmado na documentação da Meta em 19 de Setembro de 2026.** Botões de
+resposta rápida e botões de acção podem coexistir no mesmo modelo, desde que
+**agrupados e não intercalados** — a API recusa `Resposta rápida · URL ·
+Resposta rápida` e aceita `URL · Resposta rápida`. Máximo de dez botões no
+total, muito acima do que aqui se usa.
+
+> A resposta veio da documentação em linha da Meta e **não do context7**, que
+> não está ligado nesta sessão. Fica dito porque a regra sobre combinação de
+> botões já mudou uma vez, e quem a reler deve saber de onde veio esta.
+
+## 7.5.1 E a ligação mantém-se no corpo, apesar do botão
+
+Redundância deliberada, pela mesma razão que 1.5 dá para manter o rodapé quando
+já há botões: **nem todos os clientes de WhatsApp apresentam os botões da mesma
+forma.** Se o botão não for apresentado e a ligação não estiver no corpo, a
+mensagem fica sem qualquer forma de chegar ao sítio — e uma mensagem que pede
+uma opinião sem dizer onde deixá-la é pior do que não ter sido enviada.
+
+O custo é uma ligação repetida quando ambos aparecem. É barato.
 
 ## 7.6 Só português, por enquanto
 

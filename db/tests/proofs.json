@@ -315,9 +315,11 @@
       "watches": [
         "db/migrations/0033_closes.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0033_closes.sql": "25b74e4ae34db5893b1a751d83b38e0b5d60a4757ac280c72e07ca85d2f606ef"
+      },
+      "last_proved": "2026-09-18",
+      "proved_by": "Manuel Vale"
     },
     {
       "id": "0034-review-destination",
@@ -326,9 +328,11 @@
       "watches": [
         "db/migrations/0034_review_destination.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0034_review_destination.sql": "6fa241ea3a2d4ecfb32f78e6dbfe1a0b6181384ab1be8c81b93bd5cdd1047873"
+      },
+      "last_proved": "2026-09-18",
+      "proved_by": "Manuel Vale"
     }
   ]
 }

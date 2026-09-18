@@ -1,10 +1,10 @@
 # Where we left off
 
-**Last updated:** 2026-09-18 (late).
-**Where the work is:** Automations 03 and 04. Phase 1 (Concierge) and
-Automation 02's send path are done and are not what anyone is touching.
-**Next: nothing, until the operator has sat with an agency** — §0 is Automation
-04, §0a is Automation 03, and both end in the same room.
+**Last updated:** 2026-09-19.
+**Where the work is:** Automation 05. 03 and 04 are built and waiting on other
+people; Phase 1 (Concierge) and 02's send path are done and untouched.
+**§0 is Automation 05, §0b is 04, §0c is 03.** All three end in the same two
+rooms: an agency's, and a lawyer's.
 
 > ⚠️ The header used to say "Last updated 2026-09-03, next is Checkpoint C".
 > That was two automations ago. Sections below are newest-first and the older
@@ -17,9 +17,113 @@ tripped us up. **Sections are newest first.**
 
 ---
 
-# 0. HANDOVER — Automation 04, 18 September 2026
+# 0. HANDOVER — Automation 05, 19 September 2026
 
-**Read §0a too. 03 and 04 are the same conversation away from being useful.**
+## What 05 is, in one paragraph
+
+**A fairness obligation.** Not "get more reviews" — **ask everyone, without
+choosing**, which is at once §8.B's requirement and the only hard part. An
+agency doing this by hand will never do it, and not from malice: asking the
+client who shouted at you is not a thing people do. The automation exists to
+remove the choice.
+
+Remove it and almost no logic remains in the middle. What is left is *who
+closed*, *when*, and *did we ask* — and the third is this codebase's first
+positive obligation.
+
+Design: `docs/automation-05-review-request-design.md`. §2 and §5 are the two
+sections to read before touching anything.
+
+## The catalogue line was four automations
+
+| Act | Verdict |
+|---|---|
+| Public review | **This is 05** |
+| Stay in touch | **Already built — it is 02's segment A template, live** |
+| Referral | **Already refused**: a referred contact has no documented origin, which is segment D |
+| Testimonial | A permission, not a message. Named, out of scope |
+
+Both catalogue names were corrected on 19 Sep: "Referral" appeared in two of
+five automation names and was built in neither, and 05 lost "Reputation Loop"
+because it is one message, once.
+
+## Where it stands
+
+| | |
+|---|---|
+| `0033` closes, `0034` review destination | ✅ applied, verified, **blessed** |
+| Close intake + party declaration | ✅ pure validation, the store, and the ask-the-agent prompt |
+| The disposition | ✅ derived from the send row, seven reasons, none able to express a judgement |
+| The omission reconciliation | ✅ a reconciliation, not an invariant. Sends nothing |
+| The screen | ✅ three counts together, the gap explained, the limits on the page |
+| Template drafts | ✅ `avaliacao_pos_venda_pt`, held for the lawyer |
+| The runner and the send (step 7) | ❌ gated on Meta — the same gate as 02 |
+
+## What you cannot work out from the repo
+
+**1. Nothing has ever run.** No close has been recorded, because no agency has
+reported one. Every screen is correct and empty.
+
+**2. 🔴 The contradiction, and it is the most important sentence here.**
+*"Everyone" means everyone we may lawfully message.* The gate refuses segment D,
+segment E, suppressions and unresolvable jurisdictions, so **the ask list is
+always shorter than the sales list**. Somebody will read that as a bug.
+**Closing it is the offence.** Defended twice: the screen shows the gap with
+every reason beside it, and the reason vocabulary is closed with no member that
+can express a judgement — a seventh reason fails a test that tells you to come
+and write down what it is for.
+
+**3. There is no per-sale skip, and its absence is the design.** An agency may
+switch 05 off entirely; never for one sale. Guarded twice: the page cannot grow
+a control, and `CloseRow`'s key set is asserted whole. **The second guard works
+because `npm test` runs `tsc` first** — split those scripts and it silently
+stops holding.
+
+**4. This is the one place where the tempting act is the kind one.** Sparing
+the client who had a difficult sale is what a decent person would do by hand.
+Everything above exists so nobody has to be decent about it at 6pm on a Friday.
+
+**5. The backfill rule enforces itself.** The ask window is measured from
+`closed_on` and never `reported_at`, so a backfilled close is born expired. No
+constraint mentions backfills, deliberately — a rule with a second number
+chosen to defend it has two places to be wrong.
+
+**6. `reported_after_window` is not `unaccounted`, and the distinction carries
+the whole check.** Two hundred historical closes reporting as findings would
+hide the one genuine skip, and the genuine skip is the only output that means
+anything.
+
+**7. The review link is a POLICY boundary.** The host allow-list exists because
+§8.B is *Google's* policy; a link to another platform runs this automation under
+rules nobody has read. The path is deliberately unconstrained — a pattern tight
+enough to feel rigorous rejects a valid link an agency pasted from their own
+dashboard.
+
+**8. A flaky test, diagnosed and not fixed.** `RULE 1: an objection is
+permanent` failed once on 18 Sep and never again. That file calls
+`resolve_consent_state` over the network against live Supabase, so a transient
+RPC error surfaces under the rule's name — **the single most important test in
+the codebase reporting a transport failure as a consent-rule breach.** The
+cause was never confirmed; the error text was not captured. Worth making a
+transport failure report as one.
+
+## What waits on somebody else
+
+| Who | What |
+|---|---|
+| **A lawyer** | 🔴 Does segment A's existing-customer basis carry a review request? It covers *products or services analogous* to the transaction, and a review request is neither. **If not, 05 reaches only segment B — a smaller audience and a different product.** Question 2 of `nota-questoes-automacao-05.md` |
+| **A lawyer** | Is a review request a commercial communication under Lei 41/2004? §12.9, registered 17 Sep, omitted from both earlier batches — the omission is declared in the note |
+| **Meta** | Verification and template approval. 05 inherits 02's gate and **cannot enter service before 02 does** |
+| **An agency** | Reporting a close, with the party. One message per sale, which an agent may already be sending because it takes the listing out of matching |
+
+**Ten questions are now with the lawyer across three notes.** Four from 02 (sent
+17 Sep, unanswered), four from 03/04 (18 Sep), two from 05 (19 Sep).
+
+---
+
+# 0b. HANDOVER — Automation 04, 18 September 2026
+
+**Read §0c too. 03 and 04 are the same conversation away from being useful.**
 
 ## What 04 is, in one paragraph
 
@@ -142,7 +246,7 @@ service in Spain without its own analysis.
 
 ---
 
-# 0a. HANDOVER — Automation 03, 18 September 2026
+# 0c. HANDOVER — Automation 03, 18 September 2026
 
 **Read this first if you have read nothing.**
 

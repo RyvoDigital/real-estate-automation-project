@@ -3873,3 +3873,61 @@ it was written. §13d, third instance, and the tell is the same each time — th
 guard was written from the examples in front of its author rather than from the
 shape of what it forbids. **A guard's cases are now asserted before it is
 used**, which is three lines and would have caught all three.
+
+---
+
+## 1n. A check that cannot fail for the reason it exists
+
+**19 September 2026.** Four in one day, three of them in my own new code and the
+fourth in the tool I was using at the time. They do not look alike and they are
+one thing.
+
+| The check | What it was for | Why it could not fail for that |
+|---|---|---|
+| A word-list over the refusal prose, forbidding language that describes how a client felt | stopping a reason being added that screens people by sentiment | It matched its own **disclaimer** — *"never about the person's opinion of the agency"*. A regex cannot tell use from mention, and prose explaining why we do not screen must contain the vocabulary of screening |
+| `/\bunhappy\b/` against `client_unhappy` | seeing a judgement word in an identifier | `\b` counts `_` as a word character, so **no snake_case identifier could ever match**. The guard was blind to the exact shape it inspects |
+| `accountedFor: difference === pending + notAsked + unaccounted` | telling a reader whether the gap was explained | The switch that fills those buckets is exhaustive, so the sum **is** the difference. An identity, asserted by two tests that both expected `true` |
+| The proof book's staleness check, over a proof whose hash I had pre-filled | turning "remember to run this" into "the suite asks" | The hash answers *has the file moved since it was proved*. It cannot answer *was it ever proved* — and `last_proved: null` sat there green |
+
+### The shape
+
+Each one **ran**, **passed**, and was **incapable of the failure it was written to
+produce**. That is worse than a missing check, because a missing check is
+visible in the gap where it should be and this one occupies the space.
+
+> **A guard's subject and a guard's reach are two different things, and a green
+> result only ever speaks to the reach.**
+
+### The tell, and it is the same tell every time
+
+Three of the four were found by the same question, and it is cheap:
+
+> **Which sabotage would turn this red?**
+
+- The prose guard: *any* honest sentence about not screening trips it — so it is
+  matching the wrong text.
+- `accountedFor`: nothing could make it false — so it asserts nothing.
+- The pre-filled hash: the file has not moved and never will before I bless it
+  — so the alarm cannot ring.
+
+That question is **lesson 1m applied before the run rather than after**. 1m says
+an empty expectation is the absence of a prediction wearing a prediction's
+clothes; this says the same about a check. Asking it costs a sentence and it
+found a defect in three of the four places it was asked.
+
+### And the fourth one is about a tool, which makes it worth more
+
+The other three were mine and lived a day. The proof book is the mechanism this
+project uses to record everything a test suite cannot run, and it had a hole
+the shape of a whole category of obligation: **a proof registered with a
+plausible hash and never run is silent forever.**
+
+The fix is to ask the two questions separately — *has it moved* and *was it ever
+run* — and to leave the first blessing as the operator's claim, made by id,
+never something a registration can imply. Filling in a field on somebody's
+behalf turned a registration into a receipt.
+
+> **When a check is the thing that records that other work happened, a hole in
+> it is invisible by construction: the missing record is exactly what you would
+> see if the work had never needed doing.**
+
