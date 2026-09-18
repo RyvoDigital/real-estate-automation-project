@@ -19,7 +19,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 type Proof = {
@@ -30,6 +30,23 @@ type Proof = {
   hashes: Record<string, string>
   last_proved: string | null
   proved_by: string | null
+  /**
+   * A proof that CANNOT BE RUN YET, with the thing whose arrival unblocks it.
+   *
+   * Some rules are not constraints and cannot be proved by a rolled-back
+   * transaction — they live in a caller that does not exist. Leaving them out
+   * of the book means nobody wrote them down; putting them in with no hash
+   * fails the suite forever, and the fix somebody reaches for is to bless a
+   * proof they never ran.
+   *
+   * So a blocked proof is recorded, exempt from staleness, and carries
+   * `runnable_when`: a path that does not exist today. THE MOMENT IT DOES, the
+   * test below fails and says this proof is now runnable and has never been
+   * run. That is the difference between a note and a control: an obligation
+   * recorded and never discharged is worse than one nobody wrote down, because
+   * the record proves you knew.
+   */
+  blocked?: { reason: string; runnable_when: string }
 }
 
 const REPO = resolve(new URL('../..', import.meta.url).pathname)
@@ -44,6 +61,7 @@ test('every out-of-suite proof covers files that have not moved since it was run
   const stale: string[] = []
 
   for (const p of book.proofs) {
+    if (p.blocked) continue
     for (const file of p.watches) {
       const now = sha(file)
       const recorded = p.hashes[file]
@@ -67,6 +85,26 @@ test('every out-of-suite proof covers files that have not moved since it was run
   )
 })
 
+test('a blocked proof becomes an alarm the moment the thing it needs exists', () => {
+  const arrived: string[] = []
+  for (const p of book.proofs) {
+    if (!p.blocked) continue
+    if (!existsSync(resolve(REPO, p.blocked.runnable_when))) continue
+    arrived.push(
+      `${p.id}: ${p.blocked.runnable_when} now exists, so this proof is runnable ` +
+      `and has never been run.\n      ${p.how}`,
+    )
+  }
+  assert.deepEqual(
+    arrived, [],
+    'A proof that was waiting for something is no longer waiting:\n\n' +
+      arrived.map((s) => `  • ${s}`).join('\n') +
+      '\n\n  Run it, then: npm run proof:bless <id>\n' +
+      '  If it genuinely still cannot run, say why in `blocked.reason` and point\n' +
+      '  `runnable_when` at whatever it is actually waiting for. Do not delete it.\n',
+  )
+})
+
 test('the proof book itself is well formed, so a typo cannot silently watch nothing', () => {
   // A `watches` list that is empty, or names a file that does not exist, would
   // make this whole guard pass while covering nothing at all -- §5c's vacuous
@@ -78,5 +116,17 @@ test('the proof book itself is well formed, so a typo cannot silently watch noth
       assert.doesNotThrow(() => sha(f), `${p.id} watches ${f}, which does not exist`)
     }
     assert.ok(p.how?.trim(), `${p.id} does not say how to run the proof`)
+    if (p.blocked) {
+      // A blocked proof with no trigger is a silence with extra steps.
+      assert.ok(p.blocked.reason?.trim(), `${p.id} is blocked and does not say why`)
+      assert.ok(
+        p.blocked.runnable_when?.trim(),
+        `${p.id} is blocked and does not say what would unblock it`,
+      )
+      assert.equal(
+        p.last_proved, null,
+        `${p.id} is marked blocked but claims to have been proved on ${p.last_proved}`,
+      )
+    }
   }
 })

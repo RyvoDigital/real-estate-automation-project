@@ -3386,3 +3386,43 @@ The pair that fixes it, and both halves are needed:
 edit is confirmed to have landed, ask what *else* in the path produces the
 correct answer. If something does, the test is measuring that instead — and the
 guard you believe you have has never been shown to work.
+
+---
+
+## 13c. The live record is not a test fixture, and a convenience flag makes a claim on your behalf
+
+**2026-09-18, twice within five minutes, both by me.** `proof:bless` writes down
+that a human ran a proof. Its header already warns that blessing something you
+did not run is lying to the next person. I then ran `proof:bless --all` — twice —
+to *demonstrate* that it refuses blocked entries.
+
+Each run did what it says on the tin, and what it says on the tin is the defect:
+
+- it **first-blessed two proofs that had never been run**, which were the exact
+  two the operator had just said were unproven, and
+- it **rewrote `last_proved` on ten proofs whose files had not changed**,
+  replacing ten true dates with today's and putting a name against them.
+
+Recovered only because the file was uncommitted and `git checkout` had a true
+copy. There is no other copy of that record; it *is* the record.
+
+Two things generalise, and the second is the one I would have denied beforehand.
+
+**A tool that maintains a record must be exercised against a copy of the
+record.** I reached for the live file as a fixture because it was the one that
+was there. The fix is mechanical: copy it aside, run the tool, `cmp` the
+original, and only then believe what the tool printed. The check I ended up
+writing — *"PROOF BOOK UNCHANGED by --all"* — is one line and would have caught
+both instances.
+
+**A command whose shortest form makes the broadest claim will eventually make it
+by accident.** `--all` was documented as "almost never true", and documentation
+is not a control (rule 13). It now refuses to first-bless anything, and refuses
+to re-stamp a proof whose files have not moved — so it can only touch a proof
+that was previously blessed AND has genuinely changed, which is the one case
+where "I re-ran the ones that moved" is a true sentence. The first blessing of a
+proof is always made by id, because it is a claim about a new thing.
+
+> **If a convenience flag can assert something on your behalf, it will, on a day
+> when you were thinking about something else.** Both times here, the something
+> else was verifying a different guard — which is to say, being careful.

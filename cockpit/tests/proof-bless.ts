@@ -10,7 +10,16 @@ import { execSync } from 'node:child_process'
 
 const REPO = resolve(new URL('../..', import.meta.url).pathname)
 const BOOK = resolve(REPO, 'db/tests/proofs.json')
-const book = JSON.parse(readFileSync(BOOK, 'utf8'))
+const book = JSON.parse(readFileSync(BOOK, 'utf8')) as {
+  proofs: {
+    id: string
+    watches: string[]
+    hashes: Record<string, string>
+    last_proved: string | null
+    proved_by: string | null
+    blocked?: { reason: string; runnable_when: string }
+  }[]
+}
 const only = process.argv[2]
 
 /**
@@ -65,9 +74,63 @@ if (only !== '--all' && !ids.includes(only)) {
   process.exit(2)
 }
 
+/**
+ * A BLOCKED proof cannot have been run, so it cannot be blessed.
+ *
+ * Its whole point is that the thing it tests does not exist yet. Blessing it
+ * would stamp a date and a name on a proof nobody could have performed, and
+ * `--all` would do it by accident to every blocked entry at once — which is the
+ * same class of mistake the no-bare-bless rule above exists to prevent.
+ *
+ * When the blocker really has arrived, the staleness suite says so by name, and
+ * the honest sequence is: run it, remove `blocked`, then bless.
+ */
 let blessed = 0
 for (const p of book.proofs) {
   if (only !== '--all' && p.id !== only) continue
+  if (p.blocked) {
+    const msg =
+      `${p.id} is BLOCKED and cannot be blessed.\n` +
+      `  reason:        ${p.blocked.reason}\n` +
+      `  runnable when: ${p.blocked.runnable_when}\n` +
+      '  If that now exists: run the proof, delete the `blocked` entry, then bless.'
+    if (only === '--all') { console.error(`skipped — ${msg}\n`); continue }
+    console.error(`proof:bless: ${msg}`)
+    process.exit(2)
+  }
+  /*
+   * `--all` MUST NOT RE-STAMP A PROOF THAT HAS NOTHING TO RE-BLESS.
+   *
+   * Blessing writes today's date and your name. For a proof whose files have
+   * not moved since it was last proved, there is nothing to record — and the
+   * write REPLACES a true date with a newer one, so a convenience call quietly
+   * destroys the history the book exists to keep.
+   *
+   * Done once, on 18 September 2026, by someone demonstrating the blocked-entry
+   * guard: ten real dates became today's in a single command. Recovered from
+   * git because the file was uncommitted. `proof:bless <id>` still re-stamps
+   * deliberately, which is the case where saying "I ran it again today" is true.
+   */
+  if (only === '--all') {
+    // A proof that has NEVER been blessed is somebody claiming they ran a new
+    // thing for the first time. That claim is always made by id — it is never
+    // a side effect of a convenience command.
+    if (!p.last_proved) {
+      console.error(
+        `skipped — ${p.id} has never been proved. A first blessing is a claim ` +
+        `about a NEW thing and must be made deliberately:\n    npm run proof:bless ${p.id}`,
+      )
+      continue
+    }
+    const unchanged = p.watches.every(
+      (f) => p.hashes[f] === createHash('sha256')
+        .update(readFileSync(resolve(REPO, f))).digest('hex'),
+    )
+    if (unchanged) {
+      console.log(`unchanged — ${p.id} left as proved on ${p.last_proved} by ${p.proved_by}`)
+      continue
+    }
+  }
   blessed += 1
   for (const f of p.watches) {
     p.hashes[f] = createHash('sha256').update(readFileSync(resolve(REPO, f))).digest('hex')

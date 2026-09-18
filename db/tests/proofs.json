@@ -5,7 +5,20 @@
     "match the file on disk. It does NOT run the SQL and cannot know whether you",
     "really ran it -- it converts 'remember to run this' into 'the suite asks'.",
     "A stale alarm is not a proof. It is the difference between a note and a control.",
-    "To re-bless after running the proof: npm run proof:bless"
+    "To bless after running one: npm run proof:bless <id>",
+    "",
+    "`--all` NEVER first-blesses and never re-stamps an unchanged proof. Both were",
+    "added on 18 Sep 2026 after a convenience call replaced ten true dates with",
+    "today's and stamped two never-run proofs as proved. The first blessing of a",
+    "proof is somebody claiming they ran a new thing, and that claim is always",
+    "made by id.",
+    "",
+    "A proof may also be BLOCKED: recorded, exempt from staleness, and carrying",
+    "`runnable_when` -- a path that does not exist yet. The moment it does, the",
+    "suite fails and says the proof is now runnable and has never been run, and",
+    "`proof:bless` refuses it until then. That covers two kinds of deferred",
+    "obligation: a proof that cannot be RUN yet, and a check that cannot be",
+    "WRITTEN yet. Both are alarms with a trigger rather than a silence."
   ],
   "proofs": [
     {
@@ -141,6 +154,60 @@
       },
       "last_proved": "2026-09-18",
       "proved_by": "Manuel Vale"
+    },
+    {
+      "id": "0025-listing-matches-guards",
+      "what": "The two CHECKs that keep a computed match and a chosen one apart, the PARTIAL UNIQUE INDEX (one current row per lead x listing), and the FREEZE (a notified match resists an edit and permits an outcome). The last two need a row that EXISTS and is then changed, which no constraint-only check can reach. Includes the permitted neighbours: a legitimate computed row, a successor once the first is history, and an outcome written after notification -- a table that refused everything would pass every refusal case identically.",
+      "how": "Paste db/tests/0025_listing_matches.test.sql into the Supabase SQL editor and run it. It rolls itself back. Expect 'ALL SEVEN REFUSAL CASES FIRED, and all six permitted cases were accepted'. Any 'DID NOT FIRE' is a guard that is not holding; a MISSING ok on a permitted case is the opposite failure and matters just as much.",
+      "watches": [
+        "db/migrations/0025_listing_matches.sql",
+        "db/tests/0025_listing_matches.test.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
+    },
+    {
+      "id": "0026-lead-requirements-guards",
+      "what": "An unknown kind is refused rather than stored and never matched (0009's `availabe` in a new place), and an agent's assertion about a lead carries both their words and their name. With the neighbours: a complete agent row, a derived row that needs no author, and area holding a LIST of alternatives in ONE row -- which is lesson 7c, since two rows of an alternatives kind are an AND and match nothing anywhere.",
+      "how": "Paste db/tests/0026_lead_requirements.test.sql into the Supabase SQL editor and run it. It rolls itself back. Expect 'ALL THREE REFUSAL CASES FIRED, and all three permitted cases were accepted'.",
+      "watches": [
+        "db/migrations/0026_lead_requirements.sql",
+        "db/tests/0026_lead_requirements.test.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
+    },
+    {
+      "id": "0026-recompute-preserves-agent-rows",
+      "what": "THE RULE THAT MATTERS MOST IN 0026, AND IT IS NOT A CONSTRAINT. A recompute deletes by source -- field, conversation, note -- and never touches source='agent'. The agent's answer to 'why them?' exists nowhere else and is the only way a name-and-phone list acquires structure. The obvious 'delete every row for this lead and reinsert' destroys it AND LOOKS LIKE IT WORKED, because every derived row comes back.",
+      "how": "Given one 'agent' row and three derived rows for a lead, run the recompute and assert the agent row is still present AND carries its ORIGINAL id -- a delete-and-reinsert that happened to write an equivalent row is the same defect with a new primary key. Cannot be run yet: the matching run does not exist.",
+      "watches": [
+        "db/migrations/0026_lead_requirements.sql"
+      ],
+      "hashes": {},
+      "blocked": {
+        "reason": "The recompute lives in the caller, and the matching run has not been built. There is nothing to run this against.",
+        "runnable_when": "cockpit/src/lib/matching/run.ts"
+      },
+      "last_proved": null,
+      "proved_by": null
+    },
+    {
+      "id": "0025-gate-never-reads-listing-matches",
+      "what": "agent_dismissed_lead is a working preference held by an agent, NOT an objection. An objection is permanent, belongs to the contact, lives in the consent ledger, and is recorded because a person asked for it. If the two ever merge, an agent's convenience becomes a permanent legal state on somebody who never asked for it -- invisibly, because both produce the same silence. 0025's header names three safeguards and a migration can only carry two; this is the third.",
+      "how": "A source-level boundary check of the kind tests/one-sender.test.ts already does for the provider credential: the gate and its reads -- gate.ts, gate-read.ts, suppression.ts, the consent resolution -- must not import or query listing_matches, and the check must name the offending path rather than return a count. The CANDIDATE-SET query is the one place that SHOULD read it, so the check is a boundary and not a ban. Cannot be written yet: the matching run does not exist, so there is no caller to bound.",
+      "watches": [
+        "db/migrations/0025_listing_matches.sql"
+      ],
+      "hashes": {},
+      "blocked": {
+        "reason": "The matching run has not been built, so there is no read path to bound. Recorded now because an obligation recorded and never discharged is worse than one nobody wrote down -- the record proves you knew.",
+        "runnable_when": "cockpit/src/lib/matching/run.ts"
+      },
+      "last_proved": null,
+      "proved_by": null
     }
   ]
 }
