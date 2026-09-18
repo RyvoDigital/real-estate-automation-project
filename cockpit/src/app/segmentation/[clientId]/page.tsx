@@ -185,7 +185,12 @@ function Step1({ clientId, groupId, jurisdiction }: {
               {/* No pre-selection: a pre-ticked option collects a click rather
                   than a decision, and the click carries the weight of a
                   declaration (§11d). */}
-              <input type="radio" name="origem" value={seg} required style={{ marginTop: 6 }} />
+              {/* 44px, or it fails probe:layout on a phone and is a poor
+                  target on a laptop in a meeting. Found once the probe was
+                  given a clientId: this route had been SKIPPED for want of
+                  one, so the tap-target check had never run on it at all. */}
+              <input type="radio" name="origem" value={seg} required
+                style={{ marginTop: 6, minWidth: 44, minHeight: 44 }} />
               <span>
                 <span style={{ fontWeight: 600 }}>{SEGMENT_CHOICE[seg].label}</span>
                 <span style={{ display: 'block', ...muted, fontSize: 14, marginTop: 4 }}>
@@ -270,7 +275,7 @@ function Step2({ clientId, group, contacts, segment, jurisdiction }: {
           uncertainty about the NAME — which is a different claim, and not one
           anybody was making. */}
       <label style={{ display: 'block', margin: '0 0 24px', fontSize: 15 }}>
-        <input type="checkbox" name="uncertainty" />{' '}
+        <input type="checkbox" name="uncertainty" style={{ minWidth: 44, minHeight: 44 }} />{' '}
         {UI.unsure}
       </label>
 

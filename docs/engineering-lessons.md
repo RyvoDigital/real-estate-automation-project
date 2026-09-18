@@ -3469,3 +3469,58 @@ not-a-ban test anchors on a hardcoded path instead of the list it sits beside,
 so renaming an entry in the list cannot hide it. That is a fact about the suite
 which only the investigation surfaced — an explanation would have filed it as
 noise and moved on.
+
+### It paid for itself the same day it was written
+
+**Hours later, building F4.** A test predicted to pass failed, and the ready
+explanation — *"the bedroom count in the known set is licensing it"* — was
+wrong. Reading the actual behaviour found a **live defect in the cockpit's draft
+assistant**: the money pattern required three characters before the unit, so
+`"2 milhões"` was not seen as money **at all** and passed with an empty known
+set, while `"1.5 milhões"` was caught.
+
+**The value was not the prediction being right. It was that a mismatch was
+treated as information rather than as noise.** The prediction was wrong twice
+over — wrong about which test would fail, and wrong about why — and both errors
+were only worth anything because the gap between predicted and observed was
+opened up instead of closed over. A sabotage matrix whose mismatches are
+explained away is a matrix that can only ever confirm what you already believed.
+
+
+---
+
+## 13d. A check that cannot see part of its own subject
+
+**2026-09-18, three times in one day**, in three unrelated places. Each was a
+guard that ran, reported cleanly, and was blind to a part of the thing it
+existed to watch.
+
+| The check | What it could not see |
+|---|---|
+| a SQL balance checker | it stripped `--` comments with a regex, including a `--` **inside a string literal**, and then reported the file as broken |
+| `containsPhoneNumber` | it stripped every non-digit from the WHOLE text, so any notification mentioning two prices looked like a phone number |
+| the fixture-import guard | it matched `from '…'` and `require('…')`, so a bare `import '…'` and a dynamic `import('…')` walked past |
+
+None of these is an exotic edge case. **A `--` inside a string, two prices in a
+sentence, and a side-effect import are the ordinary forms of their subjects** —
+which is what makes this a family rather than three bugs.
+
+The two failure directions are not symmetric, and both were present:
+
+- **Blind** (the fixture guard) — passes over the thing it was written for. The
+  sabotage that finds it is the one that plants the *ordinary* form, not the
+  clever one.
+- **Deafening** (`containsPhoneNumber`) — fires on everything, which is worse
+  than absent, because a guard nobody trusts still occupies the slot where a
+  working one would go. Somebody eventually deletes it, correctly, and the
+  protection leaves with it.
+
+> **Before believing a check, feed it one instance of what it is supposed to
+> catch and one instance of what it must ignore.** Two lines. All three of these
+> would have been caught at the moment of writing, and two of them were instead
+> caught by sabotage hours later — which is lucky, not a process.
+
+The `guardDraft` instance is the one to keep in mind, because it was **live**: a
+hole that only opens on round numbers is worse than no guard, since a guard is
+trusted precisely by people who tested it with a realistic-looking number and
+saw it work.

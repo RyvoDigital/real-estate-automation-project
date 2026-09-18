@@ -385,6 +385,16 @@ discovered:
 3. **Length in practice.** Six matches with long evidence quotes may be a wall
    of text on a phone. The five-name cap is a guess with its reasoning attached.
 
+**Item 2 is a PREREQUISITE for the calibration conversation, not a follow-up to
+it.** The agent in that room will be reading the output. An English sentence
+composed into a Portuguese notification is the first thing they will see and the
+last thing anybody wants to explain in person — and it would have been found in
+front of a client rather than in a test. `score.ts` emits prose today; it must
+emit structured reasons with a per-language renderer BEFORE the afternoon is
+arranged.
+
+Items 1 and 3 are the opposite: they can only be answered in that room.
+
 Like §3.18, this cannot be closed from a keyboard. It belongs to the calibration
 conversation — and it is the same conversation, because an agent reading a real
 notification about their own listing and their own contacts is what both need.

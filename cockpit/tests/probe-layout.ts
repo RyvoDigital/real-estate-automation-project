@@ -273,7 +273,21 @@ async function main() {
   // Derived from src/app — see tests/lib/routes.ts. A page added under
   // src/app is measured at 360/390/430/1440/1920 by construction, and a
   // dynamic route with no id is REPORTED as skipped rather than dropped.
+  /*
+   * Ids are looked up FROM THE DATABASE, per route pattern.
+   *
+   * Not one shared id: filling /import/[id] with a LEAD id once produced a 404
+   * page that passed every layout check, which is the vacuous pass this whole
+   * file exists to design out. Each pattern gets an id of its own KIND, and a
+   * pattern with no row available stays SKIPPED and is reported.
+   */
+  const { data: listing } = await db.from('listings').select('id').limit(1)
+  const { data: client } = await db.from('clients').select('id').limit(1)
+
   const BY_ROUTE: Record<string, string> = { '/leads/[id]': leadId || '' }
+  if (listing?.[0]?.id) BY_ROUTE['/listings/[id]'] = listing[0].id as string
+  if (client?.[0]?.id) BY_ROUTE['/segmentation/[clientId]'] = client[0].id as string
+  if (client?.[0]?.id) BY_ROUTE['/calibrate/[clientId]'] = client[0].id as string
   if (process.env.PROBE_IMPORT_BATCH) BY_ROUTE['/import/[id]'] = process.env.PROBE_IMPORT_BATCH
   const { usable: ROUTES, skipped } = splitRoutes({ byRoute: BY_ROUTE })
 

@@ -26,7 +26,12 @@ export default async function SegmentationIndex() {
       <ul style={{ listStyle: 'none', padding: 0, marginTop: 32 }}>
         {clients.map((c) => (
           <li key={c.id} style={{ padding: '14px 0', borderTop: '1px solid #eee' }}>
-            <Link href={`/segmentation/${c.id}`} style={{ fontSize: 18 }}>{c.name}</Link>
+            <Link
+              href={`/segmentation/${c.id}`}
+              style={{ fontSize: 18, minHeight: 44, display: 'inline-block', lineHeight: '44px' }}
+            >
+              {c.name}
+            </Link>
           </li>
         ))}
       </ul>
