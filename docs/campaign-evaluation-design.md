@@ -240,6 +240,39 @@ That is the same query behind *"why did this person receive this message"* and
 
 ---
 
+# 5.2 THE FIRST LIVE RUN: ten contacts, watched
+
+**There will be no rehearsal, and that is a consequence of a decision worth
+keeping.**
+
+A rehearsal would need a contact with a basis in a confirmed jurisdiction. No
+jurisdiction is confirmed, and every route to pretending one is involves writing
+a **false confirmation into `jurisdiction_policy`** — a lawyer's name and a date
+that did not happen — into the one table built this week to be trustworthy.
+
+> **A system that would let us fake a lawyer's confirmation in order to test
+> itself is a system whose confirmations mean nothing.** The first true
+> end-to-end run being the first real one is the price of that, and it is the
+> right price.
+
+But a price paid is not a risk removed, so the first run carries requirements
+rather than judgement on the day:
+
+| | |
+|---|---|
+| **Ten contacts. Not the first tranche, not 10% — ten.** | Small enough that every outcome can be read individually, and that a mistake is a conversation rather than an incident |
+| **Watched live, message by message** | Not "check the dashboard afterwards". The operator reads each send and each reply as they happen, the way the first three days of the Concierge were read (§10 of the client journey) |
+| **Stop on the first thing that surprises anybody** | Not on the first error — errors are visible. On the first surprise, which is the category that includes "that reply is odd" and "that arrived faster than I expected" |
+| **The full forecast recorded first**, even though only ten are sent | So the run's shape is the real campaign's shape, and the ten are visibly a subset of it rather than the whole thing |
+| **A named person accountable for the ten**, before the first send | The same rule as a policy confirmation: an action with consequences has an author |
+
+Only after ten have been sent, read, and replied to does a larger tranche
+follow. The specification's "first send to 10–20% of the list" is the SECOND
+step, not the first: a 10% tranche of three hundred is thirty messages, which is
+thirty chances to be wrong about something nobody has ever run.
+
+---
+
 # 6. What this needs
 
 - `campaign_runs`, as above — a new migration, `0018`.
