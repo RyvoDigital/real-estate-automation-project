@@ -290,7 +290,7 @@ test('🔴 NO REASON CAN EXPRESS A JUDGEMENT ABOUT THE PERSON', () => {
    * is no CHECK constraint behind it. This assertion and the closed union are
    * the whole of it.
    */
-  assert.equal(reasons.length, 7, 'a new reason needs its own argument, written here')
+  assert.equal(reasons.length, 8, 'a new reason needs its own argument, written here')
 
   /*
    * The seven, and why each one cannot be used to screen. Written because the
@@ -308,6 +308,12 @@ test('🔴 NO REASON CAN EXPRESS A JUDGEMENT ABOUT THE PERSON', () => {
    *   send_failed            the wire said no
    *   agency_disabled        a whole-agency setting. Never per-sale (§6.2)
    *   no_review_destination  there is nowhere to send anybody
+   *   not_in_service         we had no approved template while this window ran.
+   *                          DATED, so that Meta approving one does not turn
+   *                          every earlier close into an omission — a change in
+   *                          OUR state rewriting the history of what we did
+   *                          about theirs. Added 19 Sep with the runner, and
+   *                          the line above refused to let it in quietly
    *
    * None of them can be reached by knowing anything about the person, which is
    * the property, and it is checked by reading them rather than by trusting

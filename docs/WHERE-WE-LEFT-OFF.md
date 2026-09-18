@@ -57,7 +57,8 @@ because it is one message, once.
 | The omission reconciliation | ✅ a reconciliation, not an invariant. Sends nothing |
 | The screen | ✅ three counts together, the gap explained, the limits on the page |
 | Template drafts | ✅ `avaliacao_pos_venda_pt`, held for the lawyer |
-| The runner and the send (step 7) | ❌ gated on Meta — the same gate as 02 |
+| The runner, minus the dispatcher | ✅ decides and stops one function short. The whole of `src/lib/review/` is swept for a route to a send |
+| The send itself (step 7) | ❌ gated on Meta — the same gate as 02 |
 
 ## What you cannot work out from the repo
 
@@ -99,13 +100,20 @@ rules nobody has read. The path is deliberately unconstrained — a pattern tigh
 enough to feel rigorous rejects a valid link an agency pasted from their own
 dashboard.
 
-**8. A flaky test, diagnosed and not fixed.** `RULE 1: an objection is
-permanent` failed once on 18 Sep and never again. That file calls
-`resolve_consent_state` over the network against live Supabase, so a transient
-RPC error surfaces under the rule's name — **the single most important test in
-the codebase reporting a transport failure as a consent-rule breach.** The
-cause was never confirmed; the error text was not captured. Worth making a
-transport failure report as one.
+**8. A transport failure now reports as one.** `RULE 1: an objection is
+permanent` went red once on 18 Sep and never again — a network blip surfacing
+under the name of the most important rule in the codebase. Fixed 19 Sep:
+`tests/lib/rpc-errors.ts` classifies on the presence of a Postgres/PostgREST
+`code` (an answer) versus none (the call never arrived), a reachability check
+runs first and is NAMED for transport, and every rule failure now leads with
+*"NEVER EVALUATED"*. **Nothing is suppressed — the suite goes red either way.**
+Verified by pointing the client at an unreachable host and reading the output.
+
+**9. `not_in_service` is DATED, and that is the whole of it.** A close whose
+window ran before an approved template existed is not an omission. A boolean
+would make every pre-service close flip to a finding the moment Meta approves
+one — the backfill mistake with the sign reversed: a change in OUR state
+rewriting the history of what we did about theirs.
 
 ## What waits on somebody else
 

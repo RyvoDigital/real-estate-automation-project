@@ -357,7 +357,7 @@ export const FORBIDDEN_ON_SCREEN = [
   // an accusation about their bookkeeping rather than a gap in ours.
   'unaccounted', 'disposition', 'party_not_named', 'gate_refused',
   'window_expired', 'reported_after_window', 'send_failed', 'agency_disabled',
-  'no_review_destination', 'close_id', 'review_link',
+  'no_review_destination', 'not_in_service', 'close_id', 'review_link',
 ]
 
 export const REVIEW = {

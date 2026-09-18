@@ -18,6 +18,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { createClient } from '@supabase/supabase-js'
+import { TransportFailure, NOT_A_RULE_FAILURE, classifyRpcError } from './lib/rpc-errors'
 
 for (const l of readFileSync(new URL('../.env.local', import.meta.url), 'utf8').split('\n')) {
   const m = l.match(/^([A-Z_]+)=(.*)$/)
@@ -43,11 +44,50 @@ const ev = (kind: string, recorded: string, extra: Ev = {}): Ev => ({
   ...extra,
 })
 
+/**
+ * ⚠️ A TRANSPORT FAILURE MUST NOT REPORT AS A CONSENT-RULE FAILURE.
+ *
+ * On 18 September 2026 `RULE 1: an objection is permanent` went red once and
+ * never again. These tests reach the live database over the network, so a
+ * dropped connection surfaces under the name of the most important rule in the
+ * codebase — and somebody will one day read that line and believe the objection
+ * rule broke. The cause of that particular red was never confirmed, which is
+ * itself the argument: a failure whose cause cannot be read off the output is a
+ * failure that costs an hour before it costs nothing.
+ *
+ * Two changes, and neither hides anything:
+ *
+ *   1. A REACHABILITY CHECK RUNS FIRST. If the database cannot be reached, the
+ *      red line is named for transport, and the rule tests below say they were
+ *      never evaluated rather than that they failed.
+ *   2. Errors are CLASSIFIED. PostgREST and Postgres hand back a `code`; a
+ *      dropped connection does not. No code means the call never reached the
+ *      function, and the rule was not tested — which is a different sentence
+ *      from "the rule is wrong".
+ *
+ * The suite still goes red either way. What changes is what it says.
+ */
+let reachable: TransportFailure | null = null
+
 async function resolve(events: Ev[]): Promise<{ state: string; segment?: string }> {
+  if (reachable) throw reachable
   const { data, error } = await db.rpc('resolve_consent_state', { events })
-  if (error) throw new Error(`resolve_consent_state failed: ${error.message}`)
+  if (error) throw classifyRpcError('resolve_consent_state', error)
   return data as { state: string; segment?: string }
 }
+
+/*
+ * Runs first, and its NAME is the fix: a red line here says transport, so
+ * nobody has to read a stack trace to know the rules were never reached.
+ */
+test('the consent ledger is reachable — a red line HERE is transport, not a rule', async () => {
+  const { error } = await db.rpc('resolve_consent_state', { events: [] })
+  if (error && !error.code) {
+    reachable = new TransportFailure(NOT_A_RULE_FAILURE + error.message)
+    throw reachable
+  }
+  assert.equal(error, null, error ? classifyRpcError('resolve_consent_state', error).message : '')
+})
 
 test('RULE 1: an objection is permanent — a consent appended after it changes nothing', async () => {
   // The rule most likely to be quietly broken by a future edit, and the one

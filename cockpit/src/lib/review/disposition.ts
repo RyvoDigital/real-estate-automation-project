@@ -57,6 +57,7 @@ export type NotAskedReason =
   | 'send_failed'
   | 'agency_disabled'
   | 'no_review_destination'
+  | 'not_in_service'
 
 export const REASON_MEANS: Record<NotAskedReason, string> = {
   party_not_named:
@@ -86,6 +87,12 @@ export const REASON_MEANS: Record<NotAskedReason, string> = {
   agency_disabled:
     'This agency has the review request switched off entirely. That is theirs to decide. What ' +
     'they may not do is switch it off for one sale, which is why no such control exists.',
+  not_in_service:
+    'Automation 05 was not in service for this agency when this sale’s window ran. There was no ' +
+    'approved template to send, so nothing could have gone out — and that is a fact about our ' +
+    'own readiness rather than anything about this person or this sale. It is dated for the same ' +
+    'reason a backfill is: once the automation IS in service, closes whose windows ran before ' +
+    'that date must not start reading as omissions.',
   no_review_destination:
     'No review link is recorded for this agency, so there is nowhere to send anybody. This is not ' +
     'a degraded mode — an agency with no public profile cannot run this automation at all.',
@@ -193,6 +200,16 @@ export type DispositionContext = {
   agencyDisabled?: boolean
   /** A review link is recorded for this agency. */
   hasReviewDestination?: boolean
+  /**
+   * When Automation 05 entered service for this agency — the date an approved
+   * template first existed. Null means it never has.
+   *
+   * ⚠️ DATED, NOT A BOOLEAN. A flag would make every close from the
+   * pre-service period flip to an omission the moment Meta approves a
+   * template, which is the backfill mistake with the sign reversed: a change
+   * in OUR state rewriting the history of what we did about theirs.
+   */
+  inServiceFrom?: string | null
 }
 
 export function dispositionOf(
@@ -254,6 +271,20 @@ export function dispositionOf(
   // An agency with 05 switched off did not run out of time; it is not running.
   if (ctx.agencyDisabled) return no('agency_disabled', '')
   if (ctx.hasReviewDestination === false) return no('no_review_destination', '')
+
+  /*
+   * Not in service when this close's window ran. `inServiceFrom` undefined
+   * means the caller did not tell us, and we do not invent a service date —
+   * the older callers that predate step 7 carry on unchanged.
+   */
+  if (ctx.inServiceFrom !== undefined) {
+    if (ctx.inServiceFrom === null) {
+      return no('not_in_service', 'No approved template exists for this agency.')
+    }
+    if (ctx.inServiceFrom > expiresOn) {
+      return no('not_in_service', `In service from ${ctx.inServiceFrom}; this window ended ${expiresOn}.`)
+    }
+  }
 
   // --- 5. the party -------------------------------------------------------
   if (!close.partyLeadId) {
