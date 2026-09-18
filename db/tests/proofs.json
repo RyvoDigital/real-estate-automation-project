@@ -89,6 +89,17 @@
       },
       "last_proved": "2026-09-17",
       "proved_by": "Manuel Vale"
+    },
+    {
+      "id": "0021-sender-sid-shape",
+      "what": "clients.whatsapp_sender_sid exists and its shape is enforced (XE + 32 hex). Without this column the quality halt cannot read the number it exists to watch.",
+      "how": "Paste db/migrations/0021_clients_sender_sid.sql, then its verify block inside begin/rollback. Expect 'not-a-sid' refused by clients_sender_sid_shape and a well-formed XE\u2026 accepted.",
+      "watches": [
+        "db/migrations/0021_clients_sender_sid.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
     }
   ]
 }

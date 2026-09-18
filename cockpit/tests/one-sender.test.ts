@@ -63,7 +63,21 @@ const READ_CRED_ALSO_ALLOWED = ['cockpit/tests/probe-reconcile.ts']
  * file must ALWAYS inject `fetchImpl`, so even holding a real credential it
  * cannot reach the network. The exemption is for naming, never for sending.
  */
-const SEND_CRED_ALSO_ALLOWED = ['cockpit/tests/twilio-adapter.test.ts']
+/**
+ * Each entry is exempted for NAMING the sending credential, and each carries its
+ * own compensating check below — a different one, because they are safe for
+ * different reasons. A single shared loosening would be the moment "at most one"
+ * started drifting towards "some".
+ */
+const SEND_CRED_ALSO_ALLOWED: Record<string, 'injects-fetch' | 'no-route-to-a-sender'> = {
+  // Builds requests to assert their shape. Safe because every construction
+  // injects fetch, so a real credential in the environment changes nothing.
+  'cockpit/tests/twilio-adapter.test.ts': 'injects-fetch',
+  // Reports whether the credential is configured, as one of the blockers a dry
+  // run lists. Safe because it imports campaign-plan and nothing else — there
+  // is no adapter, dispatcher or permit within its reach.
+  'cockpit/tests/probe-campaign.ts': 'no-route-to-a-sender',
+}
 
 /**
  * Credentials are matched by NAME, anywhere in the file, not by access pattern.
@@ -171,25 +185,34 @@ test('the SENDING credential appears in at most one file, and it is not the read
   // send, whatever it imports.
   const offenders = FILES.filter((f) => SEND_CRED.test(f.text)).map((f) => f.path)
   assert.deepEqual(
-    offenders.filter((p) => p !== SENDER && !SEND_CRED_ALSO_ALLOWED.includes(p)), [],
+    offenders.filter((p) => p !== SENDER && !(p in SEND_CRED_ALSO_ALLOWED)), [],
     'the sending credential may only appear in the adapter. Offending file(s) above.\n' +
     'A file that can construct a sending client can send without a send row.',
   )
 })
 
-test('a file exempted for naming the sending credential still cannot reach the network', () => {
-  // The exemption is for NAMING. This is what keeps it from becoming an
-  // exemption for SENDING: every construction of the adapter in that file must
-  // inject fetch, so a real credential in the environment changes nothing.
-  for (const exempt of SEND_CRED_ALSO_ALLOWED) {
+test('every file exempted for the sending credential carries its own compensation', () => {
+  // The exemption is for NAMING, never for SENDING, and this is what makes that
+  // a fact rather than an intention.
+  for (const [exempt, how] of Object.entries(SEND_CRED_ALSO_ALLOWED)) {
     const f = FILES.find((x) => x.path === exempt)
     assert.ok(f, `${exempt} is exempted and does not exist — remove the exemption`)
-    const constructions = [...f!.text.matchAll(/twilioAdapter\(/g)].length
-    const injected = [...f!.text.matchAll(/twilioAdapter\(\{[^)]*fetchImpl/gs)].length
-    assert.ok(constructions > 0, `${exempt} is exempted for the sending credential and never builds an adapter`)
-    assert.equal(injected, constructions,
-      `${exempt} builds the adapter ${constructions} time(s) and injects fetch ${injected} time(s) — ` +
-      'an un-injected construction could reach Twilio with a real credential')
+
+    if (how === 'injects-fetch') {
+      const constructions = [...f!.text.matchAll(/twilioAdapter\(/g)].length
+      const injected = [...f!.text.matchAll(/twilioAdapter\(\{[^)]*fetchImpl/gs)].length
+      assert.ok(constructions > 0, `${exempt} claims 'injects-fetch' and never builds an adapter`)
+      assert.equal(injected, constructions,
+        `${exempt} builds the adapter ${constructions} time(s) and injects fetch ${injected} time(s) — ` +
+        'an un-injected construction could reach Twilio with a real credential')
+    }
+
+    if (how === 'no-route-to-a-sender') {
+      for (const forbidden of [/twilioAdapter/, /send\/dispatch/, /send\/permit/, /SendPermit/]) {
+        assert.equal(forbidden.test(f!.text), false,
+          `${exempt} claims 'no-route-to-a-sender' and references ${forbidden}`)
+      }
+    }
   }
 })
 
@@ -323,5 +346,19 @@ test('the dispatcher re-reads the row rather than trusting the permit', () => {
   ]) {
     assert.match(src, check,
       'dispatch() must re-read and re-check the row. A cast can forge a permit; it cannot forge a row.')
+  }
+})
+
+test('the campaign PLANNER has no route to a send, so a dry run cannot become a live one', () => {
+  // planCampaign reads production and is called by probe:campaign. It is a
+  // separate file from the port assembly precisely so that "plan it and look"
+  // cannot become "plan it and go" by an edit to one line.
+  const src = codeOnly(readFileSync(join(REPO, 'cockpit/src/lib/send/campaign-plan.ts'), 'utf8'))
+  for (const forbidden of [
+    /twilioAdapter/, /from '@\/lib\/send\/dispatch'/, /from '@\/lib\/send\/permit'/,
+    /SendPermit/, /\.insert\(/, /\.update\(/, /\.delete\(/,
+  ]) {
+    assert.equal(forbidden.test(src), false,
+      `campaign-plan.ts references ${forbidden} — planning is read-only and has no route to a send`)
   }
 })

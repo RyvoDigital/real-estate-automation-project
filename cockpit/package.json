@@ -11,6 +11,7 @@
     "test": "tsc --noEmit && tsx --conditions=react-server --test tests/*.test.ts && node ../tests/appointment_kind.test.js",
     "verify:bundle": "bash tests/no-secret-in-bundle.sh",
     "proof:bless": "tsx tests/proof-bless.ts",
+    "probe:campaign": "tsx --conditions=react-server tests/probe-campaign.ts",
     "probe:reconcile": "tsx --conditions=react-server tests/probe-reconcile.ts",
     "probe:quarantine": "tsx tests/probe-quarantine.ts",
     "probe:queue": "tsx tests/probe-queue.ts",
