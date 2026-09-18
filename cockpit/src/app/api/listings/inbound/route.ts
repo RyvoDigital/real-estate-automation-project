@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { timingSafeEqual } from 'node:crypto'
-import { ingestListingMessage, replyFor } from '@/lib/listings/store'
+import { ingestListingMessage, replyWithMatches } from '@/lib/listings/store'
 
 export const dynamic = 'force-dynamic'
 
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     // was stored. An agent who sends a listing and hears nothing assumes it
     // landed, and a listing that was never created is invisible until a match
     // does not happen.
-    return NextResponse.json({ ok: true, kind: outcome.kind, reply: replyFor(outcome) })
+    return NextResponse.json({ ok: true, kind: outcome.kind, reply: await replyWithMatches(outcome, clientId) })
   } catch (e) {
     // Loud, and with the provider's own message. n8n asserts this response
     // downstream rather than trusting a 2xx (lesson #13).

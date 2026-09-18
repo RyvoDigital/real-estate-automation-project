@@ -81,7 +81,29 @@ const TIME_PATTERNS: { rx: RegExp; what: string }[] = [
  * check is not "does it mention money" but "does it mention money the lead
  * has not already said".
  */
-const MONEY = /(?:€|eur\b|euros?\b)\s*[\d.,]+|\b[\d.,]{3,}\s*(?:€|eur\b|euros?\b|k\b|mil\b|milhões|millones)/gi
+/*
+ * ⚠️ A SINGLE-DIGIT MILLIONS FIGURE WAS INVISIBLE TO THIS GUARD.
+ *
+ * The magnitude branch required `[\d.,]{3,}` — at least three characters before
+ * the unit — so "4 milhões" and "2 milhões" matched NOTHING and the guard
+ * returned ok with an EMPTY known set. A model-written draft could invent
+ * "dois milhões" and the cockpit's draft assistant (actions.ts) would pass it
+ * straight through. "1.5 milhões" was caught; "2 milhões" was not, which is the
+ * worst shape for a gap: it looks like it works whenever you test it with a
+ * realistic-looking number.
+ *
+ * Found on 2026-09-18 by a test I had PREDICTED would pass for a different
+ * reason. The prediction was that a bedroom count of 4 in the known set was
+ * licensing "4 milhões"; investigating instead of explaining showed the guard
+ * never saw the figure at all, and that the real defect was larger and had
+ * nothing to do with the widened set (lesson 1k).
+ *
+ * The vocabulary is also aligned with the extractor's, which reads the same
+ * market's money: `milhão`, `milhao`, `milhoes`, `million` and `millón` were
+ * all absent here while present there. Two readers of one convention drifting
+ * is lesson 15.
+ */
+const MONEY = /(?:€|eur\b|euros?\b)\s*[\d.,]+|\b[\d.,]+\s*(?:€|eur\b|euros?\b|k\b|mil\b|milh[õo]es|milh[ãa]o|million|mill[óo]n|millones)/gi
 
 function digitsOf(s: string): Set<string> {
   return new Set((s.match(/\d[\d.,]*/g) ?? []).map((d) => d.replace(/[.,]/g, '')))
@@ -94,7 +116,38 @@ function digitsOf(s: string): Set<string> {
  * already used is quotable back at them; one that appears from nowhere is
  * the model inventing.
  */
-export function guardDraft(draft: string, conversation: string): GuardResult {
+/**
+ * THE ONE LISTING FACT A DRAFT MAY STATE AS MONEY: ITS ASKING PRICE.
+ *
+ * A 03 draft's most important figure is the price, which is in the listing and
+ * not in the conversation — so without this the guard refuses the CORRECT
+ * draft. Widening it is also exactly how an invented figure gets through, so
+ * the set is one field and the reason is measured rather than reasoned:
+ *
+ *   with size_sqm 320 in the known set —
+ *     "Consigo por 320 mil."     -> PASSED   (€320,000, from a floor area)
+ *
+ * (A bedroom count of 4 appeared to license "4 milhões" too. It did not: the
+ * money pattern could not see a single-digit millions figure at all, which was
+ * a separate and larger defect — see the MONEY comment below.)
+ *
+ * `MONEY` matches a bare digit run before `mil`, and the comparison strips
+ * separators, so a non-money field is indistinguishable from a price once it is
+ * in the set. "The listing's stored fields" is already too wide.
+ *
+ * NOTHING DERIVED, either: no stretch ceiling, no price per square metre, no
+ * difference from the lead's budget, no rounded form. Each of those is a number
+ * we computed rather than a number that is true of the property.
+ */
+export function knownFigures(listing: { price: number | null } | null): string[] {
+  return listing?.price == null ? [] : [String(listing.price)]
+}
+
+export function guardDraft(
+  draft: string,
+  conversation: string,
+  listing?: { price: number | null } | null,
+): GuardResult {
   const text = draft.trim()
   if (!text) return { ok: false, reason: 'empty', detail: 'the model returned nothing' }
 
@@ -113,13 +166,18 @@ export function guardDraft(draft: string, conversation: string): GuardResult {
   }
 
   const known = digitsOf(conversation)
+  for (const f of knownFigures(listing ?? null)) known.add(f)
   for (const hit of text.match(MONEY) ?? []) {
     const n = (hit.match(/\d[\d.,]*/) ?? [''])[0].replace(/[.,]/g, '')
     if (n && !known.has(n)) {
       return {
         ok: false,
         reason: 'invented_a_figure',
-        detail: `the draft used "${hit.trim()}", which nobody in the conversation has mentioned.`,
+        detail:
+          `the draft used "${hit.trim()}", which is neither in the conversation nor the ` +
+          'listing\'s asking price. A figure stated in a form we do not hold is refused ' +
+          'too: the price must appear as we hold it, because normalising representations ' +
+          'is how two numbers start being treated as one fact.',
       }
     }
   }

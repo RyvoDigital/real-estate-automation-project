@@ -573,8 +573,19 @@ money at all becomes a licence to state a price. Against the shipping guard with
 "A casa em Cascais está a 1.900.000€."   →  REFUSED     (correct — adjacent figure)
 "A casa em Cascais está a €1.95M."       →  REFUSED     (see §6.4)
 "Consigo por 320 mil."                    →  ok  ⚠️      €320,000, from size_sqm
-"Consigo por 4 milhões."                  →  ok  ⚠️      €4,000,000, from bedrooms
 ```
+
+> **Corrected 18 September 2026, while building F4.** As first written this
+> block also listed `"Consigo por 4 milhões." → ok ⚠️ €4,000,000, from
+> bedrooms`. That attribution was wrong, and investigating it rather than
+> explaining it found something worse: the guard's magnitude branch required
+> three characters before the unit, so **a single-digit millions figure was not
+> seen as money at all**. `"2 milhões"` passed with an *empty* known set, in the
+> cockpit's live draft assistant, while `"1.5 milhões"` was caught — the worst
+> shape a gap can have, because it looks like it works whenever you test it with
+> a realistic-looking number. Fixed, with the vocabulary aligned to the
+> extractor's (`milhão`, `milhoes`, `million`, `millón` were all missing here and
+> present there). The size case stands exactly as written.
 
 A draft naming a price nobody has ever mentioned passes, because 320 square
 metres and four bedrooms were in the set. **The set is therefore one field:**

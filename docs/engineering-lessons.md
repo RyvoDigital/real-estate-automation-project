@@ -3426,3 +3426,46 @@ proof is always made by id, because it is a claim about a new thing.
 > **If a convenience flag can assert something on your behalf, it will, on a day
 > when you were thinking about something else.** Both times here, the something
 > else was verifying a different guard — which is to say, being careful.
+
+---
+
+## 1k. A predicted failure set that is reliably too narrow is doing less work than you think
+
+**2026-09-18, three times in one session.** The house technique is to remove a
+guard, predict exactly which tests go red, and compare. Every mismatch that day
+went the same way:
+
+| Sabotage | Predicted | Actually failed |
+|---|---|---|
+| the PT/ES hard markers removed | 9, 11, 12 | **8**, 9, 11, 12 |
+| the recompute preserves everything | the replace test | the replace test **and the delete test** |
+| a boundary file renamed away | two tests | **one** — the other anchors elsewhere |
+
+Never too wide. Always a test that *should* have failed and was not foreseen —
+which is the safe direction, and that is exactly what makes it easy to wave
+through.
+
+**The consequence is not that the predictions were bad. It is that the
+prediction was doing less verification work than it appeared to.** A sabotage
+matrix is two checks wearing one coat: *does removing this turn something red*
+(the guard is live) and *is it the thing I expected* (I understand what covers
+what). When the second half is habitually approximate, only the first is really
+running, and the first is the weaker of the two — it cannot tell a guard that is
+covered from a guard that is covered by something else entirely.
+
+> **The fix is not better predictions. It is that a mismatch is investigated
+> rather than explained.**
+
+Each of the three above had an explanation available immediately, and each
+explanation was correct — but *available and correct* is also what a wrong
+explanation looks like from the inside. Reading the test and confirming turned
+"probably because the bound case uses `Precisamos`" into *seeing* the failure
+say `the garage keeps its own marker`. The cost is one command. The version
+where it is not paid is §5g: a confident account of a result nobody looked at.
+
+There is a second thing the reading buys, and it showed up here too. One
+mismatch turned out to be a *property worth keeping* rather than an error: the
+not-a-ban test anchors on a hardcoded path instead of the list it sits beside,
+so renaming an entry in the list cannot hide it. That is a fact about the suite
+which only the investigation surfaced — an explanation would have filed it as
+noise and moved on.

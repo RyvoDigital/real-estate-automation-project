@@ -32,8 +32,8 @@
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync, existsSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { readdirSync, readFileSync, existsSync } from 'node:fs'
+import { join, relative, resolve } from 'node:path'
 
 const REPO = resolve(new URL('../..', import.meta.url).pathname)
 
@@ -118,6 +118,54 @@ test('the matching run does not consult the gate, the ledger or the suppression 
       'builds a second, quieter gate out of a filter — and a lead would disappear from ' +
       "an agent's screen for a reason nobody reported:\n\n" +
       offenders.map((f) => `  • ${f}`).join('\n') + '\n',
+  )
+})
+
+/**
+ * ⚠️ THE FIXTURE IS HELD AT ARM'S LENGTH FROM SHIPPING CODE.
+ *
+ * F4 is built against invented matches, because no client has thresholds and
+ * every run refuses. That is fine for the structure and useless for the
+ * wording. What is NOT fine is the fixture drifting into being the thing
+ * everyone develops against: the names, the evidence quotes and the numbers in
+ * it are ones somebody made up, and the moment shipping code can reach them
+ * they stop looking made up.
+ *
+ * Asserted by reading every file under src/, so a rename cannot slip past and
+ * an import cannot be added "just for the demo screen".
+ */
+test('no shipping code imports a test fixture', () => {
+  const offenders: string[] = []
+  const walk = (dir: string) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, e.name)
+      if (e.isDirectory()) { walk(full); continue }
+      if (!/\.(ts|tsx)$/.test(e.name)) continue
+      /*
+       * ANY QUOTED REFERENCE, not `from` and `require(` specifically.
+       *
+       * The first version matched those two forms and MISSED a bare
+       * `import '…/fixtures/x'` and a dynamic `await import('…/fixtures/x')` —
+       * neither of which has a `from`. Found by sabotage: planting a
+       * side-effect import in src/ turned nothing red, which is a guard with a
+       * hole exactly the shape of two real import forms.
+       *
+       * Comments are stripped first so prose about the rule cannot trip it.
+       */
+      const src = readFileSync(full, 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/^\s*\/\/.*$/gm, '')
+      if (/['"][^'"]*tests\/fixtures/.test(src)) {
+        offenders.push(relative(REPO, full))
+      }
+    }
+  }
+  walk(resolve(REPO, 'cockpit/src'))
+  assert.deepEqual(
+    offenders, [],
+    'A fixture is invented data. Shipping code reaching it is how invented names and ' +
+      'invented evidence quotes stop looking invented, and how the first real listing ' +
+      'surprises everybody:\n\n' + offenders.map((f) => `  • ${f}`).join('\n') + '\n',
   )
 })
 

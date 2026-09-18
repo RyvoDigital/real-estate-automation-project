@@ -363,6 +363,37 @@ account for in an afternoon, and the answer may be "less than they hoped", which
 is §1.4 of the Automation 02 specification arriving as a practical matter rather
 than a legal one.
 
+### 3.20 🔴 The match notification's wording has never been read by an agent
+
+**Recorded 18 Sep 2026, on finishing F4.** The notification mechanism is built
+and its structure is tested: which blocks appear, that a lead's phone number
+never does, that a chosen row cannot borrow a computed row's authority, that a
+zero says why, that it fits a phone. All of it against **fixtures I invented**,
+including the evidence quotes.
+
+F4's gate is *"I receive a match notification and it reads like something I'd act
+on rather than delete"*, and **no fixture can answer that.** Three things are
+unvalidated and are named in `src/lib/matching/notify.ts` rather than left to be
+discovered:
+
+1. **Whether an agent would act on it at all.** Needs an agent.
+2. **The language.** The frame is fixed strings keyed by language; the *reasons*
+   come from `score.ts` as English prose — *"Cascais is exactly what they asked
+   for"* — and the agency is Portuguese. `score.ts` must emit structured reasons
+   with a per-language renderer before a real agent reads one. This is a real
+   seam, not a translation task.
+3. **Length in practice.** Six matches with long evidence quotes may be a wall
+   of text on a phone. The five-name cap is a guess with its reasoning attached.
+
+Like §3.18, this cannot be closed from a keyboard. It belongs to the calibration
+conversation — and it is the same conversation, because an agent reading a real
+notification about their own listing and their own contacts is what both need.
+
+**The sequencing consequence:** everything past F4 is gated on that conversation.
+The matching run refuses for want of thresholds, F5 has no audience until the
+declaration happens, and the notification's wording cannot be judged. All three
+resolve in one afternoon with one agency, and none of them resolve without it.
+
 ### 3.19 ✅ The Concierge overwrites a lead's origin on every inbound message — FIXED 18 Sep 2026
 
 **Found 18 Sep 2026 while designing the handoff contract, by asking what the

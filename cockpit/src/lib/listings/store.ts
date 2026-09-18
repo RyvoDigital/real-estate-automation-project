@@ -185,6 +185,41 @@ export async function ingestListingMessage(input: {
  * was NOT understood. A generated summary could round "€1.95M" into "around
  * two million" and the agent would never know the stored figure was different.
  */
+/**
+ * The agent's reply, plus what we found for them.
+ *
+ * F4. The notification rides the reply that already happens inside the 24-hour
+ * window the agent's own message opened — no template, no gate, no new send
+ * path. Composed by the cockpit, transmitted by n8n.
+ *
+ * ⚠️ ONLY ON A NEW OR UPDATED LISTING, deliberately. A status change
+ * ("A-1042 vendido") does not re-notify: the agent has just told US something,
+ * and answering with six names would be noise at best and, for a listing going
+ * under offer, actively wrong.
+ *
+ * THE MATCH RUN MUST NEVER COST THE AGENT THEIR CONFIRMATION. If it throws, the
+ * listing was still saved and the agent still needs to hear so — the failure is
+ * reported as a line in the reply rather than swallowed and rather than
+ * replacing the confirmation. An agent who sends a listing and hears nothing
+ * assumes it landed.
+ */
+export async function replyWithMatches(
+  outcome: InboundOutcome,
+  clientId: string,
+): Promise<string> {
+  const base = replyFor(outcome)
+  if (outcome.kind !== 'created' && outcome.kind !== 'updated') return base
+  if (!isMatchable(outcome.listing.status)) return base
+
+  try {
+    const { notificationFor } = await import('@/lib/matching/notify-store')
+    const note = await notificationFor({ clientId, listingId: outcome.listing.id })
+    return `${base}\n\n${note.text}`
+  } catch (e) {
+    return `${base}\n\nI saved it but could not work out who it suits: ${(e as Error).message}`
+  }
+}
+
 export function replyFor(outcome: InboundOutcome): string {
   switch (outcome.kind) {
     case 'created':
