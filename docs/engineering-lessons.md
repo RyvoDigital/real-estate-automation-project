@@ -3250,13 +3250,53 @@ assert.equal(s.colorScheme, expected)
 Plus a guard that every text input takes a surface rather than inheriting one,
 which folds the controls into the contrast check that already exists.
 
-### THE GAP THAT IS STILL OPEN, recorded rather than closed
+### ✅ THE GAP, CLOSED 18 SEPTEMBER 2026
 
-What is now checked is that we **declare** a light scheme. What was actually
+What was checked first is that we **declare** a light scheme. What was actually
 wrong is that four radios **looked identical when none was selected** — and no
-token-level check can see that. Proving it needs a real render: a headless
-browser, a screenshot, a pixel comparison of a checked control against an
-unchecked one. That is not cheap, and it is not being built today.
+token-level check can see that. Closing it needed a real render.
+
+The trigger set here was *"the second screen where a control's appearance
+carries a decision"*. It fired twice on 18 September: the calibration screen's
+select, whose empty option is the honest unanswered state, and these same
+radios. Both are used in the same meeting with an agency watching.
+
+`tests/probe-controls.ts` — `npm run probe:controls`. It needed **no new
+dependency**: `probe-layout` already drove headless Chrome over CDP, and
+`Page.captureScreenshot` with a `clip` returns base64 PNG, so **byte equality
+over the same region is an exact "did this change"** with no decoder and no
+threshold to tune.
+
+**Two assertions, and the second is the one that catches the original defect:**
+
+1. selecting changes the group's appearance — *nothing ever looks selected*
+2. selecting a DIFFERENT one changes it again — *everything always looks selected*
+
+The 15 September defect fails (2) outright and can pass (1) on a focus ring
+alone. A check that only asked "did anything change" would have missed it.
+
+**Proven by reproducing the defect.** The radios were given
+`appearance: none; background: #111`, so every option rendered as a filled dark
+circle regardless of state, exactly as they did in September. Both assertions
+went red with the right words. Two deliberate non-checks: it never compares two
+DIFFERENT controls to each other, because a subpixel at a different y position
+makes identical-looking radios byte-different and a flaky probe is a deleted
+probe; and it carries its own control — two screenshots of an unchanged control
+must be byte-identical, or every comparison in the file is rendering noise.
+
+| | covered |
+|---|---|
+| text unreadable against its own surface | yes, by contrast ratio |
+| controls painted in the wrong scheme | yes, by the luminance/scheme check |
+| a control that *looks* selected when it is not | **yes, by probe:controls** |
+
+### What this argues about the other probes
+
+Four layout defects on the same day were found by homegrown probes
+approximating what a browser simply reports — and one of them (a 24px radio, a
+4px input) was hidden for weeks because a dynamic route was *skipped for want of
+an id*. **The probes are the approximation, not the answer.** Where a real
+render can be asked the question directly, ask it.
 
 So the honest statement of coverage is:
 

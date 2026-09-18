@@ -116,6 +116,37 @@ export const TRIAGE = {
   notAvailable: 'Este imóvel não está disponível. Pode escolher, mas não o proponha a ninguém.',
 } as const
 
+export const SILENCE = {
+  title: 'Quem ficou à espera',
+  intro:
+    'Pessoas que nos disseram o que procuravam e com quem ninguém fala desde então.',
+  pick: 'Escolha a agência.',
+  /** The headline. The whole argument of the product, in one sentence. */
+  headlineOne: (days: number) =>
+    `Uma pessoa disse-nos o que procurava e ninguém fala com ela há ${days} dias.`,
+  headlineMany: (n: number, days: number) =>
+    `${n} pessoas disseram-nos o que procuravam e ninguém fala com elas há mais de ${days} dias.`,
+  none: 'Ninguém está à espera. Toda a gente que nos disse o que procura foi contactada.',
+  nobodySaidAnything:
+    'Ainda não temos registo de ninguém a dizer o que procura, por isso não há ' +
+    'nada para mostrar aqui. Isso muda assim que houver conversas ou notas.',
+  silentFor: (days: number) => `${days} dias`,
+  lastSpoke: 'Última vez',
+  nameless: 'Sem nome no ficheiro',
+  /** Counted separately and never folded into the headline. */
+  unknownClockOne:
+    'Há ainda 1 pessoa que nos disse o que procura e sobre quem não sabemos ' +
+    'quando foi a última conversa.',
+  unknownClockMany: (n: number) =>
+    `Há ainda ${n} pessoas que nos disseram o que procuram e sobre quem não ` +
+    'sabemos quando foi a última conversa.',
+  recentlyOne: '1 pessoa disse-nos o que procura e foi contactada recentemente.',
+  recentlyMany: (n: number) =>
+    `${n} pessoas disseram-nos o que procuram e foram contactadas recentemente.`,
+  /** The honest denominator, so the headline cannot be read as the whole list. */
+  outOfTotal: (total: number) => `De ${total} contactos no total.`,
+} as const
+
 export const CALIBRATE = {
   title: 'O que é uma boa proposta',
   intro:

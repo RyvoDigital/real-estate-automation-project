@@ -41,6 +41,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createClient } from '@supabase/supabase-js'
 import { splitRoutes } from './lib/routes'
+import { launch, sessionCookies, type Chrome } from './lib/chrome'
 
 for (const l of readFileSync(new URL('../.env.local', import.meta.url), 'utf8').split('\n')) {
   const m = l.match(/^([A-Z_]+)=(.*)$/)
@@ -77,111 +78,8 @@ const db = createClient(
 
 /** The same door a real click uses — generateLink produces the token_hash the
  *  email carries, handed to the same /auth/callback route. */
-async function sessionCookies(email: string): Promise<{ name: string; value: string }[]> {
-  const { data, error } = await db.auth.admin.generateLink({ type: 'magiclink', email })
-  if (error) throw new Error(`generateLink failed: ${error.message}`)
-  const hash = (data!.properties as { hashed_token: string }).hashed_token
-  const r = await fetch(`${BASE}/auth/callback?token_hash=${hash}&type=magiclink`, {
-    redirect: 'manual',
-  })
-  const out: { name: string; value: string }[] = []
-  for (const raw of r.headers.getSetCookie?.() ?? []) {
-    const pair = raw.split(';')[0]
-    const i = pair.indexOf('=')
-    const name = pair.slice(0, i).trim()
-    const value = pair.slice(i + 1).trim()
-    if (value) out.push({ name, value })
-  }
-  return out
-}
-
 // ------------------------------------------------------------- CDP plumbing
 
-type Chrome = { send: (m: string, p?: unknown) => Promise<any>; kill: () => void }
-
-async function launch(): Promise<Chrome> {
-  const dir = mkdtempSync(join(tmpdir(), 'ryvo-probe-'))
-  const proc = spawn(CHROME, [
-    '--headless=new',
-    '--disable-gpu',
-    '--no-first-run',
-    '--no-default-browser-check',
-    '--hide-scrollbars',
-    `--user-data-dir=${dir}`,
-    '--remote-debugging-port=0',
-    'about:blank',
-  ])
-
-  const port = await new Promise<number>((resolve, reject) => {
-    const t = setTimeout(() => reject(new Error('Chrome did not report a debugging port')), 20_000)
-    proc.stderr.on('data', (b: Buffer) => {
-      const m = b.toString().match(/ws:\/\/127\.0\.0\.1:(\d+)\//)
-      if (m) {
-        clearTimeout(t)
-        resolve(Number(m[1]))
-      }
-    })
-  })
-
-  // The page target that already exists — no /json/new, which needs a PUT in
-  // recent Chrome and is one more thing to get wrong.
-  let wsUrl = ''
-  for (let i = 0; i < 40 && !wsUrl; i++) {
-    const list = (await (await fetch(`http://127.0.0.1:${port}/json/list`)).json()) as {
-      type: string
-      webSocketDebuggerUrl?: string
-    }[]
-    wsUrl = list.find((t) => t.type === 'page')?.webSocketDebuggerUrl ?? ''
-    if (!wsUrl) await new Promise((r) => setTimeout(r, 100))
-  }
-  if (!wsUrl) throw new Error('no page target')
-
-  const ws = new WebSocket(wsUrl)
-  await new Promise<void>((res, rej) => {
-    ws.onopen = () => res()
-    ws.onerror = () => rej(new Error('devtools socket failed'))
-  })
-
-  let id = 0
-  const waiting = new Map<number, { res: (v: any) => void; rej: (e: Error) => void }>()
-  const events = new Map<string, (() => void)[]>()
-
-  ws.onmessage = (e) => {
-    const msg = JSON.parse(String(e.data))
-    if (msg.id !== undefined) {
-      const w = waiting.get(msg.id)
-      waiting.delete(msg.id)
-      if (!w) return
-      if (msg.error) w.rej(new Error(`${msg.error.message}`))
-      else w.res(msg.result)
-    } else if (msg.method) {
-      const fns = events.get(msg.method) ?? []
-      events.set(msg.method, [])
-      for (const fn of fns) fn()
-    }
-  }
-
-  const send = (method: string, params?: unknown) =>
-    new Promise<any>((res, rej) => {
-      const n = ++id
-      waiting.set(n, { res, rej })
-      ws.send(JSON.stringify({ id: n, method, params: params ?? {} }))
-      setTimeout(() => {
-        if (waiting.delete(n)) rej(new Error(`${method} timed out`))
-      }, 30_000)
-    })
-
-  ;(send as any).once = (method: string) =>
-    new Promise<void>((res) => events.set(method, [...(events.get(method) ?? []), res]))
-
-  return {
-    send: Object.assign(send, { once: (send as any).once }),
-    kill: () => {
-      ws.close()
-      proc.kill()
-    },
-  }
-}
 
 // -------------------------------------------------------------- measurement
 
