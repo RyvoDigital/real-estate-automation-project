@@ -3821,3 +3821,55 @@ is precisely what is lost by loosening. Loosening a targeted assertion to make
 it pass is the thing this file has been refusing all week; loosening a sweeping
 one is proportionate. The difference is worth stating because both look like
 "relaxing the check".
+
+---
+
+## 5k. A check that could not run is not a check that found nothing
+
+**18 September 2026.** Widening the publication re-check from "did a certificate
+expire" to the three other ways a clearance stops holding meant it needed inputs
+the old version never took: today's policy rows, and the agency's registrations
+as they stand now.
+
+The first version took them as `policy: PolicyRow[] = []`. Run without them — a
+caller not yet updated, a read that came back empty — **every standing clearance
+came back as one we could no longer confirm.** Four hundred properties reported
+as problems, from our own missing argument.
+
+The reflex fix is to make the absent case pass instead of fail. That is worse,
+and it is worse in the direction that does not announce itself:
+
+> **An empty findings list reads as "nothing is wrong". When the check could not
+> run, what is true is "nothing was looked at". Those are opposite meanings
+> occupying the same blank space on the screen.**
+
+So the input distinguishes three states rather than two, and so does the output:
+
+| input | means | the run |
+|---|---|---|
+| `undefined` | we were not asked to check this | the check does not run, and `notCheckedFor` names it |
+| `[]` | we were asked; there are no rows | the check runs; a clearance resting on a jurisdiction we now hold nothing for is a **real finding** |
+| rows | | the check runs |
+
+`?? []` collapses the first two, and that one operator is the entire defect. It
+is the same shape as §5i — `String('') === 'yes'` turning an unanswered question
+into a "no" — and the same shape as the bare zero from a remote system above.
+An absence is not a value, and every time it is coerced into one it acquires a
+meaning nobody chose.
+
+> **The general form: any check with a precondition needs a third outcome. Pass,
+> fail, and did-not-run — and did-not-run has to reach the screen, or it renders
+> as pass.**
+
+**And the same day, in the same feature, the guard that could not see half its
+own subject again.** The no-claim guard — nothing in the notice may imply we
+withdrew or corrected an advertisement we never published — listed its forbidden
+participles in the masculine singular only: `removido`, `corrigido`, `retirado`.
+Every noun this feature is about is feminine. *"A publicação foi removida"*,
+*"a menção foi corrigida"*, *"a licença está suspensa"* all walked past it. Its
+`despublic` alternative sat inside a group ending in `\b`, so it could only ever
+match the bare stem, which is not a word: it had matched nothing since the day
+it was written. §13d, third instance, and the tell is the same each time — the
+guard was written from the examples in front of its author rather than from the
+shape of what it forbids. **A guard's cases are now asserted before it is
+used**, which is three lines and would have caught all three.

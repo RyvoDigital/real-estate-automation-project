@@ -167,10 +167,12 @@ export const EXEMPTION = {
  * └─────────────────────────────────────────────────────────────────────────┘
  */
 export const NOTICE = {
-  title: 'Certificados a expirar',
+  title: 'O que deixou de estar em ordem',
   intro:
-    'Um certificado energético tem prazo. Quando expira, o anúncio deixa de ' +
-    'cumprir a lei sem que nada no imóvel tenha mudado.',
+    'Um anúncio pode deixar de cumprir a lei sem que nada no imóvel tenha ' +
+    'mudado e sem que ninguém tenha feito nada: um certificado chega ao fim do ' +
+    'prazo, uma licença deixa de estar válida, ou passa a ser exigida uma ' +
+    'menção que antes não era.',
   /** What we can do, said before the list rather than after it. */
   whatWeCanDo:
     'O que podemos fazer é avisar. Os anúncios foram publicados pela agência, nos ' +
@@ -196,8 +198,61 @@ export const NOTICE = {
   nothing: 'Nenhum certificado expirou nem está prestes a expirar.',
   /** The sentence to say to the agency. Also stops short of an act. */
   whatToTellThem: (ref: string) =>
-    `O certificado energético de ${ref} expirou. Enquanto não houver um certificado ` +
-    'válido, qualquer anúncio deste imóvel fica sem a menção obrigatória.',
+    `O certificado energético de ${ref} chegou ao fim do prazo. Enquanto não houver ` +
+    'um certificado válido, qualquer anúncio deste imóvel fica sem a menção obrigatória.',
+
+  // --- one sentence per reason, because the reasons need different things ---
+  // An agency told only that the certificate lapsed buys a new certificate,
+  // and the licence is still not valid. So each cause is said on its own.
+  causeExpired: 'O certificado energético chegou ao fim do prazo.',
+  causeRevoked:
+    'A licença de mediação da agência deixou de estar válida. Isso resolve-se ' +
+    'junto do IMPIC e não connosco.',
+  causeArrived:
+    'Passou a ser exigida uma menção que não era exigida quando este anúncio foi ' +
+    'preparado. A lei mudou; o imóvel não.',
+  /*
+   * ⚠️ THIS ONE SAYS LESS THAN THE OTHER THREE, ON PURPOSE.
+   *
+   * The other three are statements about the advertisement. This is a statement
+   * about US: we can no longer say what the jurisdiction requires. The property
+   * may be perfectly in order, and saying "this is irregular" when what is true
+   * is "we do not know" would send an agency to fix something that is not
+   * broken — and would spend the credibility of every other line on this screen.
+   */
+  causeUnresolvable:
+    'Não conseguimos confirmar o que é hoje exigido neste país ou região, por ' +
+    'isso também não conseguimos confirmar que este anúncio continua em ordem. ' +
+    'Não quer dizer que esteja irregular: quer dizer que não sabemos.',
+  /** Null is not zero — a date we do not hold is said as one we do not hold. */
+  sinceUnknown: 'Não sabemos desde quando.',
+
+  // --- licences to confirm: a question, never a failure --------------------
+  confirmHeading: 'Licenças por confirmar',
+  confirmIntro:
+    'Não consultamos o IMPIC. O que temos é o número que a agência nos deu, e ao ' +
+    'fim de algum tempo isso deixa de chegar para nos apoiarmos nele. Não é um ' +
+    'problema com o anúncio — é uma pergunta a fazer à agência.',
+  confirmNever: (number: string) =>
+    `Nunca confirmámos a licença ${number} com a agência.`,
+  confirmStale: (number: string, days: number) =>
+    `A licença ${number} não é confirmada há ${days} dias.`,
+  confirmAffectsOne: 'Há 1 imóvel que depende dela.',
+  confirmAffectsMany: (n: number) => `Há ${n} imóveis que dependem dela.`,
+  confirmNothing: 'Não há licenças por confirmar.',
+
+  /*
+   * ⚠️ AND WHAT THIS RUN DID NOT LOOK AT.
+   *
+   * An empty section reads as "nothing is wrong". When a check could not run,
+   * what is true is "nothing was looked at", and those are opposite meanings
+   * wearing the same blank space.
+   */
+  notCheckedHeading: 'Nem tudo foi verificado',
+  notChecked:
+    'Nesta verificação faltaram dados para confirmar tudo, por isso o que está ' +
+    'em cima pode estar incompleto. Uma lista vazia aqui não quer dizer que ' +
+    'esteja tudo bem — quer dizer que não foi possível ver.',
 } as const
 
 export const SILENCE = {

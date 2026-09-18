@@ -52,10 +52,11 @@ two-gate boundary and the part to read before touching anything.
 | `0027`–`0032` | ✅ all applied, verified, blessed. `0032` is the destructive one and proved its own abort first |
 | The gate | ✅ **requirement-driven**. Refuses by naming the requirement, not the column |
 | Exemption declaration | ✅ reads like the segmentation one, against a *requirement* rather than a property |
-| Standing re-check + notice | ✅ soonest expiry across requirements; the notice claims nothing it cannot do |
+| Standing re-check + notice | ✅ **all four ways a clearance stops holding**, not just the date: a licence suspended, a requirement that becomes effective, a jurisdiction we can no longer read. The notice claims nothing it cannot do |
+| Registrations to confirm | ✅ 90 days, keyed by the **licence** and not the property; a question, never a refusal — the interval the gate's `'unknown'` departure was deferring to |
 | Prepared piece + invariant | ✅ invariant read on the artefact; mentions are a registry that **throws** on an id it cannot say |
 | Spain's rows (step 5) | ⏸️ **deliberately held.** The etiqueta question could change what a Spanish piece *is*; a row built before that answer is built to a shape that may not survive it |
-| Re-check widened (step 6) | ❌ revoked registrations and newly-effective requirements not yet surfaced |
+| ~~Re-check widened (step 6)~~ | ✅ done 18 Sep. Ten sabotages, ten matching predictions |
 | The lookup (step 7) | ❌ needs ADENE access, which is being registered for |
 
 ## What you cannot work out from the repo
@@ -104,7 +105,15 @@ something we have not built. The gate refuses on facts; **decay is surfaced** by
 the re-check. Stated in the code where the decision is.
 
 **6. We cannot withdraw a post we did not publish.** A test fails on any verb
-claiming we acted on the advertisement. Do not add one.
+claiming we acted on the advertisement. Do not add one. The guard now asserts
+its own cases before using them — it had been masculine-singular only, and every
+noun in this feature (*publicação*, *menção*, *licença*, *peça*) is feminine.
+
+**6b. The re-check reports what it could not check.** Hand it no policy rows and
+it reports nothing and says so, rather than reporting every clearance as a
+problem or as fine. `undefined` means *not asked*; `[]` means *asked, and there
+are none* — a real finding. Do not collapse them with `?? []`; that one operator
+is lesson 5k.
 
 **7. The fines are the COMPANY range** — €2,500 to €44,890, not the €250–€3,741
 that §8.A carried until today. That sentence exists to make a conversation

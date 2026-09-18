@@ -253,15 +253,32 @@ function checkRating(r: Requirement, s: PublicationSubject, now: Date): Outcome 
   }
 }
 
+/**
+ * The registration an agency holds FOR a given jurisdiction, or none.
+ *
+ * ⚠️ EXPORTED SO THE GATE AND THE STANDING RE-CHECK CANNOT DRIFT. A Catalan
+ * AICAT number does not satisfy Valencia's requirement, so the region has to
+ * match — and for a NATIONAL requirement the fact must not be scoped to a
+ * region, or a regional registration would quietly satisfy a national
+ * obligation. That rule was one of the three cases the gate's sabotage matrix
+ * predicted nothing for and which turned out to be a real gap; having two
+ * copies of it is how it becomes a gap again in the file that was written
+ * second.
+ */
+export function findAgencyFact(
+  facts: AgencyFact[],
+  q: { requirementId: string; scope?: Requirement['scope']; country: string | null; region: string | null },
+): AgencyFact | undefined {
+  return facts.find((x) =>
+    x.requirementId === q.requirementId &&
+    x.country === q.country?.toUpperCase() &&
+    (q.scope === 'regional' ? x.region === q.region : x.region === null))
+}
+
 function checkRegistration(r: Requirement, s: PublicationSubject, region: string | null): Outcome {
-  // A registration is held FOR a jurisdiction. A Catalan AICAT number does not
-  // satisfy Valencia's requirement, so the region has to match — and for a
-  // national requirement the fact must NOT be scoped to a region, or a regional
-  // registration would quietly satisfy a national obligation.
-  const f = s.agencyFacts.find((x) =>
-    x.requirementId === r.id &&
-    x.country === s.country?.toUpperCase() &&
-    (r.scope === 'regional' ? x.region === region : x.region === null))
+  const f = findAgencyFact(s.agencyFacts, {
+    requirementId: r.id, scope: r.scope, country: s.country, region,
+  })
   if (!f) return { refusal: 'requirement_unmet' }
 
   if (f.status === 'suspended' || f.status === 'cancelled') {
@@ -292,10 +309,18 @@ function checkRegistration(r: Requirement, s: PublicationSubject, region: string
 }
 
 /**
- * Is a clearance still good?
+ * Do the DATES on a clearance still hold?
  *
  * PUBLICATION IS A STATE, NOT A MOMENT. A permission that can expire without
  * anyone acting is one that has to be re-asked rather than granted.
+ *
+ * ⚠️ THIS ANSWERS THE DATE QUESTION AND NOTHING ELSE, which is a narrower
+ * question than "may this still be advertised". Three of the four ways a
+ * clearance stops holding leave every date in it untouched: the agency's
+ * licence is suspended, a region's requirement becomes effective, or we can no
+ * longer say what the jurisdiction requires. `recheckClearances` is the
+ * complete answer and this is one of its inputs — a caller using this alone
+ * gets a true statement about dates and a false one about lawfulness.
  */
 export function clearanceStillHolds(
   evidence: Extract<PublicationVerdict, { cleared: true }>['evidence'],
