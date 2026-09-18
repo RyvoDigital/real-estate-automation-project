@@ -14,7 +14,9 @@ happen, never what *always* does — and **rule 13**: documenting a failure mode
 does not control it, checking the artefact does. Its twin is **rule 19**:
 a source file is not the artefact either — the running system is. Then **§7**, which is the
 empty-set pass again — a filter is tested by what it refuses, not by what it
-returns.
+returns. And **§5g**, which is three findings from one week collapsed into one
+rule: a check that cannot reach its subject reports exactly what a clean check
+reports, and only running it and printing what it reached tells them apart.
 
 ---
 
@@ -1367,6 +1369,68 @@ message** rather than letting a green tick imply a guarantee that is years away
 from meaning anything.
 
 ---
+
+---
+
+## 5g. A check that cannot reach its subject reports exactly what a clean check reports
+
+Logged 2026-09-18, after the third instance in one week. This is the general
+rule; §5c, §5d and §4e are three faces of it.
+
+| | the check | what was absent | what it reported |
+|---|---|---|---|
+| **the address** | the orphan sweep listing provider messages | the `whatsapp:` prefix on the query | *"0 messages examined, all accounted for"* |
+| **the vocabulary** | the same sweep matching bodies | any recorded template to match against | *"0 orphans"* |
+| **the identifier** | the quality halt reading a sender | the column holding the Sender SID | *"quality unreadable"*, halting everything |
+
+Three different subsystems, three different absences, one report: **nothing
+wrong here.**
+
+### Why reading the code cannot find these
+
+**Because the code is correct.** There is no bug to spot. The query is
+well-formed, the matcher works, the halt does exactly what it should with the
+rating it was given. What is missing is a *value* — an address format, a set of
+rows, an identifier — and a value's absence is invisible in the logic that
+consumes it.
+
+A reviewer reads the sweep and sees a sweep. A test passes, because the test
+supplies the value. Only running it against the real world, **and printing what
+it reached**, distinguishes *"I looked and found nothing"* from *"I could not
+look"*.
+
+> **Every check must report what it REACHED, not only what it FOUND.** "0
+> orphans" is not a result. "16 messages examined against 3 templates, 0
+> orphans" is. The first is a claim about the world; the second is a claim about
+> the world plus the evidence that the claim was possible.
+
+### And failing safe is not the same as failing usefully
+
+The third instance is the one worth dwelling on, because it would have *worked*.
+An unreadable quality rating halts — deliberately, and correctly. So the first
+real campaign would have stopped dead with **"quality unreadable"**, which is
+exactly the right direction to fail in and tells nobody anything.
+
+The cost is not a bad outcome. It is **a morning debugging Twilio** — checking
+the credential, the API version, the permissions, the sender's status in the
+Console — when the answer was that no column held the identifier and no request
+was ever made.
+
+> **A safe failure with a misleading reason is the most expensive kind of safe**,
+> because it spends the investigation somewhere the fault is not. Where a check
+> can fail for want of a *value*, say which value, and say it before saying
+> anything about the subject.
+
+### Three habits, all cheap
+
+1. **Print the query, the window and the size of the corpus beside the result.**
+   Every dry run in this project does, and each of the three above was found by
+   exactly that.
+2. **Assert the identifier at startup rather than at first use.** A missing
+   Sender SID should refuse to assemble a campaign, not produce an unreadable
+   rating at contact one.
+3. **Never let "none found" and "could not look" share a message.** They need
+   different sentences, because they need different afternoons.
 
 ## 5f. A boundary crossed in both directions has a loud half and a quiet half, and the defect lives in the quiet one
 
