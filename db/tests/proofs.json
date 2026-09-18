@@ -113,6 +113,17 @@
       "hashes": {},
       "last_proved": null,
       "proved_by": null
+    },
+    {
+      "id": "0023-message-attribution",
+      "what": "Attribution is a three-state fact: a campaign attribution must name its send, an organic one must name nothing, and \u2014 the one that matters \u2014 an insert omitting the column entirely (which the live workflow does) inherits `unknown`, the LOUD state, rather than `organic`.",
+      "how": "Paste db/migrations/0023_messages_attribution.sql, then its verify block inside begin/rollback. Expect existing rows all 'unknown'; campaign-without-send refused; organic-with-run refused; and an insert omitting attribution_state to SUCCEED returning 'unknown'.",
+      "watches": [
+        "db/migrations/0023_messages_attribution.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
     }
   ]
 }

@@ -363,6 +363,63 @@ account for in an afternoon, and the answer may be "less than they hoped", which
 is §1.4 of the Automation 02 specification arriving as a practical matter rather
 than a legal one.
 
+### 3.19 🔴 The Concierge overwrites a lead's origin on every inbound message
+
+**Found 18 Sep 2026 while designing the handoff contract, by asking what the
+Concierge READS to tell a campaign reply from a fresh lead rather than how it
+would know.** It predates everything built this week and has nothing to do with
+campaigns.
+
+`UpsertLead` writes on every inbound:
+
+```js
+const row = { client_id, phone, source: 'whatsapp', last_contact_at, updated_at }
+if (!existing) { row.stage = 'new'; row.consent_status = 'unknown'; … }
+```
+
+`stage` and `consent_status` are guarded. **`source` is not.** So a contact
+imported from an agency's list — `source: 'import'` — becomes `source:
+'whatsapp'` the moment they send their first message, and their origin is gone.
+
+**It is not a record of where a contact came from. It is a record of the last
+channel they used**, and it has been quietly answering the first question with
+the second.
+
+### The count, and which zero it is
+
+Measured 18 Sep: **0 rows currently overwritten.** One imported lead exists, its
+`source` is still `import`, and it has never replied.
+
+That zero means *"no imported contact has replied yet"*, not *"the defect is not
+real"* — §5g applied to our own measurement. The mechanism is armed: that
+contact's next message erases their origin, and every imported contact after
+them.
+
+**Detection method, and its limit.** Imported leads are identified by
+`qualification->'imported'->>'batch_id'`, which the upsert does not touch and
+which therefore survives. A lead imported by some future path that does not
+write that key would be invisible to this count.
+
+### Why it matters beyond tidiness
+
+The weekly report is the thing a client reads. Attribution taken from
+`leads.source` would show a reactivated contact who converts as an **organic
+WhatsApp lead**: the campaign that produced them shows nothing, and the
+Concierge shows a lead it did not find. Both figures wrong, in opposite
+directions, **and the sum right** — the hardest kind of error to notice from
+outside.
+
+### The fix, and why it is not here yet
+
+One line: guard `source` the way `stage` already is. It belongs in the n8n
+deploy that is already owed for the `consent_status` change, and now carries the
+opt-out gate and the attribution read as well. **Three things in one deploy
+rather than three deploys** — which makes it worth doing properly rather than
+soon.
+
+**Until then, nothing may attribute from `leads.source`**, and the handoff
+design does not.
+
 ---
 
 # 4. 🟡 Improvements
