@@ -63,8 +63,22 @@ the part that matters most missing.
 **`client_automations.health` and `last_run_at` are derived, and the columns are
 dropped.** Nothing has ever written to either, so §3.17's per-client rollup has
 no source. A column nobody writes to is a fallback asserting that nobody has
-checked. *(The drop is not yet written — it needs the same prove-they-are-empty
-treatment `0032` gave the flat publication columns.)*
+checked.
+
+🔴 **`0036` IS WRITTEN AND NOT YET APPLIED, and the order matters.**
+`cockpit/src/lib/actions.ts` wrote `health: 'unknown'` on insert — the column's
+own default, written back at it. **That line is removed and deployed; the
+migration runs after.** The reverse order breaks client creation, because
+PostgREST rejects an insert naming a dropped column, and the failure lands on
+the operator onboarding an agency.
+
+`npm test` is **RED BY DESIGN** until it is run: two failures, both the proof
+book saying `0036-drop-client-automations-health` has never been run. Running
+the three abort cases and `npm run proof:bless 0036-drop-client-automations-health`
+clears them. Case 3 — the abort must NOT fire on the resting state — is the one
+that distinguishes a correct predicate from a merely present one, because
+`health` is `not null default 'unknown'` and `is not null` on it would match
+every row and abort always.
 
 ## What you cannot work out from the repo
 

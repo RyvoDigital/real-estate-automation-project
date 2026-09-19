@@ -346,6 +346,17 @@
       },
       "last_proved": "2026-09-19",
       "proved_by": "Manuel Vale"
+    },
+    {
+      "id": "0036-drop-client-automations-health",
+      "what": "The two monitoring columns 0001 added and nothing ever wrote to — client_automations.health (not null, default 'unknown') and last_run_at (nullable) — are dropped, AND THE ABORT IS SEEN TO FIRE FIRST. They are not merely unused: a column named `health` that always says 'unknown' is a fallback asserting \"nobody has checked\" (lesson 13), which is true today and stops being true the first time anything writes to it once, at which point every other row still says 'unknown' and now reads as \"checked, and fine\". §3.17 asks for a per-client health rollup and these are the obvious columns for it to read; §4.7 says derive rather than infer, so the rollup comes from automation_runs, the invariant events and each gate's own refusal instead. THE PART THAT IS NOT 0032 AGAIN: \"empty\" is a DIFFERENT TEST FOR EACH COLUMN. 0032's five were all nullable, so `is not null` meant somebody put something there. Here `health` is NOT NULL, so `is not null` would match every row and abort always — a guard that fires whatever the truth is. Its predicate is `is distinct from 'unknown'`, written that way rather than <> so it stays correct if the column is ever made nullable. Case 3 of the proof is what distinguishes a correct predicate from a merely present one. AND THE ORDERING: cockpit/src/lib/actions.ts wrote health:'unknown' on insert — the column's own default, written back at it. That line is removed in the same commit and MUST BE DEPLOYED BEFORE the migration runs, or client creation breaks in between, because PostgREST rejects an insert naming a dropped column. A migration that is correct in the database and breaks the one screen that writes to the table is not a correct migration.",
+      "how": "FIRST confirm the deploy: create a client in the cockpit and see both rows appear (the deployed build must no longer name `health`). THEN prove the abort, in transactions you roll back, running the do-block on its own — three cases, and case 3 is not optional. (1) `update client_automations set last_run_at = now() where id = (select id from client_automations limit 1)` — expect REFUSING TO DROP … health…=0, last_run_at (not null)=1; rollback. (2) `update client_automations set health = 'healthy' where id = (select id from client_automations limit 1)` — expect REFUSING TO DROP … health (anything other than 'unknown')=1; rollback. (3) run the do-block with NOTHING modified — expect the NOTICE 'Both columns are empty — proven, not assumed' and NO exception. A guard that fires on everything is as useless as one that fires on nothing, and `is not null` on a NOT NULL column would pass (1) and (2) and fail this one. THEN apply 0036 and verify: the two columns gone from information_schema; the remaining seven read back in order (id, client_id, automation_id, enabled, config, n8n_workflow_id, created_at) — `config` above all, because it holds every threshold, area and handoff note in the system; row count unchanged; the unique constraint still in pg_constraint. FINALLY onboard a test client again and delete it, which is the check the ordering section exists for.",
+      "watches": [
+        "db/migrations/0036_drop_client_automations_health.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
     }
   ]
 }

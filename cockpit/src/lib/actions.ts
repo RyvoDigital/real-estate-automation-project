@@ -385,7 +385,12 @@ export async function createClient(draft: ClientDraft): Promise<CreateResult> {
     automation_id: automation.id,
     enabled: true,
     config: toConfig(draft),
-    health: 'unknown',
+    // `health` is NOT written. It was the column's own default written back at
+    // it, and 0036 drops the column: nothing has ever set it to anything else,
+    // so the per-client health rollup is DERIVED from automation_runs and the
+    // anomaly events instead (improvements §4.7, cockpit-design-brief.md §3.6).
+    // This line goes BEFORE the migration; the reverse order breaks client
+    // creation, because PostgREST rejects an insert naming a dropped column.
   })
 
   if (caErr) {
