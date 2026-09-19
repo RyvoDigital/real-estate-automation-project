@@ -65,20 +65,24 @@ dropped.** Nothing has ever written to either, so §3.17's per-client rollup has
 no source. A column nobody writes to is a fallback asserting that nobody has
 checked.
 
-🔴 **`0036` IS WRITTEN AND NOT YET APPLIED, and the order matters.**
-`cockpit/src/lib/actions.ts` wrote `health: 'unknown'` on insert — the column's
-own default, written back at it. **That line is removed and deployed; the
-migration runs after.** The reverse order breaks client creation, because
-PostgREST rejects an insert naming a dropped column, and the failure lands on
-the operator onboarding an agency.
+**`0036` IS APPLIED**, 19 Sep, proof
+`0036-drop-client-automations-health` blessed. Both columns gone, four rows
+intact. All three abort cases behaved, including case 3 — the abort must NOT
+fire on the resting state, which is what distinguishes a correct predicate from
+a merely present one: `health` was `not null default 'unknown'`, so `is not
+null` on it would have matched every row and aborted always, passing both
+sabotage cases while failing only the quiet one nobody writes.
 
-`npm test` is **RED BY DESIGN** until it is run: two failures, both the proof
-book saying `0036-drop-client-automations-health` has never been run. Running
-the three abort cases and `npm run proof:bless 0036-drop-client-automations-health`
-clears them. Case 3 — the abort must NOT fire on the resting state — is the one
-that distinguishes a correct predicate from a merely present one, because
-`health` is `not null default 'unknown'` and `is not null` on it would match
-every row and abort always.
+🔴 **AND THE SEQUENCING LESSON, FOR WHOEVER DROPS A COLUMN NEXT.** The code
+deploy is a **precondition** of the migration, not a companion to it.
+`cockpit/src/lib/actions.ts` wrote `health: 'unknown'` on insert — the column's
+own default, written back at it — so dropping the column before that line
+deployed would have broken client creation, PostgREST rejecting an insert that
+names a column no longer there, **with the failure landing on the operator
+mid-onboarding in front of an agency.** On this one the drop was run before the
+Vercel deploy was checked. The ordering held, but **by luck rather than by
+sequence**, and a precondition satisfied by luck is not a precondition anybody
+can rely on next time. Check the deploy first; it is one client creation.
 
 ## What you cannot work out from the repo
 
