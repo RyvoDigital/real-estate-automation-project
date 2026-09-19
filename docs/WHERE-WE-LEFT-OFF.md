@@ -28,13 +28,14 @@ many agencies. The redesign was deferred deliberately until all five automations
 existed, because each would surface requirements nobody could predict. They do
 now, so the mapping was done.
 
-**Three documents, and nothing is built or designed.**
+**Four documents, and nothing is built or designed.**
 
 | | |
 |---|---|
 | [`cockpit-mindmap.md`](cockpit-mindmap.md) | 27 questions, the inventory, the frame, the operator level, mobile, ten states, every action and every deliberate absence — plus eight places the brief's own premises were wrong |
 | [`cockpit-design-brief.md`](cockpit-design-brief.md) | **the frame and the nine operator-level surfaces**, to the depth a design can be drawn against. Constraints, not layouts |
-| [`cockpit-design-brief-client.md`](cockpit-design-brief-client.md) | the client level: the contact record first, then the presented-mode screens, then the rest |
+| [`cockpit-design-brief-client.md`](cockpit-design-brief-client.md) | the client level: **the contact record** — Q14, *"why did this person not get the message"* — then the presented-mode screens |
+| [`cockpit-design-brief-client-2.md`](cockpit-design-brief-client-2.md) | the twelve remaining client screens at the same depth. Supersedes brief II §3 |
 
 **The operator is designing the screens** from these, using Mobbin for reference
 patterns. The briefs deliberately decide nothing visual.
@@ -136,9 +137,15 @@ header and in `automation-05-review-request-design.md` §1.2.
 
 ## What is next
 
-The operator designs from brief I and the frame. Brief III — the remaining
-client-level screens at the depth the contact record and the presented-mode
-screens got — is the outstanding writing.
+**The operator designs the screens.** All four documents are written and decide
+nothing visual; Mobbin is the reference for patterns.
+
+What the briefs deliberately leave open, so it is not mistaken for an oversight:
+build order; the `client_automations.health` / `last_run_at` drop (decided,
+unwritten, and it wants `0032`'s prove-they-are-empty treatment); the waiting
+room's and compliance watch's tables; GDPR erasure (§3.3); and **the agent
+entity (§3.1), which must be designed once, properly, with a migration, and
+never under deadline pressure.**
 
 ---
 

@@ -523,6 +523,10 @@ quietly broken, and the only protection is that no control exists to break it.
 
 # §3. The rest
 
+> 🔴 **SUPERSEDED by [`cockpit-design-brief-client-2.md`](cockpit-design-brief-client-2.md)**,
+> which gives these twelve the same depth as §1 and §2 above. What follows is
+> the shorter index; where the two disagree, brief III is newer.
+
 ---
 
 ## 3.1 The client landing
