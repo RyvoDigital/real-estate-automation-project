@@ -333,6 +333,19 @@
       },
       "last_proved": "2026-09-18",
       "proved_by": "Manuel Vale"
+    },
+    {
+      "id": "0035-automation-names-referral",
+      "what": "The catalogue says what the automations ARE. Three names corrected — 02 and 05 both carried \"Referral\", a product that is not merely unbuilt but REFUSED (a referred contact has no documented origin, which is segment D, which is what the gate exists to refuse), and 04's name still said \"Launch Engine\" while 0027 had already corrected that same row's description to a publication gate, so the row disagreed with itself. THE SECOND HALF IS THE PROOF: inbound_concierge and lead_nurture must be UNTOUCHED, and lead_nurture deliberately still reads \"Lead Nurture & Listing-Match Drip\" — \"Drip\" names a send that is not built, but the honest replacement depends on which tier the client is on and no document settles a single name, so the migration invents none. An UPDATE whose WHERE clause matched everything looks identical in the first check and is only visible next to the rows it had to leave alone (lesson 7b). SCOPE BOUNDARY, checked and recorded so nobody re-opens it: leads.source is plain text with no CHECK constraint at all — data_type text, udt_name text, nothing mentioning referral — so the value listed in 0001 was a documented convention rather than an enforced one, and nothing there was at risk. It stays: a referred lead who messages us is INBOUND on their own initiative, and what was refused is the automation that takes a name from a client and messages a stranger. Opposite directions of travel. WHY IT IS A PROOF AND NOT A TEST: nothing in cockpit/src reads name or description — every query selects key or id — so no suite can observe this. The first reader will be the redesigned Clients screen, which is exactly why the row had to be true before it is built.",
+      "how": "Apply 0035, then read ALL FIVE ROWS TOGETHER rather than the three that changed: `select key, name, left(description, 60) as description from public.automations order by key` — expect db_reactivation 'Database Reactivation', inbound_concierge 'AI Inbound Concierge' (unchanged), lead_nurture 'Lead Nurture & Listing-Match Drip' (unchanged, deliberately), listing_launch 'Publication Gate', reputation_loop 'Post-Close Review Request'. Then the property that motivated the migration: `select key, name, description from public.automations where name ilike '%referral%' or description ilike '%referral%'` — expect ZERO rows. Note the earlier draft of 0035 gave 02 a description containing the word \"referral\" (to say it is refused) while shipping this exact zero-row check — a check that could not fail for the reason it exists, lesson 1n, arriving inside a migration. The description now says what the automation IS; the refusal and its reasoning live in the migration header and in docs/automation-05-review-request-design.md §1.2, which is where somebody asking \"why is there no referral automation\" would actually look.",
+      "watches": [
+        "db/migrations/0035_automation_names_referral.sql"
+      ],
+      "hashes": {
+        "db/migrations/0035_automation_names_referral.sql": "26b0c4f7841e1e8d8d91ea2d8f41753215ba6096d14416d46836ea2490eda84e"
+      },
+      "last_proved": "2026-09-19",
+      "proved_by": "Manuel Vale"
     }
   ]
 }

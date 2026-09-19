@@ -1,10 +1,11 @@
 # Where we left off
 
-**Last updated:** 2026-09-19.
-**Where the work is:** Automation 05. 03 and 04 are built and waiting on other
-people; Phase 1 (Concierge) and 02's send path are done and untouched.
-**§0 is Automation 05, §0b is 04, §0c is 03.** All three end in the same two
-rooms: an agency's, and a lawyer's.
+**Last updated:** 2026-09-19 (later).
+**Where the work is:** the COCKPIT REDESIGN. All five automations are built to
+their gate and none can move without somebody else — an agency, a lawyer, Meta,
+ADENE. The cockpit is the one thing that can.
+**§0 is the cockpit, §0a is Automation 05, §0b is 04, §0c is 03.** The three
+automations all end in the same two rooms: an agency's, and a lawyer's.
 
 > ⚠️ The header used to say "Last updated 2026-09-03, next is Checkpoint C".
 > That was two automations ago. Sections below are newest-first and the older
@@ -17,7 +18,131 @@ tripped us up. **Sections are newest first.**
 
 ---
 
-# 0. HANDOVER — Automation 05, 19 September 2026
+# 0. HANDOVER — the cockpit redesign, 19 September 2026
+
+## What happened
+
+§3.17 has said since 17 September that the cockpit is built for the wrong user —
+an agency owner rather than the person who sells and runs the automations across
+many agencies. The redesign was deferred deliberately until all five automations
+existed, because each would surface requirements nobody could predict. They do
+now, so the mapping was done.
+
+**Three documents, and nothing is built or designed.**
+
+| | |
+|---|---|
+| [`cockpit-mindmap.md`](cockpit-mindmap.md) | 27 questions, the inventory, the frame, the operator level, mobile, ten states, every action and every deliberate absence — plus eight places the brief's own premises were wrong |
+| [`cockpit-design-brief.md`](cockpit-design-brief.md) | **the frame and the nine operator-level surfaces**, to the depth a design can be drawn against. Constraints, not layouts |
+| [`cockpit-design-brief-client.md`](cockpit-design-brief-client.md) | the client level: the contact record first, then the presented-mode screens, then the rest |
+
+**The operator is designing the screens** from these, using Mobbin for reference
+patterns. The briefs deliberately decide nothing visual.
+
+## The three frame decisions, taken
+
+1. **The client is the top-level object.**
+2. **The landing is a cross-client worklist, not the client list.** *"Which
+   client has the most red"* and *"which client needs me"* are different
+   questions; a rollup sorts by volume of problems and a worklist sorts by what
+   has to happen.
+3. 🔴 **Presented mode is a frame property, not styling.** Five screens are used
+   with the laptop turned around, in a room with the agency —
+   `segmentation/page.tsx` says so in a comment and `triage-actions.ts` records
+   `chosen_by` as the agency's person. **There is a second user**, and if the
+   mode is left to a stylesheet those screens get built wrong twice.
+
+## Two corrections that change what gets built
+
+**The contact, not the lead row, is the addressable object beneath a client.**
+`consent_events` is keyed `(client_id, phone_e164)` so an objection survives
+revert, dedupe and re-import. A lead-scoped screen shows a person's history with
+the part that matters most missing.
+
+**`client_automations.health` and `last_run_at` are derived, and the columns are
+dropped.** Nothing has ever written to either, so §3.17's per-client rollup has
+no source. A column nobody writes to is a fallback asserting that nobody has
+checked. *(The drop is not yet written — it needs the same prove-they-are-empty
+treatment `0032` gave the flat publication columns.)*
+
+## What you cannot work out from the repo
+
+**1. The inventory was off by two, and the two matter.** Seven screens were
+built standalone, not nine. The **campaign forecast** is `npm run
+probe:campaign` — a terminal probe — and the **publication re-check notice** is
+`recheckClearances()` with no caller in `app/`. Both are client-level answers to
+compliance questions, and counting them as existing budgets zero design for the
+two whose absence costs most.
+
+**2. 🔴 04's publication gate has no screen whatsoever**, and it was not on
+anybody's list. The refusal that is the entire product of Automation 04 — *this
+property may not be advertised, and here is the missing requirement* — reaches
+no surface. Today every Portuguese property refuses `policy_not_confirmed` and
+there is no way to see it except a probe. Along with it: the prepared piece,
+close intake, the template registry, the obligations register, the suppression
+record, the quality-rating halt, the proof book, the waiting room.
+
+**3. 🔴 "Why did this person not get the message" has no surface.**
+`campaign-evaluation-design.md` §5.1 names it canonical and says it shares one
+query with its opposite. The table is `sends` and nothing renders it. It is the
+first screen of the client-level brief.
+
+**4. `0035` IS APPLIED.** `automations.name` held *"Database Reactivation &
+Referral Engine"* and *"Post-Close Reputation & Referral Loop"* — a product
+explicitly refused, one screen away from an agency, because the redesigned
+Clients screen is the obvious first reader of that column. `0027` had corrected
+one *description* and left every *name*. Now:
+
+```
+db_reactivation      Database Reactivation
+inbound_concierge    AI Inbound Concierge                 (untouched)
+lead_nurture         Lead Nurture & Listing-Match Drip    (untouched, deliberately)
+listing_launch       Publication Gate
+reputation_loop      Post-Close Review Request
+```
+
+Verified across all five rows, not the three changed — an UPDATE whose WHERE
+clause matched everything looks identical in the first check. Proof
+`0035-automation-names-referral`, blessed 19 Sep.
+
+**5. `lead_nurture` is deliberately still wrong.** *"Drip"* names a send (F5)
+that is not built and has no audience until the declaration happens, but the
+honest replacement depends on which tier the client is on — agent triage for an
+agency with no structured data, and selling *that* as matching is the rejected
+row. No document settles a single name, so the migration invented none.
+
+**6. `leads.source` keeps `referral`, and the reason is not obvious.** It is
+plain text with no CHECK constraint — a documented convention in `0001` rather
+than an enforced value. It stays because a referred lead who messages us is
+**inbound on their own initiative**; what was refused is the automation that
+takes a name from a client and messages a stranger. Opposite directions of
+travel, and only the second is the rejected product.
+
+**7. 🔴 Multi-client inbound routing has never been exercised.** The Concierge
+resolves the client from the number a message arrived on —
+`whatsapp_number=eq.<To>&limit=1`, no `ORDER BY`. `0007` forbids the collision,
+but the sandbox has one sender number, so two clients have never been live at
+once. **The second real client is also the first proof that routing works**, and
+it is now its own onboarding checklist step — checking **both** halves, because
+the failure is a real client's leads answered by another client's assistant and
+the row that loses is the one nobody thought to check.
+
+**8. A bad check was caught before it ran, not after.** The first draft of
+`0035` gave Automation 02 a description containing the word *"referral"* (to say
+it is refused) while shipping a verify query of `where description ilike
+'%referral%'` expecting zero rows. Lesson 1n arriving inside a migration. The
+description now says what the automation IS; the refusal lives in the migration
+header and in `automation-05-review-request-design.md` §1.2.
+
+## What is next
+
+The operator designs from brief I and the frame. Brief III — the remaining
+client-level screens at the depth the contact record and the presented-mode
+screens got — is the outstanding writing.
+
+---
+
+# 0a. HANDOVER — Automation 05, 19 September 2026
 
 ## What 05 is, in one paragraph
 
