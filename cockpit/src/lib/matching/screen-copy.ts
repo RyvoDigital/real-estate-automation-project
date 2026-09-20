@@ -196,6 +196,23 @@ export const NOTICE = {
   notToldYet: 'A agência ainda não foi avisada.',
   markTold: 'Registar que a agência foi avisada',
   nothing: 'Nenhum certificado expirou nem está prestes a expirar.',
+  /*
+   * 🔴 WHEN NOTHING WAS CHECKED, AND NOT THE SAME SENTENCE AS WHEN NOTHING WAS
+   * FOUND. Added 20 September 2026, on the first render of this screen.
+   *
+   * `nothing` above is honest only if something was looked at. With no
+   * clearance recorded, the re-check examines zero rows and finds zero
+   * problems — and "nenhum certificado expirou" then reads as a clean bill for
+   * a check that never ran. That is the defect this entire screen is written
+   * to avoid, appearing in its own empty state.
+   *
+   * The count was on the page — "0 verificadas", in small grey type — and a
+   * denominator nobody reads is not a correction to a sentence they do.
+   */
+  nothingToCheck:
+    'Ainda não há nenhuma autorização registada para esta agência, por isso não ' +
+    'houve nada para reverificar. Uma lista vazia aqui não quer dizer que esteja ' +
+    'tudo em ordem — quer dizer que ainda não havia nada a olhar.',
   /** The sentence to say to the agency. Also stops short of an act. */
   whatToTellThem: (ref: string) =>
     `O certificado energético de ${ref} chegou ao fim do prazo. Enquanto não houver ` +

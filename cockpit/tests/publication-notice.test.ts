@@ -569,3 +569,23 @@ test('an exempt property with an old certificate date is still not warned about'
   assert.deepEqual(r.expiringSoon, [])
   assert.equal(r.stillGood, 1)
 })
+
+test('🔴 nothing checked and nothing found are different sentences', () => {
+  /*
+   * Found on the first render of the notice screen, 20 September 2026. With no
+   * clearance recorded the re-check examines zero rows and reports zero
+   * problems, and `nothing` — "nenhum certificado expirou nem está prestes a
+   * expirar" — then reads as a clean bill for a check that never ran.
+   *
+   * On the screen whose entire argument is that an empty list is not a
+   * guarantee. The count was on the page and a denominator in small grey type
+   * is not a correction to a sentence somebody reads.
+   */
+  assert.notEqual(NOTICE.nothingToCheck, NOTICE.nothing)
+  assert.match(NOTICE.nothingToCheck, /ainda não havia nada a olhar/)
+  assert.doesNotMatch(
+    NOTICE.nothingToCheck,
+    /em ordem\.|tudo bem\./,
+    'it must not end on a reassurance — the point is that nothing was examined',
+  )
+})

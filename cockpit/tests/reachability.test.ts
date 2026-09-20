@@ -147,14 +147,22 @@ const ENTRY_POINTS: EntryPoint[] = [
     what: 'the advertisement itself, with its mandatory mentions inside the text',
     wiredBy: 'the prepared-piece screen, which takes a cleared verdict — so it follows the publish screen',
   },
-  {
-    automation: '04 Advertising compliance',
-    module: 'publication/recheck.ts',
-    fn: 'recheckClearances',
-    what: 'which standing clearances no longer hold',
-    wiredBy:
-      'clearances existing and being written. 🔴 Its one repo-wide mention outside its module is a COMMENT — the most complete piece of unreachable work in the codebase',
-  },
+  /*
+   * ✅ recheckClearances CAME OFF THIS LEDGER ON 20 SEPTEMBER 2026 — second
+   * line, and the one that had been furthest from running:
+   *
+   *   wired by  /c/<client>/notice → recheckClearances, over the rows 0039
+   *             finally gives it
+   *
+   * It was the most complete piece of unreachable work in the codebase — four
+   * lapse causes, nullable dates where a revocation has none, a separate axis
+   * for registrations, and a notCheckedFor field so a run given no policy rows
+   * cannot report every clearance as unconfirmable. All of it written against
+   * an input that did not exist, and its only repo-wide mention outside its
+   * own module was a comment.
+   *
+   * Eleven left.
+   */
 
   // ── 05 Review requests ───────────────────────────────────────────────────
   {
