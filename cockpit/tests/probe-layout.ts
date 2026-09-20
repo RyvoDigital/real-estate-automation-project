@@ -241,6 +241,10 @@ async function main() {
   if (client?.[0]?.id) BY_ROUTE['/c/[client]/still-good'] = client[0].id as string
   if (client?.[0]?.id) BY_ROUTE['/c/[client]/policy'] = client[0].id as string
   if (client?.[0]?.id) BY_ROUTE['/c/[client]/templates'] = client[0].id as string
+  // The publish screen is two dynamic segments deep, so it needs both.
+  if (client?.[0]?.id && listing?.[0]?.id) {
+    BY_ROUTE['/c/[client]/listings/[listing]/publish'] = client[0].id as string
+  }
   if (process.env.PROBE_IMPORT_BATCH) BY_ROUTE['/import/[id]'] = process.env.PROBE_IMPORT_BATCH
   const { usable: ROUTES, skipped } = splitRoutes({ byRoute: BY_ROUTE })
 

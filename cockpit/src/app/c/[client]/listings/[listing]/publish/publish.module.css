@@ -1,0 +1,107 @@
+/* May this property be advertised. No semantic colour: the states come from
+   <StateChip>/<StateSurface>, which own them. */
+
+.head { display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; margin-bottom: 16px; }
+.title {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+.sub { margin: 8px 0 0; max-width: 88ch; font-size: 14.5px; color: var(--text-2); }
+.sub b { color: var(--text); font-weight: 600; }
+.stamp {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  margin-left: auto;
+  padding: 10px 16px;
+  border-radius: 18px;
+  background: var(--glass);
+  box-shadow: var(--glass-hi);
+  font-size: 13px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.stamp b { font-family: var(--display); font-size: 16px; font-weight: 600; color: var(--text); }
+
+.verdict {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  margin-bottom: 14px;
+  padding: 18px 20px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+.verdict b { color: var(--text); }
+.which { display: block; margin-top: 6px; font-size: 13.5px; color: var(--text-3); }
+
+.card {
+  margin-bottom: 14px;
+  padding: 20px 22px;
+  border-radius: 24px;
+  background: var(--glass);
+  box-shadow: var(--glass-hi);
+}
+.cardHead { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.cardHead h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.count { font-size: 13.5px; color: var(--text-2); }
+.note { margin-left: auto; font-size: 12.5px; color: var(--text-3); }
+
+.req {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 230px;
+  gap: 14px;
+  align-items: start;
+  padding: 14px 4px;
+  border-top: 1px solid var(--edge);
+}
+.req:first-of-type { border-top: 0; }
+.reqName { display: block; font-size: 15.5px; font-weight: 600; color: var(--text); }
+.reqLaw { display: block; margin-top: 2px; font-size: 13px; color: var(--text-3); }
+.hold { display: block; margin-top: 6px; font-size: 14px; color: var(--text-2); }
+.hold b { color: var(--text); }
+.right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; text-align: right; }
+.date { font-size: 12.5px; color: var(--text-3); }
+
+.kept { margin-top: 4px; padding: 14px 18px; font-size: 14px; }
+.kept b { color: var(--text); }
+
+.absent {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 40px;
+  padding: 20px 4px 0;
+  font-size: 13px;
+  color: var(--text-3);
+}
+.absent h2 {
+  grid-column: 1 / -1;
+  margin: 0 0 6px;
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.absent p { margin: 0; }
+
+@media (max-width: 900px) {
+  .title { font-size: 24px; }
+  .stamp { margin-left: 0; align-items: flex-start; white-space: normal; }
+  .req { grid-template-columns: minmax(0, 1fr); }
+  .right { align-items: flex-start; text-align: left; }
+  .absent { grid-template-columns: 1fr; }
+}

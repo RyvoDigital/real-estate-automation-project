@@ -400,6 +400,21 @@
         "reason": "🔴 MUST NOT BE APPLIED UNTIL ITS WRITER EXISTS. decidePublication() has no production caller — the publication gate is written and unwired — so nothing decides, and nothing would write this table. A table with no writer is exactly what agency_facts is, and improvements §3.22 is the entry about how that surfaces: invisibly, until the day something else stops hiding it. Applying this now would add a second one, in the same feature, for the same reason, on the same afternoon the first was recorded.",
         "runnable_when": "the publish screen that creates the decision path, and the writer inside it"
       }
+    },
+    {
+      "id": "0040-listing-country",
+      "what": "listings.country is added NULLABLE and WITH NO DEFAULT, constrained to ISO-3166 alpha-2. 0031 added the region and not the country, and nothing noticed for a month: decidePublication takes a country and NOTHING in the database held one — not on listings, not on clients, nowhere. The gate was complete, correct, and unable to be asked a question it could answer. 🔴 It is entered by a person and never derived: clients.timezone is where the agency's day starts, listings.area is a town name (\"Valencia\" is a province in Spain and a town in three other countries), and agency_facts.country is where the AGENCY is registered. Each would be the string match that produces a legal conclusion, which is what 0031 refuses. NO DEFAULT, because a default asserts a jurisdiction for every property nobody has looked at.",
+      "how": "In transactions you roll back, running the do-block alone: (1) with listings.country already present — expect REFUSING: listings.country already exists; rollback. (2) rename listings.region temporarily — expect REFUSING: listings.region is missing, so 0031 has not been applied; rollback. (3) unmodified — expect NOTICE 'Preconditions proven, not assumed.' THEN apply and verify: is_nullable YES and column_default null; update one row to 'Portugal' violates listing_country_iso; update to 'PT' is accepted.",
+      "watches": [
+        "db/migrations/0040_listing_country.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null,
+      "blocked": {
+        "reason": "Runnable now — it depends only on 0009 and 0031, both applied. It is grouped with 0039 because the publish screen needs both: a country to ask about, and somewhere to keep the answer.",
+        "runnable_when": "paste into the Supabase SQL editor; nothing in the cockpit applies migrations"
+      }
     }
   ]
 }

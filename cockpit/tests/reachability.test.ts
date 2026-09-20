@@ -126,14 +126,20 @@ const ENTRY_POINTS: EntryPoint[] = [
   },
 
   // ── 04 Advertising compliance ────────────────────────────────────────────
-  {
-    automation: '04 Advertising compliance',
-    module: 'publication/gate.ts',
-    fn: 'decidePublication',
-    what: 'the gate — may this property be advertised',
-    wiredBy:
-      'the publish screen at /c/<client>/listings/<id>/publish, which is the decision path. 🔴 It is also what 0039 (clearances) is blocked on: the writer goes inside the decision rather than beside it',
-  },
+  /*
+   * ✅ decidePublication CAME OFF THIS LEDGER ON 20 SEPTEMBER 2026 — the first
+   * line removed, and the reason it is recorded rather than simply deleted:
+   *
+   *   wired by  /c/<client>/listings/<id>/publish → decideAndRecord →
+   *             decidePublication
+   *
+   * The screen IS the decision path. `decidePublication` stayed pure and
+   * stayed where it was; `decide.ts` assembles the subject, asks it, and keeps
+   * the answer in the same act — so a cleared verdict cannot be obtained
+   * without the clearance being recorded.
+   *
+   * Twelve left.
+   */
   {
     automation: '04 Advertising compliance',
     module: 'publication/piece.ts',
