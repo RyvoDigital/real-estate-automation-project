@@ -1,0 +1,80 @@
+/* What is still good. No semantic colour here — the standings are rendered by
+   <StateChip>, which owns them. */
+
+.head { display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; margin-bottom: 16px; }
+.title {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+.sub { margin: 8px 0 0; max-width: 88ch; font-size: 14.5px; color: var(--text-2); }
+.sub b { color: var(--text); font-weight: 600; }
+
+.card {
+  margin-bottom: 14px;
+  padding: 20px 22px;
+  border-radius: 24px;
+  background: var(--glass);
+  box-shadow: var(--glass-hi);
+}
+.cardHead { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.cardHead h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.count { font-size: 13.5px; color: var(--text-2); }
+.count b { color: var(--text); }
+.note { margin-left: auto; font-size: 12.5px; color: var(--text-3); }
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 210px 150px;
+  gap: 14px;
+  align-items: center;
+  padding: 13px 4px;
+  border-top: 1px solid var(--edge);
+  font-size: 15px;
+}
+.row:first-of-type { border-top: 0; }
+.ref { display: block; font-family: var(--display); font-size: 17px; font-weight: 600; letter-spacing: -0.015em; color: var(--text); }
+.what { display: block; margin-top: 3px; font-size: 13.5px; color: var(--text-2); }
+.when { text-align: right; font-size: 13.5px; color: var(--text-2); }
+.when b { display: block; font-family: var(--display); font-size: 16px; color: var(--text); }
+.unknown { color: var(--text-3); font-style: italic; }
+
+.empty { font-size: 15px; color: var(--text-2); }
+.empty b { color: var(--text); }
+
+/* What this screen cannot answer. Not a footnote: the reader is looking at
+   dates and will draw conclusions about advertisability, and the thing that
+   would settle it is the thing we do not have. */
+.cannot {
+  margin-top: 6px;
+  padding: 16px 20px;
+  border-radius: 20px;
+  border: 1px dashed var(--edge-2);
+  font-size: 13.5px;
+  color: var(--text-2);
+}
+.cannot h2 {
+  margin: 0 0 8px;
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.cannot ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+
+@media (max-width: 900px) {
+  .title { font-size: 24px; }
+  .row { grid-template-columns: minmax(0, 1fr); row-gap: 8px; }
+  .when { text-align: left; }
+}

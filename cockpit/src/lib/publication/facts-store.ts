@@ -56,6 +56,47 @@ export async function listingFacts(listingId: string): Promise<PropertyFact[]> {
   }))
 }
 
+/**
+ * Every property fact this client holds, across all of their listings.
+ *
+ * `listingFacts` reads one listing at a time, which is what the gate needs —
+ * it is deciding about one property. A screen that asks "what is still good"
+ * is asking across the whole client, and doing that by calling the per-listing
+ * read in a loop would be one query per property.
+ *
+ * 🔒 `listing_facts` carries `client_id` itself (0030), so this is one filter
+ * rather than a join through `listings`. The reference comes back separately,
+ * because a fact for a listing that has since been deleted should still be
+ * visible rather than silently dropped by an inner join.
+ */
+export async function clientFacts(clientId: string): Promise<(PropertyFact & { listingId: string })[]> {
+  const { data, error } = await admin()
+    .from('listing_facts')
+    .select(
+      'id, listing_id, requirement_id, values, certificate_number, valid_until, registration_status, exemption, source',
+    )
+    .eq('client_id', clientId)
+  if (error) throw new Error(`client facts read failed: ${error.message}`)
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    listingId: r.listing_id as string,
+    requirementId: r.requirement_id as string,
+    values: (r.values ?? {}) as Record<string, unknown>,
+    certificateNumber: (r.certificate_number as string) ?? null,
+    validUntil: (r.valid_until as string) ?? null,
+    registrationStatus: r.registration_status as PropertyFact['registrationStatus'],
+    exemption: (r.exemption as PropertyFact['exemption']) ?? null,
+    source: r.source as PropertyFact['source'],
+  }))
+}
+
+/** listing id → the agency's own reference, for naming a property readably. */
+export async function listingReferences(clientId: string): Promise<Map<string, string | null>> {
+  const { data, error } = await admin().from('listings').select('id, reference').eq('client_id', clientId)
+  if (error) throw new Error(`listing references read failed: ${error.message}`)
+  return new Map((data ?? []).map((r) => [r.id as string, (r.reference as string) ?? null]))
+}
+
 export async function agencyFacts(clientId: string): Promise<AgencyFact[]> {
   const { data, error } = await admin()
     .from('agency_facts')

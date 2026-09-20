@@ -75,7 +75,23 @@ export const CLIENT_SCREENS: NavItem[] = [
   { slug: 'campaign', label: 'Campaign', inNav: true, presented: false, refusesBecause: 'a forecast of who would be written to is an operator decision before it is an agency conversation' },
   { slug: 'declaration', label: 'Declaration', labelPt: 'De onde vieram estes contactos', inNav: true, presented: true },
   { slug: 'listings', label: 'Listings', labelPt: 'Imóveis', inNav: true, presented: true },
-  { slug: 'expiries', label: 'Expiries', inNav: true, presented: false, refusesBecause: 'it spans clients in its denominators' },
+  /*
+   * 🔴 NAMED FOR WHAT AN OPERATOR OPENS IT TO FIND OUT, which is the test every
+   * other screen was held to.
+   *
+   * It was "Expiries" in the design. That names one of the things it holds — a
+   * date running out — rather than the thing itself, which also covers a
+   * registration nobody has ever checked and one the register says is
+   * cancelled. Neither of those is an expiry, and both are the same question:
+   * is what we hold still good.
+   *
+   * 🔒 It is ALSO not the designed Expiries, which is the clearance re-check
+   * and answers "which standing clearances no longer hold". That one needs a
+   * `clearances` table nothing writes (improvements §3.22), so it is a
+   * different screen that does not exist rather than this one under a better
+   * name. When it is built it gets its own entry here.
+   */
+  { slug: 'still-good', label: 'What is still good', inNav: true, presented: false, refusesBecause: 'it reads across every property this client holds, and an agency meeting is about one' },
   { slug: 'silence', label: 'Silence', inNav: true, presented: false, refusesBecause: 'it is a worklist of who to chase, in our words not theirs' },
   { slug: 'closes', label: 'Closes', labelPt: 'O que fechou', inNav: true, presented: true },
   { slug: 'review', label: 'Review', inNav: true, presented: false, refusesBecause: 'the reconciliation explains our own gaps, which is an operator conversation' },
