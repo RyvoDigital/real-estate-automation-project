@@ -400,6 +400,71 @@ The matching run refuses for want of thresholds, F5 has no audience until the
 declaration happens, and the notification's wording cannot be judged. All three
 resolve in one afternoon with one agency, and none of them resolve without it.
 
+### 3.23 🔴 Four automations' entry points have no callers — the feature is complete in the small and connected to nothing
+
+**Found 20 Sep 2026.** §3.22 was one instance. The operator asked whether 02,
+03 and 05 had the same shape. They do.
+
+🔒 **THE PATTERN IS THE FINDING, NOT THE THIRTEEN INSTANCES.** A feature can
+pass every test it has, carry proved migrations, hold careful copy modules and
+be entirely unreachable — because **nothing in a test or a migration asks
+whether anything calls it.** A unit test constructs its own inputs. A migration
+proves its own preconditions. Neither can notice that no code path arrives.
+
+**Verified by reference count across the whole repository**, excluding each
+function's own module and excluding tests. Thirteen entry points, zero callers:
+
+| Automation | Entry point | What it is |
+|---|---|---|
+| **02 Reactivation** | `runCampaign` | the thing that actually sends |
+| | `planCampaign` | what a run would do, before it does it |
+| | `reconcilePending` | the sweep that finds orphaned sends |
+| | `checkBeforeBatch` | the quality halt |
+| **03 Listing matching** | `extractForLead` | reading criteria out of a conversation |
+| | `recomputeRequirementsForLead` | keeping them current |
+| **04 Publication** | `decidePublication` | the gate |
+| | `assemblePiece` | the advertisement |
+| | `recheckClearances` | the re-check (its one repo-wide hit is a COMMENT) |
+| **05 Review** | `planReviewAsks` | who to ask |
+| | `recordClose` · `recordParty` · `markAgentAsked` | the close intake |
+
+**What IS wired**, so the claim stays honest: the Concierge (01) runs in n8n and
+writes through `/api/listings/inbound` and the message path; the import flow is
+wired end to end — `parseFile` has real callers and the pages exist; the
+segmentation, calibration, triage and silence screens are reachable; and the
+cockpit's own reads are all in use.
+
+⚠️ **AND THE FIRST VERSION OF THIS AUDIT WAS WRONG**, which is worth keeping.
+It reported `parseCsv`, `parseXlsx`, `parseVcard` and `detectFormat` as
+unreachable. They are dispatched by `parseFile` *inside the same module*, which
+the "exclude its own module" filter hid. A detector with false positives gets
+suppressed rather than obeyed — the third time that rule has earned its place
+in one day — so the list above is entry points verified one at a time, not a
+script's output.
+
+**Why this is not merely unfinished work.** Two of these carry a cost that the
+absence of a caller hides:
+
+1. **Nothing measures what is not called.** `npm test` is green on 700-odd
+   tests for code that cannot run. The suite is honest about what it asserts
+   and silent about what is reachable, and those look identical from a
+   dashboard.
+2. **The gaps compound invisibly.** §3.22 — nothing writes `agency_facts` — is
+   only invisible because `decidePublication` has no caller. Wire the gate
+   without the registration write and every property refuses; wire it with the
+   write and the refusal never appears. Neither is discoverable while nothing
+   calls anything.
+
+**The check worth building** is the one that would have found this without an
+audit: a test asserting that every exported entry point named in a list is
+referenced from a route, an action, or a workflow. Not every export — a helper
+is legitimately internal — but the named entry points of each automation, which
+is a list somebody has to write deliberately and keep.
+
+**Not scheduled here.** Each automation's wiring is its own piece of work with
+its own gate on Meta, a lawyer or a calibration afternoon, and this entry
+exists so the shape is recorded rather than rediscovered one feature at a time.
+
 ### 3.22 🔴 Nothing ever writes `agency_facts`, so the registration requirement refuses every property — permanently, and invisibly
 
 **Found 20 Sep 2026** while surveying what the compliance screens could read.
