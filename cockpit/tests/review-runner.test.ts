@@ -1,3 +1,18 @@
+/*
+ * ⚠️ THIS TESTS LOGIC NO CALLER REACHES.
+ *
+ * planReviewAsks has no caller anywhere outside its own module and this
+ * directory — see tests/reachability.test.ts, which is the ledger. Everything
+ * below is true about the logic and says nothing about whether it runs.
+ *
+ * The tests are not wrong and they are not wasted: the gate was built before
+ * its caller, deliberately, and this is what proves it correct so that wiring
+ * it later is a small act rather than a leap. But the COUNT must not read as
+ * coverage of a working system, which is why this banner is here and not only
+ * in the ledger.
+ *
+ * Built and unwired — not built and reachable. Delete this banner when it is.
+ */
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'

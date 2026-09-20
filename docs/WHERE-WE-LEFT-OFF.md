@@ -1,9 +1,23 @@
 # Where we left off
 
-**Last updated:** 2026-09-19 (later).
-**Where the work is:** the COCKPIT REDESIGN. All five automations are built to
-their gate and none can move without somebody else — an agency, a lawyer, Meta,
-ADENE. The cockpit is the one thing that can.
+**Last updated:** 2026-09-20.
+**Where the work is:** the COCKPIT REDESIGN, stage C — building it. §0 below is
+the current state.
+
+🔴 **"Built to its gate" was true about the GATE and not about the AUTOMATION,
+and that sentence stood at the top of this file for weeks.** Four automations
+are BUILT AND UNWIRED: the code exists, it is tested, and nothing calls it. See
+§0 and improvements §3.23. **Three states from now on, and this file says which
+every time:**
+
+| | means |
+|---|---|
+| **BUILT AND REACHABLE** | something calls it and it runs in production |
+| **BUILT AND UNWIRED** | it exists, it is tested, nothing calls it |
+| **NOT BUILT** | it does not exist |
+
+A handover that says "built" without saying which of the three has not said
+anything.
 **§0 is the cockpit, §0a is Automation 05, §0b is 04, §0c is 03.** The three
 automations all end in the same two rooms: an agency's, and a lawyer's.
 
@@ -18,7 +32,61 @@ tripped us up. **Sections are newest first.**
 
 ---
 
-# 0. HANDOVER — the cockpit redesign, 19 September 2026
+# 0. Four automations are built and unwired — 20 September 2026
+
+**Found while surveying what the compliance screens could read.** The operator
+asked whether the shape found in 04 was in 02, 03 and 05 as well. It is.
+
+**Thirteen entry points have no caller** anywhere outside their own module and
+the test suite — `runCampaign` (the thing that actually sends), `planCampaign`,
+`reconcilePending`, `checkBeforeBatch`, `extractForLead`,
+`recomputeRequirementsForLead`, `decidePublication`, `assemblePiece`,
+`recheckClearances`, `planReviewAsks`, `recordClose`, `recordParty`,
+`markAgentAsked`. `recheckClearances`'s one repo-wide mention outside its
+module is a **comment**.
+
+🔒 **THIS DOES NOT MEAN THE WORK WAS WASTED.** The gates are correct, proved,
+and exactly what they should be. Every one was built before its caller
+deliberately — you cannot wire a sender to a gate that does not exist — so
+"no caller yet" was true and expected each time, and **nothing ever marked when
+the *yet* ended.** Four features each looked finished on their own terms.
+
+**Why nothing caught it.** A unit test supplies its own inputs, so it proves
+the logic and says nothing about arrival. A migration proves its own
+preconditions, so it says nothing about whether anything writes the table. Both
+are honest about what they assert and silent about reachability — and from a
+dashboard, silence and success look identical. About **660 tests were passing
+over code that cannot run**.
+
+## What was done about it
+
+- **`cockpit/tests/reachability.test.ts` is a ledger that FAILS TODAY**, names
+  all thirteen, and says for each **what would wire it** rather than only that
+  it is unwired. It gets shorter as they are wired and passes when it is empty.
+  `npm test` now has **three** expected failures: two for the 0037 proof and
+  one for this.
+- **131 tests across 8 files carry a banner** — *"⚠️ this tests logic no caller
+  reaches"* — so the count stops reading as coverage of a working system. That
+  is a floor rather than a total: it counts files whose SUBJECT is an unreached
+  entry point, not every test that touches unreachable code.
+- **improvements §3.22** — nothing writes `agency_facts`, so the registration
+  requirement refuses every property. Invisible today only because
+  `decidePublication` has no caller, which is how these compound.
+- **improvements §3.23** — the pattern, with the verified list.
+- **`db/migrations/0039_clearances.sql`** — written, proved, and **deliberately
+  not applied** until its writer exists, because a table nothing writes is what
+  `agency_facts` already is.
+
+## What is BUILT AND REACHABLE, so the record is not all bad news
+
+The Concierge (01) runs in n8n and writes through `/api/listings/inbound`. The
+import flow is wired end to end. Segmentation, calibration, triage and silence
+are reachable screens. And the Stage C cockpit is live: `/today`, the client
+frame, escalations, *What is still good*, Policy and Templates.
+
+---
+
+# 0a. HANDOVER — the cockpit redesign, 19 September 2026
 
 ## What happened
 
