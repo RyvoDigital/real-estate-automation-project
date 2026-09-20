@@ -173,8 +173,21 @@ test('🔴 a nav item whose screen is not built is marked, not silently dead', (
 })
 
 test('the control: the link checker can see a dead link', () => {
-  // Without this, "no dead links" and "the regex found none" are one green.
-  assert.ok(!resolves('/c/[x]/settings'))
-  assert.ok(!resolves('/c/[x]/anomalies'))
-  assert.ok(resolves('/c/[x]/escalations'), 'a route that does exist must still resolve')
+  /*
+   * Without this, "no dead links" and "the regex found none" are one green.
+   *
+   * 🔴 THE FIRST VERSION NAMED /c/[x]/anomalies AS ITS KNOWN-MISSING ROUTE,
+   * AND THEN THAT SCREEN WAS BUILT — an hour later, by me. The control went red
+   * for the best possible reason and was still a false alarm, because it had
+   * pinned its negative case to a fact about today's progress.
+   *
+   * A control asserting a specific ABSENCE rots as soon as somebody fills it.
+   * So the negative case is now a path that cannot ever be a route, and the
+   * positive case is the landing — which, if it ever stops existing, is a
+   * failure worth having.
+   */
+  assert.ok(!resolves('/c/[x]/__not-a-route__/definitely-not'), 'an impossible path resolved')
+  assert.ok(!resolves('/nowhere-at-all'), 'a top-level path that does not exist resolved')
+  assert.ok(resolves('/c/[x]'), 'the client landing must resolve, or the reader is broken')
+  assert.ok(resolves('/today'))
 })

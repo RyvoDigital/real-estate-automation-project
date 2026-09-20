@@ -736,7 +736,7 @@ async function getLeadNames(ids: string[]): Promise<Map<string, string>> {
   return new Map((data ?? []).map((l) => [l.id as string, (l.full_name as string) ?? 'Unknown lead']))
 }
 
-async function readAnomalies(filter?: { leadId?: string }): Promise<AnomalyRow[]> {
+async function readAnomalies(filter?: { leadId?: string; clientId?: string }): Promise<AnomalyRow[]> {
   const since = new Date(Date.now() - ANOMALY_WINDOW_DAYS * 86_400_000).toISOString()
 
   let q = admin()
@@ -748,6 +748,14 @@ async function readAnomalies(filter?: { leadId?: string }): Promise<AnomalyRow[]
     .limit(ANOMALY_READ_CAP)
 
   if (filter?.leadId) q = q.eq('data->>lead_id', filter.leadId)
+  /*
+   * 🔴 `events.client_id` is NULLABLE, so this drops any anomaly that names no
+   * client. That is correct for a per-client screen and would be a silent
+   * omission if nobody said so — the client landing counts them separately for
+   * exactly this reason, and the client anomalies screen says how many it
+   * cannot show.
+   */
+  if (filter?.clientId) q = q.eq('client_id', filter.clientId)
 
   const { data, error } = await q
   if (error) throw new Error(`anomalies query failed: ${error.message}`)
@@ -764,6 +772,32 @@ export async function getAnomalies(): Promise<AnomalyFeed> {
     total: rows.length,
     capped: rows.length >= ANOMALY_READ_CAP,
     leadNames,
+  }
+}
+
+/**
+ * One client's anomalies, grouped — brief III §3.
+ *
+ * 🔒 Same shape as `getAnomalies`, so the screen that renders it cannot drift
+ * from the operator-wide one. The GROUPING and the FOUR-VISIBLE SPLIT live in
+ * `lib/anomaly.ts` and are not re-implemented anywhere.
+ *
+ * `unattributed` is the count of anomalies in the window whose event names no
+ * client at all. They are invisible to a per-client filter and visible on the
+ * operator's screen, and a page that did not say so would look like it
+ * disagreed with the one it links to.
+ */
+export async function getAnomaliesForClient(
+  clientId: string,
+): Promise<AnomalyFeed & { unattributed: number }> {
+  const [rows, all] = await Promise.all([readAnomalies({ clientId }), readAnomalies()])
+  const leadNames = await getLeadNames(rows.map((r) => r.leadId).filter((v): v is string => v !== null))
+  return {
+    groups: groupAnomalies(rows),
+    total: rows.length,
+    capped: rows.length >= ANOMALY_READ_CAP,
+    leadNames,
+    unattributed: all.filter((r) => r.clientId === null).length,
   }
 }
 

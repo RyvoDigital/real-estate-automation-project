@@ -137,11 +137,11 @@ function ours(input: BandInput): Band {
   if (anomalies && anomalies.critical > 0) {
     items.push({
       id: 'anomalies:critical',
-      what:
-        `${anomalies.critical} critical anomal${anomalies.critical === 1 ? 'y' : 'ies'} for this client. ` +
-        'The per-client anomalies screen is not built; the operator-wide one is at /health.',
-      // Also not built. Same rule.
-      opens: null,
+      what: `${anomalies.critical} critical anomal${anomalies.critical === 1 ? 'y' : 'ies'} for this client`,
+      // Built 20 Sep, so the door is real again. links-resolve.test.ts is what
+      // makes restoring this safe: if the screen is ever removed, the link
+      // fails the suite rather than the operator.
+      opens: { label: 'opens Anomalies', href: href(clientId, 'anomalies') },
       tone: 'red',
     })
   }
