@@ -113,7 +113,7 @@ export const CLIENT_SCREENS: NavItem[] = [
   { slug: 'closes', built: false, label: 'Closes', labelPt: 'O que fechou', inNav: true, presented: true },
   { slug: 'review', built: true, label: 'Review', inNav: true, presented: false, refusesBecause: 'the reconciliation explains our own gaps, which is an operator conversation' },
   { slug: 'thresholds', built: false, label: 'Thresholds', labelPt: 'O que procura quem lhe compra', inNav: true, presented: true },
-  { slug: 'import', built: false, label: 'Import', labelPt: 'A lista que nos enviou', inNav: true, presented: true },
+  { slug: 'import', built: true, label: 'Import', labelPt: 'A lista que nos enviou', inNav: true, presented: true },
   { slug: 'report', built: false, label: 'Report', inNav: true, presented: false, refusesBecause: 'its artefact is what the agency receives; the page is the operator checking it first' },
   { slug: 'settings', built: true, label: 'Settings', inNav: true, presented: false, refusesBecause: 'it holds numbers that decide who receives a message' },
 

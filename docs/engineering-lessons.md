@@ -4243,3 +4243,48 @@ on the way**, and neither function is wrong on its own.
 Write the words the screen is supposed to be able to say, from the design,
 **before** wiring the data that has to satisfy them. Then the disagreement is
 visible on the page rather than invisible in it.
+
+
+## 1s. A fact that travels between functions and changes meaning on the way
+
+**Named 21 September 2026, after the third instance in two days.** The operator's
+framing, which is the one that makes it findable: *a fact travelling between
+functions and changing meaning on the way, with neither function wrong on its
+own.*
+
+| Where it was right | Where it arrived | What was lost |
+|---|---|---|
+| `gate.ts` keeps `claimed_unevidenced` and `undetermined` distinct in the refusal DETAIL, and says in its own comment why — *"one is worth asking the agency about"* | `evaluate.ts` keys the aggregate on `verdict.reason` alone, and both are `no_ledger_basis` | the split the forecast is REQUIRED to show (§3.26) |
+| `silence.ts` sorts the silent by days descending, and argues for it — *"the person left alone longest is the one the agency should look at first"* | the silence screen, which forbids ranking by neglect in as many words | the screen's most load-bearing property, under a caption promising the opposite (§1r) |
+| `listBatches` legitimately lists EVERY batch for the operator-level `/import` | a per-client import screen | the cross-client rule (§1.8), failing silently rather than loudly |
+
+### Why it is a family and not three bugs
+
+In every case **both functions are correct where they are written.** There is no
+defect to find by reading either one. The error exists only in the join, and the
+join is usually a single line that looks like reuse working properly.
+
+> **The discarded case leaves a gap you might notice. The inherited case leaves
+> nothing missing at all** — a sort that is right where it was written arrives
+> looking like the correct default, and a cross-client reader arrives looking
+> like a reader.
+
+### The three questions, at the call site
+
+Reuse is the right instinct and the answer is not to stop. It is to ask, once,
+at the line where the fact crosses over:
+
+1. **What does this function's output MEAN**, in the words its author used?
+2. **Does my screen or caller forbid anything about that meaning?**
+3. **Is anything the author kept distinct being collapsed by how I aggregate,
+   sort or filter it?**
+
+Three of the day's findings would have been caught by question 2 alone.
+
+### And the mechanism, where one is available
+
+- §3.26: named in the improvements list, said on the row it affects.
+- §1r: the caption written from the DESIGN, so the code had to satisfy it.
+- `listBatches`: the `clientId` parameter, plus a test asserting the client page
+  passes it — proved by sabotage, since an unscoped call renders another
+  agency's filenames with nothing looking wrong.

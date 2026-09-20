@@ -36,12 +36,24 @@ export type Batch = {
   reverted_at: string | null
 }
 
-export async function listBatches(limit = 20): Promise<Batch[]> {
-  const { data, error } = await admin()
+/**
+ * 🔴 `clientId` IS NOT OPTIONAL DECORATION ON A CLIENT SCREEN.
+ *
+ * Brief II §1.8: no cross-client view, anywhere. This function is shared with
+ * the operator-level `/import`, which legitimately lists every batch — so the
+ * filter has to be applied by the CALLER, and a client page that forgot it
+ * would render another agency's filenames without anything looking wrong.
+ *
+ * `tests/import-screen.test.ts` asserts the client page passes it.
+ */
+export async function listBatches(limit = 20, clientId?: string): Promise<Batch[]> {
+  let q = admin()
     .from('import_batches')
     .select('id, client_id, filename, format, byte_size, status, tier, report, created_lead_ids, uploaded_by, created_at, committed_at, reverted_at')
     .order('created_at', { ascending: false })
     .limit(limit)
+  if (clientId) q = q.eq('client_id', clientId)
+  const { data, error } = await q
   if (error) throw new Error(`import_batches list failed: ${error.message}`)
   return (data ?? []) as unknown as Batch[]
 }

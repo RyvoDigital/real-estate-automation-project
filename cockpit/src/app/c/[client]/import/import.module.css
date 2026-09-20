@@ -1,0 +1,60 @@
+.head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 22px; }
+.title { font-family: var(--display); font-size: 26px; margin: 0 0 5px; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.sub { margin: 0; font-size: 13px; color: var(--text-2); max-width: 68ch; line-height: 1.55; }
+
+/* The rail. Five steps, and the write is marked. */
+.rail { display: grid; gap: 5px; margin-bottom: 28px; }
+.step { display: flex; align-items: baseline; gap: 10px; padding: 9px 13px; border-radius: 8px; background: var(--lift-1); }
+.stepN { font-family: var(--display); font-size: 12px; color: var(--text-3); flex: none; width: 14px; }
+.stepName { font-size: 13px; font-weight: 600; flex: none; width: 92px; }
+.stepNote { font-size: 11.5px; color: var(--text-3); line-height: 1.45; }
+.writes { background: var(--lift-2); }
+.writes .stepNote { color: var(--text-2); }
+.railNote { margin: 4px 0 0; font-size: 12px; color: var(--text-3); line-height: 1.5; }
+
+.empty { display: block; padding: 13px 15px; border-radius: 9px; font-size: 13px; line-height: 1.6; }
+
+.rows { display: grid; gap: 6px; }
+.batch {
+  display: grid; gap: 4px; padding: 13px 15px; border-radius: 10px;
+  background: var(--lift-1); color: inherit; text-decoration: none; box-shadow: var(--press);
+}
+.batch:hover { background: var(--lift-2); }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.file { font-size: 13.5px; font-weight: 600; overflow-wrap: anywhere; }
+.means { font-size: 12px; color: var(--text-2); line-height: 1.5; }
+.figures { font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.tier { font-size: 11px; color: var(--text-3); line-height: 1.45; margin-top: 2px; }
+
+/* The revert report leads, and leads with what was kept. */
+.revert { display: block; padding: 14px 16px; border-radius: 10px; font-size: 13px; line-height: 1.6; margin-bottom: 24px; }
+.retained { display: grid; gap: 3px; margin-top: 9px; font-size: 12px; }
+.retainedRow { font-family: var(--mono); font-size: 11.5px; color: var(--text-2); }
+
+.counts { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-bottom: 28px; }
+.c { display: grid; gap: 2px; padding: 11px 13px; border-radius: 9px; background: var(--lift-1); }
+.cn { font-family: var(--display); font-size: 22px; font-variant-numeric: tabular-nums; }
+.cl { font-size: 11px; color: var(--text-3); }
+
+.panel { margin-bottom: 26px; }
+.panelHead { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.panelHead h2 { font-family: var(--display); font-size: 15px; margin: 0; font-weight: 600; }
+.answers { font-size: 11px; color: var(--text-3); }
+
+.reject { display: flex; gap: 12px; flex-wrap: wrap; align-items: baseline; padding: 10px 13px; border-radius: 8px; background: var(--lift-1); }
+.line { font-family: var(--mono); font-size: 11px; color: var(--text-3); flex: none; }
+.reason { font-size: 12.5px; flex: 1 1 240px; }
+.raw { font-family: var(--mono); font-size: 11px; color: var(--text-3); overflow-wrap: anywhere; }
+
+.absent { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 8px; }
+.absent h2 {
+  font-family: var(--display); font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-3); margin: 0 0 8px; font-weight: 600;
+}
+.absent p { margin: 0 0 8px; font-size: 12px; color: var(--text-3); max-width: 74ch; line-height: 1.55; }
+
+@media (max-width: 560px) {
+  .head { flex-direction: column; gap: 10px; }
+  .step { flex-wrap: wrap; }
+  .stepName { width: auto; }
+}
