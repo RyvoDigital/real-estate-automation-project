@@ -15,19 +15,32 @@ import { automationState, type AutomationFacts, type AutomationStatus } from '@/
  *
  * 🔴 IT NEVER READS `client_automations.health` OR `.last_run_at`.
  *
- * Both columns exist, both are seeded with a default, and NOTHING HAS EVER
- * WRITTEN TO EITHER. `health` defaults to 'unknown' and `last_run_at` to null,
- * so a screen reading them would render "unknown" and "never" for an
- * automation that had run a thousand times — a not-checked (S3) wearing a
- * never-happened (S2) sentence, which is the exact confusion §5i is about.
+ * THE COLUMNS ARE GONE. `0036` dropped them on 19 September 2026, having first
+ * proved them empty, because nothing had ever written to either: `health` read
+ * 'unknown' for every row from its own default, and `last_run_at` was null for
+ * every row. A column nobody writes is a fallback asserting that nobody has
+ * checked (§13).
  *
- * The truth is in `automation_runs`, which is written on every execution. So
- * the last run is `max(started_at)` over the runs, and a test below asserts
- * the two forbidden columns do not appear in this file's select strings —
- * because the defect is not reading them wrongly, it is reading them at all.
+ * So the hazard changed shape when 0036 landed, and this guard is worth MORE
+ * now rather than less:
  *
- * 🔒 `0035`'s sibling drop is owed and is NOT this file's job. Dropping them is
- * a migration and a decision; not reading them is today.
+ *   before 0036   selecting them SUCCEEDED and rendered "unknown" and "never"
+ *                 for an automation that had run a thousand times — a
+ *                 not-checked (S3) wearing a never-happened (S2) sentence
+ *   after 0036    selecting them THROWS, and PostgREST fails the whole query,
+ *                 so one dropped column name takes the entire clocks strip to
+ *                 S4 and the landing stops being able to say anything
+ *
+ * 🔴 AND THE DESIGN BRIEF STILL SAYS THE DROP IS OWED. Brief III §1 reads
+ * "0035's sibling drop is owed", which was true when it was written and stopped
+ * being true the same week. This file was first written from that sentence.
+ * The handover — which CLAUDE.md says to read first — had it right. Lesson 8:
+ * every defect was a belief that had stopped being true.
+ *
+ * The truth is in `automation_runs`, which is written on every execution, so
+ * the last run is `max(started_at)` over the runs. A test asserts the two names
+ * do not appear in this file's select strings — the defect is not reading them
+ * wrongly, it is naming them at all.
  */
 
 /** How far back an errored run still counts as something to fix. */

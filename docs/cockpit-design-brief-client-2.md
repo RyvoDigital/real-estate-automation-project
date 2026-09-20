@@ -95,8 +95,12 @@ anomaly event types, escalated `leads`, and each gate's own refusal —
 `thresholds_not_configured`, `policy_not_confirmed`, `no_ledger_basis`, no
 approved template.
 
-🔴 **Never `client_automations.health` or `last_run_at`.** Nothing has ever
-written to either; `0035`'s sibling drop is owed.
+🔴 **Never `client_automations.health` or `last_run_at`.** Nothing ever wrote
+to either, and **`0036` DROPPED THEM on 19 September 2026** after proving them
+empty. Naming one now fails the whole query, so the cost of forgetting went up
+rather than down. Derive the last run from `max(automation_runs.started_at)`;
+`cockpit/tests/landing-automations.test.ts` fails if either name reaches a
+`select`.
 
 ## Legally load-bearing
 - 🔴 **Never the word *"viewings"*** for what the Concierge books. It books an
@@ -1057,8 +1061,11 @@ Designed: `claude.ai/artifact/SikJNRqU7tAQuHmuniC36J`.
   any of the three.
 - **Build order.** It wants a conversation about a first real client's first
   week, not a dependency graph.
-- **The `client_automations.health` / `last_run_at` drop.** Decided, unwritten.
-  It needs `0032`'s prove-they-are-empty treatment.
+- ~~**The `client_automations.health` / `last_run_at` drop.**~~ ✅ **Done** —
+  `0036`, applied and blessed 19 September 2026, with `0032`'s
+  prove-they-are-empty treatment. Left here struck through rather than deleted,
+  because this line is what the client landing was first built from on
+  20 September and it was already four days stale.
 - **The waiting room's and compliance watch's tables.** Both need a migration;
   shape follows the design.
 - **GDPR erasure** (§3.3) — a runbook with a legal deadline, later a button.

@@ -29,22 +29,26 @@ function selectArguments(text: string): string[] {
   return [...withoutComments.matchAll(/\.select\(\s*'([^']*)'/g)].map((m) => m[1])
 }
 
-test('🔴 the two columns nothing has ever written are never read', () => {
+test('🔴 the two columns 0036 dropped are never named', () => {
   /*
-   * `client_automations.health` defaults to 'unknown' and `last_run_at` to
-   * null, and no writer exists anywhere in the repo. Reading either renders a
-   * not-checked as though it were a fact: "unknown" for a healthy automation,
-   * "never" for one that ran this morning.
+   * 🔴 THE COLUMNS DO NOT EXIST. `0036` dropped them on 19 September, having
+   * proved them empty — nothing had ever written to either.
    *
-   * The defect is not reading them wrongly. It is reading them at all, which
-   * is why this asserts on the column list rather than on what is done next.
+   * Which makes naming them worse than it used to be, not better. Before the
+   * drop, selecting them succeeded and rendered "unknown" for a healthy
+   * automation and "never" for one that ran this morning. After it, PostgREST
+   * fails the WHOLE query, so one dropped name takes the entire clocks strip
+   * to S4 and the landing can say nothing at all.
+   *
+   * The defect is not reading them wrongly. It is naming them at all, which is
+   * why this asserts on the column list rather than on what is done next.
    */
   const selects = selectArguments(source)
   assert.ok(selects.length >= 4, `only ${selects.length} selects found — has the reader been rewritten?`)
 
   for (const s of selects) {
-    assert.doesNotMatch(s, /\bhealth\b/, `a select asks for health, which nothing writes: ${s}`)
-    assert.doesNotMatch(s, /\blast_run_at\b/, `a select asks for last_run_at, which nothing writes: ${s}`)
+    assert.doesNotMatch(s, /\bhealth\b/, `a select asks for health, which 0036 dropped: ${s}`)
+    assert.doesNotMatch(s, /\blast_run_at\b/, `a select asks for last_run_at, which 0036 dropped: ${s}`)
   }
 
   // And the truth IS read: the last run comes from automation_runs.
