@@ -1,0 +1,93 @@
+/* The contact record. Depth only on what can be pressed or opened. */
+
+.head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 24px; }
+.title { font-family: var(--display); font-size: 26px; margin: 0 0 5px; letter-spacing: -0.01em; }
+.sub { margin: 0; font-size: 13px; color: var(--text-2); }
+.num { font-family: var(--mono); font-size: 12px; }
+
+.stamp { display: grid; justify-items: end; gap: 2px; font-size: 11px; color: var(--text-3); text-align: right; }
+.stamp b { font-family: var(--display); font-size: 15px; color: var(--text-2); font-weight: 500; }
+
+.banner { display: block; padding: 12px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 20px; line-height: 1.5; }
+
+.panel { margin-bottom: 30px; }
+.panelHead { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.panelHead h2 { font-family: var(--display); font-size: 15px; margin: 0; font-weight: 600; }
+.answers { font-size: 11px; color: var(--text-3); flex: 1 1 240px; }
+.count { font-family: var(--display); font-size: 12px; color: var(--text-2); padding: 1px 7px; border-radius: 999px; background: var(--lift-2); }
+
+.empty { display: block; padding: 12px 14px; border-radius: 9px; font-size: 13px; line-height: 1.55; }
+
+/* ── send rows ─────────────────────────────────────────────────────────────── */
+
+.sends { display: grid; gap: 6px; }
+
+.send { border-radius: 9px; background: var(--lift-1); overflow: hidden; }
+.send[open] { background: var(--lift-2); }
+
+.sendHead {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 11px 13px; cursor: pointer; list-style: none;
+}
+.sendHead::-webkit-details-marker { display: none; }
+.sendHead:hover { background: var(--lift-2); }
+
+.sendBody { display: grid; gap: 3px; flex: 1; min-width: 0; }
+.verb { font-size: 13px; }
+/* The stored sentence IS the answer, so it reads as body text, not as meta. */
+.sentence { font-size: 12.5px; color: var(--text-2); line-height: 1.5; }
+.sentenceMissing { font-size: 12px; color: var(--text-3); font-style: italic; }
+
+/* Never behind the click. */
+.flag {
+  font-size: 11.5px; color: var(--text-2);
+  border-left: 2px solid var(--line); padding-left: 8px; margin-top: 2px;
+}
+
+.decided { font-size: 11px; color: var(--text-3); flex: none; white-space: nowrap; }
+
+.sendMore { padding: 4px 13px 13px 40px; display: grid; gap: 7px; }
+.line { display: flex; gap: 12px; margin: 0; font-size: 12px; line-height: 1.5; }
+.k { flex: 0 0 116px; color: var(--text-3); }
+.line code { font-family: var(--mono); font-size: 11px; }
+.stale { color: var(--text-2); font-style: normal; }
+.mover { color: var(--text-3); }
+
+/* Text the system stores, shown as stored. */
+.stored {
+  font-family: var(--mono); font-size: 11.5px; line-height: 1.6;
+  color: var(--text-2); white-space: pre-wrap; overflow-wrap: anywhere;
+}
+
+/* ── ledger, leads, messages ───────────────────────────────────────────────── */
+
+.events { display: grid; gap: 6px; }
+
+.event, .msg { display: flex; gap: 10px; padding: 11px 13px; border-radius: 9px; background: var(--lift-1); }
+.msg { flex-direction: column; gap: 4px; }
+.eventBody { display: grid; gap: 3px; flex: 1; min-width: 0; font-size: 12.5px; }
+
+.clocks { font-size: 11.5px; color: var(--text-2); }
+.meta { font-size: 11px; color: var(--text-3); line-height: 1.5; }
+
+.lead {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  padding: 11px 13px; border-radius: 9px; background: var(--lift-1);
+  color: inherit; text-decoration: none; font-size: 13px; box-shadow: var(--press);
+}
+.lead:hover { background: var(--lift-2); }
+
+.absent { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 8px; }
+.absent h2 {
+  font-family: var(--display); font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-3); margin: 0 0 8px; font-weight: 600;
+}
+.absent p { margin: 0 0 6px; font-size: 12px; color: var(--text-3); max-width: 72ch; line-height: 1.5; }
+
+@media (max-width: 560px) {
+  .head { flex-direction: column; gap: 12px; }
+  .stamp { justify-items: start; text-align: left; }
+  .line { flex-direction: column; gap: 2px; }
+  .k { flex: none; }
+  .sendMore { padding-left: 13px; }
+}
