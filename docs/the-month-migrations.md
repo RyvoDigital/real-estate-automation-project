@@ -27,6 +27,21 @@ no figure on The Month can change because of something that happened later.
 
 ---
 
+> ## 🔴 SUPERSEDED IN PART — read `deployed-schema-observed.md` first
+>
+> **21 September 2026.** Five of these tables now EXIST, with shapes richer
+> than the ones proposed below. `docs/deployed-schema-observed.md` records them
+> as read from the live database.
+>
+> What survives here is the **reasoning**, which is what it was written for:
+> revenue derived from contract periods rather than from who is active today;
+> paid and owed as two facts; euros only; a web client not being an automation
+> client; and §3b and §3c, which are about the page rather than the schema and
+> are unaffected.
+>
+> What does NOT survive is the column list. Read the observed record before
+> writing anything against these tables.
+
 ## 1. The six, in the order they must land
 
 | # | Migration | Why this position |
