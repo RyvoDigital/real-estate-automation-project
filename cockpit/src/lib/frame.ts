@@ -109,7 +109,7 @@ export const CLIENT_SCREENS: NavItem[] = [
    * name. When it is built it gets its own entry here.
    */
   { slug: 'still-good', built: true, label: 'What is still good', inNav: true, presented: false, refusesBecause: 'it reads across every property this client holds, and an agency meeting is about one' },
-  { slug: 'silence', built: false, label: 'Silence', inNav: true, presented: false, refusesBecause: 'it is a worklist of who to chase, in our words not theirs' },
+  { slug: 'silence', built: true, label: 'Silence', inNav: true, presented: false, refusesBecause: 'it is a worklist of who to chase, in our words not theirs' },
   { slug: 'closes', built: false, label: 'Closes', labelPt: 'O que fechou', inNav: true, presented: true },
   { slug: 'review', built: false, label: 'Review', inNav: true, presented: false, refusesBecause: 'the reconciliation explains our own gaps, which is an operator conversation' },
   { slug: 'thresholds', built: false, label: 'Thresholds', labelPt: 'O que procura quem lhe compra', inNav: true, presented: true },
