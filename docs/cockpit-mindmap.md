@@ -78,6 +78,7 @@ Three corollaries, each of which kills or moves a screen further down:
 | Q8 | *Can I take on a new client, and what does that actually require?* | **Onboarding** |
 | Q9 | *What may we lawfully say, to whom, in which language?* | **The template registry** |
 | Q10 | *Which automations is each client actually running?* | **Clients**, second column |
+| Q28 | *Is the business growing, and what did the system do to earn it?* | **The Overview** — added 19 Sep 2026, the landing (brief D4, D2′, §2.10). Numbered after the client level so Q11–Q27 keep their numbers |
 
 **Client level** — everything below a selected agency.
 
@@ -127,8 +128,15 @@ Listed separately because this is the honest measure of the current cockpit.
 
 ## 1.4 Questions deliberately not asked here
 
-- *"How is Ryvo doing commercially?"* — revenue, churn, pipeline. A different
-  instrument. `clients.monthly_fee_eur` exists and stays unread by the cockpit.
+- ~~*"How is Ryvo doing commercially?"* — revenue, churn, pipeline. A different
+  instrument. `clients.monthly_fee_eur` exists and stays unread by the cockpit.~~
+  **Reversed 19 Sep 2026 (brief D4).** The operator wants the business's own
+  numbers in the cockpit, so this is now **Q28** — the Overview, brief §2.10 —
+  and it is the landing (brief D2′). The reversal is narrower than the old
+  exclusion was: **revenue and what the system did, yes; pipeline, no** — the
+  system holds no pipeline and the page must not invent one. Recurring revenue
+  derives from new append-only contract records, **not** from
+  `clients.monthly_fee_eur`, which is proposed for dropping.
 - *"What is the client doing?"* — anything confidential to the agency that the
   operator cannot help with. §3.17's stated limit, unchanged.
 - *"Can the client see this?"* — no client login. Unchanged and reinforced.
@@ -240,6 +248,12 @@ This is the part that must be right once.
 
 ## 3.1 The top-level object — **DECISION 1**
 
+> **Amended 19 Sep 2026:** the landing is now **the Overview** (Q28), not
+> Today. The operator decided it, and brief D2′ records the reversal together
+> with the three consequences that keep what this section protected. The
+> argument below — that attention is allocated by clock, and that the client
+> list is not the landing — still stands, and Today is unchanged at `/today`.
+
 **The client is the top-level object. The client list is not the landing
 screen.**
 
@@ -295,7 +309,8 @@ out* → *something is about to run out* → *waiting on someone else*.
 switcher is a control in the chrome — never a page.**
 
 ```
-/                          Today          (cross-client)
+/                          Overview       (Q28 — the landing since 19 Sep, brief D2′)
+/today                     Today          (cross-client)
 /clients                   Clients        (cross-client)
 /c/<client>/…              everything beneath a client
 /ops/…                     operator level, belongs to no client
@@ -1102,7 +1117,9 @@ a green node reporting success.
 
 Recorded so none of it is assumed settled.
 
-1. **Layout, typography, components.** Nothing here.
+1. **Layout, typography, components.** Nothing here. *The visual direction
+   was decided on 19 Sep 2026 and lives in `cockpit-design-brief.md` §0.5 (and
+   motion in §1.14) — not here, and not in a memory note.*
 2. **Build order.** Every operator-level surface is new; most client-level ones
    exist. Sequencing needs a conversation about what the first real client's
    first week actually looks like.

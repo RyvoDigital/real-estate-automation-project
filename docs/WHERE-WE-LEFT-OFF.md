@@ -84,6 +84,40 @@ Vercel deploy was checked. The ordering held, but **by luck rather than by
 sequence**, and a precondition satisfied by luck is not a precondition anybody
 can rely on next time. Check the deploy first; it is one client creation.
 
+## 19 Sep, later — the Overview, and a marker for rehearsal clients
+
+**The landing is now the Overview** (brief D2′, §2.10), and Today moves to
+`/today`. The visual direction lives in brief §0.5 and motion in §1.14 — **not in
+a memory note.** Nothing is built yet. The Today v3 and Overview designs are
+published as artifacts for sign-off before any implementation.
+
+🔴 **`0037` and `0038` are WRITTEN AND NOT APPLIED.** They add
+`clients.rehearsal`, with **no default**. Both existing client rows are
+rehearsals (`ZZ TEST — Cascais Demo`, and `Ryvo Test Client` on the sandbox
+number), and without a marker the Overview would present them as the
+business's history.
+
+The order is the 0036 lesson, applied on purpose this time:
+1. `0037` adds the column nullable, classifies the two known rows, and
+   refuses by name anything unaccounted for.
+2. **Then** deploy onboarding asking *real or rehearsal* (required, nothing
+   pre-selected, parsed in `cockpit/src/lib/rehearsal.ts`), and update the
+   `db/tests` fixtures to insert `rehearsal = true`.
+3. **Then** `0038` proves no null and no default, and sets NOT NULL.
+
+Running 0038 before step 2 breaks client creation.
+
+`npm test` is **RED BY DESIGN**: the proof book says
+`0037-clients-rehearsal` has never been run. Run its three cases (in the
+migration file and the proof's `how`), apply it, and bless it. `0038` is
+recorded as **blocked**, not failing; the suite tells you the day
+`lib/rehearsal.ts` exists.
+
+**Invoicing provider is Keyinvoice** (operator, 19 Sep). The tracked record is
+brief §2.10. The commercial reference is gitignored on purpose (commercial
+terms stay off the server that pulls this repo), so its copy of the decision
+exists only on the operator's disk.
+
 ## What you cannot work out from the repo
 
 **1. The inventory was off by two, and the two matter.** Seven screens were

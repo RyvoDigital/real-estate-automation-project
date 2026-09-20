@@ -664,7 +664,7 @@ Recorded so they are not re-proposed.
 |---|---|
 | Cold WhatsApp outreach scraping seller contacts from Idealista | GDPR and ToS fragile; no sound lawful basis |
 | Social media management as a product | Commodity, a thousand competitors at €300/mo, touches nothing in the lead database, no moat |
-| Financial / invoicing automation | Portuguese invoicing requires AT certification. **Never build what must be certified** — buy InvoiceXpress |
+| Financial / invoicing automation | Portuguese invoicing requires AT certification. **Never build what must be certified** — buy certified software (Keyinvoice, decided 19 Sep 2026; see `ryvo-operations-and-commercial-reference.md` §8c) |
 | Email marketing, content repurposing, HR, e-commerce, legal automation | Wrong segment or wrong business |
 | Generalist workflow-automation consulting | The generalist trap; contradicts the vertical positioning that is working |
 | 50% recurring referral discount | Two referrals take the client below the price floor and turn them into a reseller |

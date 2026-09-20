@@ -1,20 +1,32 @@
 # Cockpit design brief — the frame and the operator level
 
 **Written 19 September 2026.** Companion to `cockpit-mindmap.md`, which maps all
-twenty-seven questions. This one specifies **the frame and the nine
-operator-level surfaces** to the depth a design can be drawn against.
+twenty-seven questions. This one specifies **the frame and the ten
+operator-level surfaces** to the depth a design can be drawn against — nine
+from the mindmap, plus the Overview (§2.10, Q28), added on the same day.
 
 **What a brief is here:** constraints, stated so that a design cannot quietly
 drop one. For each screen — the question it answers, every state it must carry,
 what the operator can and cannot do, the exact data it reads, and what about it
 is legally load-bearing.
 
-**What it is not:** layout, hierarchy, typography, colour, component choice,
-density, or visual direction. None of those are decided here and none of them
-are implied. Where a constraint sounds like a layout instruction — *"the three
-counts are side by side"*, *"the last-run stamp is the biggest thing"* — it is
-because the arrangement is carrying the meaning, and those are marked
-🔒 **structural**. Everything unmarked is yours.
+**What it is not:** per-screen layout, hierarchy, density or component choice.
+Where a constraint sounds like a layout instruction — *"the three counts are
+side by side"*, *"the last-run stamp is the biggest thing"* — it is because the
+arrangement is carrying the meaning, and those are marked 🔒 **structural**.
+
+**The visual direction is decided, and it lives here — §0.5.** Canvas, colour
+tokens, type, depth, the row's anatomy, the sidebar and the motion contract
+(§1.14) were chosen by the operator on 19 September 2026 against Mobbin
+references, after two published rounds of the Today landing. They are marked
+🎨 **direction**. A 🔒 constraint comes from meaning and a 🎨 one from taste;
+**both bind**, and a session building from this brief alone must be able to
+reproduce the direction without anything else. *(Amended 19 Sep 2026: this
+paragraph previously said visual direction was "not decided here". It was
+written before any design existed, and left the chosen direction living only in
+a memory note.)*
+
+Everything unmarked is yours.
 
 **Client-level screens (Q11–Q27) are not in this document.** Deliberately: the
 frame and the operator level are worth having right rather than having all
@@ -29,8 +41,30 @@ twenty-seven half-specified.
 | | Decision | Consequence for the design |
 |---|---|---|
 | **D1** | The client is the top-level object | Every noun below it is client-scoped. `clients` is the spine, not `leads`. |
-| **D2** | The landing is a cross-client worklist, not the client list | Sort by what has to happen, not by volume of problems. The client list exists and answers a different question. |
+| **D2** | The landing is a cross-client worklist, not the client list — ⚠️ *the landing half is superseded by D2′ below; "not the client list" stands* | Sort by what has to happen, not by volume of problems. The client list exists and answers a different question. |
 | **D3** | Presented mode is a frame property | A second user exists — an agency person operating a screen through the operator's hands. §1.4 is its contract. |
+| **D4** | The cockpit carries the business's own numbers — at operator level only | A new surface, the **Overview** (§2.10, Q28). Reverses `cockpit-mindmap.md` §1.4, which kept *"how is Ryvo doing commercially"* out of the cockpit. Operator level only: no `/p/` route, no phone, and never a ranking of clients by what they pay. |
+| **D5** | **One company, two businesses** — decided 19 Sep 2026 | Ryvo Digital also sells website design and development on monthly retainers, and that is today its only real revenue. The cockpit carries both. **The Month** (the Overview, §2.10 — the operator's name for it) and Today are the company's. Only the automation side has a client level: **a web client is a row with its terms and its costs, and nothing beneath it**. There is no mode switch between businesses — a mode hides half the day and goes sticky, as §1.3 refuses for clients. Web clients are **not rows in `clients`**: every automation query assumes a `clients` row is an agency. §2.11 |
+| **D2′** | **Amended 19 Sep 2026: the landing is the Overview, not Today** | `/` is the Overview; Today moves to `/today` and keeps everything in §2.1. The operator's decision, recorded as a reversal rather than an edit — see below. |
+
+**Why D2′ is recorded as a reversal.** D2 argued the landing must be the
+worklist because attention is allocated by clock. That argument is not
+withdrawn; it is outweighed by the operator's choice that the first thing seen
+is how the business stands. Three consequences keep what D2 protected:
+
+1. **The chrome's one permanent count (§1.5) is what carries Today onto the
+   landing** — *how many things are waiting on a human*, always visible, one
+   click from the worklist. The Overview does **not** restate Today's groups as
+   cards: that is the summary strip §0.5 rejects, and it would be a second
+   rendering of the same reads.
+2. **The phone lands on Today, not on the Overview.** §1.13 gives the phone
+   Today alone; the Overview refuses the phone. So on a phone `/` renders the
+   Overview's refusal with Today as its one link, and **every alert links to
+   `/today` directly** — the car-park question never passes through the
+   refusal.
+3. **What would prove it wrong:** the Overview is opened and left, and Today is
+   reached by the chrome count every single morning. Then the landing is Today
+   in practice and should be in the URL too.
 
 ## 0.2 The two corrections, taken
 
@@ -79,6 +113,225 @@ Five properties. A design that drops one has dropped a defect back in.
    (§1.10)
 5. **A read that failed says so where it failed, and the rest of the screen
    still renders.** (§1.7)
+6. 🔴 **Every figure computed at a moment says which moment** — added 20 Sep
+   2026, after the forecast. *"23 refused because Portugal is not confirmed"* is
+   true about the run and false about today, and a page that says nothing about
+   which is the stale-record failure on the most commercially visible screen in
+   the cockpit. The rule has a fixed shape everywhere it appears: **carry the
+   age, name what went stale, offer the re-run — and never quietly recompute.**
+   A figure silently refreshed is worse than a stale one labelled, because
+   nobody can tell which they are reading. Already applied: the contact record's
+   stale refusals (brief II §1.4.1), Expiries' stale sweep (§2.3), The Month's
+   month in progress (§2.11), the forecast (brief III §4.1). **Every remaining
+   screen is checked against this shape.**
+7. 🔴 **A greyed control is not a refusal** — added 20 Sep 2026, the operator's
+   rule, after the weekly report. A disabled button still reads as one click
+   from going, and it invites the very action it was meant to prevent. **Where
+   an action is not available, there is no control at all**, and the absence
+   carries the reason beside it: a frozen field is its value as text plus why it
+   is frozen (brief III §12), an automation the gate would refuse is the refusal
+   plus a route to what is blocking it (§12), a report that cannot honestly be
+   sent has no send control (brief III §11). This is the same principle as the
+   absences footer — **the absence is the statement** — applied to controls.
+   🔒 **Every screen asserts it**: nothing `disabled`, `readonly` or
+   `aria-disabled` in any state.
+8. 🔒 **A screen never forbids a word by printing it** — added 20 Sep 2026, after
+   it happened twice: the re-check notice named the verbs it was denying, and
+   the weekly report's absences printed the word it exists to avoid. A guard
+   that fails on a word fails on it wherever it appears, including in the
+   sentence promising not to use it. **Absences describe what the page does
+   instead**, in the words the page would use. 🔒 A permanent check greps every
+   screen for the forbidden vocabulary, including its own denials.
+
+## 0.5 Visual direction 🎨
+
+**Decided 19 September 2026 by the operator**, from Mobbin references, after
+two published rounds of the Today landing (`claude.ai/artifact/JAzwFmbiaAocUt8dDXamQV`
+is the round the direction was taken from). This section is the source. The
+memory note that used to hold it is now a pointer here.
+
+### It binds every screen
+**Settled 19 Sep 2026, after Today v3 and the Overview were signed off:** this
+section is the visual direction for the whole cockpit. Every remaining screen —
+operator level, client level, presented mode — follows it: true black, the
+sidebar's light source, the C1 row's typography and rhythm, depth only on what
+can be pressed, and motion that only encodes change. 🔒 **A screen that departs
+from it needs a reason written in the brief, not a preference.** The reason goes
+next to the screen's own section, in the form of Today's group-4 exception
+below.
+
+*The standing example of a reasoned departure:* Today's collapsed group 4
+previews **two labelled lines**, where every other group previews one. Days left
+and days since checked are different clocks, and picking one head would rank
+them — the exact mistake the preview rule exists to prevent. **Two lines, never
+side by side:** two labelled lines say *two lists*; one combined line says *one
+list with a tie*.
+
+### How this section changes
+By the operator, from a named reference, recorded here with a date. **Never by
+an aesthetic or "design taste" skill** — on 19 Sep the `frontend-design` skill
+was stopped mid-load: *"the aesthetic direction is coming from Mobbin references
+and from me, not from a skill."* Those skills inject their own palette and type
+system, which pre-empts exactly the decision this section records.
+
+### The canvas
+- **True black.** `--black` is the page, and the working area stays `#000`.
+- **Surfaces are lifted off it**, never a neutral dark-grey plane. Rejected as
+  *"bland and safe"*: a flat grey plane with hairline dividers.
+- **One light source, confined to the sidebar** — decided 19 Sep 2026. It is a
+  soft achromatic falloff from the sidebar's top-left corner, from the Revolut
+  Business home
+  ([Mobbin](https://mobbin.com/screens/7a782d65-9d82-4178-ad92-ca77dc3180bd)),
+  whose "modern" feel is mostly this. 🔒 **It never reaches the content area.**
+  The operator's reasoning: a single source that only touches the chrome keeps
+  the list plane honest. Every row sits at the same depth, so depth still means
+  *you can press this* rather than *this is further away*. A light washing the
+  content would make rows near the top look different from rows lower down —
+  a hierarchy nobody chose. **Its hue is never borrowed:** Revolut's is blue,
+  and violet would spend `--handled`'s meaning on atmosphere.
+- **Translucent surfaces** (adopted 19 Sep for v3): containers are white at
+  3.5–5% alpha with a single top-edge highlight, so the light reads through
+  them — replacing the opaque `--lifted` gradient plus border. Same Revolut
+  screen.
+
+### Tokens — exact values
+These are the values of the published round. **The colour scheme is fixed**:
+new surfaces reuse these, and a new hue needs an entry here first. At build
+(stage C) the values move to `cockpit/src/app/tokens.css`; this table then keeps
+the names and the reasons, and a test asserts every name below exists there.
+
+| Token | Value | Use |
+|---|---|---|
+| `--black` | `#000000` | the canvas |
+| `--lift-1` | `#0E0E10` | first lift; the gradient's foot |
+| `--lift-2` | `#151517` | row hover |
+| `--lift-3` | `#1C1C1F` | icon wells |
+| `--edge` | `rgba(255,255,255,.07)` | the only border a surface gets |
+| `--edge-2` | `rgba(255,255,255,.11)` | the border of a pressable thing |
+| `--text` | `#F4F3F0` | primary text — warm, never pure white |
+| `--text-2` | `#A3A29D` | secondary |
+| `--text-3` | `#85847F` | tertiary; still passes contrast on black |
+| `--red` | `#FF6A5C` | **only** a breach, a read that failed, a critical. Never decoration |
+| `--handled` | `#B9A9FF` | **only** `handledElsewhere`. Never ambient, never a brand accent |
+| `--handled-ground` | `rgba(185,169,255,.07)` | the violet tray's ground |
+| `--ms-a` / `--ms-b` / `--ms-fg` | `#23355C` / `#15213A` / `#A9C3FA` | a client mark (sample: Marbella Sur) |
+| `--ca-a` / `--ca-b` / `--ca-fg` | `#4A3620` / `#2B1F12` / `#F2C890` | a client mark (sample: Casa Atlântica) |
+| `--lifted` | `linear-gradient(180deg,#141416 0%,#0E0E10 100%)` | a lifted surface (v2; v3 moves to translucency) |
+| `--lift-shadow` | `inset 0 1px 0 rgba(255,255,255,.05), 0 1px 0 rgba(0,0,0,.9), 0 24px 48px -12px rgba(0,0,0,.9)` | a lifted surface |
+| `--press` | `linear-gradient(180deg,#232326 0%,#1A1A1D 100%)` | a pressable thing |
+| `--press-shadow` | `inset 0 1px 0 rgba(255,255,255,.08), 0 1px 2px rgba(0,0,0,.8), 0 4px 10px -4px rgba(0,0,0,.8)` | a pressable thing |
+| `--display` | `"Bricolage Grotesque"` | headings, group names, **clocks and amounts** |
+| `--sans` | `"Instrument Sans"` | all running text |
+| `--mono` | `"Geist Mono"` | **only** text stored verbatim — an event's summary, a message as sent |
+
+**Named 20 September 2026, during the build.** These seven were used by every
+Stage B design and named in none of the tables above — found by the second
+direction of the `tokens.css` test (every token in the file is named here), on
+its first run. 🔒 **That direction exists for exactly this**: without it the
+brief silently becomes a subset of the truth and stops being the source it
+claims to be.
+
+| Token | Value | Use |
+|---|---|---|
+| `--through-ground` | `rgba(142,209,166,.085)` | the ground of a *went through* chip |
+| `--held-ground` | `rgba(147,180,234,.085)` | the ground of a *held by a rule* chip |
+| `--clock-ground` | `rgba(230,186,116,.085)` | the ground of a *a clock is the reason* chip, and of a stale banner |
+| `--red-ground` | `rgba(255,106,92,.085)` | the ground of a *broken* chip, and of a failed-read banner |
+| `--glass` | `rgba(255,255,255,.038)` | 🔒 the v3 translucent surface — the card, the group container, the stamp. It replaces `--lifted` on new surfaces |
+| `--glass-hi` | `inset 0 1px 0 rgba(255,255,255,.06)` | its single top-edge highlight, which is what makes the sidebar's light read *through* a surface rather than off it |
+| `--side-light` | `radial-gradient(140% 70% at 0% 0%,#121215 0%,#0A0A0C 38%,#040405 70%,#000 100%)` | the sidebar's one light source. 🔒 Achromatic, and it never reaches the content area |
+
+### Semantic colour — decided 19 Sep 2026
+
+🔒 **Colour carries meaning or it does not appear.** Each colour below means one
+thing on every screen. A screen that needs a meaning not in this table adds a
+row here first — with the operator's agreement — rather than inventing a colour.
+All of them live *inside* the black the way `--handled` does: a light,
+desaturated foreground on a ground of about 8.5% — never a saturated fill.
+
+| Token | Value · ground | Means — everywhere | Where it appears today |
+|---|---|---|---|
+| `--through` | `#8ED1A6` · `rgba(142,209,166,.085)` | **Went through, or is in force** | a sent row · a ledger event currently giving a basis (consent given, a declaration) · an obligation discharged · a policy row **confirmed** |
+| `--held` | `#93B4EA` · `rgba(147,180,234,.085)` | **A rule held it back** — a decision, not an error (S5) | a refused row · an objection · consent withdrawn · a jurisdiction's **legal conclusion** (`available` / `unavailable` / `prohibited`) · a template Meta rejected · the frozen objection banner. 🔒 **Not an unconfirmed row** — corrected 20 Sep 2026: an unconfirmed policy row is the *absence* of a confirmation, not a conclusion, so it is grey. Blue and grey then keep a conclusion and an absence apart, which the jurisdiction table has depended on since it was written |
+| `--clock` · `--clock-dim` | `#E6BA74` · `#B79A6E` · `rgba(230,186,116,.085)` | **A clock is the reason** | a paced row · a stale refusal (§1.4.1 of brief II) · Today's *ageing* (dim) and *late* (full) · the waiting room's 1-week (dim) and 3-week (full) steps |
+| `--red` | `#FF6A5C` · `rgba(255,106,92,.085)` | **Broken, or past its limit** | a failed send · a breach · a critical anomaly · a read that failed · a body that differs from what was intended |
+| `--handled` | `#B9A9FF` · `rgba(185,169,255,.07)` | **Replied outside the cockpit** — `handledElsewhere`, and nothing else | Today's violet tray |
+
+**Never coloured, by rule:**
+- 🔒 **Uncertainty and absence** — *we do not know* (`unresolved`), *never*
+  (S2), *not checked* (S3), *no policy row*, **a row no lawyer has confirmed**,
+  **a date we do not hold** (a lapsed row is red; its *"we do not know when"* is
+  grey), attribution *unknown*. They are
+  grey, and dashed where they have a shape. Colouring them would assert
+  something the system does not know.
+- 🔒 **Sequence and position** — the gate's layer dots, a clock's tier track
+  notches, the fixed group order. Six layers, one deciding and five passed, are
+  steps, not severities; colouring them would read as six grades of bad.
+- **An anomaly *warning*.** It is not a clock and not broken; it stays grey
+  beside a red *critical*.
+- **"New since you last looked."** It is a fact about the reader, not the item.
+- **Colour follows effect, not name.** A ledger event is coloured by what it
+  does *now*: an imported *consent given* that our correction voided carries no
+  colour and says *voided* — green there would claim a consent in force that no
+  longer counts.
+
+🔒 **Colour is never the only signal.** Every coloured state keeps its **word**,
+its **shape** or its **position**, and colour is the second signal that makes it
+fast. This system is full of distinctions colour would flatten — unavailable
+versus unknown, objected versus withdrawn, stale versus current, ageing versus
+late — so each one must survive greyscale. The contact record's outcome marks
+carry a word (*sent · refused · paced · unknown · failed*), a glyph shape and a
+colour; Today's tiers carry a track position, a weight and a colour.
+
+**Client marks:** each client gets one gradient pair, stable per client id.
+**A mark's colour carries identity, never meaning:** no client may be given red
+or violet, and no mark's hue may be read as a status.
+
+### Type
+Bricolage Grotesque has character; Instrument Sans is quiet beside it; Geist
+Mono marks *"this is exactly what was stored"*. **Amounts are typeset, not
+printed** (from the Revolut home): in a clock, `5h` is large and `02m` small and
+dimmer; in money, `€1 200` is large and `,00` small. This is the most
+"designed rather than printed" signal available, and it costs nothing in colour.
+
+### Depth
+**Depth marks only what can be pressed or filled** — the client switcher, the
+active nav item, fold pills, the outage card, form fields. A row lifts on hover
+because it can be opened; stored text sits in a sunk well because it cannot be
+edited. Nothing is raised for emphasis.
+
+### The row
+From Coinbase web transactions (the "C1" reference):
+- **The verb is the status.** There is no status column. The group says what
+  kind of thing a row is; the row's first line says what happened.
+- **The clock is the right edge**, set in the display face like an amount, with
+  a second line naming what it measures — *"since 05:43"*, *"left · Tue 29 Sep"*.
+- **Real vertical rhythm** — about 17px above and below each row, nothing
+  between rows but space.
+- **Three columns: mark | body | clock.** A fourth column of tier words was
+  tried and removed, because it floated (§2.1).
+
+### The frame
+- **A left sidebar**, holding the client switcher and the operator sections.
+  **Never a horizontal top strip.**
+- The sidebar lists sections with filled icons, and the active one is a
+  translucent pill.
+- **No summary-card row that restates group headers.** Counts live on the group
+  header and in the sidebar. Rejected: a five-card summary strip.
+- Page titles are small (about 28px); the display face goes where the
+  information is.
+
+### References, by decision
+| Decision | Reference |
+|---|---|
+| The row: verb is the status, clock at the edge, rhythm | Coinbase web transactions |
+| List structure | Vercel deployments; Railway |
+| Group over rows | Linear (dark) |
+| The light source, translucency, typeset amounts, composite marks, small title | [Revolut Business home](https://mobbin.com/screens/7a782d65-9d82-4178-ad92-ca77dc3180bd) |
+| Each group its own container; a section index in the sidebar | [Graphite inbox](https://mobbin.com/screens/63d17c47-9c4f-410c-9575-940981b7eb46) |
+| Tier distribution in the group header | [Vanta tests](https://mobbin.com/screens/eb1d71b4-2b3c-4a83-8435-bdc0e7cbb9e2) |
+| Status attached to the value it qualifies | [Deputy timesheets](https://mobbin.com/screens/40b0eeda-18ea-4067-ba0f-1b757cdbe424) |
+| The Overview's references | §2.10 |
 
 ---
 
@@ -112,7 +365,8 @@ Two rules that fall out and must not be softened:
 ## 1.2 The URL shape
 
 ```
-/                        Today
+/                        The Overview (D2′, §2.10)
+/today                   Today
 /clients                 Clients
 /ops/expiries            Expiries
 /ops/infrastructure      Infrastructure
@@ -295,13 +549,20 @@ prove it wrong.
 | 🆕 **Clients — no cap** | — | — | N is 2 and will be under 20. A cap now would be designing for a scale that would change every other decision on the screen too | A twentieth client is signed |
 | 🆕 **Compliance sweep — weekly; *note* items listed 30 days** | what the watch shows | display only | *Act now* alerts immediately and is not governed by this; *review* is a weekly cadence by §5.12's own wording; *note* is context and a rolling month is enough to have seen it | An *act now* is ever discovered by the weekly sweep rather than by its alert |
 | 🆕 **Waiting room — an item changes appearance at 7 and at 21 days** | how an unanswered question looks | display only | A two-week-old lawyer question must not look like a two-day-old one. Two steps, not a gradient, so the state is nameable | Nothing is ever answered inside a week, making the first step meaningless |
+| 🆕 **Today re-reads every 60 s while visible** (paused when the tab is hidden) | how current the landing's worklist is | display only | The escalation clock is in minutes; a minute's lag is below anything it decides. Faster buys load, not truth | An escalation is routinely cleared and still shown for a whole minute in a way that causes a duplicate reply |
+| 🆕 **Clock staleness — 3 missed re-reads (≈3 min)** | when the clocks stop and the stamp goes loud (§1.14) | display only | One failed read is a blip; three is a page that has stopped knowing | The stamp goes loud on a normal connection |
+| 🆕 **Every group opens collapsed, on every visit; an opened group is never remembered** | what the landing shows first | display only | Five collapsed headers, each with its own most urgent item, are one screen and one glance (§2.1). A remembered *open* would make the page different every morning; a remembered *collapse* would be a group that looks quiet | Every group is opened by hand every morning — then the preview is not carrying the group, and the default should be open |
+| 🆕 **A forecast goes stale at 7 days** (`FORECAST_STALE_DAYS`) | when the campaign screen's banner appears without an input having changed | display only — it decides what the operator is *shown*, never whether anything is sent, so brief I §0.3 applies rather than §4.6 | A week is the span over which a declaration afternoon, a lawyer's answer or an import can change who is contactable without anything in the run's own inputs moving. Shorter cries wolf on a quiet week; longer lets a month-old projection read as current. 🔒 **The banner's shape is fixed** (§0.4-6): it names what went stale, offers re-evaluate, and never recomputes a figure in place | A forecast is routinely acted on at ten days with nothing having changed, or refusals are found to go stale inside two |
+| 🆕 **Overview periods — month (default), week, day** | the Overview's granularity | display only | Month is recurring revenue's native unit. Week and day exist for setup payments and operational counts; recurring revenue at week/day is a **step line**, never bars (§2.10) | The week view is the one opened by default in practice |
 
 **Not defaulted, and must not be:** anything in `client_automations.config` —
 matching thresholds, pacing, the silence threshold. Those reach leads.
 
 ## 1.13 The phone
 
-Operator level: **Today earns a phone, read-only. Nothing else does.**
+Operator level: **Today earns a phone, read-only. Nothing else does** — the
+Overview included, although it is the landing (D2′): on a phone `/` renders the
+Overview's refusal with Today as its one link, and alerts link to `/today`.
 
 Every other operator surface **refuses the phone** — a stated refusal naming
 what it is and that it needs a desk. Not a squeezed layout. A compliance log, a
@@ -316,11 +577,65 @@ decided the principle: the row shows the event's own summary because it was
 judged readable on a phone at 1am. Making the alert sufficient — client, wait,
 last message, reason — means the phone screen is not opened at all.
 
+## 1.14 Motion 🎨 — contract
+
+The cockpit is opened every morning and should feel alive rather than printed.
+**Alive here means current**, and motion is how currency is shown. So one rule
+governs every animation:
+
+> **Motion encodes a change in state or in time. Nothing moves for any other
+> reason.**
+
+**What moves:**
+
+| Motion | What it encodes |
+|---|---|
+| **Clocks tick** (the minute advances in place) | **Only while the data is live.** When a re-read fails, or three are missed (§1.12), **the clocks stop and the rendered-at stamp goes loud** (S8). A clock ticking over stale data is a relative time drifting from the truth — the escalation it measures may already be cleared. Ticking *is* the liveness signal: moving means live, still means stale |
+| **A changed number rolls** — digits roll individually | *This changed since the last read*, instead of a silent re-render |
+| **A new row fades in** with a brief glow; **a cleared row collapses out**; rows move with layout animation when a clock re-sorts them | what happened between two reads |
+| **A tier crossing animates once** — the clock's track fill passes a notch (§2.1) | the moment a lead became late |
+| **A group opens and closes** with a spring height of about 220 ms | continuity between collapsed and open |
+| **The Overview's period control** slides its indicator; bars and lines **morph** between periods; a line strokes in **once** on first draw | continuity between views of the same data |
+| **Hover lift** on what can be pressed | the depth rule (§0.5), as motion |
+
+**What never moves:**
+- **No entrance choreography on a routine load.** A page opened every morning
+  that staggers its rows in every morning is charming on day one and noise by
+  day three. First paint is instant.
+- **No looping or ambient animation.** No pulsing dots, shimmering skeletons,
+  or animated gradients. The light source (§0.5) is still.
+- **Nothing animates to draw the eye to a row.** Urgency is in the clock and
+  the group order, not in movement — a moving row among still ones is a sort
+  by animation.
+- **Presented mode** runs the same motion. Nothing in any animation may carry
+  another client's name, count or row.
+
+**`prefers-reduced-motion`:** every transition off. Clocks still update, as a
+plain text change. The liveness signal survives without animation because the
+stamp says it in words.
+
+**New since you last looked — decided 19 Sep 2026: yes, quietly.** Today is
+read every morning, and *"what changed since I looked"* is a real question. But
+**"new to me" and "urgent" are different facts**, and the second is the one
+that decides what to do first. So the marker:
+- is **a small mark, achromatic** — no colour, least of all red or violet;
+- **sits beside the row's client mark, never beside the clock**, and never
+  changes the clock's weight or the tier track;
+- has **no count** — not in the group header, not in the sidebar, not in the
+  chrome;
+- **never reorders, groups, hides or animates** a row — it appears with the
+  row and does not pulse;
+- is held in `localStorage`, per viewer, as the time of the previous visit. If
+  storage is unavailable it shows nothing, and the page is otherwise
+  identical. Never *everything is new*: with no previous visit recorded, no
+  row is marked.
+
 ---
 
 # §2. The operator level
 
-Nine surfaces. Two exist today.
+Ten surfaces. Two exist today. The Overview (§2.10) is the landing (D2′) and
+is specified last only because it was added last.
 
 ---
 
@@ -348,6 +663,78 @@ refuses that. Within a group, the group's own clock sorts.
 
 🔒 **Every row names its client.** A row without one is an operator-level item,
 and that is legible precisely because every other row has one.
+
+**Route: `/today`** — no longer the landing (D2′), unchanged in everything else.
+
+### Organisation 🎨 — added 19 Sep 2026
+
+The second published round put all five groups on one sheet with dividers and
+read as one long run of text. These organise it without touching the order.
+
+- 🔒 **Every group opens collapsed** — decided 19 Sep 2026, after the v3
+  render. The landing's job is one glance: *what is my day*. Five collapsed
+  groups fit on one screen and read top to bottom in the fixed order, which is
+  exactly what the order is for.
+  - **Why not five pages:** that would mean five visits to learn your day.
+    The fixed order would stop being a reading order and become navigation,
+    and group 5, empty most weeks, would stop being visited while something
+    sat in it for a month.
+  - **A collapsed group shows** its name, its count with its denominator, its
+    distribution, and **one preview: its own most urgent item, by its own
+    clock.** That is longest waiting (1), most recent (2), longest since it
+    ran out (3) and longest waiting (5). 🔒 **Never the most urgent item on the
+    page.** Minutes, days and weeks are not ranked against each other, and a
+    preview implying otherwise would undo the fixed order.
+  - **Group 4 previews the head of each of its two lists**: expiring (fewest
+    days left) and to confirm (longest since checked). They are two clocks,
+    and choosing one head would rank them.
+  - The preview is one line. The tier stays in the clock's weight and colour;
+    the track is on the open row.
+  - **Opening a group never closes another.** Two may be open at once.
+- **Each group is its own container**, five stacked in the fixed order, with
+  space between them rather than rules (Graphite inbox, §0.5).
+- **A resting (S1) or never (S2) group collapses to one line in place**,
+  holding its sentence in short form: *"Nothing waiting · looked at 7 flagged
+  leads, 08:14"*. 🔒 **It keeps its position.** Rejected: pulling empty groups
+  into one shared "empty" strip, as incident.io does — that reorders the page.
+- 🔒 **A group with rows cannot collapse below a header** that states its
+  count with its denominator, its worst clock and its tier distribution.
+  Collapse is never remembered (§1.12).
+- **Sub-sections inside a group, each with its own clock:**
+  - group 1: the outage card, then the rows, then the violet
+    `handledElsewhere` tray at the foot;
+  - group 3: clearances, then templates, then senders;
+  - group 4: expiring, then to confirm.
+- **The sidebar indexes the page.** Under the Today item: the five groups with
+  their counts. A click jumps to the group, and the item in view is marked.
+  This is how the page gets an overview **without** a summary-card strip.
+- **Two lines per row; stored text on demand.** The verb and the subject are
+  always shown; *"Sent to the lead, as stored"* opens in place under its row.
+  🔒 **An anomaly's own `summary` is never behind a disclosure** — §1.11 makes it
+  the row's content.
+- **The page stops narrating itself.** The *"five groups, always in this
+  order"* sentence and each group's long scope sentence sit behind an ⓘ on the
+  header. 🔒 **The denominator stays visible inside the count** — *"6 open · 7
+  read · cap 100"* — because §0.4 requires it.
+
+### Tiers are positions, not labels 🎨 — added 19 Sep 2026
+
+The second round carried *Breach / Late / Ageing / Critical / Warning / 1 week+ /
+3 weeks+* as a fourth column. They looked accidental because they are **three
+unrelated vocabularies in one column**. Each now goes to the thing it qualifies,
+and the column is removed — the row is mark | body | clock.
+
+| Words | What they really are | Where they go |
+|---|---|---|
+| Settled · Ageing · Late · Breach | A function of the clock: `tierFor` in `lib/escalation.ts`, at 30, 90 and 240 minutes of wall-clock wait | **Into the clock.** A hairline track under the clock value with notches at 30, 90 and 240 min, and the fill shows where the wait sits. The clock's weight and luminance step with the tier; **`--red` only at breach.** The word remains in the accessible name and on hover |
+| Critical · Warning | A property of the anomaly's **kind** (`lib/anomaly.ts` — an unset severity is critical) | **Onto the mark, as its overlay badge** — the badge slot `handledElsewhere` already uses. The mark says *who*; the badge says *what kind of trouble*. Critical is a filled ring, warning an outline |
+| 1 week+ · 3 weeks+ | The waiting room's 7- and 21-day steps (§1.12) | **Into the clock**, with the same track and two notches — clocks of the same shape look the same |
+
+**The group header carries the distribution** — *"6 open — 1 breach · 1 late ·
+1 ageing · 3 settled"* — as a thin segmented bar (Vanta, §0.5). It is the tier
+overview, so no row has to shout. **The outage row shows overlapping client
+marks** when it spans clients (Revolut's composite avatars), so its reach is
+seen before it is read.
 
 ### States
 
@@ -532,6 +919,49 @@ reasons that are each a defect avoided:
 | `notCheckedFor` | S3, above |
 
 Also: `message_templates.status` and `status_changed_at`; `OBLIGATIONS[*].staleAfterDays` against the discharge check; the sender's quality rating via `assessQuality`.
+
+### Design decisions 🎨 — the compliance batch, 19 Sep 2026
+*Design: `claude.ai/artifact/ToHmRvy8sSt1VrUEFyhfn3` (Expiries, Policy,
+Templates, the re-check notice).*
+- **Colour, one meaning across the batch:**
+  - red — lapsed (past its limit);
+  - amber — a clock: expiring, a licence to confirm, an approval not
+    re-verified, a template waiting on Meta;
+  - blue — held by a rule: a policy researched but unconfirmed, a template Meta
+    rejected;
+  - green — in force: a lawyer's confirmation, an approval, an agency told.
+  - 🔒 **`requirement_unresolvable`, *never confirmed* and a null date are grey
+    on every screen.** They are statements about us, and uncertainty is never
+    coloured. A lapsed row's *"we do not know when"* is grey even though the
+    row is red.
+- **Every cause in its own line, each with its own chip.** No verb claims we
+  acted on an advert, in English or Portuguese, on any of the four. The design
+  check runs the verb guard over every scenario and was seen to fail on an
+  injected *retirado*.
+- **Operator-level cause sentences in English do not exist in any module.**
+  The design proposes four, the fourth as soft as `NOTICE.causeUnresolvable`.
+  They belong in a copy module, never inline.
+- **Policy lights the one row that unblocks Portugal**: a blank cell outlined in
+  `--held`, with what it is refusing counted. There is no control that
+  confirms, anywhere on the page.
+- **Templates show bodies inside one client's section at a time.** An approval
+  belongs to one client's WhatsApp account, and a body is that client's content.
+- **The re-check notice** — `NOTICE` in `lib/matching/screen-copy.ts` — **had no
+  brief section in any document**, only a mindmap row (Q21). It is the client
+  slice of Expiries at `/c/<client>/expiries`, in the agency's language, and it
+  is read aloud to the agency. So it carries the presented state of the frame,
+  which **makes it a sixth presented-mode screen** that brief II §2 does not
+  yet list.
+
+### 🔒 A stale sweep flags; it never greys and never recomputes
+*Added 20 Sep 2026.* When the clearance sweep has not run, **every row it
+produced keeps its own colour** — what was true on Wednesday is still true about
+Wednesday — and each carries a stale flag in a heavier weight, with an amber
+rule down the row's edge. Greying them would say *this is fine now*, when what
+is true is *nobody has looked*. The same rule as a stale refusal on the contact
+record (brief II §1.4.1): **never recompute, always flag.** The flag is scoped
+to the sweep's own axes; templates, senders and the calendar are read live and
+are not flagged.
 
 ### Legally load-bearing
 - 🔴 **`requirement_unresolvable` is not an allegation.** *"We cannot confirm
@@ -858,7 +1288,11 @@ test is 'the form looked right' is not a rule."*
 - 🔴 **Test clients and reserved numbers must be visible and removable.** The
   `ZZ TEST` client has to be gone before go-live, and the gate's first layer
   refuses `reserved_test_number` before anything else. A screen that creates
-  clients must show which of them are not real.
+  clients must show which of them are not real. **Since 19 Sep, that is a
+  column:** onboarding asks *"Is this a real agency or a rehearsal?"* as a
+  required choice with **nothing pre-selected**, and writes
+  `clients.rehearsal` (migrations 0037/0038). There is no default: an unanswered
+  question is not an answer.
 - **§3.1 — there is no agent entity anywhere in the system.** No table, no
   column. Escalations cannot route to the right person and the calendar cannot
   tell whose availability it reads. Honest at one agency of one or two people;
@@ -987,9 +1421,371 @@ read-only, plus a count of what each row is currently refusing.
 
 ---
 
+## 2.10 The Overview — the landing
+
+*Added 19 September 2026 (D4, D2′). Route `/`. No `/p/` route — it names every
+client's money. Refuses the phone (§1.13).*
+
+### The question
+**Q28 — is the business growing, and what did the system do to earn it?**
+
+Read deliberately, not triaged. It is the landing because the operator chose to
+see first how the business stands (D2′); what needs doing is one click away,
+through the chrome's count.
+
+### What products like this actually carry
+Researched on Mobbin on 19 Sep. None of them carries the template set of four
+KPI cards, an area chart, a donut and a table.
+
+| Product | What it carries | Taken |
+|---|---|---|
+| [Stripe Billing overview](https://mobbin.com/screens/80db4fcd-360a-4ee9-8be0-f69f7edf83f8) | MRR; MRR growth **as a composition** (new, expansion, churn); an **"Updated 10 Dec, 00:00" stamp under every chart** | Recurring revenue's movement as a composition; a freshness stamp per panel |
+| [Revolut Analytics](https://mobbin.com/screens/44300a52-bfa9-4da4-b51b-a75431958233), [period filter](https://mobbin.com/screens/0a54e1f7-1c37-4190-810a-2f39d0731bf4) | Hero value with a drill chevron; **the line solid to today and dashed after**; a Weekly / Monthly / Yearly control | Time that has not happened is drawn differently from a zero; the period control |
+| [Mercury home](https://mobbin.com/screens/8fd5635e-a61d-4d11-b4c9-c1963ddd0da1) | Money in and out per month with a **month stepper**; an empty month says **"No incoming transfers"** in words | Empty is a sentence, not a drawn zero; the month stepper |
+| [Copilot Money](https://mobbin.com/screens/1bfa784d-99eb-4850-88e2-4064d4d06452) | **"Next two weeks"** of scheduled items; an endpoint dot marking *now* | Recurring revenue already scheduled by contract dates; the *now* dot |
+| [Origin](https://mobbin.com/screens/6dc04a92-bb71-4e7c-8b51-053c20f536e9) | **A month calendar, each day cell holding its amount**, with an en dash for empty days | The day view as a calendar, not thirty thin bars |
+| [Zendesk bot insights](https://mobbin.com/screens/1e6a8cfc-8ca3-4e40-ad05-ca3b14da22b7), [Chatbase](https://mobbin.com/screens/ba0c1d2b-7d87-47a2-96e6-6e26264008b7) | AI agents report **automated resolutions against transferred to an agent**; Zendesk shows *"–"* and *"No data available"* rather than 0 | Handled by the system against handed to a human; unknown is not zero |
+| [Kajabi payments](https://mobbin.com/screens/8a8ebd2b-dc7f-4317-8a57-5c9f0d8c5ea5), [beehiiv](https://mobbin.com/screens/09ca6292-ce2b-40ee-8844-d579b6a67ccd) | **Anti-patterns:** $0.00 above a flat line that reads as measured data; *"0 — 0%"* change from a zero base | 🔒 **Never** draw a line for a series that has never existed. 🔒 **Never** show a percentage change from a zero base |
+
+### Structure
+1. 🔒 **Recurring and setup revenue are separate series and never summed into
+   one headline.** One is a rate and the other an event; a blended total hides
+   the difference in how they behave.
+2. **Recurring:**
+   - contracted monthly revenue now;
+   - this month's movement — new, expansion, contraction, ended;
+   - what is already scheduled by contract dates (Copilot's "next two weeks").
+   - **Month is its native period.** At week or day it is a **step line**
+     that changes only on the days a contract starts or ends — never bars.
+3. **Setup:**
+   - payments received;
+   - contracted but not yet received, beside them;
+   - by month, week or day (the day view is a calendar).
+4. **What the system did**, over the same period, per automation — the table
+   under *Reads*.
+5. **Firsts** — a dated register (see *The empty state*).
+6. **Clients and their terms, in onboarding order.** 🔒 **Never sorted by
+   fee.** §1.1 forbids ranking clients, and a revenue-sorted list is the
+   scoreboard §2.2 refuses.
+
+### The empty state is the primary design
+Zero clients under contract and zero revenue is the real state for months, so
+the page is designed from empty outward, not with a fallback added at the end.
+
+- **One sentence at the top, in S2's words:** *"No contract has been recorded.
+  Ryvo has no recorded revenue yet — this is the beginning, not a fault."*
+  Failures are per panel (S4), with the thrown sentence, so *nothing has
+  happened* and *something failed* can never share the headline.
+- **Charts draw their frame, never a false zero.** The time axis runs from
+  the ledger's first record (or today) to now, with the future dashed. **No
+  line exists until the first contract does.** Inside the empty frame is a
+  sentence: *"The line starts when the first contract is recorded."*
+- **Unknown, not zero.** Every client without recorded terms is listed, each
+  with *Record terms*. The page states its own dependency on a person.
+- **Firsts** — each row is *Never* (S2) until it happens, then its date and a
+  link to the record:
+  - first client;
+  - first lead handled;
+  - first system reply;
+  - first introductory meeting booked;
+  - first contract;
+  - first setup payment;
+  - first full month of recurring revenue;
+  - first campaign send and first review request — both gated by Meta, so
+    each shows S5 with its waiting-room item and age.
+
+  This is what makes a zero-revenue page worth opening: the business's own
+  history, honestly incomplete.
+- **What is holding it:** the gated automations link to their waiting-room
+  items with their ages. The page explains why it is empty **without inventing
+  a pipeline** that the system does not hold.
+
+### States
+
+| State | Where | Must say |
+|---|---|---|
+| **S2** | whole page | 🔴 **The primary state.** *"No contract has been recorded…"*, in different words from S1 |
+| **S1** | per panel | *"No setup payment in September"* — the window named |
+| **S3** | per client | 🔴 **A client without recorded terms is *unknown*, not €0.** *"1 client has no contract terms recorded — revenue for it is not zero, it is not known."* |
+| **S3** | per client | 🔴 **A conflict:** a client whose `status` is `churned` or `paused` while its contract has no end date. Shown as unresolved, **never counted as revenue** |
+| **S3** | operations | Missing `metrics_daily` days, named and never interpolated. `reactivations` never reaches the screen — the writer hard-codes it to 0 (`infra/scripts/metrics_daily.py`), a not-checked wearing a resting sentence |
+| **S3** | per client | A client whose `rehearsal` is still null — created between migrations 0037 and 0038 — is listed by name as **undeclared**, and is counted in neither the business's numbers nor the rehearsals' |
+| **S4** | per panel | The thrown sentence, in place; the other panels still render |
+| **S5** | per automation | 02 and 05 sent nothing **because they are gated** — *"cannot send: waiting on Meta's verification"*, linked to the waiting room. Never rendered as zero activity |
+| **S8** | per panel | *"derived 03:20 Lisbon"* on panels from `metrics_daily`; *"live"* on panels read from `messages` and `events` |
+| **S9** | contracts | Terms are append-only: a correction is a new record superseding the old, with its own author |
+| **S10** | footer | No forecast beyond contract dates, no blended total, no ranking, **no *time saved*** (below) |
+
+### Rehearsal clients are not the business 🔒 — added 19 Sep 2026
+
+Every client row today is a rehearsal: `ZZ TEST — Cascais Demo` and
+`Ryvo Test Client`. **Every figure, first and count on this page reads
+`clients.rehearsal = false` only** — revenue, firsts, what the system did, and
+the client list. A rehearsal row is never counted and then explained. *"A
+caption explaining a wrong number is worse than a right number"* — the
+operator, 19 Sep.
+
+- The marker is `clients.rehearsal`: **no default**, declared per row, and
+  written by migrations **0037** (add it, classify the existing rows, refuse
+  anything unaccounted for) and **0038** (prove every row is declared, then
+  make it NOT NULL). Onboarding asks the question as a required choice with
+  nothing pre-selected.
+- **So today, the honest page says there are no clients, no leads and no
+  replies** — because there are none for the business. That is the S2 page,
+  and it is correct.
+- **Rehearsals are kept apart, not hidden.** One separate, clearly scoped
+  section — *"Rehearsals — not counted above"* — shows how many rehearsal
+  clients there are and what the system did for them. It is a right number
+  about a different scope, never a correction to a number above it. It proves
+  the machinery runs while the business number is honestly zero.
+
+### Can do
+- Record contract terms.
+- Record a contract's end.
+- Record a setup payment received.
+- Navigate.
+
+Each recording is attributed — who recorded it and when (§1.10). When a figure
+comes from a signed contract, the record names the contract, not the operator's
+memory of it.
+
+### Cannot do
+- **Edit or delete a history row.** Supersede it.
+- **Issue, or claim to have issued, an invoice.** The legal record of revenue
+  is the AT-certified invoicing software (below).
+- **Compute VAT.** Every amount is net of VAT, and every input and figure says
+  so.
+- **Project revenue** beyond what contract dates already hold.
+- **Show *time saved*.** Withheld, S10 — decided 19 Sep 2026:
+  - nothing measures it;
+  - it would be an assumed minutes-per-reply multiplied by a count, which is a
+    number computed as though it were a fact about the world (§5j);
+  - `ryvo-operations-and-commercial-reference.md` already says *never quote
+    hours or an implied hourly rate*.
+
+  The measured substitutes below say the same thing truthfully.
+
+### Reads
+
+**Money**
+
+| Figure | Source |
+|---|---|
+| Recurring, any month | 🔒 the sum over the `client_contracts` periods covering that month — **never from `clients.status`**. Recomputing "who is active" would rewrite past months every time a client left |
+| Setup received | `client_payments` |
+| Setup outstanding | `client_contracts.setup_fee_eur` minus the payments recorded against it |
+
+**What the system did** — measured, never estimated:
+
+| Number | Source | Note |
+|---|---|---|
+| Leads received | `events` `lead.created` | |
+| **Replies sent by the system** | `messages.origin = 'ai'` | ⚠️ **Not** `metrics_daily.messages_sent`, which counts every outbound row, including handoff, system and human messages |
+| **Handed to a human** | `events` `lead.escalated` | Beside the line above: handled by the system against handed over |
+| Replies by a person | `messages.origin = 'human'` | |
+| **Introductory meetings booked** | `events` `viewing.booked` | The outcome the agency pays for. 🔴 **Never "viewings"** — the Concierge books an introductory meeting with one of the agency's people, not a property visit (improvements §3.15; the Clients rule above). The event and column names are wrong; the screen says the true thing regardless. *Corrected 19 Sep 2026 — the first draft of this section said "Viewings booked".* |
+| **Median time to first reply** | per lead, the first inbound message → the first outbound after it | Measured, so the pitch's *"roughly six seconds"* becomes a fact or is corrected by one |
+| Per automation: live, or gated and why | `client_automations`; the gate's refusals | 02 and 05 show S5, not zeros |
+
+Day history per client is in the client's local day, from `metrics_daily`
+(derived nightly at 03:20 Lisbon) — except where it is lossy, as noted.
+
+### Writes — a proposal, not a migration
+
+Nothing here is applied until the operator says yes. **No write to production
+without asking.**
+
+**`client_contracts` — append-only:**
+
+| Column | Meaning |
+|---|---|
+| `client_id` | the client |
+| `starts_on` | when billing starts |
+| `ends_on` | null until the contract ends |
+| `monthly_fee_eur` | net of VAT |
+| `setup_fee_eur` | net of VAT |
+| `setup_terms` | the instalment plan |
+| `automations` | what the contract covers |
+| `recorded_by`, `recorded_at` | who entered it, and when |
+| `supersedes` | the record a correction replaces |
+
+**`client_payments`:** `client_id`, `amount_eur` (net), `received_on`,
+`recorded_by`, `invoice_ref` (nullable — filled once invoicing is read, below).
+
+**`clients.monthly_fee_eur` is dropped**, following the 0032/0036 pattern: prove
+it empty, then drop it alone. Nothing writes it and nothing reads it (the
+onboarding insert never sets it), and two sources for one fee would disagree.
+
+**What a person must enter, and when — nothing else:**
+
+| When | What |
+|---|---|
+| A contract is signed | the client, start date, monthly fee, setup fee and its instalments, and the automations covered — once, about a minute |
+| Terms change | a new record superseding the old one |
+| A contract ends | the end date |
+| Setup money arrives | the amount and the date, per instalment |
+
+**Monthly revenue is never logged.** Every silent dependency on a person is
+made visible instead:
+- a forgotten payment stays on the page as *outstanding*;
+- a forgotten end date shows as a *conflict* with the client's status;
+- forgotten terms show as *unknown*, never as €0;
+- *net of VAT* is written at the field.
+
+### Invoicing — the tool is Keyinvoice (decided 19 Sep 2026)
+
+🔒 **The page is complete without invoicing.** Nothing in its structure,
+states or empty state depends on an invoicing integration existing, or on
+which answer Keyinvoice gives. An integration is an **upgrade to a page that
+already works** — it adds *invoiced* and *received* beside *contracted* and
+replaces a manual entry — never a dependency. If phase 2 never happens, phase 1
+is still the whole page.
+
+**Phase 1 (now):** contracts and payments are entered by hand, with every gap
+visible as above.
+
+**Phase 2:** read invoices and receipts from **Keyinvoice** to replace manual
+payment entry, and show **contracted, invoiced and received together** — the
+review reconciliation's three-counts-together shape, where disagreement is
+displayed rather than investigated as a defect.
+
+**What is known about its API**, from `keyinvoice.com/api.php` as quoted in
+search results — the page itself returns 403 to an automated fetch, and
+context7 does not cover it:
+- a free **SOAP** web service at `login.keyinvoice.com/API3_ws.php?wsdl`;
+- **5,000 calls a day**;
+- **method documentation only inside an account** (Configurações → API
+  KEYINVOICE);
+- a `getSAFTfile` method, visible in the documentation's URLs.
+
+**Unverified, and needed before phase 2 is designed:** whether it can **list
+documents and receipts by date**. That needs an account login, which the
+operator holds. **The fallback is the monthly SAF-T (PT) file** — the legally
+complete record, which the business must produce by the 5th of each month
+anyway.
+
+**Blocked upstream:** who invoices depends on the legal entity question
+(`ryvo-operations-and-commercial-reference.md` §5). Phase 2 waits for it.
+
+### Legally load-bearing
+- 🔴 **The figures are contracted, not invoiced.** The page says so, and it
+  never presents its own number as the record of revenue. That record is the
+  AT-certified invoicing software, by law above €5,000 turnover.
+- **Amounts are net of VAT.** Spanish B2B clients are reverse-charged; that
+  lives in the invoice, not here.
+- **Operator level only.** Client money never appears under `/p/`, and never
+  beside another client's contents (§1.1). Whether a client's own landing
+  (`/c/<client>/`) shows its own terms is not decided here.
+
+
+---
+
+## 2.11 Two businesses, and what they cost — added 19 Sep 2026 (D5)
+
+*Design: The Month v3, `claude.ai/artifact/LAxEUFaC95X1pe3H77sYeD`.*
+
+### The frame
+- **Sidebar sections, no switch:**
+  - The Month and Today at the top — the company's;
+  - *Automations* — the client switcher, and everything beneath a client;
+  - *Web* — one item, *Web clients*, with no client level;
+  - *Shared* — Costs, Expiries, Waiting room, Compliance watch, Onboarding.
+- **Today spans both businesses.** Its groups are defined by kind of clock, not by
+  business. A web domain about to lapse is group 4, and a web client owing
+  content is group 5. Groups 1 and 2 are automation-only by nature.
+
+### The Month, in two halves
+- 🔒 **The sums are done on the page:**
+  - recurring revenue across both businesses, with its composition;
+  - one-off revenue, never added to recurring;
+  - costs, with how much of them is not yet checked;
+  - recurring revenue minus costs.
+- 🔒 **The two halves have identical slots in identical order** — recurring, the
+  year, clients, costs, what the business leaves, one-off — so a full half and
+  an empty one read as two true states, not as a page half-rendered.
+- **The automation half is not blank today.** It has real running costs and no
+  revenue, and says so: *the cost of building it — real, expected, and not a
+  fault.* The approved empty-state panels (what the system did, what is
+  holding it, Firsts) sit beneath the halves.
+
+### A month has three states — and the net waits for the month to close 🔒
+*Added 19 Sep 2026.* The first days of every month are a permanent state, not a
+hypothetical one, and the stale-record failure lives in them:
+
+| State | Revenue | Costs | Net (recurring minus costs) |
+|---|---|---|---|
+| **In progress** (day 3 of 31) | the month's contracted recurring | *so far*: fixed costs for the month, plus usage for the days measured, with a day track | 🔒 **withheld** — *"When October closes"*, with the day track. Beneath it: **the last closed month's net, dated and with its check state** |
+| **Closed, not checked** | the month's | the month's; usage marked *computed, not checked* | shown, marked *includes €X computed, not checked* (grey) |
+| **Closed and checked** | the month's | the month's, with the invoice totals entered | shown, *checked against the invoices* (`--through`) |
+
+- 🔒 **A net is never computed for a month in progress.** It would compare a whole
+  month of revenue with part of a month of cost: a number that looks current and
+  is not.
+- 🔒 **Last month's costs never stand in for this month's.**
+- **The one stated exception:** the web half's *what it leaves* is complete from
+  day one, because web clients have no usage costs. The page says why, rather
+  than letting it look inconsistent.
+- **Invoices are always checked for the last closed month**, because they
+  arrive after it.
+- **Samples are fictional by rule:** a design never puts a sample amount beside
+  a real client's name.
+- **The page heading is *Two businesses, one company*** (the operator's
+  sentence); *The Month* is the page's name in the sidebar.
+
+### Costs — at their own level, never apportioned
+🔒 **A cost belongs to a client, to one business, or to the company, and is shown
+at that level only.**
+- **Per client:** the figure is what the client brings in, minus what it alone
+  costs.
+- **Shared costs** appear once, where they belong.
+- **Why no apportioning:** infrastructure costs about the same with one client
+  or five. Apportioning would be arithmetic dressed as insight — a precise-looking
+  number resting on a split nobody chose. It would also move every client's
+  figure whenever someone new signs. *(The operator's words: total cost against
+  total revenue, per-client variable costs only where they are genuinely
+  per-client, nothing apportioned.)*
+
+**How each cost is known — and what the page says about it:**
+
+| Kind | Examples | Source | What a person enters | State shown |
+|---|---|---|---|---|
+| **Fixed** | Hetzner, Supabase, a domain, the accountant | a recurring-cost record: amount, cadence, scope, next renewal | **once**, and again only when the price changes or it ends | *fixed*. A renewal inside 30 days is `--clock` |
+| **Computed** | WhatsApp per message; the model per reply | Twilio's `price`/`price_unit`, filled in after sending and read back per message (confirmed via context7); `automation_runs.payload.input_tokens`/`output_tokens` × a recorded per-model price | the per-model price, when the provider changes it | *computed · not checked* — grey, because uncertainty is never coloured |
+| **Checked** | the same two, once the invoice arrives | **one number: the invoice total** | ~5 seconds, per variable supplier per month | *checked against the invoice* — `--through` |
+| **One-off** | a plugin, a freelancer on a web project | recorded only when tied to a client or a project | when it happens | only what was recorded — and the page says so |
+
+🔒 **The page never looks more complete than it is.** It states how much of the
+month's cost is computed and not yet checked. It never shows a computed figure as a
+checked one. It says in words that it is not the books — the accountant and the
+invoicing software hold every expense.
+
+**Known gaps, unverified or not built:**
+- the Concierge stores one call's token usage when a language or name retry
+  makes a second call, so model cost is under-counted today;
+- whether Twilio's WhatsApp `price` includes Meta's fee is unconfirmed — check
+  in the console;
+- USD-billed suppliers need a dated conversion rate, which is itself a computed
+  figure and is labelled as one.
+
+**Rehearsal clients** have real usage cost and no revenue. It is shown as part of
+the cost of building, and never billed against a client.
+
+### Writes — a proposal, not a migration
+- `web_clients`;
+- `web_contracts` (append-only, the same shape as `client_contracts`);
+- `costs` (scope: `client` · `web_client` · `automations` · `web` · `company`;
+  amount; cadence; currency; renews_on; ended_on);
+- `cost_checks` (supplier, month, invoice total, checked_by).
+
+If a web client ever buys an automation, a shared billing party links the two
+rows when it first happens — never a merged table.
+---
+
 # §3. The checklist a design is measured against
 
-Ten items. If a drawn screen cannot answer all ten, it has dropped a constraint.
+Twelve items — ten from the first writing, and two added on 19 Sep 2026 with
+§0.5 and §1.14. If a drawn screen cannot answer all twelve, it has dropped a
+constraint.
 
 1. **Which state is this?** All ten of §1.6 answerable from the screen.
 2. **Which zero is this?** Nothing looked at / nothing qualified / query failed.
@@ -1004,6 +1800,11 @@ Ten items. If a drawn screen cannot answer all ten, it has dropped a constraint.
 9. **Does any text claim we acted on the outside world?** It must not.
 10. **Is every absence stated?** S10 is on the page, not discovered as a missing
     button.
+11. **Does anything move for a reason other than a change?** It must not — and
+    when the data is stale, the clocks must be still (§1.14).
+12. **Is anything drawn for a series that has never existed?** A line, a bar, a
+    zero or a percentage change from zero — none of these (§2.10). S2 is a
+    sentence.
 
 ---
 
@@ -1015,7 +1816,9 @@ Ten items. If a drawn screen cannot answer all ten, it has dropped a constraint.
 - **The contact record and the send history** (Q13, Q14) — the sharpest gap, and
   a first-class screen rather than a filter. It is client-level and deserves its
   own brief.
-- **Layout, hierarchy, density, typography, colour, components.** None of it.
+- **Per-screen layout, hierarchy, density and components** for any screen
+  other than Today and the Overview. The direction — canvas, colour, type,
+  depth, the row, the frame, motion — **is** covered, in §0.5 and §1.14.
 - **Build order.** Every operator-level surface is new; sequencing wants a
   conversation about what a first real client's first week looks like.
 - **Whether the Shell is rewritten or replaced.** §1.5 says its structure does

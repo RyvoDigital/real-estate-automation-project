@@ -1,0 +1,133 @@
+/*
+ * ─────────────────────────────────────────────────────────────────────────────
+ * THE ONLY FILE IN THE COCKPIT THAT HOLDS A COLOUR.
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * Source: docs/cockpit-design-brief.md §0.5, decided 19 September 2026 by the
+ * operator from Mobbin references. That section keeps the names and the
+ * reasons; this file holds the values, and tests/tokens.test.ts asserts the two
+ * agree in BOTH directions — a name in the brief with no value here is drift, a
+ * value here with no name in the brief is an orphan.
+ *
+ * THREE RULES, and the third is the one that actually holds.
+ *
+ * 1. No other file declares a colour. Not a hex, not rgb(), not hsl(). The
+ *    guard greps for them and fails the build. A one-off hex always looks
+ *    harmless in a diff, which is exactly why the check is mechanical.
+ *
+ * 2. This file REPLACED the previous palette rather than layering over it.
+ *    globals.css used to carry a brand-red gradient and warm-neutral queue
+ *    carriers. A stylesheet with two palettes in it is a stylesheet where a
+ *    one-off hex is indistinguishable from an intentional legacy value, so the
+ *    old one is gone rather than beneath.
+ *
+ * 3. THE SEMANTIC FIVE ARE NOT FOR GENERAL USE. --through, --held, --clock,
+ *    --red and --handled may only be referenced by the components that own a
+ *    state: the state chip and the clock. Everywhere else, a state is rendered
+ *    by asking for the state, never by asking for the colour. That is what
+ *    makes "colour carries meaning or it does not appear" structural instead of
+ *    a habit — a screen cannot reach for green because green looked right,
+ *    because it has no way to name green.
+ *
+ * HOW THIS FILE CHANGES: by the operator, from a named reference, recorded in
+ * §0.5 with a date. Never by a build decision, and never by a taste skill.
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* ── The canvas ───────────────────────────────────────────────────────────
+     True black, and the working area stays true black. Surfaces are lifted off
+     it; a flat grey plane with hairlines was rejected as bland and safe. */
+  --black: #000000;
+  --lift-1: #0e0e10; /* first lift; the sidebar gradient's foot */
+  --lift-2: #151517; /* row hover */
+  --lift-3: #1c1c1f; /* icon wells */
+
+  /* ── Edges ────────────────────────────────────────────────────────────────
+     A surface gets one border or none. The stronger one marks a pressable
+     thing, which is the same distinction depth makes. */
+  --edge: rgba(255, 255, 255, 0.07);
+  --edge-2: rgba(255, 255, 255, 0.11);
+
+  /* ── Text. Warm, never pure white. ────────────────────────────────────── */
+  --text: #f4f3f0;
+  --text-2: #a3a29d;
+  --text-3: #85847f; /* tertiary; still passes contrast on black */
+
+  /* ── Semantic colour — §0.5, decided 19 Sep 2026 ─────────────────────────
+     Each means ONE thing on every screen. A meaning not in this list adds a
+     row to §0.5 first, with the operator's agreement, rather than inventing a
+     colour. All live inside the black: a light desaturated foreground on a
+     ground of about 8.5%, never a saturated fill.
+
+     🔴 Reachable only from the state chip and the clock. See rule 3 above. */
+
+  /* Went through, or is in force. */
+  --through: #8ed1a6;
+  --through-ground: rgba(142, 209, 166, 0.085);
+
+  /* A rule held it back — a decision, not an error (S5).
+     NOT an unconfirmed row: that is the absence of a confirmation rather than
+     a conclusion, so it is grey. Blue and grey keep a conclusion and an
+     absence apart, which the jurisdiction table has depended on since it was
+     written. Corrected 20 Sep 2026. */
+  --held: #93b4ea;
+  --held-ground: rgba(147, 180, 234, 0.085);
+
+  /* A clock is the reason. The dim step is the earlier one of a pair —
+     ageing before late, one week before three. */
+  --clock: #e6ba74;
+  --clock-dim: #b79a6e;
+  --clock-ground: rgba(230, 186, 116, 0.085);
+
+  /* Broken, or past its limit. Never decoration. */
+  --red: #ff6a5c;
+  --red-ground: rgba(255, 106, 92, 0.085);
+
+  /* Replied outside the cockpit — handledElsewhere, and nothing else.
+     Never ambient, never a brand accent. Using it as atmosphere would spend
+     its meaning, which is why the sidebar's light source is achromatic. */
+  --handled: #b9a9ff;
+  --handled-ground: rgba(185, 169, 255, 0.07);
+
+  /* ── Client marks ─────────────────────────────────────────────────────────
+     A client's two-letter mark. These are per-client identity, not state, so
+     they are deliberately outside the semantic five and carry no meaning
+     beyond "this one, not that one". */
+  --ms-a: #23355c;
+  --ms-b: #15213a;
+  --ms-fg: #a9c3fa;
+  --ca-a: #4a3620;
+  --ca-b: #2b1f12;
+  --ca-fg: #f2c890;
+
+  /* ── Surfaces ─────────────────────────────────────────────────────────────
+     Translucent, so the sidebar's light reads through them. --lifted is the v2
+     opaque surface, kept because §0.5 records it; new surfaces use --glass. */
+  --glass: rgba(255, 255, 255, 0.038);
+  --glass-hi: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --lifted: linear-gradient(180deg, #141416 0%, #0e0e10 100%);
+  --lift-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 0 rgba(0, 0, 0, 0.9),
+    0 24px 48px -12px rgba(0, 0, 0, 0.9);
+
+  /* Depth only on things that can be pressed or filled. The light source is
+     confined to the sidebar precisely so that depth keeps meaning "press me"
+     rather than "this is further away". */
+  --press: linear-gradient(180deg, #232326 0%, #1a1a1d 100%);
+  --press-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.8),
+    0 4px 10px -4px rgba(0, 0, 0, 0.8);
+
+  /* The sidebar's one light source. Achromatic by decision: Revolut's is blue
+     and violet is spoken for. It never reaches the content area. */
+  --side-light: radial-gradient(140% 70% at 0% 0%, #121215 0%, #0a0a0c 38%, #040405 70%, #000000 100%);
+
+  /* ── Type ─────────────────────────────────────────────────────────────────
+     Display for headings, group names, clocks and amounts — the places where
+     a figure is the information. Mono ONLY for text stored verbatim: an
+     event's summary, a message as sent, a prepared advertisement. Mono is how
+     the cockpit says "these are not our words". */
+  --display: "Bricolage Grotesque", "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  --sans: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}

@@ -96,7 +96,7 @@ recent first, **refusals included and not filtered out**.
 | Field | Renders as | Constraint |
 |---|---|---|
 | `status` | one of **five** | 🔒 `intended`, `sent`, `failed`, `refused`, **`unresolved`** — and the fifth is the one nobody designs. `0019`: *"we do not know whether this person received a message. Not 'they did not' — we do not know."* It must not render as either |
-| `gate_layer` | which layer said no | `reserved` · `resolution` · `suppression` · `basis` · `policy`. The layer is the *shape* of the refusal and orders the reader's understanding |
+| `gate_layer` | which layer said no | `reserved` · `resolution` · `suppression` · `basis` · `policy` — **and `pacing`**, a sixth value the brief first missed. `lib/send/runner.ts` checks pacing *before* the gate and records a pacing refusal with `layer: 'pacing'` (`touched_this_week`, `max_touches_reached`); `campaign-run.ts` writes it into `sends.gate_layer`. It is not a `GateLayer` in `lib/gate.ts`, so a screen built from that type alone would have no rendering for a row that exists. **Corrected 19 Sep 2026.** A pacing refusal is a fact about *timing*, not about the person — *"the contact is not refused — the day is"* — and it lapses by its own window rather than by a newer input. The layer is the *shape* of the refusal and orders the reader's understanding |
 | `gate_reason` | the machine reason | never shown alone |
 | `gate_detail` | 🔒 **the operator sentence** | The refusal reasons already carry operator wording (§11). *"Portugal is not confirmed by a lawyer"*, not `not_confirmed`. An operator who sees the first chases the lawyer; one who sees the second files a bug |
 | `gate_basis` | for permissions | the sentence that authorised it |
@@ -107,6 +107,32 @@ recent first, **refusals included and not filtered out**.
 | `body_sent` | what went | 🔒 **from the wire, not from a flag.** If `body_sent` differs from `body_intended`, say so; that difference is a defect somebody needs to see |
 | `attempts`, `last_error` | retry history | |
 | `reconciled_at` | when the key was chased | null on an `unresolved` row means reconciliation has not run yet, not that it failed |
+
+### 1.4.0 How a row reads — collapsed by default 🎨 (decided 19 Sep 2026)
+
+Every send row is collapsed except the most recent, which opens by default:
+it is almost always the one the reader came for, and a page where nothing is
+open makes them click before it answers anything. **Opening a row never closes
+another** — the same rule as Today's groups.
+
+- 🔒 **A collapsed row still answers the question.** It shows the verdict, the
+  date, the campaign line, and **the gate's stored sentence** — `gate_detail`
+  for a refusal, `gate_basis` for a permission, the provider's error for a
+  failure. That sentence *is* the answer. Hiding it behind a click would mean
+  the screen does not answer its own question until it is touched.
+- **Behind the click:** the layer dots and their labels, the runner line and
+  the reason code, the timing explanation, and for a sent row the full evidence
+  block (consent event, policy confirmation, obligation and discharge, the body
+  from the wire).
+- 🔒 **Two facts are never behind the click**, each as a one-line flag on the
+  collapsed row: **staleness** (§1.4.1 — a collapsed stale refusal must not
+  read as current) and **a body mismatch** (a defect somebody needs to see).
+  The full sentences open with the row.
+- **The verdict reads as a shape before it is read as text.** A verdict badge
+  sits on each row's mark — filled for sent, struck-through ring for refused,
+  clock for paced, dashed ring for "we do not know", red ring for failed —
+  and the verb leads each row. Sweeping down the column gives the history's
+  pattern before any row is read.
 
 ### 1.4.1 🔴 A refusal is a fact about a past moment
 
@@ -256,6 +282,95 @@ discovering a fifth later is how a mode becomes a style.
 
 **Brief I §1.4 is the contract** and is not restated. What follows is what each
 screen adds.
+
+### The presented frame — design decisions 🎨 (19 Sep 2026)
+
+Designed as one batch so the four feel like one meeting, not four screens that
+share a mode.
+
+- 🔒 **Presented mode is a state of the one frame, set in one place — never by a
+  screen.** *(Revised 19 Sep 2026. The first round removed the sidebar
+  entirely. That was leak-free in `/p/`, but it made presented mode a
+  different layout, and it left the real leak unaddressed: the ordinary frame
+  in `/c/`, with the laptop turned around before switching.)* The sidebar keeps
+  its geometry, so the page does not reflow as the laptop turns, and in the
+  presented state:
+  - the switcher becomes the client's name and stops being a control;
+  - every count and outcome dot is removed;
+  - the operator link is removed;
+  - navigation lists only this client's conversations;
+  - a marker reads *Em apresentação*.
+
+  The design check asserts each of these, per screen, and was seen to fail when
+  a count was put back. The residual risk is operational, not visual: turning
+  the laptop before pressing *Apresentar*. The frame cannot detect that. The
+  control sits on exactly the presented-capable screens, and entering through
+  it is the habit.
+- **In the presented state, the only navigation is between this client's
+  conversations** — *De onde vieram os contactos · O que é uma boa proposta ·
+  Para quem é este imóvel · Vendas fechadas* — plus *Terminar a apresentação*. 🔒 **No other client's
+  name, id or count appears anywhere**, which the design check asserts.
+- **Larger type, a reasoned departure:** questions at 22–30px and answers at
+  16–17px. These screens are read across a table, often aloud.
+- 🔒 **Every presented screen ends with the same block**: *Quem está a dizer
+  isto*, with the segmentation copy's hint, the agency's person as declarer and
+  *Registado por* the operator beside it. Triage keeps its own *Quem está a
+  decidir* and its *não é quem está a mexer no ecrã*. This is the exemption
+  precedent (§2.4) applied to all of them: recognition is worth more than any
+  rewording.
+- **Colour does the same work here as on every other screen** — revised 19
+  Sep 2026 after the first round went near-monochrome, which the operator
+  rejected. The distinctions an agency owner reads from across a laptop are
+  exactly where §0.5's palette belongs. Each is a chip with a word, a glyph and
+  a colour:
+  - a group **declared** (`--through`) versus **still open** (grey, dashed —
+    an absence);
+  - contacts carrying a **«sim» por confirmar** (`--held` — held back until
+    the record is confirmed) versus carrying nothing (no chip);
+  - a calibration question **answered** (`--through`), **unanswered** (grey),
+    or two answers that **do not add up** (`--red`);
+  - a close with its **party named** (`--through`), **waiting to be told**
+    with the days left in the ask window (`--clock`), or **window passed**
+    (`--red`, past its limit).
+
+  `FORBIDDEN_ON_SCREEN` (segmentation copy) is still checked against all four.
+- 🔒 **Same screen, two frames — verified, not assumed.** Brief I §1.4 makes
+  presented mode a frame property, so each of these screens also lives at
+  `/c/<client>/…` inside the ordinary frame, with the client sidebar. Both
+  frames were rendered and measured at 1280px and 1440px laptop widths: the
+  ordinary frame's column is 909px and 1066px, the presented column 1080px, and
+  across all 17 screen-and-scenario pairs **no element spills its column**. The
+  presented frame carries no sidebar, no operator counts and no other client.
+  The ordinary frame carries *Apresentar à Casa Atlântica*, which switches to
+  `/p/`.
+- **The one motion:** choosing an answer reveals its consequence. A change,
+  encoded.
+- **Copy no module holds yet** — each marked *proposed* in the design, to be
+  added to its copy module (never inline) before build:
+  - **Declaration, S3:** *"Neste momento não conseguimos ler o que a lei permite
+    em cada país. Por isso não dizemos nada sobre isso aqui…"*. 🔴
+    `jurisdictionSentence([])` returns *"Ainda não sabemos em que países estão
+    estes contactos"*, which is a **different claim** (countries unknown, not
+    table unreadable) and must not stand in for it.
+  - **Calibration:** a second sentence on the unanswered state; the
+    no-partial-save line; and the declarer block, which `CALIBRATE` does not
+    have — although the mindmap says thresholds are *"saved, attributed"* (§7.3).
+  - **Triage:** *"Dentro de cada grupo, por ordem alfabética — não é uma ordem
+    de preferência"* — the no-implied-order rule, said.
+  - **Close and party:** every string except `whoToAskPrompt`, which is used
+    verbatim.
+  - **Listings (§5, brief III):** the S5 line *"Esta agência não tem nenhuma
+    automação de imóveis ligada"*, and the four advertisability answers
+    including *Não perguntámos* — owner `LISTINGS`.
+  - **The prepared piece (§7, brief III):** the S8 banner, the S5 refusal, the
+    S4 throw sentence, and *Copiar assim mesmo* — owner a copy module for
+    `publication`, which does not exist yet and is Portuguese-first.
+  - **The exemption (§2.4):** the S3 count line, and the S5 *nothing exemptible*
+    sentence — owner `EXEMPTION`.
+- 🔴 **The exemption declaration (§2.4) was a fifth presented-mode screen not in
+  that batch.** Resolved 20 Sep 2026: it went with **batch 4**, the property and
+  its publication, where it sits beside the gate refusal that sends somebody to
+  it.
 
 ---
 
@@ -472,6 +587,29 @@ worth more than any wording we could improve.**
   does not apply to a specific property. It is the same artefact as a
   consent declaration and carries the same weight.
 - 04 is **Portugal only** until Spain has its own analysis.
+
+### Design decisions 🎨 — 20 Sep 2026, batch 4
+Designed with §5, §6.1 and §7 of brief III: `claude.ai/artifact/B64HncNBAbmxDumsRqTQQG`.
+
+- **The presented frame, as a state of the same frame function** (§2's decision):
+  blank switcher, no counts, no operator link, *Em apresentação*, nav reduced to
+  this one question. Verified in both frames.
+- 🔒 **S3 asks in the heading, not in a hint**: *De qual delas está dispensado?*
+  with both requirements and their statutes, **nothing pre-selected**. A checked
+  default is the silent exemption this state exists to prevent; the check and its
+  sabotage run cover exactly that.
+- **The requirements come from the policy row filtered to `exemptible`** — the
+  screen shows what it was given, and the single-requirement case simply states
+  which one rather than asking.
+- **S1 (already rated) shows the rating, its certificate, declarer and date**,
+  and says the question does not arise — it is not an empty declaration form.
+- **S9 shows author, date, the basis in the agency's own words, and the operator
+  who recorded it**, with the line that a correction is a new declaration.
+- **S5** — nothing exemptible in this jurisdiction — is grey and final: *o que
+  falta, falta mesmo*. Proposed copy, owner `EXEMPTION`.
+- 🔒 **This screen has no moment stamp**, and that is the rule working rather than
+  an omission: every figure on it is a stored declaration with its own date. The
+  §0.4-6 stamp belongs to computed figures only.
 
 ---
 

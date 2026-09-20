@@ -354,9 +354,37 @@
       "watches": [
         "db/migrations/0036_drop_client_automations_health.sql"
       ],
+      "hashes": {
+        "db/migrations/0036_drop_client_automations_health.sql": "4ff2616ba4624afcc5e73423f1621e622fee1cb959bb0a1b7bd9fbb9109218b3"
+      },
+      "last_proved": "2026-09-19",
+      "proved_by": "Manuel Vale"
+    },
+    {
+      "id": "0037-clients-rehearsal",
+      "what": "clients.rehearsal is added NULLABLE and WITH NO DEFAULT, the two documented rehearsal rows are classified explicitly (ZZ TEST — Cascais Demo by id; Ryvo Test Client by the Twilio sandbox number), and the migration REFUSES BY NAME if any row is left unclassified. There is deliberately no rule for 'everything else': no real client has been signed, so an unmatched row is a row nobody accounted for. WHY: the Overview is the landing and its firsts and counts would otherwise present rehearsal data as the business's history (§5j) — a caption explaining a wrong number is worse than a right number. THE PART THAT IS EASY TO GET WRONG: a guard that also refused when zero rehearsal rows exist would refuse the correct post-go-live state; it was written, then removed, and case 3 is what would have caught it.",
+      "how": "In transactions you roll back, running the file's body without its begin/commit. (1) insert a client (id 00000000-0000-0000-0000-0000000c1e37, name 'PROOF FIXTURE — unclassified') — expect REFUSING: 1 client row(s) are not classified … naming it; rollback. (2) update clients set whatsapp_number = '+10000000000' where whatsapp_number = '+14155238886' — a wrong matcher — expect REFUSING … naming \"Ryvo Test Client\"; rollback. (3) nothing modified — expect NOTICE 'Classified, not assumed: 2 rehearsal, 0 real, 0 undeclared.' and NO exception. THEN apply and verify: every row true or false; column_default null; is_nullable YES; row count unchanged.",
+      "watches": [
+        "db/migrations/0037_clients_rehearsal.sql"
+      ],
       "hashes": {},
       "last_proved": null,
       "proved_by": null
+    },
+    {
+      "id": "0038-clients-rehearsal-not-null",
+      "what": "clients.rehearsal becomes NOT NULL only after proving (a) no row is null — an undeclared row is refused by name, never defaulted — and (b) the column still has no default, because NOT NULL on a column with a default is satisfied on every undeclared row's behalf and proves nothing. ORDER: 0037 applied, THEN the onboarding that asks the question (a required choice, nothing pre-selected) DEPLOYED and seen to write true/false in the running cockpit, AND the db/tests fixtures declaring rehearsal = true — THEN this. 0036's lesson: the deploy is a precondition, not a companion.",
+      "how": "FIRST confirm the deploy: onboard a client in the cockpit and see rehearsal true/false (not null) on its row. THEN in rolled-back transactions, the do-block on its own: (1) insert a client with no rehearsal — expect REFUSING … have rehearsal = NULL … naming it. (2) alter column rehearsal set default false — expect REFUSING … has acquired a default (false). (3) nothing modified — expect the NOTICE and NO exception. THEN apply and verify: is_nullable NO, column_default null; an insert omitting rehearsal fails with a not-null violation (rolled back); onboard and delete a test client.",
+      "watches": [
+        "db/migrations/0038_clients_rehearsal_not_null.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null,
+      "blocked": {
+        "reason": "Runnable only after 0037 is applied AND the onboarding that writes clients.rehearsal is deployed. Until then the column it constrains may not exist.",
+        "runnable_when": "cockpit/src/lib/rehearsal.ts"
+      }
     }
   ]
 }

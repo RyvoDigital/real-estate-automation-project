@@ -57,6 +57,26 @@ distinction the operator is actually making:
 | S4 | a read threw — that band, not the page |
 | S8 | rendered-at |
 
+## Design decisions 🎨 — 19 Sep 2026, against brief I §0.5
+- **The clocks sit above the bands**: one per automation, saying when it last
+  ran, that it has never run, that it is held, or that it is off. They are what
+  makes S1 legible — *"running, nothing notable — with the clocks still
+  visible"*. They are not a summary-card strip: they restate nothing in the
+  bands. 🔒 **"Held" and "off" are different words**: an automation that is
+  enabled but gated (on Meta, say) is *held*, never *off* — *off* would claim a
+  setting that is not true.
+- **Every item names the screen it opens** (*"opens Anomalies"*), because every
+  number here is a door.
+- **Colour on items only, never on the client**, with the §0.5 meanings: red for
+  an erroring run or a critical invariant, blue for a gate refusal held until
+  the agency answers (its stored code shown in mono beneath), amber for an
+  outside wait at the waiting room's 7- and 21-day steps — and those amber items
+  carry the same wait track as Today, so the shape does real work beside the
+  colour.
+- **A rehearsal client says so in its header** (`clients.rehearsal`, migrations
+  0037/0038): kept out of the business's numbers, shown here in full.
+- **Refuses the phone**, pointing to Today.
+
 ## Can do
 - Open anything on it.
 
@@ -136,6 +156,33 @@ for tier, class and `detectOutage`.
 Nothing directly. Operationally: an escalation is the lead being told a human
 will come, so a queue that under-reports is a promise quietly broken.
 
+## Design decisions 🎨 — 20 Sep 2026, batch 5
+Designed with §3, §10 and §11: `claude.ai/artifact/RvyVCf3rkJY6NjDZYDAyUv`.
+
+- 🔒 **Ticking is the freshness signal, and it is §0.4-6 in its live form.** While
+  the 60s re-read succeeds the clocks run and the stamp reads *Live · read
+  09:20:05*; when a read fails they **freeze at their last value, go dim**, and
+  the stamp turns amber with the age of the last successful read. A relative time
+  that keeps counting over a failed read is a figure computed at a moment
+  presented as now — the forecast's defect, moving.
+- **The tier is a position**: each clock sits on a track with notches at 30, 90
+  and 240 minutes, the word sits under it and in the accessible name, and red
+  appears only at breach. The row is mark | body | clock — there is no tag
+  column, which is what made the tiers look accidental on Today.
+- **The outage sits above the rows and does not replace them**, with the count,
+  the shared fault named, and a link into the anomalies. The rows it counts stay
+  where their clocks put them.
+- 🔒 **`handledElsewhere` has its own tray at the foot, violet, with its own
+  clock measured from the reply** — *16m since the reply*, not from the wait. It
+  is a different question, so it is a different clock.
+- 🔴 **S4 does not say the queue is empty.** *"The queue could not be read, so
+  this page is not saying the queue is empty."* S1 is the opposite: a green
+  resting banner that reads as good news, with when the last hand-over cleared.
+- **The sidebar count is the same number the page shows**, including `100+` and a
+  `?` when the read failed. A nav count that disagrees with its own page is the
+  cheapest possible lie. *(Caught in the render: the nav said 4 beside a page
+  saying 5.)*
+
 ---
 
 # §3. Anomalies
@@ -200,6 +247,22 @@ it has a lead.
 system got wrong.** It shows `textSent` — what the lead was actually sent, as
 stored. That is why the summary is not re-worded and why nothing is dismissible:
 the screen is evidence before it is a worklist.
+
+## Design decisions 🎨 — 20 Sep 2026, batch 5
+- 🔒 **The window is named on the count, not only in the header**: *37× since
+  08:02, in the last 7 days*. A bare `37×` is a claim about all time, and the
+  count is a count in a window.
+- **Severity is a mark, not a position**: a filled disc for critical, an outline
+  for warning, at the head of the row. The list stays in time order and a
+  critical is never floated — the expander carries the severity of what it hides
+  (*3 more faults · 2 critical*) and that is the whole of the anti-burying
+  mechanism.
+- **`textSent` renders in mono, labelled *what the lead was sent, as stored***,
+  and the summary above it is the event's own sentence, unedited.
+- **A run error shows the execution link and says no lead is attached**, rather
+  than rendering an empty lead slot.
+- S1 names the window and offers a wider one; S4 says the page does not know,
+  which is a different sentence from a quiet week.
 
 ---
 
@@ -354,6 +417,34 @@ Five statuses, and 🔒 **each has its own sentence**: `available`, `reserved`,
 Nothing directly. 🔴 But see §6: a listing's *advertisability* is not its status,
 and this screen must not let the two be confused.
 
+## Design decisions 🎨 — 20 Sep 2026, against brief I §0.5
+Designed: `claude.ai/artifact/B64HncNBAbmxDumsRqTQQG` (batch 4, with §6.1, §7 and brief II §2.4).
+
+- 🔒 **Two columns, two vocabularies, and they may never share a word.** *Estado
+  (diz a agência)* carries `Disponível · Reservado · Com proposta · Vendido ·
+  Retirado`; *Pode ser anunciado? (diz a lei)* carries `Pode ser anunciado · Não
+  pode ser anunciado · Não sabemos o que a região exige · Não perguntámos`. The
+  sets are disjoint by construction, and a check asserts it — that is what stops
+  §6's confusion being a matter of care.
+- **The table must show the independence in both directions**, or the separation
+  is only asserted: a `Disponível` property the law refuses, and a `Reservado`
+  property the law permits. One of each is in the sample for that reason.
+- 🔴 **A sold or withdrawn listing reads *Não perguntámos*, not a verdict.**
+  Rendering a computed-looking refusal for a property nobody would advertise
+  states a conclusion nobody reached. It is the not-asked case, and it is grey.
+  *(Found in the render, not in the source: the first draft gave those rows the
+  policy refusal, which was true and beside the point.)*
+- **The advertisability column carries the page's moment** (brief I §0.4-6):
+  *verificado às 09:20 de hoje · a resposta muda quando a lei ou os documentos
+  mudam*. The status column carries none, because it is a stored fact, not a
+  computed one. 🔒 Only the computed half is stamped — stamping both would make
+  the stamp meaningless.
+- Colour: green *in force* on `Disponível` and on a permission; blue *held* on
+  `Reservado`/`Com proposta`, which are held back deliberately; grey on ended
+  statuses and on both kinds of not-known; red only on a real refusal.
+- **S5 is an automation that is off, not an empty list**: *"Esta agência não tem
+  nenhuma automação de imóveis ligada"* — proposed copy, owner `LISTINGS`.
+
 ---
 
 # §6. Listing matches and the publication gate
@@ -394,6 +485,21 @@ number's credibility.
 | **S3** | `listings.region` is null in a country where `region_required` — the gate **refuses** rather than judging against the national row alone |
 | S6 | the five-name cap on notifications is a guess with its reasoning attached; if the screen shows the same list, it shows the cap |
 
+## Design decisions 🎨 — 20 Sep 2026
+- 🔒 **The two refusals are never one glance apart:** *we cannot rank* (03) is
+  `--held` blue and its remedy is a twenty-minute conversation with the agency;
+  *it may not be advertised* (04) is `--red` and its remedy is one sentence from
+  a lawyer. Each names its own remedy and the person to chase. *Matched nobody*
+  is a third answer in plain type, and says it is an answer rather than a
+  failure.
+- **Computed and chosen are separate sections**, each labelled, and a chosen row
+  carries the name of whoever chose it and no strength word.
+- 🔴 **The gate's refusals have no agency-facing Portuguese.**
+  `lib/publication/gate.ts`'s `REFUSAL_MEANS` is English, and this screen is
+  Portuguese (`MATCHES`). Q20's verdict therefore cannot be rendered to the
+  agency in its own language from any module today. The design proposes the
+  sentences; they belong in a copy module.
+
 ## Can do
 - Open triage, the exemption declaration, the thresholds, the prepared piece.
 
@@ -425,6 +531,42 @@ over `advertising_policy.requires`, `listing_facts`, `agency_facts`.
   anybody's missing certificate is reached, because Portugal's row is researched
   and unconfirmed. 🔒 The screen must show the refusal that actually fired, not
   the one a reader would expect.
+
+## §6.1 The gate in depth — `/c/<client>/listings/<id>/publish`
+Designed 20 Sep 2026 in batch 4. No brief section existed for it; this is it.
+
+## The question
+Why that answer, on what facts, and as of when?
+
+## Design decisions 🎨
+- **Three parts, in this order: the verdict, then what the law asks, then what we
+  hold.** The verdict is the whole answer and carries the refusal token
+  (`policy_not_confirmed`, `region_undeclared`, `no_policy_row`,
+  `requirement_unmet`) plus the module's own sentence verbatim.
+- 🔒 **When the policy row refuses, the requirement list must say it is not the
+  cause.** Three requirements listed under a refusal read as the reason for it.
+  A line under them states that the row refuses first and would refuse even if
+  all three were held.
+- 🔒 **Every requirement row is: what the law asks · what we hold · who said it ·
+  when.** The *when* is the fact's own date, distinct from the verdict's decision
+  time at the top. A verdict is computed at a moment; the facts under it each
+  have an older one, and both are on screen.
+- **The `'unknown'` registration passes, in amber, saying so**: *passed on an
+  unconfirmed assertion · nobody checked it with the register · re-confirm after
+  90 days · 13 days ago*. Amber because a clock is the reason it is tolerable,
+  and the clock's age is shown.
+- 🔒 **`region_undeclared` is grey and is not a refusal to advertise.** The
+  verdict reads *We cannot say*, and the page lists **no** requirements as met or
+  missing, because none were asked. An empty list under a red verdict would read
+  as "nothing is required".
+- `no_policy_row` likewise lists nothing, and says why the emptiness is not a
+  permission.
+- 🔴 **No control on this page confirms a policy row, declares a fact, or
+  publishes anyway.** The declaration has its own screen and its own author.
+- ⚠️ **Language gap, same family as §9's.** Every sentence here comes from
+  `publication/gate.ts` and `publication/requirements.ts`, which are English, so
+  the screen is operator-facing only. An agency-facing version needs Portuguese
+  in those modules first — it cannot be translated in the view.
 
 ---
 
@@ -471,6 +613,26 @@ on.
   that §8.A carried until 18 September. If the screen states exposure, it states
   that range. Understating it twelvefold is the opposite of what the sentence is
   for.
+
+## Design decisions 🎨 — 20 Sep 2026
+- 🔒 **The mandatory mentions are highlighted where they sit in the text**, not
+  listed beside it. The invariant is read on the artefact, and the screen shows
+  the artefact the invariant was read on.
+- 🔒 **S8 does not re-render the piece.** The stale banner names both dates —
+  prepared 10 Sep, certificate expired 16 Sep — and says *não voltámos a
+  escrevê-lo*. A check asserts the stale text is byte-identical to the fresh one;
+  its sabotage run appends a word and the check goes red.
+- **But the stale state changes which action leads.** Fresh: *Copiar*, primary.
+  Stale: *Preparar de novo* primary, *Copiar assim mesmo* secondary. Not
+  rewriting the artefact is not the same as recommending it — leaving *Copiar*
+  as the primary action on a piece we have just said is out of date invites the
+  one outcome the banner exists to prevent.
+- **The piece states what it rests on and when**: the clearance's time, and each
+  fact's declarer and date.
+- **S4 renders the throw and no piece at all**, with the failing requirement id
+  in mono. A piece with a gap is the defect; a page with no piece is the fix.
+- **S5 names the missing requirement** in the agency's language, and does not
+  name the gate.
 
 ---
 
@@ -547,8 +709,22 @@ displayed and explained does not get investigated as a defect.** The gap is
 explained beside the counts, with every reason.
 
 🔴 **The vocabulary of reasons is closed and no member can express a
-judgement.** Seven reasons, derived from the send row. A seventh-plus fails a
-test that tells you to come and write down what it is for.
+judgement.** **Eight** reasons, derived from the send row — *corrected 20 Sep
+2026: this section said seven.* `NotAskedReason` and `REASON_MEANS` hold eight
+(`party_not_named`, `gate_refused`, `window_expired`, `reported_after_window`,
+`send_failed`, `agency_disabled`, `not_in_service`, `no_review_destination`),
+and `review-disposition.test.ts` asserts `reasons.length === 8`. The count
+assertion did its job when `reported_after_window` was added; the prose around
+it — and this brief — were not updated with it. A ninth fails that line and the
+person adding it has to come and write down what it is for.
+
+🔴 **`REASON_MEANS` is in English and this screen is in Portuguese.**
+`explainTheGap` hands those sentences straight to `REVIEW.gapLine`, so the built
+screen would print English reasons inside Portuguese copy in front of the
+agency. The design shows short Portuguese labels (proposed) with the module's
+English sentence beneath, marked, so the gap is visible rather than papered
+over. **The sentences need Portuguese in the module that owns them**, not in the
+page.
 
 ## States
 
@@ -657,6 +833,39 @@ as a bare label: it decides what may honestly be sold on top of this data.
   claim we once held no longer stands, and the ledger shows both events rather
   than the end state.
 
+## Design decisions 🎨 — 20 Sep 2026, batch 5
+⚠️ **Flagged as genuinely new in shape** (the operator's standing rule): this is
+a flow with a write in the middle, not a screen that reads. It was designed as a
+step sequence and carried in the batch; if the individual steps want depth, they
+get their own pass.
+
+- 🔒 **The rail shows all five steps and marks where the write happens** —
+  *4 · Commit · writes to leads here* — with the line that steps one to three can
+  be abandoned and leave nothing behind. The operator should not have to know
+  that from the code.
+- **The mapping step reads *their column → our field → why***, with the samples
+  under their column and the reason right-aligned. Low-confidence proposals say
+  *worth a look* rather than being coloured as errors — uncertainty is never
+  coloured (§0.5).
+- 🔴 **The discarded proposal is shown, by name.** *"The model offered
+  `agent_owner`. No such field exists, so it was dropped and our own guess
+  stands. You are seeing what the guard allowed, not what the model said."* A
+  guard that silently corrects is indistinguishable from a model that never
+  erred.
+- 🔴 **There is no field on the mapping screen that records consent as a fact**,
+  and the screen says so beside the consent column, with the cell quoted as the
+  claim it is. The absence is designed, so it is stated.
+- **S3 (the proposal failed) says the guesses are ours**, and does not degrade
+  into a blank form.
+- **The plan step states that nothing has been written**, and every rejected row
+  carries its reason; duplicates read as *merged with what*.
+- 🔒 **The revert report leads with what was NOT undone**: *1 199 removed · 17
+  kept because they have been talked to since · no message or event was
+  deleted*, then the seventeen by name with `revert.ts`'s own reasons. The
+  failure mode here is a success line over a partly-undone import.
+- **The mapping step carries presented mode** (§10's own rule): Portuguese, no
+  other client's name, blank switcher. It is the only step that does.
+
 ---
 
 # §11. The weekly report
@@ -715,6 +924,31 @@ paid relationship, not a display bug — and `metrics_daily.reactivations` is th
 figure Automation 02 exists to move, so it is the one under most pressure to
 flatter.
 
+## Design decisions 🎨 — 20 Sep 2026, batch 5
+- 🔒 **The artefact is rendered as the artefact** — monospaced, in `renderWeekly`'s
+  own lines and spacing, because the indentation *is* the logic. Subset lines sit
+  under the figure they are part of; the unattributed block sits apart, in grey
+  italic, carrying its own parenthetical. There is no total line anywhere, and a
+  check asserts the word never appears.
+- 🔴 **A week with a missing day shows no figures at all**, not a six-day total
+  and not zeros: *every figure is withheld, and the report says which day made
+  them so*. The banner names Wednesday, says the derivation did not run, and says
+  the gap cannot be filled from here.
+- 🔴 **And there is no send control on that week** — not a greyed one. A report
+  that cannot honestly be sent should not look one click from going; the screen
+  carries an amber *Sending is held* and the one honest alternative, *show the
+  six days we do have, labelled as six*. *(Changed in the render: a disabled
+  button still read as pressable.)*
+- **The week strip is the three day-states in one line**: derived, `no row` in
+  red, `not yet` dim and outlined. Collapsing the last two is what painted a
+  normal week as a failure in the first version.
+- **S1 is a legitimate report**: the artefact states that nothing came in, that
+  the zeros mean nothing happened rather than something failing, and that all
+  seven days were derived.
+- The absences list names none of the forbidden words. *(It did in the first
+  draft — the same mistake as the re-check notice: a page cannot forbid a word by
+  printing it.)*
+
 ---
 
 # §12. Client settings
@@ -759,6 +993,61 @@ What is this client configured to do, and what may I change?
 - The AMI licence is per client, once, and is what every prepared piece carries.
 - The review destination is host-allow-listed (`0034`) because §8.B is Google's
   policy.
+
+## Design decisions 🎨 — 20 Sep 2026, the last screen
+Designed: `claude.ai/artifact/SikJNRqU7tAQuHmuniC36J`.
+
+- 🔒 **A field that cannot change has NO control, not a disabled one.** The
+  WhatsApp number, the sender SID and the AMI licence render as mono text with
+  the reason beside them. This is the operator's rule of 20 Sep — *a greyed
+  control is not a refusal, it still reads as one click from going, and the only
+  honest version is no control at all* — and it now applies to every screen, not
+  only this one. A check asserts that **no element anywhere on this page is
+  `disabled`, `readonly` or `aria-disabled`**, in any scenario; its sabotage run
+  turns a frozen field into a disabled input and goes red.
+- 🔒 **No number has a default, and the field says why.** §0.3 is suspended here
+  by §4.6, so the placeholders read *no default — say how many* and, on the
+  threshold, *no default — this is a judgement about their market*. A pre-filled
+  threshold collects a click and records it as the agency's own decision about
+  who is worth a person's time.
+- 🔴 **An automation whose gate would refuse everything has no switch**, but the
+  refusal, the thing blocking it, and a route to that thing: *held by its gate ·
+  open the waiting room / set the destination / open the policy row*. Same rule,
+  one level up from a field.
+- 🔴 **04 is held in every scenario but one**, because Portugal's policy row is
+  researched and unconfirmed — the same truth §6.1 shows. The single scenario
+  where it runs is labelled *once Portugal is confirmed*, so the screen never
+  implies today is different from what the gate screen says. *(Caught in review:
+  04 was first drawn as happily running, contradicting batch 4.)*
+- **The calendar's three answers never collapse into two**: *probed and
+  answering* (green), *could not be probed* (**grey**, with the auth error and a
+  re-probe), and the trap named in full — a wrong id answers **200 with no busy
+  times**, which is indistinguishable from a free calendar.
+  - 🔴 **Corrected 20 Sep 2026, during the build**: the Stage B design drew the
+    unprobed calendar in **amber**, and §0.5 does not allow that. Amber means a
+    clock is the reason; *nobody has looked* has no clock in it, and §0.5's
+    never-coloured rule puts uncertainty and absence in grey. Found while
+    writing `why-empty.ts`, which is the point of the helper — the wording and
+    the colour of an emptiness now come from one place, so a screen cannot
+    choose either by eye.
+- **Both computed answers carry their moment** and neither is re-run by opening
+  the page: *probed 09:20 today · not re-run by opening this page*, and *the gate
+  was asked at 09:20 · a refusal here is about today, not about this client*.
+- **Working hours stay free text with the parse shown back** in mono (*09:00–18:00
+  · days 1,2,3,4,5*), and an end at or before the start is refused here rather
+  than becoming a calendar that looks fully booked forever.
+- **Every refusal keeps what was typed and saves nothing**, and the save line
+  says so. The refusal banner's count is the number of refusals actually on the
+  page. *(Caught in review, second time in two batches: a count that disagrees
+  with its own page.)*
+- **Nothing configured yet means nothing running**: 01 and 03 are off, with
+  *nothing runs until it is configured*. An automation on with no working hours
+  and no calendar must not read as a normal state.
+- ⚠️ **Recorded divergence: the stored key is `viewing_duration_minutes`** and
+  the label is *introductory meeting — how long*. The workflow reads the key, so
+  it cannot be renamed casually; the screen shows the key in the hint and uses
+  the honest word everywhere else. A rename is a migration plus a workflow
+  change, and it belongs on the improvements list rather than in a form.
 
 ---
 
