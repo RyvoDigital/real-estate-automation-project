@@ -449,6 +449,17 @@
       },
       "last_proved": "2026-09-21",
       "proved_by": "Manuel Vale"
+    },
+    {
+      "id": "0045-uncorrected-view-read-only",
+      "what": "client_contracts_uncorrected is made security_invoker and stripped of every write privilege. WHY: it is a simple SELECT over one table, so Postgres makes it AUTOMATICALLY UPDATABLE — and for such a view, rights on the underlying table are checked as the VIEW'S OWNER rather than as the caller. So 0042's `revoke update, delete, truncate on client_contracts from service_role` does not govern writes routed through it. The trigger still fires, because triggers live on the base table, so append-only is enforced BY THE TRIGGER ALONE. That is precisely the arrangement 0012 refused: 'the trigger is the guarantee, the revoke is the belt', and a belt with a hole is not a belt. The hole was introduced by the view added in 0042 to make the freeze safer to read.",
+      "how": "Paste db/tests/0045_uncorrected_view_is_read_only.test.sql. Three cases, each rolled back. Case 1 demonstrates the hole BEFORE the fix — an UPDATE through the view — and 🔴 READ WHICH ERROR IT IS: if it names the append-only trigger, the write reached the base table and only the guarantee caught it; if it says 'permission denied for view', the belt already held and 0045 is belt-and-braces. Either way apply it. A sentinel fires if the UPDATE is ACCEPTED, which would mean the freeze is not holding at all. Case 2 asserts no write privilege survives on the view. Case 3 is the resting state: the view must still return exactly one uncorrected row at 450.00 — a view locked down so hard it stops answering is a fix that removes the thing it was protecting.",
+      "watches": [
+        "db/migrations/0045_uncorrected_view_is_read_only.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
     }
   ]
 }
