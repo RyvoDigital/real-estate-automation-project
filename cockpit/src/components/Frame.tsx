@@ -73,16 +73,31 @@ export function Frame({
           <span className={styles.navLabel}>
             {mode === 'presented' ? 'Esta reunião' : mode === 'client' ? 'This client' : 'Ryvo'}
           </span>
-          {side.items.map((item) => (
-            <Link
-              key={item.slug}
-              className={styles.item}
-              href={item.href}
-              aria-current={item.slug === current ? 'page' : undefined}
-            >
-              <span>{item.label}</span>
-            </Link>
-          ))}
+          {side.items.map((item) =>
+            item.built ? (
+              <Link
+                key={item.slug}
+                className={styles.item}
+                href={item.href}
+                aria-current={item.slug === current ? 'page' : undefined}
+              >
+                <span>{item.label}</span>
+              </Link>
+            ) : (
+              /*
+               * 🔒 NOT A DISABLED LINK. §0.4-7: a greyed control still reads as
+               * one click from opening, and this one would open a 404. There is
+               * nothing to open, so there is no control — and the word says
+               * which of the two states it is, because "not built yet" and
+               * "broken" look identical from a dead link and only one of them
+               * is worth reporting.
+               */
+              <span key={item.slug} className={styles.unbuilt}>
+                <span>{item.label}</span>
+                <span className={styles.unbuiltWord}>not built</span>
+              </span>
+            ),
+          )}
         </nav>
 
         <div className={styles.foot}>{operatorEmail} · Europe/Lisbon</div>

@@ -58,6 +58,23 @@ export type NavItem = {
   presented: boolean
   /** Why it refuses presentation. Required when `presented` is false. */
   refusesBecause?: string
+  /**
+   * 🔴 WHETHER THE SCREEN EXISTS YET.
+   *
+   * The sidebar is the map of the cockpit, not of today's progress, so an
+   * unbuilt screen still appears — but a plain link to a 404 tells the operator
+   * nothing about WHICH of the two it is: not built, or broken. One is expected
+   * and one needs reporting, and they look identical.
+   *
+   * 🔒 An unbuilt item renders as a NON-LINK, not as a disabled link. §0.4-7: a
+   * greyed control still reads as one click from opening. There is nothing to
+   * open, so there is no control.
+   *
+   * `tests/links-resolve.test.ts` fails when this disagrees with the
+   * filesystem, in either direction — so building a screen and forgetting to
+   * flip this is caught too.
+   */
+  built: boolean
 }
 
 /**
@@ -68,13 +85,13 @@ export type NavItem = {
  * things you configure.
  */
 export const CLIENT_SCREENS: NavItem[] = [
-  { slug: '', label: 'Landing', inNav: true, presented: false, refusesBecause: 'it counts every automation and names what is holding each one' },
-  { slug: 'escalations', label: 'Escalations', inNav: true, presented: false, refusesBecause: 'a queue of people waiting is not a thing to show the people who kept them waiting' },
-  { slug: 'anomalies', label: 'Anomalies', inNav: true, presented: false, refusesBecause: 'it is the record of what the system got wrong, and it is evidence before it is a screen' },
-  { slug: 'contacts', label: 'Contacts', inNav: true, presented: false, refusesBecause: 'the contact record carries the consent ledger, which is read with the agency one contact at a time, not browsed' },
-  { slug: 'campaign', label: 'Campaign', inNav: true, presented: false, refusesBecause: 'a forecast of who would be written to is an operator decision before it is an agency conversation' },
-  { slug: 'declaration', label: 'Declaration', labelPt: 'De onde vieram estes contactos', inNav: true, presented: true },
-  { slug: 'listings', label: 'Listings', labelPt: 'Imóveis', inNav: true, presented: true },
+  { slug: '', built: true, label: 'Landing', inNav: true, presented: false, refusesBecause: 'it counts every automation and names what is holding each one' },
+  { slug: 'escalations', built: true, label: 'Escalations', inNav: true, presented: false, refusesBecause: 'a queue of people waiting is not a thing to show the people who kept them waiting' },
+  { slug: 'anomalies', built: false, label: 'Anomalies', inNav: true, presented: false, refusesBecause: 'it is the record of what the system got wrong, and it is evidence before it is a screen' },
+  { slug: 'contacts', built: true, label: 'Contacts', inNav: true, presented: false, refusesBecause: 'the contact record carries the consent ledger, which is read with the agency one contact at a time, not browsed' },
+  { slug: 'campaign', built: false, label: 'Campaign', inNav: true, presented: false, refusesBecause: 'a forecast of who would be written to is an operator decision before it is an agency conversation' },
+  { slug: 'declaration', built: false, label: 'Declaration', labelPt: 'De onde vieram estes contactos', inNav: true, presented: true },
+  { slug: 'listings', built: false, label: 'Listings', labelPt: 'Imóveis', inNav: true, presented: true },
   /*
    * 🔴 NAMED FOR WHAT AN OPERATOR OPENS IT TO FIND OUT, which is the test every
    * other screen was held to.
@@ -91,14 +108,14 @@ export const CLIENT_SCREENS: NavItem[] = [
    * different screen that does not exist rather than this one under a better
    * name. When it is built it gets its own entry here.
    */
-  { slug: 'still-good', label: 'What is still good', inNav: true, presented: false, refusesBecause: 'it reads across every property this client holds, and an agency meeting is about one' },
-  { slug: 'silence', label: 'Silence', inNav: true, presented: false, refusesBecause: 'it is a worklist of who to chase, in our words not theirs' },
-  { slug: 'closes', label: 'Closes', labelPt: 'O que fechou', inNav: true, presented: true },
-  { slug: 'review', label: 'Review', inNav: true, presented: false, refusesBecause: 'the reconciliation explains our own gaps, which is an operator conversation' },
-  { slug: 'thresholds', label: 'Thresholds', labelPt: 'O que procura quem lhe compra', inNav: true, presented: true },
-  { slug: 'import', label: 'Import', labelPt: 'A lista que nos enviou', inNav: true, presented: true },
-  { slug: 'report', label: 'Report', inNav: true, presented: false, refusesBecause: 'its artefact is what the agency receives; the page is the operator checking it first' },
-  { slug: 'settings', label: 'Settings', inNav: true, presented: false, refusesBecause: 'it holds numbers that decide who receives a message' },
+  { slug: 'still-good', built: true, label: 'What is still good', inNav: true, presented: false, refusesBecause: 'it reads across every property this client holds, and an agency meeting is about one' },
+  { slug: 'silence', built: false, label: 'Silence', inNav: true, presented: false, refusesBecause: 'it is a worklist of who to chase, in our words not theirs' },
+  { slug: 'closes', built: false, label: 'Closes', labelPt: 'O que fechou', inNav: true, presented: true },
+  { slug: 'review', built: false, label: 'Review', inNav: true, presented: false, refusesBecause: 'the reconciliation explains our own gaps, which is an operator conversation' },
+  { slug: 'thresholds', built: false, label: 'Thresholds', labelPt: 'O que procura quem lhe compra', inNav: true, presented: true },
+  { slug: 'import', built: false, label: 'Import', labelPt: 'A lista que nos enviou', inNav: true, presented: true },
+  { slug: 'report', built: false, label: 'Report', inNav: true, presented: false, refusesBecause: 'its artefact is what the agency receives; the page is the operator checking it first' },
+  { slug: 'settings', built: false, label: 'Settings', inNav: true, presented: false, refusesBecause: 'it holds numbers that decide who receives a message' },
 
   // Reached from another screen rather than from the sidebar.
   //
@@ -109,13 +126,13 @@ export const CLIENT_SCREENS: NavItem[] = [
   // that refuses presentation, would have been served to an agency wearing
   // the listings screen's answer. A screen inheriting its parent's answer is
   // the same defect as a screen defaulting to one.
-  { slug: 'triage', label: 'Triage', labelPt: 'Quem vê primeiro', inNav: false, presented: true },
-  { slug: 'exemption', label: 'Exemption', labelPt: 'Este imóvel não precisa de certificado?', inNav: false, presented: true },
-  { slug: 'piece', label: 'The prepared piece', labelPt: 'O anúncio preparado', inNav: false, presented: true },
-  { slug: 'publish', label: 'May this be advertised?', inNav: false, presented: false, refusesBecause: 'it is the gate in depth, and its sentences are English, from publication/gate.ts and requirements.ts' },
-  { slug: 'policy', label: 'What each country requires', inNav: false, presented: false, refusesBecause: 'its sentences are English, from the policy modules' },
-  { slug: 'templates', label: 'Templates', inNav: false, presented: false, refusesBecause: "it is Meta's review state, in Meta's vocabulary" },
-  { slug: 'notice', label: 'The re-check notice', labelPt: 'Uma coisa a confirmar', inNav: false, presented: true },
+  { slug: 'triage', built: false, label: 'Triage', labelPt: 'Quem vê primeiro', inNav: false, presented: true },
+  { slug: 'exemption', built: false, label: 'Exemption', labelPt: 'Este imóvel não precisa de certificado?', inNav: false, presented: true },
+  { slug: 'piece', built: false, label: 'The prepared piece', labelPt: 'O anúncio preparado', inNav: false, presented: true },
+  { slug: 'publish', built: false, label: 'May this be advertised?', inNav: false, presented: false, refusesBecause: 'it is the gate in depth, and its sentences are English, from publication/gate.ts and requirements.ts' },
+  { slug: 'policy', built: true, label: 'What each country requires', inNav: false, presented: false, refusesBecause: 'its sentences are English, from the policy modules' },
+  { slug: 'templates', built: true, label: 'Templates', inNav: false, presented: false, refusesBecause: "it is Meta's review state, in Meta's vocabulary" },
+  { slug: 'notice', built: true, label: 'The re-check notice', labelPt: 'Uma coisa a confirmar', inNav: false, presented: true },
 ]
 
 export type FrameSide = {
@@ -128,8 +145,15 @@ export type FrameSide = {
   up: { label: string; href: string } | null
   /** 🔒 Presented mode shows no count anywhere. */
   showsCounts: boolean
-  /** The sidebar's destinations, already filtered for the mode. */
-  items: { slug: string; label: string; href: string }[]
+  /**
+   * The sidebar's destinations, already filtered for the mode.
+   *
+   * 🔒 `built: false` renders as a NON-LINK. The sidebar is the map of the
+   * cockpit rather than of today's progress, so an unbuilt screen still
+   * appears — but a link to a 404 leaves the operator unable to tell "not built
+   * yet" from "broken", and one of those needs reporting.
+   */
+  items: { slug: string; label: string; href: string; built: boolean }[]
 }
 
 /**
@@ -163,7 +187,9 @@ export function frameSide(
       switcher: { name: client.name, pressable: false },
       up: null,
       showsCounts: false,
-      items: [{ slug: screen.slug, label: screen.labelPt ?? screen.label, href: `/p/${client.id}/${screen.slug}` }],
+      items: [
+        { slug: screen.slug, label: screen.labelPt ?? screen.label, href: `/p/${client.id}/${screen.slug}`, built: screen.built },
+      ],
     }
   }
 
@@ -179,6 +205,7 @@ export function frameSide(
         slug: s.slug,
         label: s.label,
         href: `/c/${client.id}/${s.slug}`.replace(/\/$/, ''),
+        built: s.built,
       })),
     }
   }
@@ -190,10 +217,13 @@ export function frameSide(
     up: null,
     showsCounts: true,
     items: [
-      { slug: 'today', label: 'Today', href: '/today' },
-      { slug: 'month', label: 'The Month', href: '/' },
-      { slug: 'health', label: 'Health', href: '/health' },
-      { slug: 'onboarding', label: 'Onboarding', href: '/onboarding' },
+      // All four operator screens exist. They are on the OLD visual direction
+      // (see docs/cockpit-route-map.md §2.3), which is a different fact from
+      // not being built.
+      { slug: 'today', label: 'Today', href: '/today', built: true },
+      { slug: 'month', label: 'The Month', href: '/', built: true },
+      { slug: 'health', label: 'Health', href: '/health', built: true },
+      { slug: 'onboarding', label: 'Onboarding', href: '/onboarding', built: true },
     ],
   }
 }

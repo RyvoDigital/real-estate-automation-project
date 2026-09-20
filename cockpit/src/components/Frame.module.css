@@ -188,3 +188,25 @@
 @media (prefers-reduced-motion: reduce) {
   .item, .up { transition: none; }
 }
+
+/*
+ * A screen that does not exist yet. Not a disabled link: there is no control,
+ * because there is nothing to open. The word distinguishes "not built" from
+ * "broken", which a dead link cannot.
+ */
+.unbuilt {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  font-size: 13px;
+  color: var(--text-3);
+  cursor: default;
+}
+.unbuiltWord {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
