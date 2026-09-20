@@ -93,6 +93,10 @@ begin
       n_rows;
   end if;
 
+  -- 🔴 NOT a precondition failure, and deliberately not one. A relation called
+  -- `client_contracts_current` already exists in production, created by a
+  -- migration this repository does not hold. This migration no longer wants
+  -- that name, so it neither needs it nor touches it.
   raise notice 'Preconditions proven, not assumed: table present, no supersedes column, 0 rows.';
 end $$;
 
@@ -105,8 +109,10 @@ alter table public.client_contracts
 comment on column public.client_contracts.supersedes_id is
   'The contract row this one corrects. Null on an original. It points BACKWARDS because '
   'this table is append-only: a superseded_by column would need an UPDATE, which the '
-  'trigger below refuses. "Current" therefore means no other row supersedes me — read the '
-  'view client_contracts_current, never this table directly, for anything that counts money.';
+  'trigger below refuses. Uncorrected therefore means no other row supersedes me — read '
+  'the view client_contracts_uncorrected, never this table directly, for anything that '
+  'counts money. The view is NOT called _current: that would read as "covering today", and '
+  'a caller summing it for January would get rows in force now.';
 
 -- A row cannot correct itself.
 alter table public.client_contracts
@@ -116,32 +122,49 @@ alter table public.client_contracts
   check (supersedes_id is distinct from id);
 
 -- 🔒 ONE CORRECTION PER ROW. Without this, two rows could both supersede the
--- same contract and both be current, and that month would be counted twice —
+-- same contract and both be uncorrected, so that month would be counted twice —
 -- the exact failure the view exists to prevent, arriving through the back.
 create unique index client_contracts_one_correction_each
   on public.client_contracts (supersedes_id)
   where supersedes_id is not null;
 
--- The index the "current" predicate needs. `not exists (… where supersedes_id
+-- The index the uncorrected predicate needs. `not exists (… where supersedes_id
 -- = c.id)` is an anti-join, and without this it is a sequential scan of the
 -- whole table for every row.
 create index client_contracts_supersedes_lookup
   on public.client_contracts (supersedes_id);
 
 -- ---------------------------------------------------------------------------
--- 🔴 THE VIEW THAT KNOWS WHAT "CURRENT" MEANS
+-- 🔴 THE VIEW THAT KNOWS WHICH ROWS HAVE NOT BEEN CORRECTED
 -- ---------------------------------------------------------------------------
 -- Without it every caller writes its own NOT EXISTS, and the first one to
 -- forget double-counts a corrected contract into a month's revenue — a figure
 -- wrong in the direction that flatters, on the page the operator trusts most.
-create or replace view public.client_contracts_current as
+--
+-- 🔴 IT IS `_uncorrected` AND NOT `_current`, AND THAT IS NOT A STYLE CHOICE.
+--
+-- "Current" is ambiguous in exactly the dangerous direction: it reads equally
+-- as *not superseded* and as *covering today's date*. A caller who takes the
+-- second meaning and sums the view for January gets rows in force TODAY, which
+-- is a wrong figure that looks entirely right — the same class as every
+-- stale-record defect this project has found, arriving through a name.
+--
+-- `_uncorrected` can only mean one thing: rows no other row supersedes. It
+-- says nothing about dates, so nobody can read a date claim out of it.
+--
+-- (Found because a relation named `client_contracts_current` already exists in
+-- production and `create or replace view` cannot replace it — the collision
+-- forced a rename the name deserved on its own. The existing relation is NOT
+-- dropped: nothing in this repository reads it, and an object created by a
+-- migration this repository does not have is not one to delete for a name.)
+create or replace view public.client_contracts_uncorrected as
   select c.*
     from public.client_contracts c
    where not exists (
      select 1 from public.client_contracts s where s.supersedes_id = c.id
    );
 
-comment on view public.client_contracts_current is
+comment on view public.client_contracts_uncorrected is
   'The contracts that have not been corrected. EVERY revenue figure reads this, never the '
   'base table: a superseded row still carries its period and its fee, so summing the base '
   'table double-counts every correction ever made.';
@@ -189,7 +212,7 @@ commit;
 --   -- expect: INSERT, SELECT (and REFERENCES/TRIGGER). No UPDATE, no DELETE,
 --   --         no TRUNCATE.
 --
---   select count(*) from public.client_contracts_current;   -- expect: 0
+--   select count(*) from public.client_contracts_uncorrected;   -- expect: 0
 --
 --   select indexname from pg_indexes
 --    where tablename = 'client_contracts' and indexname like '%supersedes%'
@@ -199,16 +222,16 @@ commit;
 -- ---------------------------------------------------------------------------
 -- 🔴 THE OVERLAP THIS SCHEMA STILL CANNOT CONSTRAIN
 -- ---------------------------------------------------------------------------
--- Two CURRENT contracts for one client with overlapping periods double-count
+-- Two UNCORRECTED contracts for one client with overlapping periods double-count
 -- that client's revenue for every shared month. It cannot be an exclusion
--- constraint, because "current" is a NOT EXISTS over this same table and a
+-- constraint, because "uncorrected" is a NOT EXISTS over this same table and a
 -- constraint cannot query the table it constrains.
 --
 -- So it is a reconciliation somebody runs, and the cockpit's suite carries it:
 --
 --   select a.automation_client_id, a.id, b.id
---     from public.client_contracts_current a
---     join public.client_contracts_current b
+--     from public.client_contracts_uncorrected a
+--     join public.client_contracts_uncorrected b
 --       on a.automation_client_id = b.automation_client_id and a.id < b.id
 --    where daterange(a.starts_on, a.ends_on, '[]')
 --       && daterange(b.starts_on, b.ends_on, '[]');

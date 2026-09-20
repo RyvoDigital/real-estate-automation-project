@@ -99,8 +99,8 @@ do $$
 declare n_all bigint; n_cur bigint; fee numeric;
 begin
   select count(*) into n_all from public.client_contracts;
-  select count(*) into n_cur from public.client_contracts_current;
-  select monthly_eur into fee from public.client_contracts_current;
+  select count(*) into n_cur from public.client_contracts_uncorrected;
+  select monthly_eur into fee from public.client_contracts_uncorrected;
 
   if n_all <> 2 then
     raise exception 'REFUSING: expected 2 rows, found %. The correction was not accepted — '
@@ -133,8 +133,8 @@ do $$
 declare n bigint;
 begin
   select count(*) into n
-    from public.client_contracts_current a
-    join public.client_contracts_current b
+    from public.client_contracts_uncorrected a
+    join public.client_contracts_uncorrected b
       on a.automation_client_id = b.automation_client_id and a.id < b.id
    where daterange(a.starts_on, a.ends_on, '[]') && daterange(b.starts_on, b.ends_on, '[]');
   if n <> 1 then
