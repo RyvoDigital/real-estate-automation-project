@@ -1,3 +1,34 @@
+-- ╔═════════════════════════════════════════════════════════════════════════╗
+-- ║  🔴 DO NOT RUN. SUPERSEDED BY WHAT IS ACTUALLY DEPLOYED.                ║
+-- ╚═════════════════════════════════════════════════════════════════════════╝
+--
+-- Written 21 September 2026 against a `payments` table carrying two dates —
+-- invoiced_on and received_on. The deployed table has since gained a richer
+-- model, verified through PostgREST:
+--
+--   settled_on, settled_amount_eur, settled_method, settled_reference,
+--   written_off_on, written_off_by
+--
+-- Which is BETTER than what this file assumed, in a way worth naming: with a
+-- single `received_on`, a part payment is inexpressible — 600 arriving against
+-- an invoice of 650 either reads as paid in full or as not paid at all.
+-- `settled_amount_eur` makes a part payment a FACT rather than a rounding
+-- error, and `written_off_on` makes giving up a decision somebody took rather
+-- than a row that quietly stays outstanding forever.
+--
+-- This file's freeze knows nothing about those six columns, so applying it
+-- would protect the old fields and leave the new ones editable — the worst of
+-- both: a table that looks frozen and is not.
+--
+-- 🔒 ITS REASONING STILL STANDS and is why 0044 exists: a payment is NOT
+-- 0012-append-only, because settlement arrives weeks after invoicing and must
+-- be recordable against the same row. 0017's partial freeze is the right
+-- pattern; only the column list was wrong.
+--
+-- ───────────────────────────────────────────────────────────────────────────
+-- THE ORIGINAL FILE FOLLOWS, UNCHANGED.
+-- ───────────────────────────────────────────────────────────────────────────
+
 -- ====== payments: what may change after the fact, and what may not ======
 --
 -- ALONE, in a transaction, with 0032's treatment.
