@@ -123,6 +123,51 @@ const MEASURE = `(() => {
     if (side < minTap) { minTap = side; minTapEl = label(el) }
   }
 
+  /*
+   * 🔴 TWO INLINE SIBLINGS WHOSE TEXT RUNS TOGETHER.
+   *
+   * "pt_energy_classa rating the property carries". "CA-0212T3 em Cascais".
+   * The same defect, found and fixed in a Stage B design in September and then
+   * REINTRODUCED VERBATIM in code — because the fix lived in a scratchpad
+   * stylesheet and the briefs record design decisions rather than stylesheets,
+   * so the build stage shares nothing with the design stage that would carry
+   * it across.
+   *
+   * An audit confirmed the general case: no CSS-level fix from Stage B is
+   * recorded anywhere the build reads. Porting the stylesheets is not the
+   * answer, because the next one would be lost the same way. This is: the
+   * defect becomes a check the build runs.
+   *
+   * WHAT IT LOOKS FOR: two element children on the same line whose boxes
+   * touch, where neither the gap nor the text on either side of the join
+   * carries whitespace. That is a join a reader sees as one word.
+   */
+  const runTogether = []
+  for (const el of document.querySelectorAll('body *')) {
+    const kids = [...el.children].filter((k) => {
+      const d = getComputedStyle(k).display
+      return d === 'inline' || d === 'inline-block' || d === 'inline-flex'
+    })
+    for (let i = 1; i < kids.length; i++) {
+      const a = kids[i - 1], b = kids[i]
+      const ta = (a.textContent || ''), tb = (b.textContent || '')
+      if (!ta.trim() || !tb.trim()) continue
+      // Whitespace anywhere across the join makes it a normal sentence.
+      if (/\s$/.test(ta) || /^\s/.test(tb)) continue
+      let between = a.nextSibling, spaced = false
+      while (between && between !== b) {
+        if (/\s/.test(between.textContent || '')) spaced = true
+        between = between.nextSibling
+      }
+      if (spaced) continue
+      const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect()
+      if (ra.width === 0 || rb.width === 0) continue
+      if (Math.abs(ra.top - rb.top) > 2) continue          // different lines
+      if (rb.left - ra.right > 0.5) continue               // a real gap
+      runTogether.push(label(a) + ' + ' + label(b) + ' — "' + ta.trim().slice(-14) + tb.trim().slice(0, 14) + '"')
+    }
+  }
+
   return {
     over, limit,
     scrollWidth: de.scrollWidth,
@@ -131,6 +176,7 @@ const MEASURE = `(() => {
     minFontEl,
     minTap: minTap === Infinity ? null : Math.round(minTap),
     minTapEl,
+    runTogether: runTogether.slice(0, 4),
   }
 })()`
 
@@ -143,6 +189,7 @@ type Shot = {
   minFontEl: string
   minTap: number | null
   minTapEl: string
+  runTogether: string[]
 }
 
 async function measure(c: Chrome, url: string): Promise<Shot> {
@@ -233,6 +280,11 @@ async function main() {
           : `${s.scrollWidth}px in ${s.limit}px — widest: ${s.offenders
               .map((o) => `${o.el} to ${o.right}px`)
               .join(', ')}`,
+      )
+      check(
+        s.runTogether.length === 0,
+        `${route} has no two inline siblings whose text runs together`,
+        s.runTogether.length === 0 ? 'none' : s.runTogether.join(' | '),
       )
       const key = route
       if (!worst[key] || (s.minTap ?? 99) < (worst[key].minTap ?? 99)) {

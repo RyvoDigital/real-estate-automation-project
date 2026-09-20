@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { requireOperator } from '@/lib/auth'
-import { ANOMALY_WINDOW_DAYS, getAnomalies, getQueue, type QueueRow } from '@/lib/data'
+import { ANOMALY_WINDOW_DAYS, getAnomalies, getClients, getQueue, type QueueRow } from '@/lib/data'
 import { readCounts } from '@/lib/counts'
 import { CLASS_LABEL, detectOutage, humanise, type EscalationClass } from '@/lib/escalation'
 import { whyEmpty, type Emptiness } from '@/lib/why-empty'
@@ -47,20 +47,31 @@ function initials(name: string): string {
   return name.split(/\s+/).filter(Boolean).map((w) => w[0]).join('').slice(0, 2).toUpperCase()
 }
 
-/** A group that has no assembling read yet, in its own position. */
+/**
+ * A group that has no assembling read yet, in its own position.
+ *
+ * 🔴 CORRECTED 20 Sep 2026, AND THE CORRECTION IS THE POINT. These two used to
+ * say the tables existed and only a reader was missing. That was wrong: there
+ * is no `clearances` table and nothing writes one (improvements §3.22), so the
+ * clearance re-check is missing its INPUT, not its reader.
+ *
+ * Leaving it would have been a stale record on the landing — the exact failure
+ * the sixth meaning of nothing exists to prevent, arriving inside its own fix.
+ */
 const UNBUILT: Record<3 | 4 | 5, Emptiness & { state: 'notBuilt' }> = {
   3: {
     state: 'notBuilt',
-    thing: 'clearances that have run out',
+    thing: 'clearances that have stopped holding — a property we cleared, where something has since changed',
     haveWhat:
-      'the facts are recorded in listing_facts and agency_facts, and the lapse logic is written in publication/recheck.ts, but nothing assembles them into a list',
-    when: 'it arrives with the compliance screens',
+      'the lapse logic is written in publication/recheck.ts and it cannot run: there is no clearances table and nothing writes one, so no decision we ever made was recorded. What CAN be read is the documents themselves, on "What is still good"',
+    when: 'it needs a clearances table and a writer in the gate before it can be built at all',
   },
   4: {
     state: 'notBuilt',
-    thing: 'certificates and registrations about to run out',
-    haveWhat: 'the same tables and the same logic, including the 30-day warning and the 90-day re-confirmation',
-    when: 'it arrives with the compliance screens, beside group 3',
+    thing: 'clearances about to stop holding',
+    haveWhat:
+      'the same missing input as group 3. The documents half — certificates past their date or close to it, and registrations nobody has checked — is built and live on "What is still good"',
+    when: 'the same table and writer',
   },
   5: {
     state: 'notBuilt',
@@ -187,6 +198,11 @@ export default async function TodayPage() {
   }
 
   const counts = await readCounts()
+  // Today is operator level and spans clients; the documents screen is per
+  // client. With one client the link is unambiguous; with more, the group says
+  // so rather than picking one for the reader.
+  const clients = await getClients()
+  const firstClient = clients.length === 1 ? clients[0].id : null
   const waiting = (rows ?? []).filter((r) => !r.handledElsewhere)
   const handled = (rows ?? []).filter((r) => r.handledElsewhere)
   const outage = detectOutage((rows ?? []).map((r) => ({ at: r.at, reasons: r.reasons })))
@@ -346,7 +362,24 @@ export default async function TodayPage() {
             const name = { 3: 'Something has run out', 4: 'Something is about to run out', 5: 'Waiting on someone else' }[n]
             return (
               <Group key={n} ordinal={n} name={name} count="not built yet" open>
-                <p className={styles.notBuilt}>{whyEmpty(e).sentence}</p>
+                <p className={styles.notBuilt}>
+                  {whyEmpty(e).sentence}
+                  {/* 🔒 The documents half IS built, so the group points at it
+                      rather than describing it. A gap that names a screen the
+                      reader can open is a different thing from a gap that
+                      names only itself. */}
+                  {(n === 3 || n === 4) && firstClient && (
+                    <>
+                      {' '}
+                      <Link
+                        href={`/c/${firstClient}/still-good`}
+                        style={{ color: 'var(--text)', textDecoration: 'underline', textUnderlineOffset: 3 }}
+                      >
+                        Open what is still good
+                      </Link>
+                    </>
+                  )}
+                </p>
               </Group>
             )
           })}

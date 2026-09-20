@@ -125,7 +125,12 @@
   border-radius: 50%;
   background: var(--black);
 }
-.verb { font-size: 15px; font-weight: 600; color: var(--text); }
+/* 🔴 BLOCK. As inline spans these ran together — "Invariant 3bInvariant 3b
+   violated…" — the third appearance of the same defect in one day, and the
+   first one caught by a check rather than by an eye. See probe-layout's
+   run-together assertion, which found this on the page that was already
+   deployed. */
+.verb { display: block; font-size: 15px; font-weight: 600; color: var(--text); }
 .who {
   display: flex;
   flex-wrap: wrap;
@@ -135,7 +140,7 @@
   font-size: 13px;
   color: var(--text-2);
 }
-.summaryText { margin-top: 4px; font-size: 13.5px; color: var(--text-2); }
+.summaryText { display: block; margin-top: 4px; font-size: 13.5px; color: var(--text-2); }
 
 .tray { margin-top: 8px; padding-inline: 12px; }
 .trayNote { margin: 10px 4px 0; font-size: 13px; color: var(--text-3); }
