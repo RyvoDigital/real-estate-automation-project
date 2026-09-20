@@ -151,3 +151,131 @@ begin
   end if;
   raise notice 'Revert verified: no fixture rows remain in the ledger.';
 end $$;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 🔴 CASE 8 — THE TRUNCATE TRIGGER, added 21 September 2026
+-- ═══════════════════════════════════════════════════════════════════════════
+--
+-- WHY IT WAS MISSING: this file's cases 1-7 test the row trigger, the grants
+-- and the constraints. The STATEMENT trigger — `consent_events_no_truncate` —
+-- was never exercised, and 0012 created it for a reason it states plainly:
+-- *"TRUNCATE does not fire a row-level trigger, and would empty the ledger
+-- without tripping either guard."*
+--
+-- 🔴 AND WHAT A NAIVE ATTEMPT FINDS INSTEAD:
+--
+--   ERROR 0A000: cannot truncate a table referenced in a foreign key constraint
+--   DETAIL: Table "sends" references "consent_events".
+--
+-- That refusal comes from the ENGINE, before any trigger runs. So today the
+-- ledger is protected from truncation by a FOREIGN KEY FROM `sends` —
+-- incidentally, as a side effect of a relationship that exists for another
+-- reason entirely. If `sends` were ever dropped, that protection would go with
+-- it, and nobody would notice, because the guard meant to be doing the job has
+-- never been seen to do it.
+--
+-- 🔒 SAME SHAPE AS 0044's GUARD 1 SHADOWING GUARD 2, arriving from the engine
+-- rather than from a migration: a cheap refusal standing in front of the one
+-- you meant to test, giving a red result that looks like the right one.
+--
+-- ───────────────────────────────────────────────────────────────────────────
+-- WHY NOT `TRUNCATE ... CASCADE`
+-- ───────────────────────────────────────────────────────────────────────────
+-- It would work. TRUNCATE is fully transactional in PostgreSQL and rolls back,
+-- and the EXPECTED outcome is an exception — the trigger fires, the statement
+-- aborts, nothing is truncated.
+--
+-- But CASCADE decides what happens in the FAILURE case, which is the case
+-- being tested. If the trigger does NOT fire, CASCADE empties `consent_events`
+-- AND `sends` and anything else referencing them. Rollback restores it, and
+-- relying on that is a bet on the rollback rather than a small blast radius.
+--
+-- Dropping the constraint inside the transaction reaches the same trigger with
+-- only ONE table at risk. Both hold ACCESS EXCLUSIVE briefly, so run it at a
+-- quiet moment: an ACCESS EXCLUSIVE lock blocks the Concierge's inbound path.
+
+-- ── first, READ-ONLY: what would CASCADE have reached? ─────────────────────
+-- 🔒 Run this before the case below. A blast radius nobody enumerated is not a
+-- small one; it is an unmeasured one.
+select conrelid::regclass::text as referencing_table, conname
+  from pg_constraint
+ where confrelid = 'public.consent_events'::regclass and contype = 'f'
+ order by 1;
+-- expect: sends (and whatever else appears — if it is more than you expected,
+-- stop and read it rather than proceeding).
+
+begin;
+\echo '--- case 8: the statement-level truncate trigger'
+
+-- Short leashes. If anything blocks, fail fast rather than holding an
+-- ACCESS EXCLUSIVE lock on the ledger while somebody investigates.
+set local lock_timeout = '3s';
+set local statement_timeout = '10s';
+
+-- Remove ONLY the reference that shadows the trigger. `sends` itself is not
+-- truncated, not modified, and gets its constraint back on rollback.
+--
+-- 🔒 THE NAME IS DERIVED, NOT TYPED. 0015 declares the column as
+-- `consent_event_id uuid references public.consent_events(id)` with no
+-- constraint name, so PostgreSQL auto-generated one. Hardcoding a guess at it
+-- would make this case fail with 'constraint does not exist' — which is a red
+-- result for the wrong reason, and the entire point of case 8 is that a
+-- refusal from the wrong source looks exactly like the one you wanted (§1u).
+do $$
+declare fk_name text;
+begin
+  select conname into fk_name
+    from pg_constraint
+   where conrelid = 'public.sends'::regclass
+     and confrelid = 'public.consent_events'::regclass
+     and contype = 'f';
+
+  if fk_name is null then
+    raise exception
+      'REFUSING: sends no longer references consent_events. That reference is currently '
+      'the ONLY thing preventing a truncate, so its absence is a finding in itself — and '
+      'it means the ledger is already unprotected rather than that this case is unneeded.';
+  end if;
+
+  raise notice 'Dropping % for the duration of this transaction.', fk_name;
+  execute format('alter table public.sends drop constraint %I', fk_name);
+end $$;
+
+truncate public.consent_events;
+
+-- 🔴 THE SENTINEL. Reached only if the truncate SUCCEEDED, which means the
+-- ledger's statement trigger is absent or not firing — and that the only thing
+-- standing between this table and an empty one was a foreign key belonging to
+-- another feature.
+do $$
+begin
+  raise exception
+    'CASE 8 DID NOT FIRE. consent_events WAS TRUNCATED. The statement trigger is not '
+    'protecting the ledger, and the foreign key from sends was the only thing that ever '
+    'was. DO NOT BLESS — and note that this transaction is about to roll the ledger back, '
+    'so verify the count below before doing anything else.';
+end $$;
+
+rollback;
+
+-- ── and prove the rollback, on the most important table in the database ────
+-- §1t. If the truncate DID go through and the rollback failed, this is where
+-- it is discovered — and the rows are append-only, so they cannot be restored
+-- by any statement. That is a restore-from-backup conversation, not a fix.
+do $$
+declare n bigint; fk bigint;
+begin
+  select count(*) into n from public.consent_events;
+  select count(*) into fk from pg_constraint
+   where conrelid = 'public.sends'::regclass
+     and confrelid = 'public.consent_events'::regclass
+     and contype = 'f';
+
+  if fk <> 1 then
+    raise exception
+      'REVERT FAILED: sends no longer references consent_events. The constraint drop was '
+      'not rolled back, and the ledger has lost the incidental protection it had. Restore '
+      'it before anything else.';
+  end if;
+  raise notice 'Revert verified: the foreign key is back, and the ledger holds % row(s).', n;
+end $$;
