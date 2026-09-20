@@ -4414,3 +4414,55 @@ first can still be proved, but only by reconstructing what the apply removed,
 and only deliberately. The alternative is a file about deleting a record of
 money carrying a guard nobody has ever seen work, which is §1n with the stakes
 raised.
+
+
+## 1v. An audit of claims cannot find a claim that was never made
+
+**21 September 2026, three times in one hour, at three different levels.**
+
+| the audit | what it compares | what it structurally cannot see |
+|---|---|---|
+| `audit_revoke_claims.sql` | every `revoke` a migration claims, against the database | `0025`, which has a freeze trigger and **no revoke at all** |
+| `0047`'s own header | the belt on `listing_matches` | that the freeze fires on UPDATE only, so a NOTIFIED match could be **deleted** |
+| `proof-staleness.test.ts` | whether each entry in `proofs.json` has gone stale | `0047`, which had **no entry** — and `0012`, the consent ledger |
+
+### The shape
+
+Each of these is a good check. Each reads a list of claims and asks whether the
+world matches. And each is blind in exactly the same place:
+
+> **A claim that was never made has nothing to be false. It has no hash to go
+> stale, no `last_proved` to be null, and no row to return.** The audit passes,
+> and the pass is indistinguishable from a pass earned by everything being
+> right.
+
+And the missing claims are not random. They are **the things nobody thought
+about** — which is the same population as the things most likely to be wrong.
+
+### The fix is always the same, and it is a change of direction
+
+Do not read the list of claims. **Read the population, and ask what is
+absent.**
+
+- `every-migration-has-a-proof.test.ts` reads `db/migrations/` — not
+  `proofs.json` — and names any file with no entry.
+- The reachability ledger reads every exported entry point, not the list of
+  wired ones.
+- The blocked-language guard sweeps the whole repo, not the ledger.
+
+In each case the check enumerates the thing that EXISTS and looks for the
+record, rather than enumerating records and looking for the thing.
+
+### What it found immediately
+
+`0012_consent_events.sql` — **the consent ledger, the most load-bearing freeze
+in the system, has never been registered in the proof book.** It predates the
+book by one migration. Its refusals are documented in its own footer and have
+never been witnessed through the mechanism that exists to witness them.
+
+It is in the ratchet as **owed rather than excused**, and a test asserts that
+wording, because the moment it reads like an ordinary exemption the debt stops
+being visible.
+
+> **The checks written to find stale records are themselves the records most
+> likely to go missing, because nothing audits the auditor's completeness.**

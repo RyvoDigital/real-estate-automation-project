@@ -433,9 +433,11 @@
       "watches": [
         "db/migrations/0042_client_contracts_append_only.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0042_client_contracts_append_only.sql": "b9fd088a29688175837691dbd1f40e6d59fe0b476a7d9f190725b1fa8d55bf2f"
+      },
+      "last_proved": "2026-09-21",
+      "proved_by": "Manuel Vale"
     },
     {
       "id": "0044-drop-payments-received-on",
@@ -457,9 +459,11 @@
       "watches": [
         "db/migrations/0045_uncorrected_view_is_read_only.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0045_uncorrected_view_is_read_only.sql": "d2d3383d40d1c46a43cf8fc2bcd478f61e6908a726880dfe455668b11f92d1e6"
+      },
+      "last_proved": "2026-09-21",
+      "proved_by": "Manuel Vale"
     },
     {
       "id": "0046-money-tables-grants",
@@ -478,6 +482,19 @@
       "how": "Paste db/tests/0048_listing_matches_truncate_guard.test.sql. Four cases, each rolled back, each with a sentinel that fires if the expected error did NOT happen. Expect: (1) truncate refused, (2) a notified match cannot be deleted, (3) the existing update freeze still refuses — this file adds guards BESIDE it, and if adding them displaced it the update path would be unguarded while cases 1 and 2 still passed, (4) 🔴 NOTICE 'An unnotified match is still deletable.' — the case not to skip, since a guard one condition too wide makes the table undeletable and all three refusals still pass. THEN apply and verify THREE triggers: freeze (update/row), no_delete_notified (delete/row), no_truncate (truncate/statement).",
       "watches": [
         "db/migrations/0048_listing_matches_truncate_guard.sql"
+      ],
+      "hashes": {
+        "db/migrations/0048_listing_matches_truncate_guard.sql": "87f52f6398cf8f028ffe690d55499faafa887c7a9b77814191d1470f577792f2"
+      },
+      "last_proved": "2026-09-21",
+      "proved_by": "Manuel Vale"
+    },
+    {
+      "id": "0047-listing-matches-belt",
+      "what": "DELETE and TRUNCATE are revoked on listing_matches from every role, and UPDATE is kept for service_role deliberately — retiring a match sets superseded_at, and the trigger is what refuses a change to a NOTIFIED match. A grant cannot make that distinction and must not try. WHY IT EXISTED: 0025 gave the table a freeze trigger and NO revoke, so the belt was never written rather than never applied — invisible to audit_revoke_claims.sql, which compares claims against reality and finds nothing when there is no claim. 🔴 THIS PROOF WAS WRITTEN AFTER THE MIGRATION WAS APPLIED, because it was never written before: 0047 shipped with no proof entry and nothing noticed. cockpit/tests/every-migration-has-a-proof.test.ts now makes that impossible.",
+      "how": "Paste db/tests/0047_listing_matches_belt.test.sql. Three cases, each rolled back. Expect: (1) NOTICE no DELETE or TRUNCATE survives, (2) 🔴 NOTICE service_role keeps INSERT, SELECT and UPDATE — the case not to skip, since a revoke one verb too wide takes UPDATE with it and makes the table append-only by accident, which is not what 0025 designed and which case 1 passes either way, (3) `set local role service_role` then a DELETE matching no rows: expect 'permission denied for table listing_matches', with a sentinel firing if it is permitted, which would mean the session is not running as that role and the case is un-run rather than passed.",
+      "watches": [
+        "db/migrations/0047_listing_matches_belt.sql"
       ],
       "hashes": {},
       "last_proved": null,
