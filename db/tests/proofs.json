@@ -471,6 +471,17 @@
       "hashes": {},
       "last_proved": null,
       "proved_by": null
+    },
+    {
+      "id": "0048-listing-matches-truncate-guard",
+      "what": "listing_matches gains a statement-level TRUNCATE trigger and a row-level DELETE trigger for notified matches. WHY: 0025's freeze is `before update … for each row`, and a row trigger cannot guard TRUNCATE — which fires none — so TRUNCATE was unguarded entirely. 0047 revoked the privilege, leaving a BELT WITH NO GUARANTEE, which is the arrangement this project refuses in the other direction: a future default-privileges change can restore a revoked privilege and then nothing stands in the way. 🔒 A SEPARATE FUNCTION, not 0025's: listing_matches_freeze() reads old.agent_notified_at and to_jsonb(new), and a statement trigger has neither, so reusing it would fail with a null-record error that looks like a bug in the guard rather than a guard working. The delete guard refuses only NOTIFIED matches: an unnotified one is working material, recomputed and discarded, and making the table undeletable would turn cleanup into a migration.",
+      "how": "Paste db/tests/0048_listing_matches_truncate_guard.test.sql. Four cases, each rolled back, each with a sentinel that fires if the expected error did NOT happen. Expect: (1) truncate refused, (2) a notified match cannot be deleted, (3) the existing update freeze still refuses — this file adds guards BESIDE it, and if adding them displaced it the update path would be unguarded while cases 1 and 2 still passed, (4) 🔴 NOTICE 'An unnotified match is still deletable.' — the case not to skip, since a guard one condition too wide makes the table undeletable and all three refusals still pass. THEN apply and verify THREE triggers: freeze (update/row), no_delete_notified (delete/row), no_truncate (truncate/statement).",
+      "watches": [
+        "db/migrations/0048_listing_matches_truncate_guard.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
     }
   ]
 }
