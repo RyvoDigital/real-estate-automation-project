@@ -315,7 +315,7 @@ because it is one message, once.
 | The screen | ✅ three counts together, the gap explained, the limits on the page |
 | Template drafts | ✅ `avaliacao_pos_venda_pt`, held for the lawyer |
 | The runner, minus the dispatcher | ✅ decides and stops one function short. The whole of `src/lib/review/` is swept for a route to a send |
-| The send itself (step 7) | ❌ gated on Meta — the same gate as 02 |
+| The send itself (step 7) | ❌ held — `gates.ts` `review-asks`, behind `meta_verified` |
 
 ## What you cannot work out from the repo
 

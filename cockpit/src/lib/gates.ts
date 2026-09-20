@@ -138,6 +138,28 @@ export type Blocked = {
   where: string
   gate: GateId
   /**
+   * 🔴 WHAT TO RE-READ, BECAUSE THIS ENTRY EXPECTS TO BE WRONG.
+   *
+   * `onOpen` is what we know today. It is not what the answer will say.
+   *
+   * Two ways it goes stale, and both have happened to lists like this one:
+   *
+   *   A GATE OPENING CREATES GATES. Meta verifies, a template is submitted,
+   *   and the wait is now on approval — a different gate, with a different
+   *   holder, which nobody adds because the first one just opened and that
+   *   felt like the end of it.
+   *
+   *   AN ANSWER IMPLIES WORK NOBODY PREDICTED. Question one to the lawyer
+   *   could remove an entire segment from 02. No `onOpen` written in advance
+   *   can contain that, and a ledger that only ever knows what was known when
+   *   it was written is the stale-record failure arriving inside the thing
+   *   built to prevent stale records.
+   *
+   * So every entry says what to go and READ when the gate opens, and the
+   * report prints it beside the action.
+   */
+  thenReRead: string
+  /**
    * 🔴 WHAT TO DO WHEN THE GATE OPENS. An instruction, not a status.
    *
    * "It becomes possible" and "waiting" both fail the rule below, for the same
@@ -161,6 +183,8 @@ export const BLOCKED: Blocked[] = [
     gate: 'meta_verified',
     onOpen:
       'build the route or workflow that starts a run, wire checkBeforeBatch in front of it, and remove runCampaign and checkBeforeBatch from the reachability ledger',
+    thenReRead:
+      "the verification email itself: Meta\u2019s answer says WHICH account and WHICH number are verified, and 02\u2019s send path assumes both. Check the quality rating that arrives with it \u2014 a new sender starts rate-limited, a tier nobody has designed for",
   },
   {
     id: 'template-submission',
@@ -169,6 +193,8 @@ export const BLOCKED: Blocked[] = [
     gate: 'meta_verified',
     onOpen:
       'submit the reactivation template in the WhatsApp Manager, then record the approval with recordApprovedTemplate — the screen reads the record rather than the account',
+    thenReRead:
+      "\ud83d\udd34 submitting is not approval. The moment a template is submitted the wait moves to Meta\u2019s REVIEW, which is a different gate with a different holder and no entry here yet \u2014 add it before doing the work",
   },
   {
     id: 'review-asks',
@@ -177,6 +203,8 @@ export const BLOCKED: Blocked[] = [
     gate: 'meta_verified',
     onOpen:
       'wire the scheduled run, and check the review destination is set first — 05 is blocked on two things and Meta is only one of them',
+    thenReRead:
+      "Google\u2019s policy on review solicitation as it stands that week, not as it stands today. 05\u2019s obvious design is already expected to violate it",
   },
 
   // ── the lawyer ───────────────────────────────────────────────────────────
@@ -187,6 +215,8 @@ export const BLOCKED: Blocked[] = [
     gate: 'portugal_confirmed',
     onOpen:
       'set confirmed_at and confirmed_by on the PT row, then walk one property through the publish screen — the next refusal will be requirement_unmet for the AMI registration, which is improvements §3.22 and ours to fix',
+    thenReRead:
+      "the lawyer\u2019s answer in full rather than the confirmed flag. It may narrow what a confirmed row permits, or add a requirement the policy table has no column for",
   },
   {
     id: 'prepared-piece',
@@ -195,6 +225,8 @@ export const BLOCKED: Blocked[] = [
     gate: 'portugal_confirmed',
     onOpen:
       'build the prepared-piece screen against a real cleared verdict, and remove assemblePiece from the reachability ledger',
+    thenReRead:
+      "what the confirmation says about mandatory mentions specifically \u2014 the assembler\u2019s invariant is read on the artefact, so a change in the wording is a change in the test",
   },
   {
     id: 'contact-jurisdiction',
@@ -203,6 +235,8 @@ export const BLOCKED: Blocked[] = [
     gate: 'portugal_confirmed',
     onOpen:
       'set confirmed_at and confirmed_by, then re-read the declaration screen with an agency — the sentence it shows changes because the TABLE changed, which is the mechanism working',
+    thenReRead:
+      "\ud83d\udd34 question one especially. The answer could remove an entire segment from 02, which makes part of the campaign path dead code rather than blocked code \u2014 a different kind of work",
   },
   {
     id: 'enquadramento',
@@ -210,6 +244,8 @@ export const BLOCKED: Blocked[] = [
     where: 'docs/ and legal/, the three lawyer notes',
     gate: 'portugal_confirmed',
     onOpen: 'fold the answers into the Enquadramento and the policy tables in the same pass, so the document and the rows cannot disagree',
+    thenReRead:
+      "all three notes against the answer, not only the question asked. A lawyer answering one question often settles two others in passing",
   },
 
   // ── Spain ────────────────────────────────────────────────────────────────
@@ -220,6 +256,8 @@ export const BLOCKED: Blocked[] = [
     gate: 'spain_analysed',
     onOpen:
       'add the ES rows including the regional ones, set regions_exhaustive honestly, and check the presented declaration sentence changes from "ainda não trabalhamos" on its own',
+    thenReRead:
+      "whether Spain regulates regionally in the way region_required and regions_exhaustive assume. If it does not, those flags are the wrong shape rather than unset",
   },
 
   // ── ADENE ────────────────────────────────────────────────────────────────
@@ -230,6 +268,8 @@ export const BLOCKED: Blocked[] = [
     gate: 'adene_credentials',
     onOpen:
       'build the lookup as a PROPOSAL into fact_proposals — the system proposes and the agency confirms, and an unconfirmed lookup is not a fact',
+    thenReRead:
+      "what ADENE actually returns. The design assumes a lookup confirms a class and a date; if it returns less, fact_proposals is the wrong shape and typing stays the only path",
   },
 
   // ── a first real client ──────────────────────────────────────────────────
@@ -240,6 +280,8 @@ export const BLOCKED: Blocked[] = [
     gate: 'first_client',
     onOpen:
       'write the client_contracts and client_payments migrations, apply them one at a time with 0032’s treatment, then build The Month against real rows',
+    thenReRead:
+      "brief I \u00a72.11\u2019s proposed tables against the first real contract rather than the other way round. A contract with terms the proposal cannot express is the cheap moment to find out",
   },
   {
     id: 'rehearsal-not-null',
@@ -247,6 +289,8 @@ export const BLOCKED: Blocked[] = [
     where: 'db/migrations/0038_clients_rehearsal_not_null.sql, recorded blocked in proofs.json',
     gate: 'first_client',
     onOpen: 'apply 0037, deploy the onboarding that asks the question, see it write true/false on a real row, then run 0038',
+    thenReRead:
+      "whether the first real client arrived through onboarding at all. If it was created another way, rehearsal may be null on it and 0038 will refuse by name",
   },
 
   // ── a first close ────────────────────────────────────────────────────────
@@ -257,6 +301,8 @@ export const BLOCKED: Blocked[] = [
     gate: 'first_close',
     onOpen:
       'build the close-and-party screen, remembering that a close is born with no party and the answer is a second act by a second person at a second time',
+    thenReRead:
+      "how the agent actually reports it. The design assumes a WhatsApp message about a property; a phone call or a spreadsheet would make this a different screen",
   },
 
   // ── an agency afternoon ──────────────────────────────────────────────────
@@ -267,6 +313,8 @@ export const BLOCKED: Blocked[] = [
     gate: 'calibration_afternoon',
     onOpen:
       'run the calibration with the agency, in their words, nothing pre-filled — then the matching run, the notification wording and the triage floor can all be judged for the first time',
+    thenReRead:
+      "the answers for what they imply about the matching design, not only for the numbers. An agency saying something the thresholds cannot express is the finding, not the input",
   },
   {
     id: 'extract-criteria',
@@ -274,6 +322,8 @@ export const BLOCKED: Blocked[] = [
     where: 'cockpit/src/lib/matching/',
     gate: 'calibration_afternoon',
     onOpen: 'wire extraction into the Concierge run once there are thresholds to rank against, and remove both from the reachability ledger',
+    thenReRead:
+      "whether extraction belongs in the Concierge run at all once thresholds exist \u2014 it may be cheaper and more honest as an operator action on a contact",
   },
 
   // ── the legal entity ─────────────────────────────────────────────────────
@@ -284,5 +334,7 @@ export const BLOCKED: Blocked[] = [
     gate: 'legal_entity',
     onOpen:
       'confirm whether the Keyinvoice API can list documents by date; if it cannot, the monthly SAF-T file is the fallback and the import is the work',
+    thenReRead:
+      "whether the entity decision changes who the contract is with. The contract names a party, and a different entity is a different contract rather than a different letterhead",
   },
 ]

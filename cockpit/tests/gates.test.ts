@@ -50,6 +50,11 @@ function report(opened: { gate: Gate; waiting: Blocked[] }[]): string {
       lines.push(`         blocked:  ${b.what}`)
       lines.push(`         where:    ${b.where}`)
       lines.push(`         DO NOW:   ${b.onOpen}`)
+      // 🔴 Not optional, and not below the fold. The action is what we knew
+      // when the gate was shut; this is the instruction to find out what we
+      // did not. A report that printed only the action would be the ledger
+      // asserting its own foresight.
+      lines.push(`         RE-READ:  ${b.thenReRead}`)
       lines.push('')
     }
   }
@@ -78,6 +83,33 @@ test('every entry says what to DO when its gate opens, not that it is waiting', 
     assert.ok(b.what.length > 20, `${b.id}: does not say what is blocked`)
     assert.ok(b.where.length > 10, `${b.id}: does not say where it lives`)
   }
+})
+
+test('🔴 every entry expects to be wrong, and says what to re-read', () => {
+  /*
+   * `onOpen` is written while the gate is shut, which is the moment we know
+   * least. Twice now the answer to a question has been bigger than the
+   * question: question one to the lawyer could remove a whole segment from 02,
+   * and Meta verifying only moves the wait to Meta reviewing.
+   *
+   * So the instruction is not "do the work we planned". It is "go back and
+   * read the answer for what it implies", and it has to name something to
+   * read — a ledger whose every entry said "re-read the answer" would be a
+   * field that costs a line and says nothing.
+   */
+  const vague = /^(re-?read|check|look|review) (it|this|the answer|everything)\.?$/i
+  for (const b of BLOCKED) {
+    assert.ok(b.thenReRead.length > 40, `${b.id}: thenReRead is too short to name anything`)
+    assert.doesNotMatch(b.thenReRead, vague, `${b.id}: thenReRead does not name what to re-read`)
+    assert.notEqual(b.thenReRead, b.onOpen, `${b.id}: re-reading the plan is not re-reading the answer`)
+  }
+
+  // At least one entry has to record the gate-creates-gates case explicitly,
+  // or the lesson lives only in this comment.
+  assert.ok(
+    BLOCKED.some((b) => /different gate/i.test(b.thenReRead)),
+    'no entry records that opening a gate can create one — that is how this ledger goes stale',
+  )
 })
 
 test('every gate says whose act opens it, and how we would know', () => {
@@ -129,6 +161,7 @@ test('the control: an opened gate with work behind it IS reported', () => {
     where: 'this test',
     gate: 'meta_verified',
     onOpen: 'nothing — it exists so that an empty report cannot mean a broken reader',
+    thenReRead: 'nothing — the control proves the reader prints this field, not that this sentence is true',
   }
 
   const opened = openedWork([gate], [waiting])
@@ -137,6 +170,7 @@ test('the control: an opened gate with work behind it IS reported', () => {
 
   const text = report(opened)
   assert.match(text, /DO NOW/, 'the report must carry the next action, not only the fact')
+  assert.match(text, /RE-READ/, 'the report must tell the reader to go and check what the answer implies')
   assert.match(text, /synthetic entry/)
 
   // And a shut gate with the same work behind it is silent.
