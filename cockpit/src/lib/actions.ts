@@ -227,6 +227,7 @@ async function clearEscalation(
 // ------------------------------------------------------------- onboarding
 
 import { toConfig, validate, type ClientDraft, type FieldError } from '@/lib/onboarding'
+import { parseRehearsal, rehearsalToColumn, REHEARSAL_UNANSWERED } from '@/lib/rehearsal'
 
 export type CalendarProbe = { ok: boolean; error: string | null; busyCount: number | null }
 
@@ -347,6 +348,20 @@ export async function createClient(draft: ClientDraft): Promise<CreateResult> {
     }
   }
 
+  /*
+   * 🔴 The answer is re-parsed HERE rather than trusted from validation.
+   *
+   * `validate()` already refuses an unanswered draft, so this can only be null
+   * if something reached the insert without passing it. Throwing on that is the
+   * point: the alternative is `?? false`, which would record "a real agency"
+   * for a draft nobody classified — the exact fallback `0037` removes from the
+   * database, reinstated one layer up. See src/lib/rehearsal.ts.
+   */
+  const answer = parseRehearsal(draft.rehearsal)
+  if (answer === null) {
+    return { ok: false, errors: [{ field: 'rehearsal', message: REHEARSAL_UNANSWERED }], message: REHEARSAL_UNANSWERED }
+  }
+
   const { data: client, error: clientErr } = await db
     .from('clients')
     .insert({
@@ -356,6 +371,7 @@ export async function createClient(draft: ClientDraft): Promise<CreateResult> {
       timezone: draft.timezone.trim(),
       locale: draft.locale.trim(),
       status: 'active',
+      rehearsal: rehearsalToColumn(answer),
     })
     .select('id')
     .single()

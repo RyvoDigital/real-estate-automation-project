@@ -409,6 +409,7 @@ async function main() {
   const wf = readFileSync(new URL('../../workflows/ryvoInboundConc01.json', import.meta.url), 'utf8')
   const referenced = [...new Set([...wf.matchAll(/cfg\.([a-z_]+)/g)].map((m) => m[1]))]
   const sample = toConfig({
+    rehearsal: 'rehearsal',
     agencyName: 'x', whatsappNumber: '+351912000001', timezone: 'Europe/Lisbon',
     locale: 'pt-PT', defaultLanguage: 'pt', areas: 'a, b', agentName: 'z',
     workingHours: 'Mon–Sat 09:30 – 19:30', bookingWindowDays: '14', minHoursNotice: '4',

@@ -11,6 +11,8 @@ import { IconCheck, IconWarning } from './Icons'
  * the panel — a one-word chip is ambiguous read aloud, and "Booking" alone
  * does not say that the calendar is configured here.
  */
+import { REHEARSAL_OPTIONS } from '@/lib/rehearsal'
+
 const STEPS = [
   { key: 'agency', title: 'Agency', full: 'Agency', hint: 'Who they are, and where they operate' },
   { key: 'voice', title: 'Voice', full: 'Voice and languages', hint: 'What the assistant is called' },
@@ -25,12 +27,18 @@ const EMPTY: ClientDraft = {
   bookingWindowDays: '14', minHoursNotice: '4', viewingDurationMinutes: '45',
   highValueThresholdEur: '1500000', escalateTo: '', calendarId: '',
   handoffPt: '', handoffEn: '', handoffEs: '',
+  // 🔴 EMPTY, and it must stay empty. Every other field here carries a sensible
+  // starting value; this one cannot. A pre-selected radio collects a click
+  // rather than a decision (§4.6), and `0037` gives the column no default
+  // precisely so that nobody is answered for — a default in the form is the
+  // same default, written in HTML. See src/lib/rehearsal.ts.
+  rehearsal: '',
 }
 
 /** Which fields belong to which step, so a step only reports its own errors.
  *  `handoff_*` is the shape validate() reports; the input keys are camelCase. */
 const FIELDS: Record<string, string[]> = {
-  agency: ['agencyName', 'whatsappNumber', 'timezone', 'locale', 'defaultLanguage', 'areas'],
+  agency: ['agencyName', 'rehearsal', 'whatsappNumber', 'timezone', 'locale', 'defaultLanguage', 'areas'],
   voice: ['agentName', 'handoff_pt', 'handoff_en', 'handoff_es', 'handoffPt', 'handoffEn', 'handoffEs'],
   booking: ['calendarId', 'workingHours', 'bookingWindowDays', 'minHoursNotice', 'viewingDurationMinutes'],
   escalation: ['escalateTo', 'highValueThresholdEur'],
@@ -172,6 +180,31 @@ export function Onboarding() {
         {step === 0 && (
           <div className="ogrid">
             {field('agencyName', 'Agency name', { placeholder: 'Marbella Sur' })}
+            <fieldset className="ofield ofield--wide orehearsal">
+              <legend className="ofield__label">Is this a real agency?</legend>
+              {REHEARSAL_OPTIONS.map((o) => (
+                <label className="orehearsal__opt" key={o.value}>
+                  <input
+                    type="radio"
+                    name="rehearsal"
+                    value={o.value}
+                    /* 🔒 Checked only when the operator has chosen. There is no
+                       branch here that can be true before they do. */
+                    checked={draft.rehearsal === o.value}
+                    onChange={() => {
+                      setDraft((d) => ({ ...d, rehearsal: o.value }))
+                      setTouched((t) => ({ ...t, rehearsal: true }))
+                    }}
+                    aria-invalid={errFor('rehearsal') ? true : undefined}
+                  />
+                  <span>
+                    <b>{o.label}</b>
+                    <span className="orehearsal__means">{o.means}</span>
+                  </span>
+                </label>
+              ))}
+              {errFor('rehearsal') && <span className="ofield__err">{errFor('rehearsal')}</span>}
+            </fieldset>
             {field('whatsappNumber', 'WhatsApp number', { placeholder: '+34600123456' })}
             {field('timezone', 'Timezone', { placeholder: 'Europe/Madrid' })}
             {field('locale', 'Locale', { placeholder: 'es-ES' })}

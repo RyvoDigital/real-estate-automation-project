@@ -157,6 +157,25 @@ Five properties. A design that drops one has dropped a defect back in.
    instead**, in the words the page would use. 🔒 A permanent check greps every
    screen for the forbidden vocabulary, including its own denials.
 
+10. 🔒 **A figure derived over a set says what was examined, or says nothing
+    was** — added 20 Sep 2026, ruled by the operator while reviewing the client
+    landing. The tempting shape is a forward-looking summary — *"next lapse in
+    34 days"*, *"nothing expires this month"* — computed over whatever rows
+    came back. Over an EMPTY set every one of them renders as reassurance.
+    **A summary derived from nothing is a not-checked wearing a
+    nothing-is-wrong sentence**, and it is worse than the same mistake in a
+    list, because nobody expects a summary to be the thing that lies.
+
+    The test is not "is the figure correct". It is: **could this sentence be
+    produced by having looked at nothing?** If it could, the figure carries
+    what it examined, or it is not rendered.
+
+    Already honoured where it arises: `still-good.ts` returns `notAnswered` in
+    the value rather than as a footnote — *"no clearance is recorded anywhere,
+    so this screen reads documents rather than decisions"* — and `recheck.ts`
+    returns `notCheckedFor` on the same principle. The client landing renders
+    no forward-looking figure at all, which is the other legitimate answer.
+
 ## 0.5 Visual direction 🎨
 
 **Decided 19 September 2026 by the operator**, from Mobbin references, after

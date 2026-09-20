@@ -266,6 +266,13 @@ export default async function ClientLanding({ params }: { params: Promise<{ clie
         <p>No configuration, and no switch that turns an automation on or off — that is settings.</p>
         <p>Nothing about any other client appears here, and nothing here is compared against one.</p>
         <p>
+          {/* §0.4-10. The clocks say when each automation last ran, which is a
+              thing that happened. Nothing here predicts. */}
+          No figure on this page looks forward. Every clock measures something that has already happened, because a
+          summary of what is coming, computed over rows nobody has written yet, would read as reassurance and be
+          derived from nothing.
+        </p>
+        <p>
           It does not say &ldquo;viewings&rdquo;. What the Concierge books is an introductory meeting between the lead
           and one of the agency&rsquo;s people, whatever the column is called.
         </p>

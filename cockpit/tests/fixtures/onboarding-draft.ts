@@ -4,6 +4,9 @@
 import type { ClientDraft } from '../../src/lib/onboarding'
 
 export const good: ClientDraft = {
+  // A fixture is a rehearsal by definition. 0038's precondition 3: after the
+  // NOT NULL lands, an insert omitting this column fails.
+  rehearsal: 'rehearsal',
   agencyName: 'Marbella Sur',
   whatsappNumber: '+34600123456',
   timezone: 'Europe/Madrid',

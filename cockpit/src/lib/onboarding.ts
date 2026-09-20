@@ -6,10 +6,18 @@ import { isValidPhoneNumber } from 'libphonenumber-js'
  * a rule whose only test is "the form looked right" is not a rule.
  */
 
+import { parseRehearsal, REHEARSAL_UNANSWERED } from './rehearsal'
+
 export type FieldError = { field: string; message: string }
 
 export type ClientDraft = {
   agencyName: string
+  /**
+   * 🔒 The RAW form value, not a boolean. Empty means nobody chose, and
+   * `parseRehearsal` is the only thing that turns it into an answer — a
+   * boolean here would have to be true or false before anybody decided.
+   */
+  rehearsal: string
   whatsappNumber: string
   timezone: string
   locale: string
@@ -156,6 +164,12 @@ export function validate(draft: ClientDraft): FieldError[] {
   }
 
   need('agencyName', 'Agency name')
+  // 🔴 Required, with nothing pre-selected. `0037` gives the column no default
+  // so that nobody is answered for; a form that let this through would put the
+  // default back in HTML. See src/lib/rehearsal.ts.
+  if (parseRehearsal(draft.rehearsal) === null) {
+    e.push({ field: 'rehearsal', message: REHEARSAL_UNANSWERED })
+  }
   need('agentName', 'Assistant name')
   need('areas', 'Areas served')
   need('calendarId', 'Calendar id')
