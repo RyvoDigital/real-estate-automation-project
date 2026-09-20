@@ -22,7 +22,11 @@ export function Stamp({ serverAt }: { serverAt: string }) {
   const clock = at.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
   if (fresh?.stale) {
-    const minutes = Math.max(1, Math.floor((Date.now() - fresh.lastGoodAt) / 60000))
+    // 🔴 From the WALL clock, not from the frozen one. The rows stop because
+    // the data stopped; the age of that failure keeps growing regardless, and
+    // a stale page that under-reports its own staleness is the defect this
+    // mechanism exists to prevent.
+    const minutes = Math.max(1, Math.floor((fresh.wallNow - fresh.lastGoodAt) / 60000))
     return (
       <span className={`${styles.stamp} ${styles.frozen}`}>
         <span>Last successful read</span>

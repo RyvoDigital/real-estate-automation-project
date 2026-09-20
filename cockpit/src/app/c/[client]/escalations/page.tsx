@@ -42,6 +42,11 @@ function initials(name: string): string {
 }
 
 function Row({ row }: { row: QueueRow }) {
+  // 🔒 A handled lead's clock measures time SINCE THE REPLY, not its wait, and
+  // carries no tier. Its wait ended when somebody answered; grading it would
+  // say "late" about a lead already dealt with, which is the reading the tray
+  // exists to prevent.
+  const handled = row.handledElsewhere && row.handledAt !== null
   return (
     <Link href={`/c/${row.clientId}/contacts/${row.id}`} className={styles.row}>
       <span className={styles.mark}>
@@ -66,7 +71,16 @@ function Row({ row }: { row: QueueRow }) {
           ))}
         </span>
       </span>
-      <Clock at={row.at} serverMinutes={row.minutes} />
+      {handled ? (
+        <Clock
+          at={row.handledAt}
+          serverMinutes={Math.max(0, Math.floor((Date.now() - Date.parse(row.handledAt as string)) / 60000))}
+          word="since the reply"
+          untiered
+        />
+      ) : (
+        <Clock at={row.at} serverMinutes={row.minutes} />
+      )}
     </Link>
   )
 }

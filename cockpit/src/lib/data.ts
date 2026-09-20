@@ -34,6 +34,17 @@ export type QueueRow = {
   classes: EscalationClass[]
   lastMessage: string | null
   handledElsewhere: boolean
+  /**
+   * When the reply that went out outside the cockpit landed. Null unless
+   * `handledElsewhere`.
+   *
+   * 🔴 It is a DIFFERENT clock from `at`. A handled lead's wait is over; what
+   * matters is how long ago somebody answered. Rendering its wait with a tier
+   * says "late" about a lead that has already been dealt with, which is the
+   * exact reading the tray exists to prevent. Found on the first populated
+   * render, 20 Sep 2026.
+   */
+  handledAt: string | null
 }
 
 type LeadRow = {
@@ -165,6 +176,7 @@ export async function getQueue(limit = 100, clientId?: string): Promise<QueueRow
       classes,
       lastMessage: lastMessages.get(lead.id) ?? null,
       handledElsewhere: answered.has(lead.id),
+      handledAt: answered.get(lead.id) ?? null,
     })
   }
 
@@ -212,13 +224,13 @@ export async function getQueue(limit = 100, clientId?: string): Promise<QueueRow
  */
 const HANDOFF_GRACE_MS = 120_000
 
-async function getRepliesSinceEscalation(rows: LeadRow[]): Promise<Set<string>> {
+async function getRepliesSinceEscalation(rows: LeadRow[]): Promise<Map<string, string>> {
   const escalatedAt = new Map<string, string>()
   for (const lead of rows) {
     const esc = parseEscalated(lead.qualification)
     if (esc?.at) escalatedAt.set(lead.id, esc.at)
   }
-  if (escalatedAt.size === 0) return new Set()
+  if (escalatedAt.size === 0) return new Map()
 
   const { data, error } = await admin()
     .from('messages')
@@ -230,13 +242,18 @@ async function getRepliesSinceEscalation(rows: LeadRow[]): Promise<Set<string>> 
 
   if (error) throw new Error(`outbound scan failed: ${error.message}`)
 
-  const out = new Set<string>()
+  // Newest first from the query, so the first hit per lead is the latest
+  // reply — which is the one the tray's clock measures from.
+  const out = new Map<string, string>()
   for (const m of data ?? []) {
     const id = m.lead_id as string
     const at = escalatedAt.get(id)
     if (!at) continue
     if (m.approved_by_human === true) continue // the cockpit sent this one
-    if (Date.parse(m.created_at as string) > Date.parse(at) + HANDOFF_GRACE_MS) out.add(id)
+    if (out.has(id)) continue
+    if (Date.parse(m.created_at as string) > Date.parse(at) + HANDOFF_GRACE_MS) {
+      out.set(id, m.created_at as string)
+    }
   }
   return out
 }

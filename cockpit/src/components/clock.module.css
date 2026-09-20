@@ -90,3 +90,10 @@
   .value { font-size: 22px; }
   .track { width: 84px; }
 }
+
+/*
+ * A clock that is not measuring a wait. The handled-elsewhere tray measures
+ * time since somebody replied — a different question, so no tier, no track
+ * and no grading. It takes the tray's own colour.
+ */
+.untiered .value { color: var(--handled); }

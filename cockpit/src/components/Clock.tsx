@@ -27,10 +27,17 @@ export function Clock({
   serverMinutes,
   /** A clock measuring something other than a wait keeps its own word. */
   word,
+  /**
+   * 🔴 No tier. A clock that is not measuring a wait must not be graded like
+   * one: the handled-elsewhere tray measures time since somebody replied, and
+   * rendering that at tier 2 says "late" about a lead already dealt with.
+   */
+  untiered = false,
 }: {
   at: string | null
   serverMinutes: number
   word?: string
+  untiered?: boolean
 }) {
   const fresh = useFreshness()
   // Before hydration, and outside a <Live>, the server's number is what shows.
@@ -38,7 +45,7 @@ export function Clock({
   // and so has this.
   const minutes = fresh && at ? minutesSince(at, fresh.now) : serverMinutes
 
-  const tier = tierFor(minutes)
+  const tier = untiered ? 0 : tierFor(minutes)
   const hours = Math.floor(minutes / 60)
   const mins = minutes % 60
   const pct = Math.min(100, Math.round((minutes / SCALE_MINUTES) * 100))
@@ -46,9 +53,13 @@ export function Clock({
 
   return (
     <span
-      className={`${styles.clock} ${styles[`t${tier}`]} ${frozen ? styles.frozen : ''}`}
+      className={`${styles.clock} ${untiered ? styles.untiered : styles[`t${tier}`]} ${frozen ? styles.frozen : ''}`}
       role="img"
-      aria-label={`waiting ${formatWait(minutes)} — ${TIER_WORD[tier]}${frozen ? ', frozen: the page has not been able to re-read' : ''}`}
+      aria-label={
+        untiered
+          ? `${formatWait(minutes)} ${word ?? ''}${frozen ? ', frozen: the page has not been able to re-read' : ''}`
+          : `waiting ${formatWait(minutes)} — ${TIER_WORD[tier]}${frozen ? ', frozen: the page has not been able to re-read' : ''}`
+      }
     >
       <span className={styles.value}>
         {hours > 0 ? (
@@ -59,12 +70,15 @@ export function Clock({
           <>{mins}m</>
         )}
       </span>
-      <span className={styles.track}>
-        <span className={styles.fill} style={{ width: `${pct}%` }} />
-        {NOTCHES.map((n) => (
-          <span key={n} className={styles.notch} style={{ left: `${(n / SCALE_MINUTES) * 100}%` }} />
-        ))}
-      </span>
+      {/* No track either: a track with tier notches IS the grading. */}
+      {!untiered && (
+        <span className={styles.track}>
+          <span className={styles.fill} style={{ width: `${pct}%` }} />
+          {NOTCHES.map((n) => (
+            <span key={n} className={styles.notch} style={{ left: `${(n / SCALE_MINUTES) * 100}%` }} />
+          ))}
+        </span>
+      )}
       <span className={styles.word}>{word ?? TIER_WORD[tier]}</span>
     </span>
   )

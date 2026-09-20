@@ -27,11 +27,24 @@ import { useRouter } from 'next/navigation'
  */
 
 type Freshness = {
-  /** The clock everything reads. It stops advancing when `stale` is true. */
+  /** The clock the DATA reads. It stops advancing when `stale` is true. */
   now: number
   stale: boolean
   /** When the last successful read landed. */
   lastGoodAt: number
+  /**
+   * 🔴 The wall clock, which NEVER stops.
+   *
+   * The data's clock freezes because the data stopped arriving. The age of
+   * that failure is a different fact, and it keeps growing whether we can
+   * reach the server or not — so the stamp reads this one.
+   *
+   * Found on the first live check, 20 Sep 2026: the stamp said "1 min ago"
+   * two minutes into an outage, because it was derived from the same frozen
+   * clock as the rows. A stale page under-reporting its own staleness is the
+   * defect this whole mechanism exists to prevent, arriving inside the fix.
+   */
+  wallNow: number
 }
 
 const LiveContext = createContext<Freshness | null>(null)
@@ -45,16 +58,22 @@ export function Live({ serverNow, children }: { serverNow: number; children: Rea
   // Seeded from the server's clock so the first paint matches the markup the
   // server sent, and only then does it become live. Otherwise every clock
   // hydrates with a different value than it rendered with.
-  const [state, setState] = useState<Freshness>({ now: serverNow, stale: false, lastGoodAt: serverNow })
+  const [state, setState] = useState<Freshness>({
+    now: serverNow,
+    stale: false,
+    lastGoodAt: serverNow,
+    wallNow: serverNow,
+  })
   const stale = useRef(false)
   const router = useRouter()
 
   useEffect(() => {
     const tick = setInterval(() => {
-      // 🔒 The one line that makes motion mean something: while stale, `now`
-      // is not advanced, so every clock derived from it stops where it was.
-      if (stale.current) return
-      setState((s) => ({ ...s, now: Date.now() }))
+      // 🔒 The two lines that make motion mean something. `wallNow` always
+      // advances, so the stamp can age. `now` advances only while the reads
+      // are landing, so every clock derived from it stops where it was.
+      const at = Date.now()
+      setState((s) => (stale.current ? { ...s, wallNow: at } : { ...s, now: at, wallNow: at }))
     }, TICK_MS)
 
     const reread = setInterval(async () => {
@@ -62,11 +81,12 @@ export function Live({ serverNow, children }: { serverNow: number; children: Rea
         const res = await fetch(window.location.href, { method: 'HEAD', cache: 'no-store' })
         if (!res.ok) throw new Error(String(res.status))
         stale.current = false
-        setState({ now: Date.now(), stale: false, lastGoodAt: Date.now() })
+        const at = Date.now()
+        setState({ now: at, stale: false, lastGoodAt: at, wallNow: at })
         router.refresh()
       } catch {
         stale.current = true
-        setState((s) => ({ ...s, stale: true }))
+        setState((s) => ({ ...s, stale: true, wallNow: Date.now() }))
       }
     }, REREAD_MS)
 
