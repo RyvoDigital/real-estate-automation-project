@@ -146,3 +146,64 @@ export async function loadVocabulary(clientId: string): Promise<Template[]> {
       body: r.body as string,
     }))
 }
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * THE SCREEN'S READ, AND WHY IT IS NOT loadVocabulary().
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * `loadVocabulary` deliberately does not select `status`, and the reason is
+ * written above it: a message sent under a template Meta disabled yesterday is
+ * still one of ours, and filtering on status would make every orphan under it
+ * invisible on the check whose only job is seeing them.
+ *
+ * The screen wants the opposite — Meta's review state IS the thing it shows.
+ *
+ * 🔒 SO THE TWO READS DIFFER ON PURPOSE, and that is not the two-code-paths
+ * defect the counts register exists to prevent. That defect is two reads
+ * answering the SAME question and drifting. These answer different questions:
+ * one asks "what may this campaign send under", the other asks "what does Meta
+ * currently say about what we hold". A single read serving both would have to
+ * pick one, and picking either breaks the other.
+ */
+export type TemplateForScreen = {
+  name: string
+  language: string
+  version: number
+  body: string
+  category: string
+  status: 'submitted' | 'approved' | 'rejected' | 'paused' | 'disabled'
+  statusChangedAt: string
+  statusNote: string | null
+  qualityRating: string | null
+  approvalId: string | null
+  submittedAt: string | null
+  approvedAt: string | null
+  sourceDocument: string | null
+}
+
+export async function templatesForScreen(clientId: string): Promise<TemplateForScreen[]> {
+  const { data, error } = await admin()
+    .from('message_templates')
+    .select(
+      'name, language, version, body, category, status, status_changed_at, status_note, quality_rating, approval_id, submitted_at, approved_at, source_document',
+    )
+    .eq('client_id', clientId)
+    .order('name')
+  if (error) throw new Error(`templates read failed: ${error.message}`)
+  return (data ?? []).map((r) => ({
+    name: r.name as string,
+    language: r.language as string,
+    version: r.version as number,
+    body: r.body as string,
+    category: r.category as string,
+    status: r.status as TemplateForScreen['status'],
+    statusChangedAt: r.status_changed_at as string,
+    statusNote: (r.status_note as string) ?? null,
+    qualityRating: (r.quality_rating as string) ?? null,
+    approvalId: (r.approval_id as string) ?? null,
+    submittedAt: (r.submitted_at as string) ?? null,
+    approvedAt: (r.approved_at as string) ?? null,
+    sourceDocument: (r.source_document as string) ?? null,
+  }))
+}

@@ -1,0 +1,62 @@
+/* Templates — Meta's review state for what this client may send under. */
+
+.head { display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; margin-bottom: 16px; }
+.title {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+.sub { margin: 8px 0 0; max-width: 88ch; font-size: 14.5px; color: var(--text-2); }
+.sub b { color: var(--text); font-weight: 600; }
+
+.card {
+  margin-bottom: 12px;
+  padding: 18px 22px;
+  border-radius: 24px;
+  background: var(--glass);
+  box-shadow: var(--glass-hi);
+}
+.rowHead { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.name { font-family: var(--display); font-size: 19px; font-weight: 600; letter-spacing: -0.02em; color: var(--text); }
+.lang { font-family: var(--mono); font-size: 13px; color: var(--text-2); }
+.when { margin-left: auto; font-size: 12.5px; color: var(--text-3); }
+
+/* The approved text, exactly as it was approved. Mono is how the cockpit says
+   "these are not our words" — here they are Meta's record of ours. */
+.body {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--lift-1);
+  font-family: var(--mono);
+  font-size: 13.5px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  color: var(--text);
+}
+.meta { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--text-3); }
+.meta b { color: var(--text-2); font-weight: 600; }
+.note { margin-top: 10px; font-size: 13.5px; color: var(--text-2); }
+
+.empty { font-size: 15px; color: var(--text-2); }
+.empty b { color: var(--text); }
+
+.absent {
+  margin-top: 6px;
+  padding: 16px 20px;
+  border-radius: 20px;
+  border: 1px dashed var(--edge-2);
+  font-size: 13.5px;
+  color: var(--text-2);
+}
+.absent h2 { margin: 0 0 8px; font-family: var(--display); font-size: 15px; font-weight: 600; color: var(--text); }
+.absent p { margin: 0 0 8px; max-width: 90ch; }
+
+@media (max-width: 900px) {
+  .title { font-size: 24px; }
+  .when { margin-left: 0; flex-basis: 100%; }
+}

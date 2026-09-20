@@ -1,0 +1,90 @@
+/* What each country requires. No semantic colour: the states come from
+   <StateChip>, which owns them. */
+
+.head { display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; margin-bottom: 16px; }
+.title {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+.sub { margin: 8px 0 0; max-width: 88ch; font-size: 14.5px; color: var(--text-2); }
+.sub b { color: var(--text); font-weight: 600; }
+
+.country {
+  margin-bottom: 14px;
+  padding: 20px 22px;
+  border-radius: 24px;
+  background: var(--glass);
+  box-shadow: var(--glass-hi);
+}
+.countryHead { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+.countryHead h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.verdict { margin: 10px 0 0; font-size: 14px; color: var(--text-2); }
+.verdict b { color: var(--text); }
+
+.requires { margin-top: 14px; }
+.req {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  gap: 12px;
+  align-items: start;
+  padding: 11px 4px;
+  border-top: 1px solid var(--edge);
+}
+.req:first-of-type { border-top: 0; }
+/* 🔴 BLOCK, not inline. These ran together as "pt_energy_classa rating the
+   property carries" — the identical defect fixed in the Stage B listings
+   design and reintroduced here in code, because the design fix lived in a
+   scratchpad stylesheet nobody ports from. */
+.reqId { display: block; font-family: var(--mono); font-size: 13.5px; color: var(--text); }
+.reqWhat { display: block; margin-top: 3px; font-size: 13px; color: var(--text-2); }
+.reqRight { text-align: right; font-size: 12.5px; color: var(--text-3); }
+
+.meta { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text-3); }
+.meta b { color: var(--text-2); font-weight: 600; }
+.traps {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--lift-1);
+  font-size: 13.5px;
+  color: var(--text-2);
+}
+.traps b { color: var(--text); }
+
+.regions { margin-top: 12px; padding-left: 14px; border-left: 1px solid var(--edge); }
+.regionName { font-family: var(--display); font-size: 16px; font-weight: 600; color: var(--text); }
+
+.absent {
+  margin-top: 6px;
+  padding: 16px 20px;
+  border-radius: 20px;
+  border: 1px dashed var(--edge-2);
+  font-size: 13.5px;
+  color: var(--text-2);
+}
+.absent h2 {
+  margin: 0 0 8px;
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.absent p { margin: 0 0 8px; max-width: 90ch; }
+
+@media (max-width: 900px) {
+  .title { font-size: 24px; }
+  .req { grid-template-columns: minmax(0, 1fr); }
+  .reqRight { text-align: left; }
+}
