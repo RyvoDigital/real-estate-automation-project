@@ -273,6 +273,57 @@ The Month's **empty state is its real state** for the next several months, so:
 
 ---
 
+## 3c. 🔴 The two zeros, and why one of them is a crisis
+
+**Operator, 21 September 2026 — the sentence the page has to be built around:**
+
+> *Zero revenue with zero clients and zero revenue with three clients both read
+> as €0, and the first is Tuesday while the second is a crisis. That
+> distinction has to be in the design rather than in a paragraph about the
+> design.*
+
+This is the six-meanings-of-nothing rule arriving on the one page where the
+number has a person's livelihood behind it, and it is worse here than anywhere
+else it has appeared, for a reason worth stating: **every other zero in this
+system is a zero of activity. This one is a zero of income.**
+
+### The four zeros, which must never share a rendering
+
+| what is true | reads as | what it is |
+|---|---|---|
+| no clients, no contracts | €0 | **Tuesday.** The business has not started billing. Nothing is wrong |
+| clients exist, no contracts recorded | €0 | 🔴 **unknown, not zero.** Somebody is being served and nobody has written down what they agreed to pay |
+| clients exist, contracts exist, none current this month | €0 | 🔴 **a crisis.** Every contract has ended, or none has started yet |
+| the read failed | €0 | 🔴 **we could not look** |
+
+🔒 **The middle two are the ones that will actually happen**, and they are the
+two most likely to be rendered identically — because both have rows in
+`clients` and neither has a figure to show.
+
+### So the schema and the page both carry it
+
+- **The denominator is never the client count.** It is *clients with a contract
+  recorded*, shown beside *clients without one*, by name. A €0 over three
+  clients where two have no terms recorded is not a revenue figure at all.
+- 🔴 **A client with no contract is listed by name**, with *revenue not known*,
+  never counted as zero into anything. `client_contracts` permits no row for
+  them, which is what makes this expressible: the absence of a row is a
+  different fact from a row saying zero, and a `monthly_fee_eur default 0`
+  would have destroyed the distinction at the schema level.
+- **A month with contracts that have all ended says so in words**, and says
+  when the last one ended. That is the crisis case and it must not be reachable
+  by rendering a number.
+- **The first-ever month has its own sentence.** *"No contract has been
+  recorded. Ryvo has no recorded revenue yet — this is the beginning, not a
+  fault."* Different words from every other zero on the page, permanently.
+
+> **A page that renders €0 for four different reasons has one number and no
+> information.** The figure is the same in all four; only the sentence beside
+> it is doing any work, which means the sentence is the design and the figure
+> is the decoration.
+
+---
+
 ## 4. What The Month must never do with this data
 
 Carried here because it constrains the schema rather than only the page:
