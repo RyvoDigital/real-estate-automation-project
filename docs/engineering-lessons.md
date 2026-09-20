@@ -4343,3 +4343,74 @@ sentence forbidding it, and this.
 > **A detector must match CODE. A mention of code inside a quoted string is
 > prose that happens to be syntactically valid** — so strip string literals as
 > well as comments, and never only comments.
+
+
+## 1u. Applying a migration destroys the preconditions its refusals test
+
+**21 September 2026.** `0044` drops `payments.received_on`. It carries two
+refusals:
+
+| | fires when |
+|---|---|
+| guard 1 | `received_on` is absent — nothing to drop |
+| **guard 2** | 🔴 `settled_on` is absent — dropping would leave **no** column recording that money arrived |
+
+It was applied before its proof was run. By the time case 2 was attempted,
+`received_on` was already gone, so the migration refused at **guard 1** and
+guard 2 was never reached. **It failed for the wrong reason, which is the same
+as not having been tested** — and the operator caught it, from the error text,
+rather than accepting a red result as a passed refusal.
+
+### The distinction that makes this general
+
+Not every guard is single-use, and the difference decides which ones to care
+about:
+
+> **A refusal about DATA can be retested for ever** — insert a row, run it,
+> roll back. *"This table holds N rows"* is reconstructible at will.
+>
+> **A refusal about SHAPE is single-use.** Once the column is dropped, the
+> guard that fires on its presence can never fire again in that database. And
+> shape guards are usually the destructive ones, because a migration that
+> changes shape is a migration that can lose something.
+
+So the guards most worth proving are precisely the ones an early apply makes
+unprovable.
+
+### And guard ordering makes it worse
+
+Guard 1 SHADOWS guard 2. After the apply, every attempt to reach guard 2 stops
+at guard 1 first — so the second refusal is not merely untested, it is
+**unreachable** without reconstructing the schema. A cheap red result that
+looks like the right one.
+
+### What it costs to recover, which is why there is no excuse
+
+Almost nothing, when the table is empty:
+
+```sql
+begin;
+alter table public.payments add column received_on date;         -- the shape back
+alter table public.payments drop column settled_on cascade;      -- the survivor away
+\i db/migrations/0044_drop_payments_received_on.sql              -- guard 2 is now reached
+rollback;
+```
+
+Then **verify the rollback** (§1t), because this reconstruction drops a real
+column: `settled_on` must be present afterwards, and a failure there is the
+serious one.
+
+🔒 `CASCADE` matters: a constraint or index on `settled_on` would otherwise
+make the drop fail for an unrelated reason, and the case would be un-run a
+second time while appearing to have been attempted.
+
+### The rule
+
+> **Run the proof before applying, always — and when that order has already
+> been broken, say which cases are unproven rather than blessing the set.**
+
+A proof book records that somebody SAW a refusal fire. A migration applied
+first can still be proved, but only by reconstructing what the apply removed,
+and only deliberately. The alternative is a file about deleting a record of
+money carrying a guard nobody has ever seen work, which is §1n with the stakes
+raised.
