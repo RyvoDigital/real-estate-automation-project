@@ -894,3 +894,46 @@ deliberate act rather than a step inside something else. The trade is: one
 more secret in the environment, against closing the narrowest of the ordering
 gaps.
 
+## §3.26 The forecast's biggest refusal group is two different things, and the aggregate cannot tell them apart
+
+**20 September 2026, found while building the forecast screen.**
+
+Brief III §4 requires the screen to split the largest refusal group:
+
+> *"Nothing recorded about them" contains two different things: contacts nobody
+> has said anything about, and contacts carrying a claim the agency could still
+> evidence. **The second is a worklist; the first is not.**"*
+
+**The gate already distinguishes them.** `gate.ts`'s basis layer returns a
+different `detail` for `claimed_unevidenced` than for `undetermined`, and says
+in its own comment that they are *"different facts about the world and the same
+fact here… kept distinct in the DETAIL, because one is worth asking the agency
+about."*
+
+🔴 **But `evaluate.ts:133` keys the aggregate on the reason alone** —
+`refusalBreakdown[verdict.reason]` — and both halves carry the reason
+`no_ledger_basis`. The distinction survives on every individual `sends` row and
+is gone from the only thing the forecast reads.
+
+### Why it is not recovered by reading the rows
+
+It could be, by matching the two `detail` sentences. That is refused for the
+usual reason: the sentences differ only in wording, so a count built on a string
+match breaks the first time somebody improves the copy — **and breaks silently,
+reporting a worklist of zero rather than an error.** A worklist that quietly
+empties is worse than one that is missing, because somebody stops looking.
+
+### What would fix it
+
+Carry the basis kind alongside the reason when the breakdown is accumulated, so
+the worklist half is countable without reading prose. It is a change to
+`evaluate.ts` and to what `recordPlan` stores, and both sit on 02's send path —
+which is held behind `meta_verified`, so there is no hurry and no risk in
+leaving it named.
+
+### What the screen does meanwhile
+
+Says so, in place, on that row: that the group is two things, why the difference
+matters, why the aggregate cannot express it, and what would fix it. §0.4-10 —
+a figure derived over a set says what was examined, or says nothing was.
+

@@ -1,0 +1,51 @@
+.head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 20px; }
+.title { font-family: var(--display); font-size: 26px; margin: 0 0 5px; letter-spacing: -0.01em; }
+.sub { margin: 0; font-size: 13px; color: var(--text-2); max-width: 66ch; line-height: 1.55; }
+.stamp { display: grid; justify-items: end; gap: 2px; font-size: 11px; color: var(--text-3); text-align: right; }
+.stamp b { font-family: var(--display); font-size: 16px; color: var(--text-2); font-weight: 500; }
+
+.empty { display: block; padding: 13px 15px; border-radius: 9px; font-size: 13px; line-height: 1.55; }
+
+.staleBanner { display: block; padding: 13px 15px; border-radius: 10px; font-size: 13px; line-height: 1.55; margin-bottom: 22px; }
+.staleWhich { display: block; margin-top: 7px; font-size: 12px; }
+.reevaluate { display: block; margin-top: 5px; font-size: 11.5px; opacity: 0.85; }
+
+/* The counts are context. They are deliberately not the hero — the breakdown is. */
+.counts { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-bottom: 30px; }
+.count { display: grid; gap: 2px; padding: 11px 13px; border-radius: 9px; background: var(--lift-1); }
+.countN { font-family: var(--display); font-size: 22px; font-variant-numeric: tabular-nums; }
+.countL { font-size: 11px; color: var(--text-3); line-height: 1.4; }
+
+.panel { margin-bottom: 30px; }
+.panelHead { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 11px; }
+.panelHead h2 { font-family: var(--display); font-size: 15px; margin: 0; font-weight: 600; }
+.answers { font-size: 11px; color: var(--text-3); flex: 1 1 240px; }
+
+.rows { display: grid; gap: 6px; }
+.row { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 9px; background: var(--lift-1); }
+.rowBody { display: grid; gap: 3px; flex: 1; min-width: 0; }
+
+/* The operator sentence is the content of the row, not its caption. */
+.means { font-size: 13px; line-height: 1.5; }
+.code { font-family: var(--mono); font-size: 11px; color: var(--text-3); }
+.rowStale { font-size: 11.5px; color: var(--text-2); border-left: 2px solid var(--line); padding-left: 8px; margin-top: 3px; }
+
+.gap {
+  display: block; margin-top: 6px; padding: 9px 11px; border-radius: 7px;
+  background: var(--lift-2); font-size: 11.5px; line-height: 1.55; color: var(--text-2);
+}
+.gapFix { display: block; margin-top: 5px; color: var(--text-3); }
+
+.n { font-family: var(--display); font-size: 17px; font-variant-numeric: tabular-nums; flex: none; }
+
+.absent { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 8px; }
+.absent h2 {
+  font-family: var(--display); font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-3); margin: 0 0 8px; font-weight: 600;
+}
+.absent p { margin: 0 0 8px; font-size: 12px; color: var(--text-3); max-width: 74ch; line-height: 1.55; }
+
+@media (max-width: 560px) {
+  .head { flex-direction: column; gap: 12px; }
+  .stamp { justify-items: start; text-align: left; }
+}

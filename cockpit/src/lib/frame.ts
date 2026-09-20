@@ -89,7 +89,7 @@ export const CLIENT_SCREENS: NavItem[] = [
   { slug: 'escalations', built: true, label: 'Escalations', inNav: true, presented: false, refusesBecause: 'a queue of people waiting is not a thing to show the people who kept them waiting' },
   { slug: 'anomalies', built: true, label: 'Anomalies', inNav: true, presented: false, refusesBecause: 'it is the record of what the system got wrong, and it is evidence before it is a screen' },
   { slug: 'contacts', built: true, label: 'Contacts', inNav: true, presented: false, refusesBecause: 'the contact record carries the consent ledger, which is read with the agency one contact at a time, not browsed' },
-  { slug: 'campaign', built: false, label: 'Campaign', inNav: true, presented: false, refusesBecause: 'a forecast of who would be written to is an operator decision before it is an agency conversation' },
+  { slug: 'campaign', built: true, label: 'Campaign', inNav: true, presented: false, refusesBecause: 'a forecast of who would be written to is an operator decision before it is an agency conversation' },
   { slug: 'declaration', built: false, label: 'Declaration', labelPt: 'De onde vieram estes contactos', inNav: true, presented: true },
   { slug: 'listings', built: false, label: 'Listings', labelPt: 'Imóveis', inNav: true, presented: true },
   /*

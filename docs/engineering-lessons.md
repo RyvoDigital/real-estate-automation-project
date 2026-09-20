@@ -4180,3 +4180,13 @@ fields below the sentence stating it; the outbound-call guard written while
 explaining why controls matter; this. All three were caught by a mechanism and
 none by care, which is the argument for the mechanism rather than against the
 care.
+
+### The step, rather than the principle
+
+Operator's framing, and it is the version that can actually be followed:
+
+> **After any fix, grep the file it was in before leaving it.**
+
+Not "be careful about generalising". A grep of the file takes ten seconds and
+would have caught both of these — the two stale assertions eleven lines above
+the control, and the second dead link four fields from the first.
