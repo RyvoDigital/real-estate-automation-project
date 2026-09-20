@@ -35,6 +35,14 @@ const book = JSON.parse(readFileSync(BOOK, 'utf8')) as {
     deploy_precondition?: {
       /** The repo path that must be live. */
       path: string
+      /**
+       * The production alias, so the script can ASK what is serving instead of
+       * taking somebody's word for it.
+       *
+       * Absent means it cannot check, and it says so rather than implying it
+       * did — §0.4-10: a figure derived over nothing says what was examined.
+       */
+      alias?: string
       /** What breaks if the migration lands first, in one line. */
       breaks: string
       /**
@@ -43,7 +51,20 @@ const book = JSON.parse(readFileSync(BOOK, 'utf8')) as {
        * honest thing is to make somebody STATE what they observed and then
        * check the statement for consistency.
        */
-      attested?: { sha: string; by: string; at: string }
+      attested?: {
+        sha: string
+        by: string
+        at: string
+        /** What the alias was actually serving when this was blessed, if askable. */
+        live_sha?: string
+        /**
+         * 🔴 Whether the claim was CHECKED against the live deployment, or only
+         * stated. Recorded either way: an attestation that could not be
+         * verified is worth having, and worth being able to tell apart from
+         * one that was.
+         */
+        verified: boolean
+      }
     }
   }[]
 }
@@ -142,6 +163,40 @@ for (const p of book.proofs) {
       process.exit(3)
     }
 
+    /*
+     * ── what is actually serving ─────────────────────────────────────────────
+     *
+     * `vercel inspect <alias>` resolves the alias to the deployment serving it;
+     * `vercel ls --json` carries that deployment's githubCommitSha. Two calls,
+     * no token handling here — the CLI is already authenticated as whoever is
+     * running this.
+     *
+     * 🔴 It returns null rather than guessing. Offline, logged out, or a CLI
+     * that has changed its output are all "cannot check", and none of them is
+     * "the deploy is fine".
+     */
+    const liveSha = (): string | null => {
+      if (!p.deploy_precondition?.alias) return null
+      try {
+        const alias = p.deploy_precondition.alias
+        const inspected = execSync(`npx vercel inspect ${JSON.stringify(alias)} 2>&1`, {
+          encoding: 'utf8', cwd: REPO, timeout: 60_000,
+        })
+        const serving = inspected.match(/https:\/\/([a-z0-9-]+\.vercel\.app)/g)?.find((u) => u.includes('-'))
+        if (!serving) return null
+        const host = serving.replace('https://', '')
+
+        const listed = execSync('npx vercel ls ryvo-cockpit --json 2>/dev/null', {
+          encoding: 'utf8', cwd: REPO, timeout: 60_000, maxBuffer: 20 * 1024 * 1024,
+        })
+        const deployments = (JSON.parse(listed) as { deployments: { url: string; meta?: Record<string, string> }[] })
+          .deployments
+        return deployments.find((d) => d.url === host)?.meta?.githubCommitSha ?? null
+      } catch {
+        return null
+      }
+    }
+
     let full = ''
     try {
       full = execSync(`git rev-parse ${JSON.stringify(deployedArg)}^{commit}`, { encoding: 'utf8', cwd: REPO }).trim()
@@ -173,7 +228,45 @@ for (const p of book.proofs) {
       process.exit(3)
     }
 
-    p.deploy_precondition.attested = { sha: full, by: who, at: new Date().toISOString().slice(0, 10) }
+    /*
+     * (c) And the one that turns a stated claim into a checked one: is the
+     * commit you say you observed actually CONTAINED in what the alias is
+     * serving right now?
+     */
+    const live = liveSha()
+    if (live) {
+      let contained = false
+      try {
+        execSync(`git merge-base --is-ancestor ${full} ${live}`, { cwd: REPO, stdio: 'ignore' })
+        contained = true
+      } catch {}
+      if (!contained) {
+        console.error(
+          `\n🔴 ${deployedArg.slice(0, 7)} is NOT contained in what is serving.\n\n` +
+            `  ${p.deploy_precondition.alias} is serving ${live.slice(0, 7)}\n` +
+            `  you attested          ${full.slice(0, 7)}\n\n` +
+            '  Either the deploy you saw has been rolled back, or the commit you\n' +
+            '  named was never the one serving. Nothing has been blessed.',
+        )
+        process.exit(3)
+      }
+      console.log(`deploy CHECKED: ${p.deploy_precondition.alias} serves ${live.slice(0, 7)}, which contains ${full.slice(0, 7)}`)
+    } else {
+      console.warn(
+        `\n⚠️  COULD NOT CHECK what ${p.deploy_precondition.alias ?? 'the site'} is serving.\n` +
+          '   Recording your claim as UNVERIFIED. That is worth having and is\n' +
+          '   worth being able to tell apart from a checked one — it is written\n' +
+          '   into the book as verified: false.\n',
+      )
+    }
+
+    p.deploy_precondition.attested = {
+      sha: full,
+      by: who,
+      at: new Date().toISOString().slice(0, 10),
+      ...(live ? { live_sha: live } : {}),
+      verified: Boolean(live),
+    }
     console.log(`deploy precondition attested: ${full.slice(0, 7)} contains ${needs}, by ${who}`)
   }
 

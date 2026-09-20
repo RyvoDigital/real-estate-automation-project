@@ -380,12 +380,22 @@
       "watches": [
         "db/migrations/0038_clients_rehearsal_not_null.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null,
+      "hashes": {
+        "db/migrations/0038_clients_rehearsal_not_null.sql": "605a204dcf59f13b494fddedd1c6953f556abe3925337fe6b72194fa5708ddff"
+      },
+      "last_proved": "2026-09-20",
+      "proved_by": "Manuel Vale",
       "deploy_precondition": {
         "path": "cockpit/src/lib/rehearsal.ts",
-        "breaks": "NOT NULL with no default rejects every insert that does not name the column, so client creation fails on the operator mid-onboarding"
+        "breaks": "NOT NULL with no default rejects every insert that does not name the column, so client creation fails on the operator mid-onboarding",
+        "alias": "ryvo-cockpit.vercel.app",
+        "attested": {
+          "sha": "5b1be7a2810a2f345c9ee70edf8ab0d76c8c729f",
+          "by": "Manuel Vale",
+          "at": "2026-09-20",
+          "live_sha": "50364611187750351e0507014876105c89a3563c",
+          "verified": true
+        }
       }
     },
     {

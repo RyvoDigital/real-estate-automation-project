@@ -53,6 +53,25 @@ path that has no `/c/` counterpart is a bug, and the route test asserts it.
 `/health` · `/onboarding` · `/login` · `/auth/callback` · `/auth/signout` ·
 `/api/*`. None is about one client.
 
+> 🔴 **"Stays" is about the URL, not about the screen.** `/onboarding` has NOT
+> been rebuilt: red brand gradient, the old `Queue / Leads / Report` sidebar,
+> the pre-§0.5 palette, and none of the frame work. It is **BUILT AND
+> REACHABLE, on the old direction** — the third state, which this map did not
+> previously distinguish from "done".
+>
+> It matters more than its position on the list suggests, for a reason that
+> only became true on 20 September: **it is the screen that writes
+> `clients.rehearsal`**, which `0038` has now made NOT NULL with no default.
+> Every client that will ever exist is classified by this form, and getting the
+> answer wrong is invisible for months — it surfaces as revenue that never
+> existed, or a first dated to a test fixture.
+>
+> So when it is rebuilt, the rehearsal question is the part to carry over
+> unchanged: required, nothing pre-selected, both options saying what the
+> choice MEANS. `cockpit/tests/rehearsal.test.ts` reads the `EMPTY` literal out
+> of `Onboarding.tsx` by name, so a rewrite that moves or renames that constant
+> fails rather than silently dropping the guard.
+
 ### 2.4 🔴 Deleted — five client pickers
 
 `/calibrate` · `/review` · `/segmentation` · `/silence` · and the picker half of

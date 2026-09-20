@@ -116,6 +116,20 @@ The client landing reads it through `gatesHoldingAutomation`, which is why
 `Blocked.holds` and `Gate.answerable` exist: which band a wait falls into is
 decided once, in the ledger, never parsed out of prose on a screen.
 
+### Still on the OLD direction, and easy to mistake for done
+
+`/queue` · `/leads` · `/listings` · `/import` · `/report` · `/review` ·
+`/silence` · `/segmentation` · `/calibrate` · **`/onboarding`** · `/health`.
+All work, all in production, none rebuilt. **BUILT AND REACHABLE, on the old
+direction** — a third state this file's table does not name, and the one that
+reads as "done" from a URL list.
+
+🔴 **`/onboarding` is the one that matters most out of order.** Since
+20 September it writes `clients.rehearsal`, which `0038` made NOT NULL with no
+default, so every client that ever exists is classified by that form. A wrong
+answer is invisible for months and then surfaces as revenue that never existed.
+`cockpit/tests/rehearsal.test.ts` guards the part that must survive a rewrite.
+
 ---
 
 # 0a. HANDOVER — the cockpit redesign, 19 September 2026
