@@ -18,9 +18,37 @@ const book = JSON.parse(readFileSync(BOOK, 'utf8')) as {
     last_proved: string | null
     proved_by: string | null
     blocked?: { reason: string; runnable_when: string }
+    /**
+     * 🔴 CODE THAT MUST BE LIVE BEFORE THE MIGRATION IS APPLIED.
+     *
+     * `blocked.runnable_when` answers "can this proof be run yet". This answers
+     * a different and harder question: "was the deploy done BEFORE the schema
+     * change". Those come apart — the file can exist locally, be committed, be
+     * pushed, and still not be serving.
+     *
+     * 0036's lesson, got wrong twice: the code deploy is a PRECONDITION of the
+     * migration, not a companion to it. Both times the ordering held anyway,
+     * and both times the step skipped was the one that would have caught it.
+     * A rule that is remembered correctly twice and applied wrongly twice is
+     * not a rule, it is a habit.
+     */
+    deploy_precondition?: {
+      /** The repo path that must be live. */
+      path: string
+      /** What breaks if the migration lands first, in one line. */
+      breaks: string
+      /**
+       * Filled by --deployed. Whose claim it is, and which commit they saw.
+       * Recorded rather than inferred: this script cannot see Vercel, so the
+       * honest thing is to make somebody STATE what they observed and then
+       * check the statement for consistency.
+       */
+      attested?: { sha: string; by: string; at: string }
+    }
   }[]
 }
 const only = process.argv[2]
+const deployedArg = process.argv.find((a) => a.startsWith('--deployed='))?.slice('--deployed='.length)
 
 /**
  * An id, or an explicit --all. Never a bare `npm run proof:bless`.
@@ -88,6 +116,67 @@ if (only !== '--all' && !ids.includes(only)) {
 let blessed = 0
 for (const p of book.proofs) {
   if (only !== '--all' && p.id !== only) continue
+  /*
+   * ── the deploy precondition ───────────────────────────────────────────────
+   *
+   * Refuses unless somebody names the commit they saw serving. Then it checks
+   * that claim against git, which catches the two ways it goes wrong without
+   * anybody lying: a sha that does not contain the required file, and a sha
+   * that was never pushed.
+   */
+  if (p.deploy_precondition && !p.deploy_precondition.attested) {
+    const { path: needs, breaks } = p.deploy_precondition
+
+    if (!deployedArg) {
+      console.error(
+        `\n🔴 ${p.id} has a DEPLOY PRECONDITION and no --deployed=<sha>.\n\n` +
+          `  must be live first:  ${needs}\n` +
+          `  if the migration lands first:  ${breaks}\n\n` +
+          '  Open the running cockpit, confirm the behaviour is actually there,\n' +
+          '  and pass the commit you saw serving:\n\n' +
+          `      npm run proof:bless ${p.id} -- --deployed=<sha>\n\n` +
+          '  This is 0036\'s lesson. It has been got wrong twice, and both times\n' +
+          '  the skipped check was the one that would have caught it — so the\n' +
+          '  bless refuses rather than reminding.',
+      )
+      process.exit(3)
+    }
+
+    let full = ''
+    try {
+      full = execSync(`git rev-parse ${JSON.stringify(deployedArg)}^{commit}`, { encoding: 'utf8', cwd: REPO }).trim()
+    } catch {
+      console.error(`\n🔴 ${deployedArg} is not a commit in this repository.`)
+      process.exit(3)
+    }
+
+    // (a) Does that commit actually contain the thing that had to be live?
+    try {
+      execSync(`git cat-file -e ${full}:${JSON.stringify(needs).slice(1, -1)}`, { cwd: REPO, stdio: 'ignore' })
+    } catch {
+      console.error(
+        `\n🔴 ${deployedArg.slice(0, 7)} does NOT contain ${needs}.\n\n` +
+          '  That is the failure this exists to catch: a deploy that predates the\n' +
+          '  code the migration depends on. Nothing has been blessed.',
+      )
+      process.exit(3)
+    }
+
+    // (b) Was it ever pushed? A local commit is not a deploy.
+    try {
+      execSync(`git merge-base --is-ancestor ${full} origin/main`, { cwd: REPO, stdio: 'ignore' })
+    } catch {
+      console.error(
+        `\n🔴 ${deployedArg.slice(0, 7)} is not an ancestor of origin/main, so it was never pushed\n` +
+          '  and Vercel cannot be serving it. Nothing has been blessed.',
+      )
+      process.exit(3)
+    }
+
+    p.deploy_precondition.attested = { sha: full, by: who, at: new Date().toISOString().slice(0, 10) }
+    console.log(`deploy precondition attested: ${full.slice(0, 7)} contains ${needs}, by ${who}`)
+  }
+
   if (p.blocked) {
     const msg =
       `${p.id} is BLOCKED and cannot be blessed.\n` +

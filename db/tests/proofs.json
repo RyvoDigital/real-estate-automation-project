@@ -367,9 +367,11 @@
       "watches": [
         "db/migrations/0037_clients_rehearsal.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0037_clients_rehearsal.sql": "55997782743d7709de4b1feebcee5ae813e9094c3eb5db96fe090cd31ac905c2"
+      },
+      "last_proved": "2026-09-20",
+      "proved_by": "Manuel Vale"
     },
     {
       "id": "0038-clients-rehearsal-not-null",
@@ -381,9 +383,9 @@
       "hashes": {},
       "last_proved": null,
       "proved_by": null,
-      "blocked": {
-        "reason": "Runnable only after 0037 is applied AND the onboarding that writes clients.rehearsal is deployed. Until then the column it constrains may not exist.",
-        "runnable_when": "cockpit/src/lib/rehearsal.ts"
+      "deploy_precondition": {
+        "path": "cockpit/src/lib/rehearsal.ts",
+        "breaks": "NOT NULL with no default rejects every insert that does not name the column, so client creation fails on the operator mid-onboarding"
       }
     },
     {

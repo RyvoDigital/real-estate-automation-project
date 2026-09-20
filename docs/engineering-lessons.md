@@ -4005,3 +4005,67 @@ exemption list, because nobody re-sorts 152 lines later. The ratchet is only
 honest when the sweep behind it was read line by line — and then it needs its
 own guard that fails when a carried entry **stops** hitting, or a line that no
 longer exists goes on silently exempting the file it named.
+
+
+## 6j. A rule remembered correctly twice and applied wrongly twice is a habit, not a rule
+
+**20 September 2026.** `0036`'s lesson is that **the code deploy is a
+precondition of the migration, not a companion to it**. It was written up the
+day it was learned. It has since been got wrong twice, by the person who wrote
+it, on the two migrations whose headers say it in bold.
+
+| | what happened | how it survived |
+|---|---|---|
+| `0036` | the drop ran before the deploy was checked | luck — the deploy had already landed |
+| `0038` | `NOT NULL` applied before the Vercel deploy was confirmed | luck — the same |
+
+Both times the ordering held. **Both times the step skipped was the one that
+would have caught it**, which is the property that makes this invisible: a
+precondition you did not check and that happened to be true leaves exactly the
+same trace as one you checked.
+
+### The shape
+
+The rule was never forgotten. It was *known*, written down in two file headers,
+and restated in the commit that got it wrong. What failed was not memory.
+
+> **Documentation cannot enforce an ordering, because the moment an ordering
+> matters is the moment somebody is moving quickly, and moving quickly is
+> exactly when a header goes unread.**
+
+This is the same argument the gated ledger is built on — a document has to be
+opened at the right moment, and the right moment is the worst time to remember
+one exists — arriving in a second place. Whenever that argument applies, the
+answer is the same: **make the tool refuse.**
+
+### What it became
+
+`proof:bless` now refuses any proof carrying a `deploy_precondition` unless
+somebody names the commit they saw serving, and then checks that claim against
+git:
+
+- the named sha must **contain the file** that had to be live — this catches a
+  deploy that predates the code the migration depends on;
+- the named sha must be an **ancestor of `origin/main`** — a local commit is
+  not a deploy, however finished it feels;
+- the attestation is **recorded with who made it**, because the script cannot
+  see Vercel and must not pretend to.
+
+### The honest limit, which is the point rather than a caveat
+
+**It cannot verify that anything is actually serving.** It converts a
+remembered step into an explicit claim, and then falsifies the parts of that
+claim it can reach. That is strictly less than observing the deploy — and
+strictly more than a sentence in a header achieved on two attempts.
+
+> **Where a check cannot see the fact, make it demand the claim and then
+> contradict the claim where it can.** An unverifiable step that must be stated
+> is not as good as a verified one, but it is a different kind of thing from a
+> step that can be skipped in silence.
+
+### And the field says what BREAKS, not that an order exists
+
+`deploy_precondition.breaks` carries the consequence — *"client creation fails
+on the operator mid-onboarding"* — rather than "run the deploy first". "Do this
+first" was already in two headers. The sentence that stops somebody is the one
+naming what lands on them.
