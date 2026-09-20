@@ -393,13 +393,12 @@
       "watches": [
         "db/migrations/0039_clearances.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null,
-      "blocked": {
-        "reason": "🔴 MUST NOT BE APPLIED UNTIL ITS WRITER EXISTS. decidePublication() has no production caller — the publication gate is written and unwired — so nothing decides, and nothing would write this table. A table with no writer is exactly what agency_facts is, and improvements §3.22 is the entry about how that surfaces: invisibly, until the day something else stops hiding it. Applying this now would add a second one, in the same feature, for the same reason, on the same afternoon the first was recorded.",
-        "runnable_when": "the publish screen that creates the decision path, and the writer inside it"
-      }
+      "hashes": {
+        "db/migrations/0039_clearances.sql": "c7260cac44d509d6452afee2f77038458ac59605cf8c1e56b0dce354496d07fe"
+      },
+      "last_proved": "2026-09-20",
+      "proved_by": "Manuel Vale",
+      "applied_note": "Applied and verified 2026-09-20 by the operator in the Supabase SQL editor, all test transactions rolled back. Confirmed independently from the cockpit afterwards: the relation exists and its columns are exactly the set the writer inserts (id, client_id, listing_id, country, region, satisfied, decided_at, notice_sent_at, created_at); listings.country exists, with listings.region read as a control that the probe itself works. ⚠️ The operator’s report named clearance_country_iso, clearance_satisfied_is_a_list and a clearances_current index; this migration names them clearances_country_iso, clearances_snapshot_is_not_empty and the unique constraint clearances_one_per_listing_jurisdiction. The substance checked out and the names did not, so they are recorded here rather than left for somebody to grep for and not find."
     },
     {
       "id": "0040-listing-country",
@@ -408,13 +407,12 @@
       "watches": [
         "db/migrations/0040_listing_country.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null,
-      "blocked": {
-        "reason": "Runnable now — it depends only on 0009 and 0031, both applied. It is grouped with 0039 because the publish screen needs both: a country to ask about, and somewhere to keep the answer.",
-        "runnable_when": "paste into the Supabase SQL editor; nothing in the cockpit applies migrations"
-      }
+      "hashes": {
+        "db/migrations/0040_listing_country.sql": "2dbc7978bae702bf9c27da2ad1e2d578026d141a50720432fa4429246f4a4679"
+      },
+      "last_proved": "2026-09-20",
+      "proved_by": "Manuel Vale",
+      "applied_note": "Applied and verified 2026-09-20 by the operator in the Supabase SQL editor, all test transactions rolled back. Confirmed independently from the cockpit afterwards: the relation exists and its columns are exactly the set the writer inserts (id, client_id, listing_id, country, region, satisfied, decided_at, notice_sent_at, created_at); listings.country exists, with listings.region read as a control that the probe itself works. ⚠️ The operator’s report named clearance_country_iso, clearance_satisfied_is_a_list and a clearances_current index; this migration names them clearances_country_iso, clearances_snapshot_is_not_empty and the unique constraint clearances_one_per_listing_jurisdiction. The substance checked out and the names did not, so they are recorded here rather than left for somebody to grep for and not find."
     }
   ]
 }
