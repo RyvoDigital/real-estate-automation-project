@@ -118,7 +118,60 @@ async function main() {
     check(`${tag}: no sideways scroll`, seen.scrollW <= seen.clientW, `${seen.scrollW}px in ${seen.clientW}px`)
   }
 
+  // ── the absences block, under a full list ─────────────────────────────────
+  /*
+   * With an empty queue the absences block is the largest thing on the page,
+   * which is right — it is the answer to "where is the dismiss button". The
+   * operator asked what it does with fifteen escalations in the list.
+   *
+   * Measured rather than reasoned about, and measured without writing a row:
+   * the rows are injected into the rendered page using its own hashed class
+   * names, because this is a layout question and layout does not need data.
+   */
+  await c.send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false })
+  await c.send('Page.navigate', { url: `${BASE}/c/${client.id}/escalations` })
+  await new Promise((r) => setTimeout(r, 3000))
+
+  const empty = await evaluate(`(() => {
+    const a = document.querySelector('[class*="__absent"]');
+    const r = a.getBoundingClientRect();
+    return JSON.stringify({ h: Math.round(r.height), font: getComputedStyle(a.querySelector('p')).fontSize })
+  })()`)
+
+  const full = await evaluate(`(() => {
+    const abs = document.querySelector('[class*="__absent"]');
+    const prefix = [...abs.classList].find((x) => x.includes('__absent')).replace(/__absent$/, '');
+    const card = document.createElement('section'); card.className = prefix + '__card';
+    for (let i = 0; i < 15; i++) {
+      const row = document.createElement('div'); row.className = prefix + '__row';
+      row.innerHTML = '<span class="' + prefix + '__mark">EF</span>'
+        + '<span><span class="' + prefix + '__verb">injected</span></span><span>5h00m</span>';
+      card.appendChild(row);
+    }
+    abs.parentElement.insertBefore(card, abs);
+    const a = abs.getBoundingClientRect(); const last = card.lastElementChild.getBoundingClientRect();
+    return JSON.stringify({ h: Math.round(a.height), font: getComputedStyle(abs.querySelector('p')).fontSize,
+      below: a.top >= last.bottom, position: getComputedStyle(abs).position,
+      sideways: document.documentElement.scrollWidth > document.documentElement.clientWidth })
+  })()`)
+
+  console.log('\n  the absences block, with fifteen rows above it')
+  check('it moves below the list rather than staying put', full.below && full.position === 'static', `position ${full.position}`)
+  check('it does not shrink', full.h === empty.h && full.font === empty.font, `${empty.h}px/${empty.font} → ${full.h}px/${full.font}`)
+  check('and the page still does not scroll sideways', !full.sideways, String(full.sideways))
+
   // ── controls ──────────────────────────────────────────────────────────────
+  /*
+   * 🔴 ON A FRESH PAGE, and that is not housekeeping.
+   *
+   * The fill-the-viewport control shrinks the frame and requires the shrink to
+   * be reported. Run after the fifteen injected rows it FAILED — the content
+   * was then taller than the viewport, so shrinking the frame's min-height
+   * changed nothing and the control could not fire. A control whose outcome
+   * depends on what the previous check did to the page is not a control.
+   */
+  await c.send('Page.navigate', { url: `${BASE}/c/${client.id}/escalations` })
+  await new Promise((r) => setTimeout(r, 3000))
   console.log('\n  controls — each must be REPORTED, or the checks above are decoration')
 
   const brokenFont = await evaluate(`(() => {
