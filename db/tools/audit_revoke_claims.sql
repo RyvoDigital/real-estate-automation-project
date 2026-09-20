@@ -53,12 +53,33 @@ with claimed(migration, relation, grantee, privilege) as (values
   ('0020', 'message_templates',   'anon',          'SELECT'),
   ('0020', 'message_templates',   'authenticated', 'SELECT'),
 
-  -- 0042 — known already NOT in force. Included so the audit is seen to
-  -- produce a true positive; an audit returning only surprises is one nobody
-  -- can tell apart from a broken query.
+  -- 0042
   ('0042', 'client_contracts', 'service_role', 'UPDATE'),
   ('0042', 'client_contracts', 'service_role', 'DELETE'),
-  ('0042', 'client_contracts', 'service_role', 'TRUNCATE')
+  ('0042', 'client_contracts', 'service_role', 'TRUNCATE'),
+
+  -- ═══════════════════════════════════════════════════════════════════════
+  -- 🔴 THE CONTROL. NOT A CLAIM — a privilege that MUST be found present.
+  -- ═══════════════════════════════════════════════════════════════════════
+  --
+  -- The first version of this audit used 0042's three rows as its control,
+  -- on the reasoning that they were known not to be in force. They turned out
+  -- to BE in force, the whole result came back 'ok', and by the file's own
+  -- stated criterion that read as "the query is not matching" — a false alarm
+  -- produced by a control whose premise was wrong.
+  --
+  -- §1q, a third time: **a control pinned to a specific absence decays the
+  -- moment the absence is filled** — including by having been mistaken about
+  -- it. So the control is now a presence that cannot be revoked without
+  -- breaking the product:
+  --
+  --   service_role MUST hold SELECT on clients. The cockpit cannot read a
+  --   single screen without it. Nobody will ever revoke it, so this row must
+  --   ALWAYS come back '🔴 STILL GRANTED'.
+  --
+  -- 🔒 IF IT DOES NOT, THE JOIN IS BROKEN AND EVERY 'ok' ABOVE MEANS NOTHING.
+  -- That is the only reading of a clean result that is worth anything.
+  ('CONTROL — must read STILL GRANTED', 'clients', 'service_role', 'SELECT')
 )
 select c.migration,
        c.relation,
@@ -81,10 +102,15 @@ select c.migration,
 -- a migration whose file says a privilege was removed and whose database
 -- disagrees.
 --
--- 🔴 EXPECT AT LEAST THE THREE 0042 ROWS. If the whole result is 'ok', the
--- query is not matching — because 0042's revoke is already known not to be in
--- force. An audit that cannot produce a known true positive has not been shown
--- to work. (§1n.)
+-- 🔴 FIRST, FIND THE CONTROL ROW. `clients / service_role / SELECT` must read
+-- 🔴 STILL GRANTED. It is not a claim and not a problem: it is the privilege
+-- the whole cockpit depends on, and it exists precisely because it can never
+-- be revoked.
+--
+-- If the control reads 'ok — revoked', the join is not matching and EVERY
+-- OTHER ROW IS MEANINGLESS. A clean audit is only worth something when the
+-- control is dirty. (§1n, and §1q for why the control is a presence rather
+-- than an absence.)
 --
 -- ---------------------------------------------------------------------------
 -- AND THE ONE THIS CANNOT SEE
