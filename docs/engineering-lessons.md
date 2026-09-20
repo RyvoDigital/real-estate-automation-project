@@ -4288,3 +4288,58 @@ Three of the day's findings would have been caught by question 2 alone.
 - `listBatches`: the `clientId` parameter, plus a test asserting the client page
   passes it — proved by sabotage, since an unscoped call renders another
   agency's filenames with nothing looking wrong.
+
+
+## 1t. The sabotage cycle has two obligations and only one was written down
+
+**21 September 2026.** CLAUDE.md's rule reads:
+
+> *"A test that cannot fail proves nothing. Sabotage a guard and confirm the
+> expected test goes red — and assert the sabotage actually applied before
+> believing the result (§1f)."*
+
+It says nothing about the revert.
+
+### Why the asymmetry is the risk
+
+The sabotage half gets verified because **its result is the thing you are
+waiting for**. You broke something on purpose and you are watching for red.
+
+The revert half is verified only by habit, at the moment attention has already
+moved to the next thing — and §1q is exactly about habits not being rules.
+
+And a sabotage left in is uniquely bad among mistakes:
+
+- it is **indistinguishable from an ordinary bug** once it is in history, so
+  whoever finds it debugs a defect rather than reverting an experiment;
+- the suite can stay **green**, because a sabotage usually disables a guard, and
+  the thing that would complain is the guard;
+- so **the only signal that anything is wrong is the one just removed.**
+
+> **Assert the sabotage applied, and assert the revert applied.** Two
+> obligations. The second one has no natural moment of attention attached to
+> it, which is precisely why it needs a mechanism rather than a rule.
+
+### The mechanism
+
+`tests/no-suppressed-guard.test.ts`: no `SABOTAGE` marker anywhere in `src/`,
+and no `test.skip` / `test.only` / `test.todo` in the suite. `.only` is the
+worse of the two — the run stays green and almost nothing ran.
+
+It cannot detect every sabotage, because a sabotage is just a wrong line and
+nothing can. It catches the two shapes that actually occur: a marker left in,
+and a test switched off. That is the argument for writing the marker rather
+than making a silent edit — **a convention that makes your own mistakes
+greppable is worth more than one that makes them tidy.**
+
+### And it failed on its own control first
+
+The suppressed-test detector fired on this file, because the control asserts it
+works by passing it the string `test.only('a', () => {})`. **Fourth time today**
+a check has matched the text describing it: the colour guard on prose, the
+retired-phrase guard on its own explanation, the disabled-control guard on the
+sentence forbidding it, and this.
+
+> **A detector must match CODE. A mention of code inside a quoted string is
+> prose that happens to be syntactically valid** — so strip string literals as
+> well as comments, and never only comments.
