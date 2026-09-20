@@ -436,6 +436,17 @@
       "hashes": {},
       "last_proved": null,
       "proved_by": null
+    },
+    {
+      "id": "0043-payments-partial-freeze",
+      "what": "payments gets a PARTIAL freeze — 0017's pattern, not 0012's. The party, amount_eur, kind, invoiced_on, recorded_by and recorded_at are frozen and refused BY NAME with both values; received_on is WRITE-ONCE (fillable, never changeable); reference and note stay open. Plus five checks: exactly one party, a payment that has actually happened (one of the two dates), a receipt not before its invoice, a positive amount, and a real author. WHY NOT A FULL FREEZE: a payment carries two dates separated in TIME — invoiced, then received weeks later — so filling received_on is a legitimate UPDATE, and a 0012-style freeze would make a payment impossible to mark as paid without deleting and re-entering it, which is worse than no freeze. WHY WRITE-ONCE: an editable received date moves a payment between months after the fact, the same defect as backdating an invoice arriving through the one column that had to stay open.",
+      "how": "Paste db/tests/0043_payments_partial_freeze.test.sql. Eight cases, each applying 0043 in its own transaction and rolling back. Expect: (1) neither party refused, (2) both parties refused, (3) payment_has_happened, (4) payment_received_after_invoiced, (5) 'payments.amount_eur is frozen (was 1200.00, refused 1500.00)', (6) 'payments.received_on is write-once (was 2026-10-20, refused 2026-09-30)', (7) NOTICE 'Receipt recorded: owed 0, paid 1' and NO exception, (8) delete refused. 🔴 IF CASE 7 RAISES, DO NOT APPLY — the freeze would have refused the one update the table exists for. THEN apply and verify: five check constraints present; service_role holds INSERT, SELECT and UPDATE but NOT delete or truncate — UPDATE is deliberate, the trigger discriminates rather than the grant.",
+      "watches": [
+        "db/migrations/0043_payments_partial_freeze.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
     }
   ]
 }
