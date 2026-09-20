@@ -4069,3 +4069,67 @@ strictly more than a sentence in a header achieved on two attempts.
 on the operator mid-onboarding"* — rather than "run the deploy first". "Do this
 first" was already in two headers. The sentence that stops somebody is the one
 naming what lands on them.
+
+
+## 1p. A type error near the thing you got wrong is not evidence that the thing you got wrong is checked
+
+**20 September 2026.** The contact record's Leads panel rendered, correctly and
+in red, *"Leads could not be read, so this page is not saying there is
+nothing"* — while its three sibling panels read fine. Found by the operator
+looking at the page, not by 784 passing tests.
+
+The query asked for `leads.name`. The column is `full_name`.
+
+### Why nothing caught it
+
+`admin()` returns a `SupabaseClient` with **no `Database` generic**, and this
+repo has no generated database types. So every column name inside `.select('…')`
+is **checked against nothing**. It is a string, and it stays a string until
+PostgREST rejects it at runtime.
+
+### The part that made it worse, which is the lesson
+
+While writing that query I hit a **real TypeScript error**: a concatenated
+select string makes every column resolve to `GenericStringError` and the row
+unusable. I rewrote it as one literal, the error went away, and **I wrote a
+comment saying the literal gave type safety.**
+
+It does not. That error was the type-level parser failing to produce a row
+shape out of a non-literal expression. It had nothing to do with whether the
+columns exist. The fix was correct; the conclusion drawn from the fix was not.
+
+> **A type error that appears near the thing you got wrong feels like the type
+> system is watching that thing. Satisfying it feels like proof. Both are the
+> compiler answering a different question.**
+
+Same family as §1n — a check that ran, passed, and was incapable of the failure
+it appeared to cover — but arriving through a *tool's* error rather than my
+own check, which is why it was more convincing.
+
+### And why the suite was no help
+
+Seven hundred and eighty-four tests passed over a page with a broken panel.
+Every one of them supplies its own inputs, so they prove logic and say nothing
+about whether a query names real columns. The panel isolation worked perfectly
+— one read failed, one panel said so, the page stayed honest — which means the
+defect could have sat there indefinitely looking like a design feature.
+
+### What it became
+
+`tests/select-columns.test.ts` parses `db/migrations/*.sql` into a table→column
+map — applying `add column`, `drop column` and `rename column` in file order,
+so `0036`'s drops are reflected — and checks every `.from('t').select('…')` in
+`src/` against it. It found the one defect, and the rest of the repo is clean.
+
+Three things it needed to be worth having, and each is a rule from elsewhere:
+
+- **it asserts it parsed something** (`leads.full_name` exists, `leads.name`
+  does not, `client_automations.health` is gone) — a regex that matched nothing
+  would otherwise pass every select silently;
+- **it names the columns that DO exist** in the failure, so the fix is in the
+  error message rather than in a schema file somebody has to go and find;
+- **a control drives the comparison with the real defect**, so a green cannot
+  mean the loop never ran.
+
+> **Where a language cannot check a string, the schema that string is about is
+> usually sitting in the repository in another form. Read it.**

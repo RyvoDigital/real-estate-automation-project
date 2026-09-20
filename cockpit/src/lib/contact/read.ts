@@ -193,10 +193,19 @@ export async function readContact(clientId: string, e164: string): Promise<Conta
     settle(async () => {
       const { data, error } = await db
         .from('sends')
-        // 🔒 ONE STRING LITERAL, not a concatenation. Supabase types the result
-        // by PARSING this literal, so a joined expression gives every column
-        // the type `GenericStringError` and the whole row goes untyped — which
-        // compiles right up until a column is renamed.
+        /*
+         * 🔴 ONE STRING LITERAL, and it buys LESS than it looks like it does.
+         *
+         * A concatenation makes every column `GenericStringError` and the row
+         * unusable, so it must be one literal. But `admin()` returns a
+         * `SupabaseClient` with NO `Database` generic, so the column names in
+         * here are checked against NOTHING. `select('id, name, …')` on a table
+         * whose column is `full_name` compiles perfectly and 400s at runtime —
+         * which is exactly what happened to the leads panel on 20 September.
+         *
+         * `tests/select-columns.test.ts` is the thing that actually checks
+         * these, against the columns the migrations create.
+         */
         .select('id, status, gate_verdict, gate_layer, gate_reason, gate_detail, gate_basis, gate_obligations, gate_decided_at, intent_recorded_at, country, segment, automation, template_name, body_intended, body_sent, sent_at, failed_at, error, attempts, reconciled_at')
         .eq('client_id', clientId)
         .eq('phone_e164', e164)
@@ -244,12 +253,12 @@ export async function readContact(clientId: string, e164: string): Promise<Conta
     settle(async () => {
       const { data, error } = await db
         .from('leads')
-        .select('id, name, stage, created_at')
+        .select('id, full_name, stage, created_at')
         .eq('client_id', clientId)
         .eq('phone', e164)
         .order('created_at', { ascending: false })
       if (error) throw error
-      return (data ?? []).map((l) => ({ id: l.id, name: l.name, stage: l.stage, createdAt: l.created_at }))
+      return (data ?? []).map((l) => ({ id: l.id, name: l.full_name, stage: l.stage, createdAt: l.created_at }))
     }),
   ])
 
