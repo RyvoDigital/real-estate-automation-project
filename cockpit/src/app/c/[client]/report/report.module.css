@@ -1,0 +1,48 @@
+.head { margin-bottom: 22px; }
+.title { font-family: var(--display); font-size: 26px; margin: 0 0 5px; letter-spacing: -0.01em; }
+.sub { margin: 0; font-size: 13px; color: var(--text-2); max-width: 68ch; line-height: 1.55; }
+
+.empty { display: block; padding: 13px 15px; border-radius: 9px; font-size: 13px; line-height: 1.6; }
+.banner { display: block; padding: 14px 16px; border-radius: 10px; font-size: 13px; line-height: 1.6; margin-bottom: 18px; }
+.alternative { display: block; margin-top: 8px; font-size: 12px; opacity: 0.9; }
+
+/* Three day-states in one line. The third is dim and outlined, never red:
+   a day that has not happened is not a day anybody missed. */
+.strip { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 22px; }
+.day { display: grid; gap: 2px; padding: 8px 12px; border-radius: 8px; min-width: 64px; }
+.dayName { font-size: 11px; font-weight: 600; }
+.dayState { font-size: 10px; }
+
+.derived { background: var(--lift-1); }
+.derived .dayState { color: var(--text-3); }
+/*
+ * 🔴 NO --red HERE. tokens.test.ts caught this: the semantic five are reachable
+ * only from `Clock.tsx` and `state-chip.tsx`, the components that own a state.
+ * A day the derivation missed IS red, so it gets its colour by rendering a
+ * StateChip rather than by this file naming the token — which is the rule
+ * working exactly as designed, on its author.
+ */
+.missing { background: var(--lift-2); }
+.future { background: transparent; box-shadow: inset 0 0 0 1px var(--line); opacity: 0.6; }
+.future .dayState { color: var(--text-3); }
+
+.panel { margin-bottom: 28px; }
+.panelHead { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 11px; }
+.panelHead h2 { font-family: var(--display); font-size: 15px; margin: 0; font-weight: 600; }
+.answers { font-size: 11px; color: var(--text-3); flex: 1 1 240px; }
+
+/* The artefact, as the artefact. */
+.artefact {
+  margin: 0; padding: 18px 20px; border-radius: 10px; background: var(--lift-1);
+  font-family: var(--mono); font-size: 12.5px; line-height: 1.75;
+  white-space: pre; overflow-x: auto; color: var(--text-1, inherit);
+}
+
+.quiet { margin: 10px 0 0; font-size: 12px; color: var(--text-3); line-height: 1.55; max-width: 70ch; }
+
+.absent { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 8px; }
+.absent h2 {
+  font-family: var(--display); font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-3); margin: 0 0 8px; font-weight: 600;
+}
+.absent p { margin: 0 0 8px; font-size: 12px; color: var(--text-3); max-width: 74ch; line-height: 1.55; }

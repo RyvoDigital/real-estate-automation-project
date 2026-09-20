@@ -937,3 +937,47 @@ Says so, in place, on that row: that the group is two things, why the difference
 matters, why the aggregate cannot express it, and what would fix it. §0.4-10 —
 a figure derived over a set says what was examined, or says nothing was.
 
+## §3.27 Nothing records WHEN a contact became qualified, so the weekly report withholds that figure
+
+**21 September 2026, found while building the weekly report.**
+
+The report's shape is three figures, each with a reactivation subset indented
+beneath it. Two of the three are derivable:
+
+| line | source | week-scoped? |
+|---|---|---|
+| conversations, and the reactivation subset | `messages.attribution_state`, per lead | ✅ messages carry `created_at` |
+| meetings, and its subset | `events` of type `viewing.booked` | ✅ events carry `created_at` |
+| **qualified, and its subset** | — | 🔴 **no** |
+
+🔴 **There is no qualification event.** `leads.stage` is a CURRENT value, so a
+contact qualified in August would be counted into this week; and
+`metrics_daily.leads_qualified` is a daily count carrying no contact ids, so
+even where the headline is right the reactivation subset beneath it cannot be
+derived at all.
+
+### Why it is withheld rather than zeroed
+
+A zero subset is the tempting answer and it is the worst one. §11 names
+reactivations as *"the figure Automation 02 exists to move, so it is the one
+under most pressure to flatter"* — and a zero flatters in the other direction,
+understating the automation, inside a document the client is paying for. **A
+number we cannot derive is not a zero**, and this is the one screen where
+publishing it that way is a misrepresentation in a paid relationship rather
+than a display bug.
+
+So it is withheld by **the same mechanism as a missing day** — the whole
+document is held, the page names the figure and says what would fix it — rather
+than by a second, quieter one.
+
+### What would fix it
+
+A `lead.qualified` event, written when the stage changes, carrying the lead id
+and the moment. Every other line on this report is already derived that way, so
+it is a small addition to an existing pattern rather than a new one.
+
+🔒 **And it must be an event, not a column.** A `qualified_at` timestamp would
+answer "when did this become true" and would still be a current value, silently
+rewritten the next time the stage moved — which is the same defect one field
+along.
+
