@@ -385,6 +385,21 @@
         "reason": "Runnable only after 0037 is applied AND the onboarding that writes clients.rehearsal is deployed. Until then the column it constrains may not exist.",
         "runnable_when": "cockpit/src/lib/rehearsal.ts"
       }
+    },
+    {
+      "id": "0039-clearances",
+      "what": "clearances is created as the publication gate's own decision, kept — the input publication/recheck.ts has never had. It proves its preconditions rather than assuming them (0032's treatment): the tables it references exist, NOTHING called clearances is already there, and listing_facts still has the three columns the snapshot is assembled from. `satisfied` stores the gate's SatisfiedRequirement[] WHOLE, because recheck.ts records what a lossy copy cost — with only (id, expiry, exemption) it could not tell a rating from a registration. A snapshot, never a pointer: joining to listing_facts instead would compare today with today and find nothing, always. 🔴 notice_sent_at records THAT THE AGENCY WAS TOLD AND NOTHING MORE — never that an advertisement came down; the operator named this as the rule most likely to soften once there is a column to write to.",
+      "how": "In transactions you roll back, running the do-block alone: (1) with a relation named clearances present — expect REFUSING: a relation called clearances already exists; rollback. (2) rename listing_facts.valid_until temporarily — expect REFUSING: listing_facts does not have the three columns …; rollback. (3) unmodified — expect NOTICE 'Preconditions proven, not assumed.' and no exception. THEN apply and verify: relrowsecurity is true; has_table_privilege('anon', …, 'SELECT') is false; an insert with satisfied = '[]' violates clearances_snapshot_is_not_empty; two rows for one listing in two countries both insert.",
+      "watches": [
+        "db/migrations/0039_clearances.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null,
+      "blocked": {
+        "reason": "🔴 MUST NOT BE APPLIED UNTIL ITS WRITER EXISTS. decidePublication() has no production caller — the publication gate is written and unwired — so nothing decides, and nothing would write this table. A table with no writer is exactly what agency_facts is, and improvements §3.22 is the entry about how that surfaces: invisibly, until the day something else stops hiding it. Applying this now would add a second one, in the same feature, for the same reason, on the same afternoon the first was recorded.",
+        "runnable_when": "the publish screen that creates the decision path, and the writer inside it"
+      }
     }
   ]
 }
