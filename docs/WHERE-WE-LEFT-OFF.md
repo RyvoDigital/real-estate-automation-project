@@ -87,7 +87,34 @@ over code that cannot run**.
 The Concierge (01) runs in n8n and writes through `/api/listings/inbound`. The
 import flow is wired end to end. Segmentation, calibration, triage and silence
 are reachable screens. And the Stage C cockpit is live: `/today`, the client
-frame, escalations, *What is still good*, Policy and Templates.
+frame, escalations, *What is still good*, Policy, Templates, the re-check
+notice in both frames, the publication screen, and — since 20 September — the
+**client landing** at `/c/<client>`.
+
+### The gated ledger is now a thing screens read, not a document
+
+`cockpit/src/lib/gates.ts` holds every wait on a person: 8 gates, 15 entries.
+Three properties, and the third is the one that keeps it honest:
+
+1. **Flipping a gate to `open: true` fails the suite** and prints the work it
+   unblocked, with the next action for each. Recording that a gate opened and
+   surfacing the work are the same act.
+2. **A drift guard** (`tests/blocked-language.test.ts`) fails when blocked
+   language appears anywhere outside it, names the file and says it belongs in
+   `gates.ts`. It carries a hand-sorted ratchet of the 20 September sweep —
+   and a second test fails when a carried file stops hitting, so the list
+   cannot become permanent scaffolding.
+3. **Every entry expects to be wrong.** `thenReRead` says what to go and read
+   when the gate opens, because `onOpen` was written when we knew least. Meta
+   verifying only moves the wait to Meta reviewing; question one to the lawyer
+   could remove a whole segment from 02.
+
+🔴 **Do not write "blocked on X" or "waiting on X" in a doc or a comment.** Add
+the entry and point at it. The guard will tell you, by filename.
+
+The client landing reads it through `gatesHoldingAutomation`, which is why
+`Blocked.holds` and `Gate.answerable` exist: which band a wait falls into is
+decided once, in the ledger, never parsed out of prose on a screen.
 
 ---
 
