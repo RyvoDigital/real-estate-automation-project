@@ -4190,3 +4190,56 @@ Operator's framing, and it is the version that can actually be followed:
 Not "be careful about generalising". A grep of the file takes ten seconds and
 would have caught both of these — the two stale assertions eleven lines above
 the control, and the second dead link four fields from the first.
+
+
+## 1r. Write the caption from the design before wiring the data
+
+**20 September 2026, the silence screen.**
+
+Brief III §8 forbids one thing in as many words: *"🔒 No ranking by how silent
+they are. A list sorted by neglect is a call-list wearing a report's clothes."*
+
+I wrote the caption from the brief — **"in no particular order — this is not a
+call list"** — and then rendered `findSilence`'s output underneath it.
+`findSilence` sorts by days descending, and **argues for it in its own
+comment**: *"the person left alone longest is the one the agency should look at
+first."*
+
+A neglect-ranked list, under a caption promising it was not one.
+
+### Why the caption is what caught it
+
+Nothing else could have. The library is correct where it was written — the old
+`/silence` screen wants that order — so no test of `findSilence` would fail, and
+the rendered page looks entirely reasonable. The only visible contradiction was
+**between two things I wrote myself, ten lines apart**, and it existed only
+because the caption had been written from the design rather than from the data.
+
+Had I written the caption last, from what the page was showing, it would have
+said *"longest first"* and been perfectly accurate — and the screen would have
+quietly become the thing its own design forbids.
+
+> **A caption written from the design is a claim the code must then satisfy. A
+> caption written from the data is a description of whatever the code already
+> does, and can never disagree with it.**
+
+Only the first can catch anything. It is the same asymmetry as a test written
+before the fix and a test written after it.
+
+### The shape it belongs to
+
+This is §3.26's mirror. There a distinction was preserved carefully in
+`gate.ts` and discarded one function later in `evaluate.ts`. Here an ordering
+was chosen deliberately in `silence.ts` and inherited into the one screen that
+forbids it. Both are **a fact travelling between functions and changing meaning
+on the way**, and neither function is wrong on its own.
+
+> **A sort that is right where it was written, reused somewhere it is
+> forbidden, arrives looking like the correct default.** That is what makes the
+> inherited case more dangerous than the discarded one: nothing looks missing.
+
+### The habit
+
+Write the words the screen is supposed to be able to say, from the design,
+**before** wiring the data that has to satisfy them. Then the disagreement is
+visible on the page rather than invisible in it.

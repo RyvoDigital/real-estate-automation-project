@@ -111,7 +111,7 @@ export const CLIENT_SCREENS: NavItem[] = [
   { slug: 'still-good', built: true, label: 'What is still good', inNav: true, presented: false, refusesBecause: 'it reads across every property this client holds, and an agency meeting is about one' },
   { slug: 'silence', built: true, label: 'Silence', inNav: true, presented: false, refusesBecause: 'it is a worklist of who to chase, in our words not theirs' },
   { slug: 'closes', built: false, label: 'Closes', labelPt: 'O que fechou', inNav: true, presented: true },
-  { slug: 'review', built: false, label: 'Review', inNav: true, presented: false, refusesBecause: 'the reconciliation explains our own gaps, which is an operator conversation' },
+  { slug: 'review', built: true, label: 'Review', inNav: true, presented: false, refusesBecause: 'the reconciliation explains our own gaps, which is an operator conversation' },
   { slug: 'thresholds', built: false, label: 'Thresholds', labelPt: 'O que procura quem lhe compra', inNav: true, presented: true },
   { slug: 'import', built: false, label: 'Import', labelPt: 'A lista que nos enviou', inNav: true, presented: true },
   { slug: 'report', built: false, label: 'Report', inNav: true, presented: false, refusesBecause: 'its artefact is what the agency receives; the page is the operator checking it first' },
