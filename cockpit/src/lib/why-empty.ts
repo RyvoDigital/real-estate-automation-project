@@ -5,7 +5,7 @@
  *
  * docs/cockpit-build-plan.md §5. A screen that renders nothing must be readable
  * as correct rather than broken, and the way it becomes readable is that the
- * emptiness says WHICH emptiness it is. There are five, they mean different
+ * emptiness says WHICH emptiness it is. There are six, they mean different
  * things to the person reading, and collapsing any two is the defect:
  *
  *   resting      it ran, and there was nothing           (S1)
@@ -13,6 +13,21 @@
  *   notChecked   nobody looked, or the look is pending    (S3)
  *   refused      something is stopping it, and it is named (S5)
  *   readFailed   we looked and the read threw             (S4)
+ *   notBuilt     🔴 nothing reads this yet — WE have not built it
+ *
+ * 🔴 THE SIXTH WAS ADDED 20 SEPTEMBER 2026, and the build plan predicted it as
+ * the one the other five cannot express: "a screen empty because its table is
+ * a proposal means *we have not built this*".
+ *
+ * The plan's answer was to withhold such a screen until it could be built. The
+ * operator overruled that for Today, and the reasoning is better: hiding the
+ * groups that have no source would make the landing look complete while lying
+ * by omission, and a landing showing four honest gaps is more useful than one
+ * showing a single group and pretending that is the whole morning.
+ *
+ * 🔒 So it is a rendered state with its own words, and it is deliberately the
+ * only one that names US as the reason. The other five are facts about the
+ * world; this one is a fact about the build.
  *
  * WHY THIS IS A MODULE AND NOT A HABIT. Every screen would otherwise word its
  * own emptiness, and two screens would word the same emptiness differently —
@@ -82,6 +97,19 @@ export type Emptiness =
       /** The thrown sentence, as stored. Rendered in mono by the caller. */
       threw: string
     }
+  | {
+      state: 'notBuilt'
+      /** What would be here: "certificates about to expire". */
+      thing: string
+      /**
+       * What exists already and what does not, because "not built" covers a
+       * range and the reader deserves to know where on it this sits: a table
+       * with no reader is a fortnight from a table that does not exist.
+       */
+      haveWhat: string
+      /** The stage that builds it, so the gap has an end rather than a shrug. */
+      when: string
+    }
 
 export type WhyEmpty = {
   sentence: string
@@ -132,6 +160,16 @@ export function whyEmpty(e: Emptiness): WhyEmpty {
         tone: 'held',
         offersRetry: false,
         state: 'refused',
+      }
+    case 'notBuilt':
+      return {
+        // 🔒 First person, and deliberately. Every other emptiness describes
+        // the world; this one describes us, and a passive voice here would
+        // read as another thing that merely happens to be absent.
+        sentence: `We have not built this yet. ${sentenceCase(e.thing)} would be here; ${e.haveWhat}. ${sentenceCase(e.when)}.`,
+        tone: 'grey',
+        offersRetry: false,
+        state: 'notBuilt',
       }
     case 'readFailed':
       return {

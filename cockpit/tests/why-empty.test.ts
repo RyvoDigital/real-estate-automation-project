@@ -22,9 +22,35 @@ const ESCALATIONS: Record<Emptiness['state'], Emptiness> = {
   },
   refused: { state: 'refused', thing: 'reactivation', by: 'Meta has not verified the business' },
   readFailed: { state: 'readFailed', thing: 'the queue', threw: 'statement timeout after 8000ms' },
+  notBuilt: {
+    state: 'notBuilt',
+    thing: 'certificates about to expire',
+    haveWhat: 'the facts are recorded and the re-check logic is written, but nothing assembles them yet',
+    when: 'it arrives with the compliance screens',
+  },
 }
 
-test('the five states are pairwise distinct sentences', () => {
+test('🔴 "we have not built this" is not any of the other five', () => {
+  /*
+   * The build plan named this as the meaning the other five cannot express:
+   * a group empty because nothing reads it yet is not resting, not never, not
+   * unchecked, not refused and not a failed read. Hiding it would make a
+   * landing look complete while lying by omission.
+   */
+  const nb = whyEmpty(ESCALATIONS.notBuilt)
+  assert.match(nb.sentence, /^We have not built this yet/)
+  assert.equal(nb.tone, 'grey', 'our own gap is an absence, and absence is not coloured')
+  assert.equal(nb.offersRetry, false, 'there is nothing to re-run — that is the point')
+  // It names what exists and when it arrives, so the gap has an end.
+  assert.match(nb.sentence, /re-check logic is written/)
+  assert.match(nb.sentence, /compliance screens/)
+  // And it is the only one that says "we".
+  const others = (['resting', 'never', 'notChecked', 'refused', 'readFailed'] as const)
+    .map((k) => whyEmpty(ESCALATIONS[k]).sentence)
+  assert.equal(others.filter((s) => /^We have not built/.test(s)).length, 0)
+})
+
+test('the six states are pairwise distinct sentences', () => {
   const rendered = Object.values(ESCALATIONS).map((e) => whyEmpty(e).sentence)
   const unique = new Set(rendered)
   assert.equal(unique.size, rendered.length, `two states share a sentence:\n${rendered.join('\n')}`)
@@ -41,6 +67,7 @@ test('🔴 two states on the SAME subject are still distinct', () => {
     whyEmpty({ state: 'notChecked', thing: 'the queue', why: 'the read has not landed', notTheSameAs: 'an empty queue' }).sentence,
     whyEmpty({ state: 'refused', thing: 'the queue', by: 'Meta has not verified the business' }).sentence,
     whyEmpty({ state: 'readFailed', thing: 'the queue', threw: 'timeout' }).sentence,
+    whyEmpty({ state: 'notBuilt', thing: 'the queue', haveWhat: 'nothing reads it', when: 'it arrives later' }).sentence,
   ]
   assert.equal(new Set(same).size, same.length, `two states on one subject share a sentence:\n${same.join('\n')}`)
 })
