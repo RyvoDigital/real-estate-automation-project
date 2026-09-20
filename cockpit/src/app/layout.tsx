@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
-import { display, mono, sans } from './fonts'
+import { bricolage, display, geistMono, instrument, mono, sans } from './fonts'
+import './tokens.css'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -20,7 +21,12 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
+    <html
+      lang="en"
+      // Both sets ship while both sets of screens exist: the §0.5 faces for
+      // rebuilt screens, the originals for the ones still standing.
+      className={`${display.variable} ${sans.variable} ${mono.variable} ${bricolage.variable} ${instrument.variable} ${geistMono.variable}`}
+    >
       <body>{children}</body>
     </html>
   )

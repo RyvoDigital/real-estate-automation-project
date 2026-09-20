@@ -127,7 +127,7 @@
      a figure is the information. Mono ONLY for text stored verbatim: an
      event's summary, a message as sent, a prepared advertisement. Mono is how
      the cockpit says "these are not our words". */
-  --display: "Bricolage Grotesque", "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
-  --sans: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --display: var(--font-bricolage), "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --sans: var(--font-instrument), "Instrument Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --mono: var(--font-geist-mono), "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
 }

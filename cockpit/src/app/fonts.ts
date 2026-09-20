@@ -1,4 +1,11 @@
-import { Archivo, Bodoni_Moda, DM_Mono } from 'next/font/google'
+import {
+  Archivo,
+  Bodoni_Moda,
+  Bricolage_Grotesque,
+  DM_Mono,
+  Geist_Mono,
+  Instrument_Sans,
+} from 'next/font/google'
 
 /**
  * Self-hosted, not a <link> to fonts.googleapis.com.
@@ -57,4 +64,49 @@ export const mono = DM_Mono({
   weight: ['400', '500'],
   display: 'swap',
   variable: '--font-mono',
+})
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * THE §0.5 FACES — for screens rebuilt in Stage C.
+ *
+ * Brief §0.5, decided 19 September 2026 by the operator from Mobbin
+ * references: Bricolage Grotesque for display, Instrument Sans for running
+ * text, Geist Mono for text stored verbatim.
+ *
+ * ⚠️ THESE REPLACE BODONI MODA, AND THE REPLACEMENT COSTS SOMETHING REAL.
+ * The Bodoni choice above is argued from the typography of Iberian property
+ * advertising and it is MEASURED: tests/probe-contrast.ts exists because a
+ * Didone's hairlines are the first thing to disappear on a near-black screen
+ * in daylight, and it measures what the opsz axis and the 500 floor are worth
+ * in rendered pixels at the sizes the app actually uses.
+ *
+ * Bricolage Grotesque has no hairline problem of that kind — it is a grotesque,
+ * not a Didone — but "no problem of that kind" is a prediction, and the probe's
+ * baselines were taken against the outgoing face. 🔒 So probe-contrast is
+ * re-run against the new faces when the first rebuilt screen lands, rather
+ * than assumed to pass. Check the artefact, not the reasoning.
+ *
+ * Both sets ship while both sets of screens exist. The old three are deleted
+ * with the last screen that uses them.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+export const bricolage = Bricolage_Grotesque({
+  subsets: ['latin'],
+  weight: 'variable',
+  display: 'swap',
+  variable: '--font-bricolage',
+})
+
+export const instrument = Instrument_Sans({
+  subsets: ['latin'],
+  weight: 'variable',
+  display: 'swap',
+  variable: '--font-instrument',
+})
+
+export const geistMono = Geist_Mono({
+  subsets: ['latin'],
+  weight: 'variable',
+  display: 'swap',
+  variable: '--font-geist-mono',
 })

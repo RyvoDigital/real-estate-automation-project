@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { CLIENT_SCREENS } from '@/lib/frame'
 
 /**
  * Session refresh only. THIS IS NOT THE SECURITY BOUNDARY.
@@ -88,7 +89,59 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(to)
   }
 
+  /*
+   * ── The client frames ──────────────────────────────────────────────────
+   *
+   * `/c/<client>/…` and `/p/<client>/…` resolve to a registered screen, and
+   * the slug is put on a request header so the layout can tell the frame
+   * which nav item is current.
+   *
+   * 🔴 THE HEADER IS COSMETIC, AND THE 404 BELOW IS DEFENCE IN DEPTH. Read
+   * the top of this file: a check the caller can skip is not a check, and a
+   * request header is exactly what CVE-2025-29927 let a caller forge. So the
+   * refusal that matters — a screen that must never be shown to an agency —
+   * is asserted again by assertPresentable() inside the page itself, on the
+   * path the real caller takes. This only turns the obvious mistake into a
+   * 404 before a render happens.
+   */
+  const frameMatch = screenFor(path)
+  if (frameMatch) {
+    if (frameMatch.frame === 'p') {
+      const screen = CLIENT_SCREENS.find((s) => s.slug === frameMatch.slug)
+      if (!screen || !screen.presented) return new NextResponse(null, { status: 404 })
+    }
+    const headers = new Headers(request.headers)
+    headers.set(SCREEN_HEADER, frameMatch.slug)
+    // Rebuilt rather than mutated, so the cookie work above is preserved.
+    const withScreen = NextResponse.next({ request: { headers } })
+    for (const c of response.cookies.getAll()) withScreen.cookies.set(c)
+    return withScreen
+  }
+
   return response
+}
+
+export const SCREEN_HEADER = 'x-ryvo-screen'
+
+/** `/c/<client>/<slug…>` or `/p/<client>/<slug…>` → the registered screen. */
+export function screenFor(pathname: string): { frame: 'c' | 'p'; client: string; slug: string } | null {
+  const m = /^\/(c|p)\/([^/]+)(?:\/(.*))?$/.exec(pathname)
+  if (!m) return null
+  const [, frame, client, rest = ''] = m
+  // Longest-first, and a sub-screen resolves to ITSELF rather than to what it
+  // sits under: /p/<client>/listings/<id>/publish is `publish`, not
+  // `listings`. Registered 20 Sep 2026 after the test found that the gate in
+  // depth would otherwise have inherited the listings screen's answer and been
+  // served to an agency.
+  const candidates = CLIENT_SCREENS.map((s) => s.slug).filter((s) => s !== '')
+  const segments = rest.split('/').filter(Boolean)
+  for (let i = segments.length; i > 0; i--) {
+    const tail = segments.slice(0, i).join('/')
+    const last = segments[i - 1]
+    if (candidates.includes(tail)) return { frame: frame as 'c' | 'p', client, slug: tail }
+    if (candidates.includes(last)) return { frame: frame as 'c' | 'p', client, slug: last }
+  }
+  return { frame: frame as 'c' | 'p', client, slug: '' }
 }
 
 export const config = {

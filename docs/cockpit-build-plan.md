@@ -132,6 +132,20 @@ A test — `tests/tokens.test.ts`, in the existing `npm test` run — that:
    makes "colour carries meaning or it does not appear" structural rather than a
    habit, and it is the only one of the three that survives a tired afternoon.
 
+### 2.2b ⚠️ Correction, 20 September 2026 — when globals.css comes off the ratchet
+
+The plan said `globals.css` is replaced "in C2, with the frame". **That was
+wrong and it is corrected here.** Twenty-odd screens still depend on its
+classes, and they serve until C3–C6 rebuilds each one. Replacing it with the
+frame would break every page that has not been rebuilt yet, for no gain — the
+new frame reads `tokens.css` and needs nothing from the old file.
+
+So: `tokens.css` lands and is used; `globals.css` keeps its ratchet entry, with
+`until` changed from **C2** to **C6 — when the last screen that depends on its
+classes is rebuilt**. The two palettes coexist in two files rather than in one,
+which is the distinction that matters: a one-off hex in `globals.css` is still
+caught by the ratchet, and the new frame cannot reach for one at all.
+
 ### 2.3 The one that is not a test
 
 §0.5 says the direction changes **by the operator, from a reference, recorded in

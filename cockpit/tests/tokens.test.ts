@@ -70,8 +70,8 @@ function walk(dir: string, out: string[] = []): string[] {
  * custom property. They are the only entries that are allowed to stay.
  */
 const LEGACY: Record<string, { count: number; until: string }> = {
-  'app/globals.css': { count: 203, until: 'C2 — replaced by tokens.css plus layout-only rules' },
-  'app/layout.tsx': { count: 1, until: 'C2' },
+  'app/globals.css': { count: 203, until: 'C6 — when the last screen depending on its classes is rebuilt; see build plan §2.2b' },
+  'app/layout.tsx': { count: 1, until: 'C6 — the themeColor literal, which a manifest needs as a literal' },
   'app/calibrate/[clientId]/page.tsx': { count: 12, until: 'C5' },
   'app/calibrate/page.tsx': { count: 3, until: 'C5' },
   'app/listings/[id]/exemption/page.tsx': { count: 8, until: 'C5' },
