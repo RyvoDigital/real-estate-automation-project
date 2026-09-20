@@ -22,8 +22,36 @@ const STEPS = [
 ] as const
 
 const EMPTY: ClientDraft = {
-  agencyName: '', whatsappNumber: '', timezone: 'Europe/Lisbon', locale: 'pt-PT',
-  defaultLanguage: 'pt', areas: '', agentName: '', workingHours: 'Mon–Sat 09:30 – 19:30',
+  /*
+   * 🔴 THE THREE AGENCY FACTS ARE EMPTY, AND THEY USED TO BE GUESSES.
+   *
+   * `timezone: 'Europe/Lisbon'`, `locale: 'pt-PT'` and `defaultLanguage: 'pt'`
+   * were pre-filled values. They are facts ABOUT THE AGENCY, not settings we
+   * choose, and a guess written into a column is indistinguishable from a
+   * choice — §4.6 again, and the same argument as `rehearsal` below.
+   *
+   * The tell was already on screen: the timezone field's placeholder says
+   * "Europe/Madrid" and its value said "Europe/Lisbon", so the placeholder
+   * could never render. The form was proposing Spain and recording Portugal.
+   *
+   * An empty field with a placeholder shows what a typical answer LOOKS like.
+   * That is a proposal. A pre-filled value is an answer nobody gave.
+   */
+  agencyName: '', whatsappNumber: '', timezone: '', locale: '',
+  defaultLanguage: '', areas: '', agentName: '', workingHours: 'Mon–Sat 09:30 – 19:30',
+  /*
+   * 🔒 THESE FOUR STAY AS VALUES, and the distinction is the point.
+   *
+   * A booking window of 14 days, 4 hours' notice, a 45-minute viewing and a
+   * €1.5m high-value threshold are RYVO'S DEFAULTS — policy we chose, which an
+   * agency may change. Nobody is being answered for, because the question is
+   * not about them.
+   *
+   * The three above are different in kind: nobody but the agency can say what
+   * timezone they work in. Blanking these four as well would turn a default we
+   * are entitled to hold into four more fields to type, which is §4.6 applied
+   * where it does not reach.
+   */
   bookingWindowDays: '14', minHoursNotice: '4', viewingDurationMinutes: '45',
   highValueThresholdEur: '1500000', escalateTo: '', calendarId: '',
   handoffPt: '', handoffEn: '', handoffEs: '',
@@ -208,7 +236,7 @@ export function Onboarding() {
             {field('whatsappNumber', 'WhatsApp number', { placeholder: '+34600123456' })}
             {field('timezone', 'Timezone', { placeholder: 'Europe/Madrid' })}
             {field('locale', 'Locale', { placeholder: 'es-ES' })}
-            {field('defaultLanguage', 'Default language', { placeholder: 'es' })}
+            {field('defaultLanguage', 'Default language', { placeholder: 'es — one of pt, en, es' })}
             {field('areas', 'Areas served', { placeholder: 'Marbella, Estepona' })}
           </div>
         )}

@@ -146,6 +146,38 @@ test('both options say what the choice MEANS, not just what it is called', () =>
   assert.notEqual(real.means, rehearsal.means)
 })
 
+test('🔴 no field that is a FACT ABOUT THE AGENCY is pre-filled', () => {
+  /*
+   * `rehearsal` was the first one caught. It was not the only one: timezone,
+   * locale and defaultLanguage were all pre-filled with Portuguese values,
+   * while their placeholders showed Spanish examples that could never render.
+   * The form proposed Spain and recorded Portugal.
+   *
+   * 🔒 THE LINE IS WHO THE QUESTION IS ABOUT, not whether a sensible value
+   * exists. A booking window of 14 days is Ryvo's default and stays a value —
+   * nobody is answered for, because it is not a question about them. Only the
+   * agency can say what timezone it works in.
+   */
+  const empty = ONBOARDING.match(/const EMPTY: ClientDraft = \{([\s\S]*?)\n\}/)
+  assert.ok(empty, 'the form no longer declares EMPTY as a literal')
+  const body = empty[1].replace(/\/\*[\s\S]*?\*\//g, '')
+
+  const ABOUT_THE_AGENCY = ['timezone', 'locale', 'defaultLanguage', 'rehearsal', 'agencyName', 'areas', 'agentName']
+  for (const f of ABOUT_THE_AGENCY) {
+    const m = body.match(new RegExp(`\\b${f}:\\s*('[^']*'|"[^"]*")`))
+    assert.ok(m, `EMPTY no longer sets ${f}`)
+    assert.match(m[1], /^['"]['"]$/, `${f} is pre-filled with ${m[1]} — that is a guess wearing a choice`)
+  }
+
+  // And the four that ARE ours stay ours, so this does not quietly become
+  // "blank everything", which would turn a default we may hold into typing.
+  const OURS = ['bookingWindowDays', 'minHoursNotice', 'viewingDurationMinutes', 'highValueThresholdEur']
+  for (const f of OURS) {
+    const m = body.match(new RegExp(`\\b${f}:\\s*('[^']*')`))
+    assert.ok(m && m[1] !== "''", `${f} was blanked — it is Ryvo's default, not a question about the agency`)
+  }
+})
+
 test('the fixtures declare themselves rehearsal — 0038 precondition 3', () => {
   /*
    * After 0038 sets NOT NULL, an insert omitting the column fails. The shared
