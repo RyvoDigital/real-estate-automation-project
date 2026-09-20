@@ -4133,3 +4133,50 @@ Three things it needed to be worth having, and each is a rule from elsewhere:
 
 > **Where a language cannot check a string, the schema that string is about is
 > usually sitting in the repository in another form. Read it.**
+
+
+## 1q. A control that asserts a specific absence is completed out of existence
+
+**20 September 2026, twice in three hours, in one file.**
+
+`tests/links-resolve.test.ts` checks that every link in the cockpit opens a
+route that exists. Its control — the thing proving the checker can SEE a dead
+link — named two routes that did not exist yet:
+
+```
+assert.ok(!resolves('/c/[x]/anomalies'))
+assert.ok(!resolves('/c/[x]/settings'))
+```
+
+Both screens were then built, by me, within three hours. The control went red
+**for the best possible reason** and was still a false alarm.
+
+### The shape
+
+> **A control's negative case must be something that CANNOT become true.** An
+> absence that somebody is expected to fill is a fact about today's progress,
+> and a test pinned to today's progress fails on the day the project succeeds.
+
+It is the mirror of §1n. There, a check could not fail for the reason it
+existed. Here, a check fails for a reason that has nothing to do with why it
+exists — and the two feel identical from the outside, because both produce a
+result whose colour says nothing about the thing under test.
+
+The fix is not a better absence. It is an absence of a different KIND:
+`/c/[x]/__never__` cannot be completed into existence, and `/c/[x]` (the client
+landing) failing to resolve would be a real finding.
+
+### And it did not generalise on its own
+
+The control was fixed when `anomalies` was built. **Two more assertions of the
+same shape sat eleven lines above it, in the same file, and were not touched** —
+they failed four hours later when `settings` landed.
+
+> **Fixing an instance is not applying a lesson. The question after any fix is
+> "where else is this exact shape", and the answer is usually "the same file".**
+
+Three of the day's four findings have that structure: the bands rule broken two
+fields below the sentence stating it; the outbound-call guard written while
+explaining why controls matter; this. All three were caught by a mechanism and
+none by care, which is the argument for the mechanism rather than against the
+care.

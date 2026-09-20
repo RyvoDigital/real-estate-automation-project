@@ -116,18 +116,10 @@ function ours(input: BandInput): Band {
         // gate for something we never requested.
         items.push({
           id: `notsetup:${a.key}`,
-          what: `${a.name} is not set up — ${a.status.missing.join('; ')}. Settings is not built yet, so there is nowhere to do it from here.`,
-          /*
-           * 🔴 `null`, not a link to Settings. That screen is not built, and
-           * this file's own type says an item whose destination does not exist
-           * says so rather than linking to nowhere — a rule I wrote here and
-           * then broke two fields below it.
-           *
-           * An operator clicking the one thing the page calls theirs to fix,
-           * and getting a 404, reads as the cockpit being broken at exactly
-           * the moment it was telling them something true.
-           */
-          opens: null,
+          what: `${a.name} is not set up — ${a.status.missing.join('; ')}`,
+          // Built 20 Sep. The door the landing most needed: the band that says
+          // "ours to fix" now opens somewhere that fixes it.
+          opens: { label: 'opens Settings', href: href(clientId, 'settings') },
           tone: 'grey',
         })
       }

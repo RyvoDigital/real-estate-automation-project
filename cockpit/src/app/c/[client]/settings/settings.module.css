@@ -1,0 +1,51 @@
+.head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 24px; }
+.title { font-family: var(--display); font-size: 26px; margin: 0 0 5px; letter-spacing: -0.01em; }
+.sub { margin: 0; font-size: 13px; color: var(--text-2); max-width: 66ch; line-height: 1.55; }
+.stamp { display: grid; justify-items: end; gap: 2px; font-size: 11px; color: var(--text-3); text-align: right; }
+.stamp b { font-family: var(--display); font-size: 15px; color: var(--text-2); font-weight: 500; }
+
+.panel { margin-bottom: 30px; }
+.panelHead { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.panelHead h2 { font-family: var(--display); font-size: 15px; margin: 0; font-weight: 600; }
+.answers { font-size: 11px; color: var(--text-3); flex: 1 1 240px; }
+
+.empty { display: block; padding: 13px 15px; border-radius: 9px; font-size: 13px; line-height: 1.55; }
+.trap { display: block; margin-top: 7px; font-size: 12px; color: var(--text-3); line-height: 1.5; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+
+.field { display: grid; gap: 3px; padding: 11px 13px; border-radius: 9px; background: var(--lift-1); align-content: start; }
+.label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-3); }
+.value { font-size: 13px; }
+
+/* A value nobody may change. Text, never a control — there is nothing to press. */
+.frozen { font-family: var(--mono); font-size: 12.5px; }
+
+/* An absence that refuses to propose an answer. */
+.unset { font-size: 12.5px; color: var(--text-3); font-style: italic; }
+
+.hint, .why, .parsed { font-size: 11px; color: var(--text-3); line-height: 1.45; }
+.why { margin-top: 3px; }
+.parsed { font-family: var(--mono); }
+
+.autos { display: grid; gap: 6px; }
+.auto {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 11px 13px; border-radius: 9px; background: var(--lift-1);
+}
+.autoName { font-size: 13px; flex: 1 1 200px; }
+.held, .switchGap { font-size: 11.5px; color: var(--text-3); line-height: 1.45; flex: 1 1 100%; }
+.route { margin-left: 8px; color: var(--text-2); text-decoration: none; border-bottom: 1px solid var(--line); }
+
+.absent { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 8px; }
+.absent h2 {
+  font-family: var(--display); font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-3); margin: 0 0 8px; font-weight: 600;
+}
+.absent p { margin: 0 0 6px; font-size: 12px; color: var(--text-3); max-width: 72ch; line-height: 1.5; }
+
+@media (max-width: 560px) {
+  .head { flex-direction: column; gap: 12px; }
+  .stamp { justify-items: start; text-align: left; }
+  .grid { grid-template-columns: 1fr; }
+}

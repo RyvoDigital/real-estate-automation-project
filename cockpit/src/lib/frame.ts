@@ -115,7 +115,7 @@ export const CLIENT_SCREENS: NavItem[] = [
   { slug: 'thresholds', built: false, label: 'Thresholds', labelPt: 'O que procura quem lhe compra', inNav: true, presented: true },
   { slug: 'import', built: false, label: 'Import', labelPt: 'A lista que nos enviou', inNav: true, presented: true },
   { slug: 'report', built: false, label: 'Report', inNav: true, presented: false, refusesBecause: 'its artefact is what the agency receives; the page is the operator checking it first' },
-  { slug: 'settings', built: false, label: 'Settings', inNav: true, presented: false, refusesBecause: 'it holds numbers that decide who receives a message' },
+  { slug: 'settings', built: true, label: 'Settings', inNav: true, presented: false, refusesBecause: 'it holds numbers that decide who receives a message' },
 
   // Reached from another screen rather than from the sidebar.
   //

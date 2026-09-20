@@ -105,15 +105,20 @@ test('the route reader found the app', () => {
   assert.ok(ROUTES.includes('/today'), '/today is missing from the parse')
   assert.ok(ROUTES.includes('/c/[client]'), 'the client landing is missing from the parse')
   assert.ok(ROUTES.includes('/c/[client]/contacts/[phone]'))
-  // And it does NOT invent ones that are not built yet.
-  assert.ok(!ROUTES.includes('/c/[client]/settings'), 'settings is not built; the parser thinks it is')
+  /*
+   * 🔴 And it does not INVENT routes. Named structurally, not as "a screen we
+   * have not built yet" — the first version said `settings`, which was true for
+   * four hours. A negative case pinned to today's progress is completed out of
+   * existence by the next commit; this one cannot be.
+   */
+  assert.ok(!ROUTES.includes('/c/[client]/__never__'), 'the parser invented a route')
 })
 
 test('the resolver matches dynamic segments, and refuses the wrong shape', () => {
   assert.ok(resolves('/c/[x]/contacts'))
   assert.ok(resolves('/c/abc/contacts/%2B351912345678'))
   assert.ok(resolves('/today'))
-  assert.ok(!resolves('/c/[x]/settings'), 'an unbuilt route resolved')
+  assert.ok(!resolves('/c/[x]/__never__'), 'a path that cannot exist resolved')
   assert.ok(!resolves('/c/[x]/contacts/[y]/extra'), 'a too-long path resolved')
 })
 
