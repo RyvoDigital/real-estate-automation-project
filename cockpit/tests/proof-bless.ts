@@ -182,16 +182,31 @@ for (const p of book.proofs) {
         const inspected = execSync(`npx vercel inspect ${JSON.stringify(alias)} 2>&1`, {
           encoding: 'utf8', cwd: REPO, timeout: 60_000,
         })
-        const serving = inspected.match(/https:\/\/([a-z0-9-]+\.vercel\.app)/g)?.find((u) => u.includes('-'))
-        if (!serving) return null
-        const host = serving.replace('https://', '')
-
+        /*
+         * 🔴 THE NEWEST BUILD AND THE SERVING BUILD ARE TWO DIFFERENT FACTS,
+         * and only the second answers "what is live". A rolled-back deploy
+         * leaves a newer build sitting there, Ready, serving nobody.
+         *
+         * So the alias is resolved, never the top of the list. And the host is
+         * picked by CROSS-CHECKING against the deployment list rather than by
+         * position in the output: `vercel inspect` prints the deployment url
+         * above the Aliases block today, but an ordering assumption is not a
+         * fact, and `ryvo-cockpit.vercel.app` matches a naive "has a hyphen"
+         * test just as well as the deployment host does.
+         */
         const listed = execSync('npx vercel ls ryvo-cockpit --json 2>/dev/null', {
           encoding: 'utf8', cwd: REPO, timeout: 60_000, maxBuffer: 20 * 1024 * 1024,
         })
         const deployments = (JSON.parse(listed) as { deployments: { url: string; meta?: Record<string, string> }[] })
           .deployments
-        return deployments.find((d) => d.url === host)?.meta?.githubCommitSha ?? null
+
+        const candidates = (inspected.match(/https:\/\/([a-z0-9-]+\.vercel\.app)/g) ?? []).map((u) =>
+          u.replace('https://', ''),
+        )
+        // The first candidate that IS a deployment. The alias is not one, so it
+        // cannot be chosen however the output is ordered.
+        const serving = candidates.map((h) => deployments.find((d) => d.url === h)).find(Boolean)
+        return serving?.meta?.githubCommitSha ?? null
       } catch {
         return null
       }

@@ -848,3 +848,49 @@ Recorded so they are not re-proposed.
 - **WhatsApp account ownership is undecided.** Recommendation to evaluate: client owns, Ryvo administers.
 - **Retention policy and breach notification are both open.** ⚖️
 - **AI Act transparency obligations in PT/ES have not been confirmed.** ⚖️ The assistant does disclose when asked and never claims to be human.
+
+## §3.25 The deploy attestation is falsifiable, not verifiable — one named gap
+
+**20 September 2026.** `proof:bless` refuses a migration proof whose
+`deploy_precondition` is not satisfied, and checks the attested commit against
+what the production alias is actually serving (`d41e5b7`, hardened in the
+commit after). That closed the ordering hole 0036 and 0038 both fell through.
+
+🔒 **THE NEWEST BUILD AND THE SERVING BUILD ARE TWO FACTS.** A rolled-back
+deploy leaves a newer build sitting Ready and serving nobody, so a check that
+reads the deployment list's top row while claiming to say "what is live" is
+answering a different question than the one asked. The resolver goes through
+the alias for exactly this reason. **This is the same shape as `health`
+defaulting to 'unknown', as `metrics_daily.reactivations` hard-coded to 0, and
+as a summary computed over an empty set: a readable value standing in for the
+value somebody wanted.**
+
+### What it still cannot catch, stated precisely so the trade is visible
+
+The check asks git whether the attested commit is an ancestor of the serving
+one. It proves the code IS live. It cannot prove it was live **at the moment
+the migration ran**.
+
+> **The gap: a deploy that already contained the file, with nothing newer
+> having gone out since, and the migration applied in between.** Every
+> ancestry check passes, because every one of them is true — and the ordering
+> was still wrong.
+
+It is the least likely case, and it is the only one that slips. Everything
+else — a rollback, a commit never pushed, a deploy predating the file, naming
+a commit that was never serving — is caught and named.
+
+### What would close it, and why it is not done
+
+A build-time commit stamp the running app can be ASKED for — `/api/build`
+returning `VERCEL_GIT_COMMIT_SHA`, gated by a token — turns the attestation
+from *falsifiable* into *verifiable*: the script would read what is serving
+from the deployment itself, at the moment of blessing, rather than inferring
+it from the platform's record of what it deployed.
+
+🔴 **Deliberately not done. Operator's decision, 20 September:** adding a token
+to the environment is small but it IS a credential, and it should be a
+deliberate act rather than a step inside something else. The trade is: one
+more secret in the environment, against closing the narrowest of the ordering
+gaps.
+
