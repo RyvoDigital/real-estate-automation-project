@@ -91,7 +91,7 @@ export const CLIENT_SCREENS: NavItem[] = [
   { slug: 'contacts', built: true, label: 'Contacts', inNav: true, presented: false, refusesBecause: 'the contact record carries the consent ledger, which is read with the agency one contact at a time, not browsed' },
   { slug: 'campaign', built: true, label: 'Campaign', inNav: true, presented: false, refusesBecause: 'a forecast of who would be written to is an operator decision before it is an agency conversation' },
   { slug: 'declaration', built: false, label: 'Declaration', labelPt: 'De onde vieram estes contactos', inNav: true, presented: true },
-  { slug: 'listings', built: false, label: 'Listings', labelPt: 'Imóveis', inNav: true, presented: true },
+  { slug: 'listings', built: true, label: 'Listings', labelPt: 'Imóveis', inNav: true, presented: true },
   /*
    * 🔴 NAMED FOR WHAT AN OPERATOR OPENS IT TO FIND OUT, which is the test every
    * other screen was held to.

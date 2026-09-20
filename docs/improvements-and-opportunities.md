@@ -981,3 +981,55 @@ answer "when did this become true" and would still be a current value, silently
 rewritten the next time the stage moved — which is the same defect one field
 along.
 
+## §3.28 The listings table cannot show a reserved property the law permits, and the gate is not wrong
+
+**21 September 2026, found while building the listings screen.**
+
+Brief III §5 requires the table to show its two columns moving independently
+**in both directions**, and names the second case in as many words:
+
+> *"The table must show the independence in both directions, or the separation
+> is only asserted: a `Disponível` property the law refuses, and a `Reservado`
+> property the law permits. One of each is in the sample for that reason."*
+
+🔴 **The second cell cannot be produced.** `decidePublication`'s first rule —
+*cheapest and most absolute, before anybody's paperwork is looked up* — refuses
+anything that is not `available` with `not_on_the_market`. So every reserved
+property reads *may not be advertised*, and the legal column tracks the status
+column exactly where §5 says they must be seen to come apart.
+
+### The gate is not wrong
+
+It answers **"may I advertise this now"**, and for a reserved property the
+answer is genuinely no. §5's sample assumes the column answers a different
+question — **"does the paperwork permit advertising this property"** — which is
+about the licence, the certificate and the jurisdiction, and which nothing
+currently computes.
+
+Two correct functions, one join, §1s again.
+
+### What was NOT done about it
+
+- **Not a second gate.** Two functions answering "may this be advertised" is
+  the two-sources-of-truth failure this repo keeps finding.
+- **🔴 Not a fabricated `status: 'available'`** passed in to extract the
+  paperwork half. That would render *may be advertised* against a property that
+  is sold, which is the worst sentence this screen could produce.
+
+The screen returns the gate's own answer, truthfully, and this entry exists so
+the contradiction is visible rather than quietly rendered away.
+
+### The decision it needs
+
+Which question the legal column answers:
+
+| | consequence |
+|---|---|
+| **may I advertise this now** (today's behaviour) | correct, and the two columns look coupled for every non-available property |
+| **does the paperwork permit it** | shows the independence §5 wants, and needs the gate split into a jurisdiction-and-documents half that can be asked on its own |
+
+The second is the larger change and is probably right, because the column is
+headed *what the law says* rather than *what may go out today*. It is not
+urgent: 04 is held behind `portugal_confirmed`, so every row reads the policy
+refusal regardless.
+
