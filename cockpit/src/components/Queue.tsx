@@ -164,6 +164,3 @@ export function OutageBanner({ count, reason }: { count: number; reason: string 
   )
 }
 
-export function tierOf(minutes: number): Tier {
-  return minutes >= 240 ? 3 : minutes >= 90 ? 2 : minutes >= 30 ? 1 : 0
-}

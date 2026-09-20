@@ -41,6 +41,16 @@ const BRIEF = join(REPO, 'docs/cockpit-design-brief.md')
 // Hex, rgb(), rgba(), hsl(), hsla(). Named CSS colours are deliberately NOT
 // matched: "red" appears in prose, in class names and in aria labels, and a
 // detector with false positives gets suppressed rather than obeyed.
+//
+// 🔒 AND THIS ONE DOES NOT STRIP COMMENTS, DELIBERATELY — unlike the retired-
+// phrase detector in automation-state.test.ts, which does.
+//
+// The two rules look inconsistent and are not. A phrase in a comment is prose
+// ABOUT the code and can never become behaviour. A hex in a comment is a
+// colour sitting two keystrokes from a rule, and that is precisely how one
+// gets pasted in later: somebody explains a value, then uses it. There is
+// always a token name to write instead, so the cost of the strictness is one
+// word. It caught the author writing #08080a in a comment on 20 Sep 2026.
 const COLOUR = /#[0-9A-Fa-f]{3,8}\b|\brgba?\(|\bhsla?\(/g
 
 export function literalColours(text: string): string[] {
@@ -178,6 +188,11 @@ const SEMANTIC_OWNERS = [
   'components/state-chip.module.css',
   'components/clock.tsx',
   'components/clock.module.css',
+  // Added 20 Sep 2026, and only after answering the question this list asks.
+  // The stamp owns a state — live versus frozen — rather than decorating one:
+  // green while the page can still reach the server, the clock's amber when it
+  // cannot. Named in §0.5 as its own row, which is what adding an owner costs.
+  'components/stamp.module.css',
 ]
 
 test('🔴 the semantic colours are reachable only from the components that own a state', () => {

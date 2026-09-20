@@ -188,6 +188,9 @@ async function main() {
   if (listing?.[0]?.id) BY_ROUTE['/listings/[id]/exemption'] = listing[0].id as string
   if (client?.[0]?.id) BY_ROUTE['/segmentation/[clientId]'] = client[0].id as string
   if (client?.[0]?.id) BY_ROUTE['/calibrate/[clientId]'] = client[0].id as string
+  // The client frame (C3). A route added under /c/<client>/ is measured at
+  // every width by construction, exactly like the flat ones.
+  if (client?.[0]?.id) BY_ROUTE['/c/[client]/escalations'] = client[0].id as string
   if (process.env.PROBE_IMPORT_BATCH) BY_ROUTE['/import/[id]'] = process.env.PROBE_IMPORT_BATCH
   const { usable: ROUTES, skipped } = splitRoutes({ byRoute: BY_ROUTE })
 

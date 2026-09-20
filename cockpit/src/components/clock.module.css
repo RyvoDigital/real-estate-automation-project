@@ -1,0 +1,92 @@
+/*
+ * The second of two files allowed to reference the semantic colours
+ * (tokens.css rule 3). A clock's colour is its tier, and its tier is a
+ * position — see Clock.tsx.
+ */
+
+.clock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.value {
+  font-family: var(--display);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+/* "4h" large, "28m" small and dimmer — the amount is typeset, not printed. */
+.minutes {
+  font-size: 15px;
+  opacity: 0.62;
+  margin-left: 1px;
+}
+
+/*
+ * THE TIER IS A POSITION.
+ *
+ * A hairline track with notches at 30, 90 and 240 minutes on a 300-minute
+ * scale. Where the fill sits IS the tier, so "late" is somewhere the row is
+ * rather than a word floating in a column of its own.
+ *
+ * 🔒 The notches are not coloured. Six steps on a scale are sequence, and
+ * §0.5 never colours sequence: colouring them would read as grades of bad.
+ */
+.track {
+  position: relative;
+  width: 104px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--edge-2);
+}
+.fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 2px;
+  background: var(--text-3);
+}
+.notch {
+  position: absolute;
+  top: -2px;
+  width: 1px;
+  height: 7px;
+  background: var(--edge-2);
+}
+
+.word {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* Red appears only at breach, which is the one tier that is past a limit. */
+.t3 .value { color: var(--red); }
+.t3 .fill { background: var(--red); }
+/* Late is a clock, and amber means a clock is the reason. */
+.t2 .value { color: var(--clock); }
+.t2 .fill { background: var(--clock); }
+/* Ageing is the dim step of the same pair. */
+.t1 .value { color: var(--clock-dim); }
+.t1 .fill { background: var(--clock-dim); }
+/* Settled is not a state worth colouring. */
+.t0 .value { color: var(--text-2); }
+
+/*
+ * FROZEN. The clocks stopped because the page can no longer reach the server.
+ * Dimmed so the stillness reads as a state rather than as a slow afternoon,
+ * and paired with an amber stamp that carries the age.
+ */
+.frozen .value { color: var(--clock-dim); }
+.frozen .fill { background: var(--clock-dim); }
+
+@media (max-width: 900px) {
+  .value { font-size: 22px; }
+  .track { width: 84px; }
+}

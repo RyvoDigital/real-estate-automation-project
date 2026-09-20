@@ -1,0 +1,55 @@
+/* The read stamp. Colour here is the clock's amber, which is the one meaning
+   a stale page has: a clock is the reason. */
+
+.stamp {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  margin-left: auto;
+  padding: 10px 16px;
+  border-radius: 18px;
+  background: var(--glass);
+  box-shadow: var(--glass-hi);
+  font-size: 13px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.stamp b {
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.frozen {
+  background: var(--clock-ground);
+  box-shadow: inset 0 0 0 1px var(--clock-ground);
+}
+
+/* The pulse is the only ambient motion in the cockpit, and it encodes one
+   thing: this page is still reaching the server. It stops when that stops,
+   because it is removed with the live state entirely. */
+.pulse {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: var(--through);
+  vertical-align: 1px;
+  animation: breathe 2s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.28; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse { animation: none; }
+}
+
+@media (max-width: 900px) {
+  .stamp { margin-left: 0; align-items: flex-start; white-space: normal; }
+}

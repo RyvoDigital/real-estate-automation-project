@@ -1,0 +1,166 @@
+/*
+ * The escalation queue, client level. Brief III §2.
+ *
+ * THE ROW IS THREE COLUMNS: mark | body | clock.
+ *
+ * It used to be four. The fourth held a tag — Settled/Ageing/Late/Breach —
+ * and that column is what made the tiers look accidental: it carried three
+ * unrelated vocabularies at different times and belonged to none of them. The
+ * tier now lives in the clock as a position, the severity lives on the mark as
+ * a badge, and the column is gone. Brief §2.1.
+ */
+
+.head {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.title {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+.sub {
+  margin: 8px 0 0;
+  max-width: 88ch;
+  font-size: 14.5px;
+  color: var(--text-2);
+}
+.sub b { color: var(--text); font-weight: 600; }
+
+.card {
+  padding: 20px 22px;
+  border-radius: 24px;
+  background: var(--glass);
+  box-shadow: var(--glass-hi);
+}
+.cardHead {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.cardHead h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.count { font-size: 13.5px; color: var(--text-2); }
+.note { margin-left: auto; font-size: 12.5px; color: var(--text-3); }
+
+.row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 128px;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 4px;
+  border-top: 1px solid var(--edge);
+  color: inherit;
+}
+.row:first-of-type { border-top: 0; }
+.row:hover { background: var(--lift-2); border-radius: 14px; }
+
+.mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-family: var(--display);
+  font-size: 12px;
+  font-weight: 600;
+  background: linear-gradient(180deg, var(--ca-a), var(--ca-b));
+  color: var(--ca-fg);
+}
+/* The severity badge rides the mark: the mark says WHO, the badge says what
+   kind of trouble. Brief §2.1. */
+.badge {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--black);
+}
+
+.verb { font-size: 15.5px; font-weight: 600; color: var(--text); }
+.who {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+  margin-top: 3px;
+  font-size: 13.5px;
+  color: var(--text-2);
+}
+
+/* handledElsewhere sits at the foot, in its own tray, in place.
+   Its ground comes from <StateSurface meaning="handled">, so this file never
+   names the colour. */
+.tray {
+  margin-top: 8px;
+  padding-inline: 12px;
+}
+.trayNote {
+  margin: 10px 4px 0;
+  font-size: 13.5px;
+  color: var(--text-3);
+}
+
+.banner {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  margin-bottom: 12px;
+  padding: 16px 20px;
+  border-radius: 20px;
+  font-size: 14.5px;
+}
+.banner b { color: var(--text); }
+.thrown {
+  margin-top: 8px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
+.absent {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 40px;
+  padding: 20px 4px 0;
+  font-size: 13px;
+  color: var(--text-3);
+}
+.absent h2 {
+  grid-column: 1 / -1;
+  margin: 0 0 6px;
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.absent p { margin: 0; }
+
+@media (max-width: 900px) {
+  .title { font-size: 24px; }
+  .row { grid-template-columns: 40px minmax(0, 1fr); row-gap: 10px; }
+  /* The clock moves under the body rather than shrinking into it. */
+  .row > :last-child { grid-column: 2; align-items: flex-start; }
+  .absent { grid-template-columns: 1fr; }
+}

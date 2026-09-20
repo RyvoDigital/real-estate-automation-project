@@ -23,6 +23,8 @@ export type QueueRow = {
   id: string
   name: string
   phone: string | null
+  /** Added for the client frame: the queue is now readable per client. */
+  clientId: string
   clientName: string
   at: string | null
   minutes: number
@@ -103,16 +105,26 @@ export async function getOpenCount(limit = 100): Promise<number> {
   return (data ?? []).filter((l) => parseEscalated(l.qualification)).length
 }
 
-export async function getQueue(limit = 100): Promise<QueueRow[]> {
+export async function getQueue(limit = 100, clientId?: string): Promise<QueueRow[]> {
   const db = admin()
 
-  const { data: leads, error } = await db
+  /*
+   * `clientId` narrows the SAME read rather than adding a second one.
+   *
+   * docs/cockpit-build-plan.md §1.1: the client-level escalations screen and
+   * the operator-level queue must not be two queries that agree today. They
+   * are one query with a filter, so a change to what counts as escalated
+   * reaches both or neither.
+   */
+  let q = db
     .from('leads')
     .select(
       'id, full_name, phone, client_id, qualification, budget_min, budget_max, timeline, area, stage, lead_type, last_contact_at',
     )
     .not('qualification->>escalated', 'is', null)
-    .limit(limit)
+  if (clientId) q = q.eq('client_id', clientId)
+
+  const { data: leads, error } = await q.limit(limit)
 
   if (error) throw new Error(`leads query failed: ${error.message}`)
   if (!leads || leads.length === 0) return []
@@ -143,6 +155,7 @@ export async function getQueue(limit = 100): Promise<QueueRow[]> {
       id: lead.id,
       name: lead.full_name ?? 'Unknown lead',
       phone: lead.phone,
+      clientId: lead.client_id,
       clientName: clientNames.get(lead.client_id) ?? 'Unknown client',
       at: esc.at,
       minutes,

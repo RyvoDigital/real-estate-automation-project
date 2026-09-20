@@ -8,8 +8,19 @@
 .app {
   display: grid;
   grid-template-columns: 276px minmax(0, 1fr);
-  min-height: 100%;
+  /* 100dvh, not 100%: the frame must paint the whole viewport or the body
+     behind it shows through below the content as a seam of a DIFFERENT black.
+     globals.css still paints its own --page on body for the screens it still
+     serves, and the two blacks are close enough to look like a rendering
+     artefact rather than a bug. Seen on the phone at 390px. */
+  min-height: 100dvh;
   background: var(--black);
+  /* The running face for everything inside the new frame. Without this, body
+     keeps globals.css's Archivo and only the headings become §0.5 — which is
+     exactly the silent half-swap a screenshot does not reveal. Found by
+     reading the computed style rather than looking at the render. */
+  font-family: var(--sans);
+  color: var(--text);
 }
 
 .side {
@@ -133,32 +144,45 @@
 .main { min-width: 0; padding: 28px 36px 48px; }
 
 /*
- * ⚠️ THE PHONE SHAPE OF THIS FRAME IS NOT DESIGNED YET.
+ * THE PHONE. Answered in C3 — see FrameTabs.tsx for the argument.
  *
- * Brief §1.13 says which SCREENS refuse the phone; no brief says what this
- * FRAME looks like on one. The existing cockpit answers it with a fixed bottom
- * tab bar, which was argued from a real defect — a top bar whose used width
- * was its max-content widened <body> on every screen, and it shipped broken
- * twice.
+ * TWO ELEMENT SETS, NOT ONE THAT CHANGES SHAPE. The sidebar is hidden below
+ * 901px and the bottom bar is hidden above 900px, so nothing about the phone
+ * can be altered by a desktop rule, by construction. The previous cockpit
+ * shipped a widened <body> twice by reflowing one set of elements instead.
  *
- * So this is a holding shape rather than an answer: the sidebar stacks above
- * the content, full width, and the nav wraps. It cannot overflow, which is what
- * tests/probe-layout.ts asserts at 360, 390 and 430. It is replaced when the
- * phone frame is designed, in C3, and it is marked here so nobody mistakes it
- * for a decision.
+ * The client's name stays visible on a phone — a screen full of one agency's
+ * people with no indication of which agency is the worst possible version of
+ * this — so the header row survives and only the nav moves to the bar.
  */
 @media (max-width: 900px) {
-  .app { grid-template-columns: minmax(0, 1fr); }
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    /* auto 1fr, not auto auto. A grid container with min-height and two
+       auto rows distributes the slack BETWEEN them (align-content behaves as
+       stretch), so the header row inflated from 68px to 192px the moment
+       min-height: 100dvh was added to fix the background seam. One fix
+       causing the next, caught by measuring the box rather than looking at
+       the screenshot. */
+    grid-template-rows: auto 1fr;
+  }
   .side {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
     border-right: 0;
     border-bottom: 1px solid var(--edge);
     background: var(--lift-1);
   }
-  .nav { flex-direction: row; flex-wrap: wrap; }
-  .item { flex: 0 0 auto; }
-  .itemCount { margin-left: 6px; }
-  .foot { margin-top: 12px; }
-  .main { padding: 20px 16px 40px; }
+  .brand { display: none; }
+  .nav { display: none; }
+  .foot { display: none; }
+  .up { margin-left: auto; }
+  .switcher, .still { width: auto; padding: 8px 12px; }
+  .still .switcherName { font-size: 17px; }
+  /* Room for the fixed bar, plus the home indicator. */
+  .main { padding: 20px 16px calc(84px + env(safe-area-inset-bottom, 0px)); }
 }
 
 @media (prefers-reduced-motion: reduce) {

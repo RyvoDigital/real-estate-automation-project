@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { frameSide, type FrameMode } from '@/lib/frame'
 import { badge, type CountsOrUnknown } from '@/lib/counts'
+import { FrameTabs } from './FrameTabs'
 import styles from './Frame.module.css'
 
 /**
@@ -86,6 +87,17 @@ export function Frame({
 
         <div className={styles.foot}>{operatorEmail} · Europe/Lisbon</div>
       </aside>
+
+      {/* The phone's own element set. Hidden above 900px; the sidebar's nav is
+          hidden below 901px. Neither can alter the other. Presented mode gets
+          no bar at all, because it has exactly one destination. */}
+      {mode !== 'presented' && side.items.length > 1 && (
+        <FrameTabs
+          primary={side.items.slice(0, 3)}
+          rest={side.items.slice(3)}
+          current={current ?? ''}
+        />
+      )}
 
       <main className={styles.main}>{children}</main>
     </div>

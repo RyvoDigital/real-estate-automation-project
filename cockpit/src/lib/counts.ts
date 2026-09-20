@@ -65,9 +65,14 @@ export type CountsOrUnknown = Counts | null
 
 const QUEUE_LIMIT = 100
 
-export async function readCounts(): Promise<CountsOrUnknown> {
+/**
+ * `clientId` narrows the same read. The operator-level badge and a client's
+ * own headline are then the same function with a different argument, which is
+ * the whole point — see the note at the top of this file.
+ */
+export async function readCounts(clientId?: string): Promise<CountsOrUnknown> {
   try {
-    const rows = await getQueue(QUEUE_LIMIT)
+    const rows = await getQueue(QUEUE_LIMIT, clientId)
     const handledElsewhere = rows.filter((r) => r.handledElsewhere).length
     return {
       waiting: rows.length - handledElsewhere,

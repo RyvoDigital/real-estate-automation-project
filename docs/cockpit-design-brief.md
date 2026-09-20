@@ -271,6 +271,8 @@ desaturated foreground on a ground of about 8.5% — never a saturated fill.
 | `--red` | `#FF6A5C` · `rgba(255,106,92,.085)` | **Broken, or past its limit** | a failed send · a breach · a critical anomaly · a read that failed · a body that differs from what was intended |
 | `--handled` | `#B9A9FF` · `rgba(185,169,255,.07)` | **Replied outside the cockpit** — `handledElsewhere`, and nothing else | Today's violet tray |
 
+| `--through` · `--clock` **on the read stamp** | *This page can still reach the server* · *it cannot* | Added 20 Sep 2026 during the build, when the token guard refused a third component reaching for a semantic colour and asked what state it owned. 🔒 **The stamp owns the live/frozen state**, which is why it may: the pulse is green while re-reads succeed and the whole stamp turns amber when one fails, because a clock is then the reason every figure below it has stopped. It is the only ambient motion in the cockpit and it encodes exactly one thing |
+
 **Never coloured, by rule:**
 - 🔒 **Uncertainty and absence** — *we do not know* (`unresolved`), *never*
   (S2), *not checked* (S3), *no policy row*, **a row no lawyer has confirmed**,

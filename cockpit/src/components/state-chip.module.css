@@ -1,0 +1,95 @@
+/*
+ * One of two files in the cockpit allowed to reference the semantic colours.
+ * tests/tokens.test.ts enforces that; see tokens.css rule 3.
+ *
+ * 🔒 COLOUR IS NEVER THE ONLY SIGNAL. Every chip carries a WORD and a SHAPE as
+ * well as a colour, because this system is full of distinctions colour would
+ * flatten — unavailable versus unknown, objected versus withdrawn, stale versus
+ * current, ageing versus late. Each must survive greyscale.
+ */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Went through, or is in force. */
+.through {
+  color: var(--through);
+  background: var(--through-ground);
+  box-shadow: inset 0 0 0 1px var(--through-ground);
+}
+
+/* A rule held it back — a decision, not an error. */
+.held {
+  color: var(--held);
+  background: var(--held-ground);
+  box-shadow: inset 0 0 0 1px var(--held-ground);
+}
+
+/* A clock is the reason. */
+.clock {
+  color: var(--clock);
+  background: var(--clock-ground);
+  box-shadow: inset 0 0 0 1px var(--clock-ground);
+}
+
+/* Broken, or past its limit. */
+.red {
+  color: var(--red);
+  background: var(--red-ground);
+  box-shadow: inset 0 0 0 1px var(--red-ground);
+}
+
+/* Replied outside the cockpit. handledElsewhere, and nothing else. */
+.handled {
+  color: var(--handled);
+  background: var(--handled-ground);
+  box-shadow: inset 0 0 0 1px var(--handled-ground);
+}
+
+/*
+ * Uncertainty, absence, sequence. 🔒 Deliberately colourless: colouring them
+ * would assert something the system does not know, and would make three
+ * different kinds of nothing look like three severities.
+ */
+.grey {
+  color: var(--text-2);
+  box-shadow: inset 0 0 0 1px var(--edge-2);
+}
+
+/* The shape half of "colour is never the only signal". */
+.mark { flex: none; }
+
+/*
+ * Colour without a ground, for a mark that sits on another surface — the
+ * severity badge on a client mark, for instance. Same five meanings, same
+ * shapes, no chip around them.
+ */
+.bare { display: inline-grid; place-items: center; }
+.bare.through { background: none; box-shadow: none; }
+.bare.held { background: none; box-shadow: none; }
+.bare.clock { background: none; box-shadow: none; }
+.bare.red { background: none; box-shadow: none; }
+.bare.handled { background: none; box-shadow: none; }
+.bare.grey { background: none; box-shadow: none; }
+
+/*
+ * A SURFACE that carries a state — a banner, a tray. The same meanings at page
+ * scale rather than inline, so a screen never needs to name a ground colour
+ * either. Without this, the first real screen reached for --red-ground,
+ * --through-ground and --handled-ground directly, and the guard caught it.
+ */
+.surface { border-radius: 20px; }
+.surface.through { background: var(--through-ground); box-shadow: inset 0 0 0 1px var(--through-ground); color: var(--text-2); }
+.surface.held { background: var(--held-ground); box-shadow: inset 0 0 0 1px var(--held-ground); color: var(--text-2); }
+.surface.clock { background: var(--clock-ground); box-shadow: inset 0 0 0 1px var(--clock-ground); color: var(--text-2); }
+.surface.red { background: var(--red-ground); box-shadow: inset 0 0 0 1px var(--red-ground); color: var(--text-2); }
+.surface.handled { background: var(--handled-ground); box-shadow: none; color: var(--text-2); }
+.surface.grey { background: var(--glass); box-shadow: var(--glass-hi); color: var(--text-2); }
