@@ -44,3 +44,5 @@ cockpit/tsconfig.tsbuildinfo
 cockpit/.vercel/
 .vercel
 tests/*.SABOTAGE.json
+.playwright-mcp
+/tmp-shots/
