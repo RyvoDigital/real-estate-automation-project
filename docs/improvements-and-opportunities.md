@@ -400,6 +400,28 @@ The matching run refuses for want of thresholds, F5 has no audience until the
 declaration happens, and the notification's wording cannot be judged. All three
 resolve in one afternoon with one agency, and none of them resolve without it.
 
+### 3.24 Anything blocked on a PERSON lives in the gated ledger, not here
+
+**From 20 September 2026.** `cockpit/src/lib/gates.ts` holds what is waiting on
+somebody else — Meta's verification, Margarida's answers, ADENE's credentials,
+a first client, a first close, a calibration afternoon, the legal entity — and
+for each thing blocked, **what to do the moment that gate opens**.
+
+🔴 **Flipping a gate to `open: true` makes the suite FAIL and list the work.**
+Recording that a gate opened and surfacing what it unblocked are then the same
+act, which is the one property a document cannot have: a document has to be
+opened at the right moment, and the moment a gate opens is the worst possible
+time to remember one exists.
+
+🔒 **So it absorbs rather than duplicates.** Where an entry here is blocked on a
+person, the blocker is recorded THERE and this list points at it. Two records
+of one fact drift — the cross-screen sweep found twenty-two disagreements
+produced exactly that way, and `tests/reachability.test.ts` now points at the
+gate rather than restating it for the same reason.
+
+**What stays here:** work blocked on a DECISION or on our own effort. §3.22 is
+ours to do, not somebody's to answer.
+
 ### 3.23 🔴 Four automations' entry points have no callers — the feature is complete in the small and connected to nothing
 
 **Found 20 Sep 2026.** §3.22 was one instance. The operator asked whether 02,

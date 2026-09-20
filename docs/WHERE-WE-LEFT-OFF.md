@@ -18,6 +18,11 @@ every time:**
 
 A handover that says "built" without saying which of the three has not said
 anything.
+
+🔒 **And what is waiting on somebody else lives in `cockpit/src/lib/gates.ts`**,
+keyed by gate, with what to do the moment each opens. Flipping one to
+`open: true` makes the suite fail and list the work — so this file does not
+carry that list, and neither does anywhere else.
 **§0 is the cockpit, §0a is Automation 05, §0b is 04, §0c is 03.** The three
 automations all end in the same two rooms: an agency's, and a lawyer's.
 

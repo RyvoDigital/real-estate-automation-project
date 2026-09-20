@@ -76,6 +76,13 @@ type EntryPoint = {
  *
  * So this list is the ENTRY POINTS: the functions that are the top of a path,
  * where a caller is the difference between a feature running and not.
+ *
+ * 🔒 AND IT DOES NOT RESTATE A GATE. Several of these wait on somebody —
+ * Meta, a lawyer, an agency — and that belongs in src/lib/gates.ts, which is
+ * keyed by gate and says what to do the moment one opens. This file answers
+ * "does anything call it"; that one answers "who are we waiting on". A fact
+ * written in both drifts, so entries here POINT at the gate rather than
+ * describing it.
  */
 const ENTRY_POINTS: EntryPoint[] = [
   // ── 02 Reactivation ──────────────────────────────────────────────────────
@@ -85,7 +92,7 @@ const ENTRY_POINTS: EntryPoint[] = [
     fn: 'runCampaign',
     what: 'the thing that actually sends',
     wiredBy:
-      'a route or n8n workflow that starts a run — blocked upstream on Meta verification and an approved template, so the caller is not the next thing to build',
+      'a route or n8n workflow that starts a run. 🔒 The upstream blocker is not restated here — src/lib/gates.ts holds it as campaign-send-path behind meta_verified, and a fact recorded in two places drifts',
   },
   {
     automation: '02 Reactivation',
@@ -145,7 +152,7 @@ const ENTRY_POINTS: EntryPoint[] = [
     module: 'publication/piece.ts',
     fn: 'assemblePiece',
     what: 'the advertisement itself, with its mandatory mentions inside the text',
-    wiredBy: 'the prepared-piece screen, which takes a cleared verdict — so it follows the publish screen',
+    wiredBy: 'the prepared-piece screen, which takes a cleared verdict — and none can exist until Portugal is confirmed. src/lib/gates.ts holds that as prepared-piece behind portugal_confirmed',
   },
   /*
    * ✅ recheckClearances CAME OFF THIS LEDGER ON 20 SEPTEMBER 2026 — second
@@ -170,7 +177,7 @@ const ENTRY_POINTS: EntryPoint[] = [
     module: 'review/runner.ts',
     fn: 'planReviewAsks',
     what: 'who to ask for a review, and who not to',
-    wiredBy: 'a scheduled run — blocked upstream on Meta and on a review destination being set',
+    wiredBy: 'a scheduled run. The gate and what to do when it opens live in src/lib/gates.ts as review-asks; 05 waits on two things and Meta is only one of them',
   },
   {
     automation: '05 Review requests',
