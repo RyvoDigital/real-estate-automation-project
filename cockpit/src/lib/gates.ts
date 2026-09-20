@@ -31,13 +31,17 @@
  * somebody's to answer.
  *
  * ───────────────────────────────────────────────────────────────────────────
- * IT IS NOT RENDERED ANYWHERE YET, AND THAT IS DELIBERATE
+ * WHAT RENDERS IT, AND WHAT STILL DOES NOT
  * ───────────────────────────────────────────────────────────────────────────
- * Today's group 5 — "Waiting on someone else" — says it is not built, because
- * the waiting room had no source. This is that source. It lives in src/lib
- * rather than in tests/ so a screen can read it without moving anything, and
- * it is not rendered until group 5 is designed as the thing it is rather than
- * as the thing that completes a row of five.
+ * The client landing's third band — "nobody's yet" — reads this, through
+ * `gatesHoldingAutomation`. That is why `holds` exists below: a band that
+ * named the automations itself would be a second claim about which gate holds
+ * what, and the whole point of this file is that there is only one.
+ *
+ * Today's group 5 — "Waiting on someone else" — still says it is not built.
+ * The source now exists, but group 5 is the OPERATOR's waiting room across
+ * every client, and it is not rendered until it is designed as the thing it
+ * is rather than as the thing that completes a row of five.
  */
 
 export type GateId =
@@ -56,6 +60,21 @@ export type Gate = {
   what: string
   /** 🔒 Whose act opens it. A named person or organisation, never "us". */
   whoHolds: string
+  /**
+   * 🔴 WHETHER THIS AGENCY CAN END THE WAIT, OR NOBODY HERE CAN.
+   *
+   * The client landing splits its bands by who can act, and this is the only
+   * place that decides which side a gate falls on. Without it the landing
+   * would re-derive it from `whoHolds`, which is prose — "Margarida", "an
+   * agency", "Meta, and us before her" — and a screen parsing prose to make a
+   * structural decision is a guess with a citation attached.
+   *
+   *   'the agency'  the agency being looked at could end it this week: an
+   *                 afternoon of calibration, reporting a close.
+   *   'outside'     nobody in this building can move it — Meta, a lawyer,
+   *                 ADENE. Shown so it is not re-diagnosed every week.
+   */
+  answerable: 'the agency' | 'outside'
   /** How we would know it had opened, so `open` is set from evidence. */
   evidence: string
   /** When we started waiting, where that is known. */
@@ -75,6 +94,7 @@ export const GATES: Gate[] = [
     evidence:
       'the WhatsApp Manager shows the business as verified; it checks the certidão permanente, the NIPC and proof of address for the legal entity',
     since: '2026-09-03',
+    answerable: 'outside',
     open: false,
   },
   {
@@ -84,6 +104,7 @@ export const GATES: Gate[] = [
     evidence:
       'advertising_policy and jurisdiction_policy rows for PT carry both confirmed_at and confirmed_by — the two columns are inert until both are set',
     since: '2026-08-24',
+    answerable: 'outside',
     open: false,
   },
   {
@@ -91,6 +112,7 @@ export const GATES: Gate[] = [
     what: 'an analysis of what Spain requires of a property advertisement, and of whom we may contact there',
     whoHolds: 'Margarida, and us before her',
     evidence: 'an advertising_policy row exists for ES at all — today there is none, which is an absence of analysis rather than a pending confirmation',
+    answerable: 'outside',
     open: false,
   },
   {
@@ -98,6 +120,7 @@ export const GATES: Gate[] = [
     what: "access to ADENE's register, so an energy certificate can be looked up rather than typed",
     whoHolds: 'ADENE',
     evidence: 'credentials in hand and a first successful lookup; registration was submitted',
+    answerable: 'outside',
     open: false,
   },
   {
@@ -105,6 +128,7 @@ export const GATES: Gate[] = [
     what: 'a signed agency that is not a rehearsal',
     whoHolds: 'an agency',
     evidence: 'a clients row with rehearsal = false — 0037 exists to make that a declared answer rather than a default',
+    answerable: 'outside',
     open: false,
   },
   {
@@ -112,6 +136,7 @@ export const GATES: Gate[] = [
     what: 'an agent reporting that a property sold, and saying who the buyer was',
     whoHolds: 'an agency',
     evidence: 'a closes row with a party recorded — the close and the party arrive separately and almost always will',
+    answerable: 'the agency',
     open: false,
   },
   {
@@ -119,6 +144,7 @@ export const GATES: Gate[] = [
     what: "an afternoon with an agency answering what their buyers actually want",
     whoHolds: 'an agency',
     evidence: 'client_automations config for 03 carries thresholds with an author and a date',
+    answerable: 'the agency',
     open: false,
   },
   {
@@ -126,9 +152,24 @@ export const GATES: Gate[] = [
     what: 'which legal entity invoices, which decides the invoicing software and the VAT treatment',
     whoHolds: 'the operator and an accountant',
     evidence: 'the entity is registered and named in the operations reference',
+    answerable: 'outside',
     open: false,
   },
 ]
+
+/**
+ * The five automations, by the `key` column `0001_base_schema.sql` seeds.
+ *
+ * 🔒 The key, never the number. "02" is how we talk and `db_reactivation` is
+ * what the database holds; a screen that joined on a spoken number would break
+ * the first time the order changed.
+ */
+export type AutomationKey =
+  | 'inbound_concierge'
+  | 'db_reactivation'
+  | 'lead_nurture'
+  | 'listing_launch'
+  | 'reputation_loop'
 
 export type Blocked = {
   id: string
@@ -137,6 +178,16 @@ export type Blocked = {
   /** Where it lives — a path, a document, a table. Repo-wide. */
   where: string
   gate: GateId
+  /**
+   * WHICH AUTOMATION THIS HOLDS, WHERE IT HOLDS ONE.
+   *
+   * Absent means it holds no single automation: the Enquadramento is a legal
+   * reading, invoicing is the business's own, and `rehearsal-not-null` is a
+   * migration. Absent is not "unknown" — it is a claim that this entry is not
+   * about one automation, and a screen listing what holds an automation must
+   * not show it.
+   */
+  holds?: AutomationKey
   /**
    * 🔴 WHAT TO RE-READ, BECAUSE THIS ENTRY EXPECTS TO BE WRONG.
    *
@@ -180,6 +231,7 @@ export const BLOCKED: Blocked[] = [
     // what Today's group 5 would render if it were built.
     what: 'runCampaign has no caller, so 02 is held and nothing goes out',
     where: 'cockpit/src/lib/send/runner.ts, and tests/reachability.test.ts holds the entry',
+    holds: 'db_reactivation',
     gate: 'meta_verified',
     onOpen:
       'build the route or workflow that starts a run, wire checkBeforeBatch in front of it, and remove runCampaign and checkBeforeBatch from the reachability ledger',
@@ -190,6 +242,7 @@ export const BLOCKED: Blocked[] = [
     id: 'template-submission',
     what: 'no reactivation template can be submitted for approval, so none can be approved',
     where: 'message_templates, and the Templates screen at /c/<client>/templates',
+    holds: 'db_reactivation',
     gate: 'meta_verified',
     onOpen:
       'submit the reactivation template in the WhatsApp Manager, then record the approval with recordApprovedTemplate — the screen reads the record rather than the account',
@@ -200,6 +253,7 @@ export const BLOCKED: Blocked[] = [
     id: 'review-asks',
     what: 'planReviewAsks has no caller — 05 cannot ask anybody for a review',
     where: 'cockpit/src/lib/review/runner.ts',
+    holds: 'reputation_loop',
     gate: 'meta_verified',
     onOpen:
       'wire the scheduled run, and check the review destination is set first — 05 is blocked on two things and Meta is only one of them',
@@ -212,6 +266,7 @@ export const BLOCKED: Blocked[] = [
     id: 'pt-publication-gate',
     what: 'every Portuguese property refuses at policy_not_confirmed, so no clearance can ever be produced',
     where: 'advertising_policy PT row; the gate at /c/<client>/listings/<id>/publish',
+    holds: 'listing_launch',
     gate: 'portugal_confirmed',
     onOpen:
       'set confirmed_at and confirmed_by on the PT row, then walk one property through the publish screen — the next refusal will be requirement_unmet for the AMI registration, which is improvements §3.22 and ours to fix',
@@ -222,6 +277,7 @@ export const BLOCKED: Blocked[] = [
     id: 'prepared-piece',
     what: 'assemblePiece has no caller, because it takes a cleared verdict and none can exist',
     where: 'cockpit/src/lib/publication/piece.ts',
+    holds: 'listing_launch',
     gate: 'portugal_confirmed',
     onOpen:
       'build the prepared-piece screen against a real cleared verdict, and remove assemblePiece from the reachability ledger',
@@ -232,6 +288,7 @@ export const BLOCKED: Blocked[] = [
     id: 'contact-jurisdiction',
     what: 'no contact in Portugal can be written to under segment A — the jurisdiction row permits nothing while unconfirmed',
     where: 'jurisdiction_policy PT row; lib/jurisdiction-policy.ts',
+    holds: 'db_reactivation',
     gate: 'portugal_confirmed',
     onOpen:
       'set confirmed_at and confirmed_by, then re-read the declaration screen with an agency — the sentence it shows changes because the TABLE changed, which is the mechanism working',
@@ -253,6 +310,7 @@ export const BLOCKED: Blocked[] = [
     id: 'spain-rows',
     what: 'Spain has no advertising_policy row at all, so nothing can be published there and the reason is no_policy_row',
     where: 'advertising_policy; the Policy screen names the absence in its own section',
+    holds: 'listing_launch',
     gate: 'spain_analysed',
     onOpen:
       'add the ES rows including the regional ones, set regions_exhaustive honestly, and check the presented declaration sentence changes from "ainda não trabalhamos" on its own',
@@ -265,6 +323,7 @@ export const BLOCKED: Blocked[] = [
     id: 'certificate-lookup',
     what: 'an energy certificate can only be typed, never confirmed against the register',
     where: 'listing_facts.source is typed | lookup_confirmed, and nothing produces the second',
+    holds: 'listing_launch',
     gate: 'adene_credentials',
     onOpen:
       'build the lookup as a PROPOSAL into fact_proposals — the system proposes and the agency confirms, and an unconfirmed lookup is not a fact',
@@ -298,6 +357,7 @@ export const BLOCKED: Blocked[] = [
     id: 'close-intake',
     what: 'recordClose, recordParty and markAgentAsked have no caller — nothing can report a sale',
     where: 'cockpit/src/lib/review/closes-store.ts; the close-and-party screen is designed in brief II §2.5 and not built',
+    holds: 'reputation_loop',
     gate: 'first_close',
     onOpen:
       'build the close-and-party screen, remembering that a close is born with no party and the answer is a second act by a second person at a second time',
@@ -310,6 +370,7 @@ export const BLOCKED: Blocked[] = [
     id: 'matching-thresholds',
     what: '03 ranks nobody: thresholds_not_configured is a configuration state, not a statement about leads',
     where: 'client_automations config for 03; the calibration screen exists and is reachable',
+    holds: 'lead_nurture',
     gate: 'calibration_afternoon',
     onOpen:
       'run the calibration with the agency, in their words, nothing pre-filled — then the matching run, the notification wording and the triage floor can all be judged for the first time',
@@ -320,6 +381,7 @@ export const BLOCKED: Blocked[] = [
     id: 'extract-criteria',
     what: 'extractForLead and recomputeRequirementsForLead have no caller',
     where: 'cockpit/src/lib/matching/',
+    holds: 'lead_nurture',
     gate: 'calibration_afternoon',
     onOpen: 'wire extraction into the Concierge run once there are thresholds to rank against, and remove both from the reachability ledger',
     thenReRead:
@@ -338,3 +400,22 @@ export const BLOCKED: Blocked[] = [
       "whether the entity decision changes who the contract is with. The contract names a party, and a different entity is a different contract rather than a different letterhead",
   },
 ]
+
+/**
+ * Every gate holding a given automation, with the entries behind each.
+ *
+ * 🔒 THE ONLY WAY A SCREEN MAY ASK THIS. The client landing's third band and
+ * the clocks strip both need "what is holding 02", and if either worked it out
+ * from its own table there would be two answers to one question — which is the
+ * twenty-two-disagreement failure the shared-claims register was written after.
+ *
+ * An OPEN gate is never returned. A gate that has opened is not holding
+ * anything; the entries behind it are work we owe, and `gates.test.ts` is
+ * already failing to say so.
+ */
+export function gatesHoldingAutomation(key: AutomationKey): { gate: Gate; entries: Blocked[] }[] {
+  const mine = BLOCKED.filter((b) => b.holds === key)
+  return GATES.filter((g) => !g.open)
+    .map((g) => ({ gate: g, entries: mine.filter((b) => b.gate === g.id) }))
+    .filter((x) => x.entries.length > 0)
+}

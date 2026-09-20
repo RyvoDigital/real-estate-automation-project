@@ -97,3 +97,27 @@
  * and no grading. It takes the tray's own colour.
  */
 .untiered .value { color: var(--handled); }
+
+/*
+ * The day scale, for a wait on somebody outside.
+ *
+ * 🔒 IT NEVER REACHES RED. Red means broken or past a limit (§0.5), and a
+ * lawyer taking four weeks is neither — it is slow, which is what amber is
+ * for. The two steps deepen the amber rather than changing its meaning, so
+ * passing 21 days reads as "longer", never as "wrong".
+ */
+.d0 .value { color: var(--text-2); }
+.d0 .fill { background: var(--text-3); }
+
+.d1 .value { color: var(--clock-dim); }
+.d1 .fill { background: var(--clock-dim); }
+
+.d2 .value { color: var(--clock); }
+.d2 .fill { background: var(--clock); }
+
+/*
+ * Elapsed time, ungraded and uncoloured. No track: a track with notches IS a
+ * grading, and there is nothing here to grade.
+ */
+.since .value { color: var(--text-2); }
+.since .word { color: var(--text-3); }

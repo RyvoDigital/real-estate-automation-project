@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { BLOCKED, GATES, type Blocked, type Gate, type GateId } from '../src/lib/gates'
+import { BLOCKED, GATES, gatesHoldingAutomation, type AutomationKey, type Blocked, type Gate, type GateId } from '../src/lib/gates'
 
 /*
  * ═══════════════════════════════════════════════════════════════════════════
@@ -139,6 +139,87 @@ test('ids are unique, so deleting one entry cannot silently delete another', () 
   assert.equal(new Set(gateIds).size, gateIds.length)
 })
 
+test('🔴 what holds an automation is asked of the ledger, never assembled twice', () => {
+  /*
+   * `holds` is a claim, so it gets the same treatment as the rest: it must
+   * name a real automation, and the reader must actually return the entry.
+   *
+   * The absences are deliberate and are asserted as such. An entry with no
+   * `holds` is saying "this is not about one automation" — the Enquadramento
+   * is a legal reading, invoicing is ours, rehearsal-not-null is a migration.
+   * Left unasserted, a forgotten `holds` and a considered absence would look
+   * identical, which is the S3-versus-S1 confusion in a different costume.
+   */
+  const KEYS: AutomationKey[] = [
+    'inbound_concierge',
+    'db_reactivation',
+    'lead_nurture',
+    'listing_launch',
+    'reputation_loop',
+  ]
+  const NOT_ONE_AUTOMATION = ['enquadramento', 'month-revenue', 'rehearsal-not-null', 'invoicing']
+
+  for (const b of BLOCKED) {
+    if (b.holds === undefined) {
+      assert.ok(
+        NOT_ONE_AUTOMATION.includes(b.id),
+        `${b.id}: no holds, and it is not one of the entries we decided are not about one automation. ` +
+          'Either give it one, or add it to that list with the reason.',
+      )
+      continue
+    }
+    assert.ok(KEYS.includes(b.holds), `${b.id}: holds a key that is not an automation: ${b.holds}`)
+    const found = gatesHoldingAutomation(b.holds).some((x) => x.entries.some((e) => e.id === b.id))
+    assert.ok(found, `${b.id}: claims to hold ${b.holds}, but the reader does not return it`)
+  }
+
+  for (const id of NOT_ONE_AUTOMATION) {
+    assert.ok(BLOCKED.some((b) => b.id === id), `${id} is listed as not-about-one-automation but no longer exists`)
+    assert.equal(BLOCKED.find((b) => b.id === id)?.holds, undefined, `${id} now holds an automation — remove it from the list`)
+  }
+
+  // 🔴 And an OPEN gate holds nothing. Without this the band would keep
+  // showing a wait that ended, which is the stale record the ledger prevents.
+  const held = gatesHoldingAutomation('db_reactivation')
+  assert.ok(held.length > 0, 'nothing holds 02 — that would be news')
+  assert.ok(held.every((x) => !x.gate.open))
+})
+
+test('🔴 every gate says which side of the landing it falls on', () => {
+  /*
+   * The client landing's bands are ordered by WHO CAN ACT, so a gate on the
+   * wrong side is not a cosmetic error — it puts an afternoon the agency could
+   * book this week into the band labelled "nobody's yet", where the whole
+   * point is that it is not re-examined.
+   *
+   * The two anchors below are the brief's own examples of each band, so if
+   * either flips, the screen has stopped matching its design.
+   */
+  for (const g of GATES) {
+    assert.ok(
+      g.answerable === 'the agency' || g.answerable === 'outside',
+      `${g.id}: no side`,
+    )
+  }
+  const by = (id: GateId) => GATES.find((g) => g.id === id)
+  assert.equal(by('calibration_afternoon')?.answerable, 'the agency', 'the calibration afternoon is theirs to book')
+  assert.equal(by('first_close')?.answerable, 'the agency', 'reporting a close is theirs to do')
+  assert.equal(by('meta_verified')?.answerable, 'outside', 'nobody here can make Meta verify')
+  assert.equal(by('portugal_confirmed')?.answerable, 'outside', 'nobody here can answer for the lawyer')
+  assert.equal(by('adene_credentials')?.answerable, 'outside')
+
+  // 🔒 And no gate may be answerable by the agency while being held by a party
+  // that is plainly not one. That pairing is how a wait ends up in the band
+  // where somebody is expected to act on it and nobody can.
+  for (const g of GATES.filter((x) => x.answerable === 'the agency')) {
+    assert.doesNotMatch(
+      g.whoHolds,
+      /Meta|ADENE|Margarida|lawyer|advogada|accountant/i,
+      `${g.id} is marked answerable by the agency but is held by ${g.whoHolds}`,
+    )
+  }
+})
+
 // ── the control ─────────────────────────────────────────────────────────────
 
 test('the control: an opened gate with work behind it IS reported', () => {
@@ -153,6 +234,7 @@ test('the control: an opened gate with work behind it IS reported', () => {
     what: 'a synthetic gate',
     whoHolds: 'nobody',
     evidence: 'this is a control and never appears in the real ledger',
+    answerable: 'outside',
     open: true,
   }
   const waiting: Blocked = {

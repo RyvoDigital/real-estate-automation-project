@@ -913,3 +913,45 @@ export async function getWeeklyReport(clientId: string, weekStart: string): Prom
     missingDays: days.filter((d) => d.state === 'missing').map((d) => d.date),
   }
 }
+
+/**
+ * The anomaly counts for ONE client, for the landing's first band.
+ *
+ * 🔴 `events.client_id` IS NULLABLE, so `.eq('client_id', id)` silently drops
+ * every anomaly whose event names nobody. Those rows appear on the operator's
+ * anomalies screen and would vanish here, and the difference would read as the
+ * landing disagreeing with the screen it links to — the exact family the
+ * shared-claims register was written after.
+ *
+ * So they are counted separately and said out loud, rather than filtered away.
+ */
+export async function getAnomalyTallyForClient(
+  clientId: string,
+): Promise<{ critical: number; warning: number; unattributed: number }> {
+  const since = new Date(Date.now() - ANOMALY_WINDOW_DAYS * 86_400_000).toISOString()
+
+  const { data, error } = await admin()
+    .from('events')
+    .select('severity, client_id')
+    .in('type', ANOMALY_TYPES as unknown as string[])
+    .gte('created_at', since)
+    .limit(ANOMALY_READ_CAP)
+  if (error) throw new Error(`anomaly tally failed: ${error.message}`)
+
+  let critical = 0
+  let warning = 0
+  let unattributed = 0
+  for (const e of data ?? []) {
+    if (e.client_id === null) {
+      unattributed += 1
+      continue
+    }
+    if (e.client_id !== clientId) continue
+    // Anything not explicitly a warning counts as critical, which is how
+    // `anomaly.ts` already treats an unset severity: an unclassified anomaly
+    // is not a mild one.
+    if (e.severity === 'warning') warning += 1
+    else critical += 1
+  }
+  return { critical, warning, unattributed }
+}

@@ -1,0 +1,192 @@
+/*
+ * The client landing. Depth only on what can be pressed — a band is a region,
+ * not an object, so it has no card treatment; an item that opens a screen does.
+ */
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.title {
+  font-family: var(--display);
+  font-size: 28px;
+  margin: 0 0 6px;
+  letter-spacing: -0.01em;
+}
+
+.sub {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-2);
+  max-width: 62ch;
+}
+
+.stamp {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--text-3);
+  text-align: right;
+}
+.stamp b { font-family: var(--display); font-size: 15px; color: var(--text-2); font-weight: 500; }
+
+.rehearsal,
+.never {
+  display: block;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+
+/* ── the clocks strip ─────────────────────────────────────────────────────── */
+
+.clocks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+  margin-bottom: 32px;
+}
+
+.clockCell {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--lift-1);
+}
+
+.autoName {
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.3;
+}
+
+/*
+ * 🔒 Words, not a dash. "no run to measure from" is why the clock is absent;
+ * a dash would be read as a value.
+ */
+.noClock {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.heldBy {
+  font-size: 11px;
+  color: var(--text-3);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line);
+}
+.heldBy:hover { color: var(--text-2); }
+
+/* ── the bands ────────────────────────────────────────────────────────────── */
+
+.band { margin-bottom: 30px; }
+
+.bandHead {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.bandHead h2 {
+  font-family: var(--display);
+  font-size: 15px;
+  margin: 0;
+  font-weight: 600;
+}
+
+.count {
+  font-family: var(--display);
+  font-size: 12px;
+  color: var(--text-2);
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--lift-2);
+}
+
+.scope {
+  font-size: 11px;
+  color: var(--text-3);
+  flex: 1 1 260px;
+}
+
+.items { display: grid; gap: 6px; }
+
+.item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 13px;
+  border-radius: 9px;
+  background: var(--lift-1);
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Depth only on the ones that open something. */
+.door { box-shadow: var(--press); }
+.door:hover { background: var(--lift-2); }
+
+.itemBody { display: grid; gap: 3px; flex: 1; min-width: 0; }
+.itemWhat { font-size: 13px; line-height: 1.4; }
+
+/* A value the system stores, not a sentence we wrote. */
+.code {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.opens { font-size: 11px; color: var(--text-3); }
+
+.empty {
+  display: block;
+  padding: 12px 14px;
+  border-radius: 9px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.unattributed {
+  font-size: 12px;
+  color: var(--text-3);
+  margin: 0 0 24px;
+  max-width: 70ch;
+  line-height: 1.5;
+}
+
+.absent {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  margin-top: 8px;
+}
+.absent h2 {
+  font-family: var(--display);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+.absent p {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--text-3);
+  max-width: 72ch;
+  line-height: 1.5;
+}
+
+@media (max-width: 560px) {
+  .head { flex-direction: column; gap: 12px; }
+  .stamp { justify-items: start; text-align: left; }
+  .clocks { grid-template-columns: 1fr; }
+}

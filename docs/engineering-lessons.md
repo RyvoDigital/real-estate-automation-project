@@ -3931,3 +3931,77 @@ behalf turned a registration into a receipt.
 > it is invisible by construction: the missing record is exactly what you would
 > see if the work had never needed doing.**
 
+
+## 1o. A detector broadened to catch more catches less
+
+**20 September 2026.** Four times in one day, in four unrelated guards, and the
+fourth one made the shape visible because I had the numbers side by side.
+
+| The detector | Broadened to catch | What it actually caught |
+|---|---|---|
+| The colour guard over `tokens.css` | a hex sitting outside the token file | every hex **in a comment** — prose about colour, which can never become a rule |
+| The counts guard | a screen computing its own total instead of reading `counts.ts` | every `.length` in the repo, most of them honest counts of a local array |
+| The retired-phrase guard | "cannot send" reaching a screen | the comments **explaining why the phrase was retired**, which must contain it |
+| The blocked-language sweep | any sentence recording that work is held | "Meta", a legitimate domain noun on every page that sends a message |
+
+The last one is the one with arithmetic attached, because I ran three passes:
+
+| pass | hits | files | verdict |
+|---|---|---|---|
+| broad blocked-language | 130 | 54 | unusable |
+| blocking verb + holder within 60 characters | **152** | **62** | **worse** |
+| five high-signal forms | 12 | 10 | enforceable |
+
+The middle pass was written to catch *more* than the first. It did. It was also
+the least useful of the three, and not by a little.
+
+### Why "less"
+
+A detector's output is read by a person, once, at the moment it fires. Its
+value is not the fraction of real cases it matches — it is the probability that
+a reader acts on a hit. Broadening trades the second for the first, and past
+some threshold the trade is total:
+
+> **A guard nobody can read is a guard nobody runs.** 152 hits is not a report,
+> it is a scroll. The true ones were in there both times; nobody would have
+> found them.
+
+And the failure is worse than silence, for the reason §3.23 already gives about
+suppressed detectors: a noisy guard gets muted, skipped or ratcheted wholesale,
+and a muted guard **reads as coverage**. The broad version would have been
+switched off within a week and left in the tree looking like protection.
+
+### The tell
+
+The same question as 1n, pointed the other way:
+
+> 1n asks *which sabotage turns this red*. This asks: **of the hits it returns
+> today, what fraction would I act on?**
+
+Under about half, the detector is not finished — it is a draft that happens to
+compile. Twelve hits at roughly 40% precision was workable *only* because the
+sort was done by hand.
+
+### Sorting by hand is what saved it
+
+Five of the twelve were gate records. The rest were two kinds that a count
+cannot distinguish and that both look exactly like a hit:
+
+- **a denial** — the templates screen saying *"Nothing is waiting on Meta"*, the
+  precise opposite of a gate record. Absorbed into the ledger, it would have
+  made the ledger assert the thing the screen exists to deny;
+- **a definition of a mechanism** — `0029`'s *"a row is INERT until a lawyer
+  confirms it"*. That sentence **is** the definition of inert. It records no
+  wait at all.
+
+> **A detector finds strings. Only a reader can tell an assertion from its
+> negation, and no amount of pattern work closes that gap** — which is why the
+> output has to be small enough that a reader will actually look.
+
+### The corollary, for anything that carries a ratchet
+
+A ratchet built from a broad sweep is not a starting point, it is a permanent
+exemption list, because nobody re-sorts 152 lines later. The ratchet is only
+honest when the sweep behind it was read line by line — and then it needs its
+own guard that fails when a carried entry **stops** hitting, or a line that no
+longer exists goes on silently exempting the file it named.
