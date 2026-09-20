@@ -109,6 +109,22 @@ alter table public.payments drop column settled_on cascade;
 -- not apply and the case is STILL un-run — assert the setup before believing
 -- the result (§1f).
 
+-- 🔴 THE SENTINEL. Execution only reaches this line if the migration above did
+-- NOT raise, which is the failure a human reads straight past: an expected
+-- error that silently did not happen looks identical to one that did, in a
+-- console full of output.
+--
+-- "Expect an ERROR" asks the reader to notice an absence. This asks the
+-- database to notice it instead, and a guard that did not fire now announces
+-- itself rather than being inferred from what is missing. (§1n, in SQL.)
+do $$
+begin
+  raise exception
+    'GUARD 2 DID NOT FIRE. The migration completed without refusing, which means '
+    'received_on can be dropped while settled_on is absent — the one thing this '
+    'guard exists to prevent. DO NOT BLESS.';
+end $$;
+
 rollback;
 
 -- ── and prove the rollback ──────────────────────────────────────────────────

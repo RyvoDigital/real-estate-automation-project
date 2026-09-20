@@ -444,9 +444,11 @@
       "watches": [
         "db/migrations/0044_drop_payments_received_on.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0044_drop_payments_received_on.sql": "f74fa2af73ec1c617ba4c1d0460ec4c6c44a0154a6dea3d0009d9902982fe3e8"
+      },
+      "last_proved": "2026-09-21",
+      "proved_by": "Manuel Vale"
     }
   ]
 }

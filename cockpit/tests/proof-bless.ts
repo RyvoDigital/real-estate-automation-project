@@ -96,6 +96,29 @@ if (!only) {
   process.exit(2)
 }
 
+
+/**
+ * 🔴 THE LOCAL CALENDAR DAY, NOT UTC.
+ *
+ * `new Date().toISOString().slice(0, 10)` was recording 2026-09-20 for a proof
+ * run at 01:07 on the 21st, because Lisbon in summer is UTC+1 and CEST is
+ * UTC+2 — so every proof blessed between midnight and 02:00 local was dated a
+ * day early.
+ *
+ * Which is precisely when this project's sessions happen, and precisely the
+ * kind of record it exists to be trusted: `last_proved` answers "when did
+ * somebody see this fire", and a date that is silently a day behind makes the
+ * staleness comparison wrong in the direction that looks fine.
+ *
+ * 🔒 Europe/Lisbon rather than the machine's zone, because the proof book is
+ * the project's record and the project has one clock — the same zone `Clock`,
+ * `anomalyClock` and the frame's footer already use. A laptop carried to
+ * another country must not start dating the evidence differently.
+ */
+function today(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Lisbon' }).format(new Date())
+}
+
 let who = 'unknown'
 try { who = execSync('git config user.name', { encoding: 'utf8' }).trim() } catch {}
 
@@ -278,7 +301,7 @@ for (const p of book.proofs) {
     p.deploy_precondition.attested = {
       sha: full,
       by: who,
-      at: new Date().toISOString().slice(0, 10),
+      at: today(),
       ...(live ? { live_sha: live } : {}),
       verified: Boolean(live),
     }
@@ -332,7 +355,7 @@ for (const p of book.proofs) {
   for (const f of p.watches) {
     p.hashes[f] = createHash('sha256').update(readFileSync(resolve(REPO, f))).digest('hex')
   }
-  p.last_proved = new Date().toISOString().slice(0, 10)
+  p.last_proved = today()
   p.proved_by = who
   console.log(`blessed ${p.id} (${p.watches.length} file(s)) — ${p.last_proved}, ${who}`)
 }

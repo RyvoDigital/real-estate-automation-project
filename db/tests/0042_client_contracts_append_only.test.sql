@@ -33,6 +33,16 @@ update public.client_contracts set monthly_eur = 500.00
  where id = '00000000-0000-0000-0000-00000000d101';
 -- expect: ERROR  client_contracts is append-only: UPDATE refused. A correction
 --         is a NEW row whose supersedes_id points at the one it replaces …
+
+-- 🔴 THE SENTINEL. Reached only if the statement above did NOT raise. An
+-- expected error that silently did not happen looks identical to one that did,
+-- in a console full of output — so the database announces it rather than
+-- asking a reader to notice an absence. (§1n, in SQL.)
+do $$
+begin
+  raise exception 'THIS CASE DID NOT FIRE: the statement above was accepted, so the guard it tests is not holding. DO NOT BLESS.';
+end $$;
+
 rollback;
 
 -- ══ CASE 2 — DELETE must be refused ════════════════════════════════════════
@@ -45,6 +55,16 @@ select '00000000-0000-0000-0000-00000000d101', id, 400.00, '2026-10-01', 'proof'
   from public.clients limit 1;
 delete from public.client_contracts where id = '00000000-0000-0000-0000-00000000d101';
 -- expect: ERROR  client_contracts is append-only: DELETE refused …
+
+-- 🔴 THE SENTINEL. Reached only if the statement above did NOT raise. An
+-- expected error that silently did not happen looks identical to one that did,
+-- in a console full of output — so the database announces it rather than
+-- asking a reader to notice an absence. (§1n, in SQL.)
+do $$
+begin
+  raise exception 'THIS CASE DID NOT FIRE: the statement above was accepted, so the guard it tests is not holding. DO NOT BLESS.';
+end $$;
+
 rollback;
 
 -- ══ CASE 3 — two corrections of the same row must be refused ═══════════════
@@ -67,6 +87,16 @@ select '00000000-0000-0000-0000-00000000d103', id, 475.00, '2026-10-01', 'proof'
        '00000000-0000-0000-0000-00000000d101' from public.clients limit 1;
 -- expect: ERROR  duplicate key value violates unique constraint
 --         "client_contracts_one_correction_each"
+
+-- 🔴 THE SENTINEL. Reached only if the statement above did NOT raise. An
+-- expected error that silently did not happen looks identical to one that did,
+-- in a console full of output — so the database announces it rather than
+-- asking a reader to notice an absence. (§1n, in SQL.)
+do $$
+begin
+  raise exception 'THIS CASE DID NOT FIRE: the statement above was accepted, so the guard it tests is not holding. DO NOT BLESS.';
+end $$;
+
 rollback;
 
 -- ══ CASE 4 — a row correcting itself must be refused ═══════════════════════
@@ -78,6 +108,16 @@ insert into public.client_contracts
 select '00000000-0000-0000-0000-00000000d101', id, 400.00, '2026-10-01', 'proof', 'proof',
        '00000000-0000-0000-0000-00000000d101' from public.clients limit 1;
 -- expect: ERROR  … "contract_supersedes_another"
+
+-- 🔴 THE SENTINEL. Reached only if the statement above did NOT raise. An
+-- expected error that silently did not happen looks identical to one that did,
+-- in a console full of output — so the database announces it rather than
+-- asking a reader to notice an absence. (§1n, in SQL.)
+do $$
+begin
+  raise exception 'THIS CASE DID NOT FIRE: the statement above was accepted, so the guard it tests is not holding. DO NOT BLESS.';
+end $$;
+
 rollback;
 
 -- ══ 🔴 CASE 5 — THE RESTING STATE. A correction is ACCEPTED. DO NOT SKIP ════
