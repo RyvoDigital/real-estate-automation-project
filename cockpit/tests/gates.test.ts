@@ -157,7 +157,7 @@ test('🔴 what holds an automation is asked of the ledger, never assembled twic
     'listing_launch',
     'reputation_loop',
   ]
-  const NOT_ONE_AUTOMATION = ['enquadramento', 'month-revenue', 'rehearsal-not-null', 'invoicing']
+  const NOT_ONE_AUTOMATION = ['enquadramento', 'month-revenue', 'rehearsal-not-null', 'invoicing', 'setup-instalments']
 
   for (const b of BLOCKED) {
     if (b.holds === undefined) {

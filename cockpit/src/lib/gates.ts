@@ -333,6 +333,16 @@ export const BLOCKED: Blocked[] = [
 
   // ── a first real client ──────────────────────────────────────────────────
   {
+    id: 'setup-instalments',
+    what: 'client_contracts.setup_terms is free text, so an outstanding setup balance can only be total-minus-received — not whether the second of three instalments is late',
+    where: 'db/migrations/0041_client_contracts.sql, and The Month',
+    gate: 'first_client',
+    thenReRead:
+      "the contract itself rather than the plan. The question is not how to model instalments in general \u2014 it is what shape THIS agreement takes, and whether it is regular enough to structure at all",
+    onOpen:
+      'read the signed contract and decide whether setup_terms becomes structured instalments. Deliberately left as text: inventing a shape now means discovering the first real one does not fit it',
+  },
+  {
     id: 'month-revenue',
     what: 'The Month cannot show revenue: there is no contract, no payment, and no client that is not a rehearsal',
     where: 'cockpit/src/app/page.tsx says it is not built; brief I §2.11 proposes the tables',

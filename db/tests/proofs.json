@@ -425,6 +425,17 @@
       "last_proved": "2026-09-20",
       "proved_by": "Manuel Vale",
       "applied_note": "Applied and verified 2026-09-20 by the operator in the Supabase SQL editor, all test transactions rolled back. Confirmed independently from the cockpit afterwards: the relation exists and its columns are exactly the set the writer inserts (id, client_id, listing_id, country, region, satisfied, decided_at, notice_sent_at, created_at); listings.country exists, with listings.region read as a control that the probe itself works. ⚠️ The operator’s report named clearance_country_iso, clearance_satisfied_is_a_list and a clearances_current index; this migration names them clearances_country_iso, clearances_snapshot_is_not_empty and the unique constraint clearances_one_per_listing_jurisdiction. The substance checked out and the names did not, so they are recorded here rather than left for somebody to grep for and not find."
+    },
+    {
+      "id": "0041-client-contracts",
+      "what": "client_contracts is append-only (UPDATE, DELETE and TRUNCATE refused by trigger AND by revoke), an automation key outside the five 0001 seeds is refused BY NAME, a period ending before it starts is refused, a negative fee is refused while zero is accepted, and — THE CASE NOT TO SKIP — a correction is ACCEPTED and client_contracts_current returns exactly ONE row for it. WHY: revenue is derived by summing contract periods, so a superseded row still carrying its period and fee would double-count every correction ever made, on the page the operator trusts most. THE PART THAT IS EASY TO GET WRONG: `supersedes` points backwards rather than using 0026's nicer `superseded_by`, because this table is append-only and that column would need an UPDATE the trigger refuses — which makes \"current\" a NOT EXISTS that every caller would otherwise re-derive, hence the view.",
+      "how": "Paste db/tests/0041_client_contracts.test.sql into the SQL editor. Seven cases, each its own transaction, all rolled back; nothing survives and the table is not left behind. Expect: (1) UPDATE refused by name, (2) DELETE refused, (3) contract_automations_are_real on 'agent_owner', (4) contract_period_is_a_period, (5) contract_fees_not_negative on -1.00, (6) NOTICE 'Resting state holds: 2 rows, 1 current, fee 450.00, 0 overlaps' and NO exception, (7) NOTICE 'The overlap check sees a genuine double-count'. If case 6 raises, DO NOT APPLY. THEN apply and run the verify block: 0 rows in table and view; service_role holding INSERT and SELECT only; both _eur columns NOT NULL with no default.",
+      "watches": [
+        "db/migrations/0041_client_contracts.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
     }
   ]
 }
