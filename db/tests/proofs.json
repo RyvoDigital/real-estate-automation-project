@@ -460,6 +460,17 @@
       "hashes": {},
       "last_proved": null,
       "proved_by": null
+    },
+    {
+      "id": "0046-money-tables-grants",
+      "what": "The write privileges on the five money tables, set deliberately rather than inherited. FOUND BY THE GRANT LISTING: all seven relations carried an identical set — service_role with UPDATE, DELETE and TRUNCATE on client_contracts, so 0042's revoke was NOT in force and append-only rested on the trigger alone, which is the arrangement 0012 explicitly refused. 🔴 AND anon HELD TRUNCATE: RLS does not cover TRUNCATE — it filters rows for select/insert/update/delete, while truncate is a table-level operation gated only by the privilege, so a role holding it empties the table whatever the policies say. Per table rather than blanket: client_contracts and cost_checks get INSERT/SELECT only (append-only); payments, costs and web_clients keep UPDATE, because settlement arrives weeks after invoicing, a subscription's price genuinely changes, and a client's status changes. DELETE and TRUNCATE go from all five for every role.",
+      "how": "Paste db/tests/0046_money_tables_grants.test.sql. Four cases, each rolled back. Expect: (1) NOTICE no DELETE or TRUNCATE survives anywhere, (2) NOTICE no UPDATE on client_contracts or cost_checks, (3) 🔴 NOTICE the legitimate writes SURVIVE — this is the case not to skip, since a revoke one word too wide leaves a schema nothing can write to and both removal cases still pass, (4) an UPDATE on client_contracts is refused by EITHER the privilege or the trigger, with a sentinel firing if it is accepted. THEN apply and run the verify block: service_role should hold INSERT/SELECT on client_contracts and cost_checks, plus UPDATE on payments, costs and web_clients; anon and authenticated should hold REFERENCES and TRIGGER and NO TRUNCATE.",
+      "watches": [
+        "db/migrations/0046_money_tables_grants.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
     }
   ]
 }
