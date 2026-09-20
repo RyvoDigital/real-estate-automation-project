@@ -1,3 +1,39 @@
+-- ╔═════════════════════════════════════════════════════════════════════════╗
+-- ║  🔴 DO NOT RUN THIS FILE. IT IS NOT WHAT IS DEPLOYED.                   ║
+-- ╚═════════════════════════════════════════════════════════════════════════╝
+--
+-- `client_contracts` EXISTS IN PRODUCTION and was created by something other
+-- than this file, on 21 September 2026. Verified through PostgREST rather than
+-- taken from anybody's account of it:
+--
+--   the applied table has   automation_client_id, web_client_id, monthly_eur,
+--                           setup_eur, setup_terms, starts_on, ends_on,
+--                           automations, signed_by, recorded_by, recorded_at,
+--                           created_at, updated_at
+--   THIS FILE declares      client_id  — a column production does not have
+--   and it creates          client_contracts_current — a view that does not
+--                           exist in production
+--
+-- So the repository was BEHIND production and describing a different schema.
+-- This file is kept as the record of what was designed and why — its reasoning
+-- about contract periods, RESTRICT over CASCADE, and no defaults on money is
+-- still the reasoning The Month is built on — and renamed so that nobody runs
+-- it. Running it would refuse at its own precondition ("already exists"),
+-- which is the precondition working, but the refusal would be the first anyone
+-- heard of the divergence.
+--
+-- 🔒 WHAT ACTUALLY CLOSES THE GAP is `0042_client_contracts_append_only.sql`,
+-- written against the schema as observed: it adds supersedes_id, the view, and
+-- the freeze that this file would have provided at creation.
+--
+-- Lesson §1s, one level up: a fact preserved carefully in one place — the
+-- repository's record of the schema — and overtaken somewhere else, with
+-- neither the file nor the database wrong on its own terms.
+--
+-- ───────────────────────────────────────────────────────────────────────────
+-- THE ORIGINAL FILE FOLLOWS, UNCHANGED.
+-- ───────────────────────────────────────────────────────────────────────────
+
 -- ============ client_contracts — what an agency agreed to pay ============
 --
 -- ALONE, in a transaction, with 0032's treatment: it proves its preconditions
