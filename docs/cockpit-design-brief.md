@@ -135,7 +135,21 @@ Five properties. A design that drops one has dropped a defect back in.
    absences footer — **the absence is the statement** — applied to controls.
    🔒 **Every screen asserts it**: nothing `disabled`, `readonly` or
    `aria-disabled` in any state.
-8. 🔒 **A screen never forbids a word by printing it** — added 20 Sep 2026, after
+8. 🔒 **One sample world, or the screens cannot be read against each other** —
+   added 20 September 2026, after the cross-screen sweep. Stage B was designed
+   in **two** sample worlds that were never reconciled: a mid-September one
+   where Portugal is unconfirmed and nothing is calibrated, and an October one
+   where Portugal was confirmed on 2 October and 02 has already sent. The
+   result was 22 disagreements between screens that were each checked against
+   this brief and none against its neighbour.
+   🔴 **Sample data is not decoration.** One world, one date, one set of
+   clients, and identifiers that differ in more than a prefix — `CA-0388` and
+   `MS-0388` shared their number, which is why an entire block of items
+   attributed to the wrong client stayed invisible. Without this, **two screens
+   cannot be read against each other, and that reading is the only way a
+   disagreement between them is ever found**: a brief catches neither, because
+   each screen conforms to it separately.
+9. 🔒 **A screen never forbids a word by printing it** — added 20 Sep 2026, after
    it happened twice: the re-check notice named the verbs it was denying, and
    the weekly report's absences printed the word it exists to avoid. A guard
    that fails on a word fails on it wherever it appears, including in the

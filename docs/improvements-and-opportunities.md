@@ -400,6 +400,38 @@ The matching run refuses for want of thresholds, F5 has no audience until the
 declaration happens, and the notification's wording cannot be judged. All three
 resolve in one afternoon with one agency, and none of them resolve without it.
 
+### 3.21 🔴 An import accepts a row whose phone is the client's own escalation or agent number
+
+**Found 20 Sep 2026 by the cockpit's cross-screen sweep**, in sample data — and
+the sample was only able to be wrong because nothing refuses it.
+
+`+351 912 345 678` appeared as a lead's number on the contact record, as an
+imported row in the import plan, **and** as `escalate_to` in the client's own
+configuration. The settings screen states the rule its own sample breaks: one
+number cannot be both an agent sending properties and the person hand-overs go
+to, because *the first message would decide which, silently.*
+
+**Nothing in `import/plan.ts` or `import/normalise.ts` checks a candidate row
+against the client's own numbers.** The consequences are not cosmetic:
+
+- a contact who is also `escalate_to` would be **messaged by a campaign** and
+  receive hand-over notes about other leads;
+- a contact who is also in `listing_ingest.agent_numbers` would have their
+  replies read as **a property being submitted** rather than as an enquiry;
+- and `reserved-numbers.ts` already establishes the shape for refusing a
+  number by identity, so this is a missing application of an existing idea
+  rather than a new mechanism.
+
+🔒 **This is the `agent_numbers` trap of 15 September arriving through a
+different door.** That one was a number configured as an agent's that was also
+a lead's; this is a lead's number that is also the agency's own. Same collision,
+opposite direction, and neither is refused today.
+
+**The fix is a guard at the plan step**, not at commit: the plan already names
+every rejected row with its reason, and *"this is your own escalation number"*
+is a reason an operator can act on. Rejecting at commit would mean the operator
+read a plan that was not what happened.
+
 ### 3.19 ✅ The Concierge overwrites a lead's origin on every inbound message — FIXED 18 Sep 2026
 
 **Found 18 Sep 2026 while designing the handoff contract, by asking what the

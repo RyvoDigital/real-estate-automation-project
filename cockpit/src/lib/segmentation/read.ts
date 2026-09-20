@@ -131,6 +131,10 @@ export async function readScreen(clientId: string): Promise<ScreenData> {
       jurisdictions.push({
         country,
         existingCustomer: (p?.existing_customer as JurisdictionFact['existingCustomer']) ?? 'unknown',
+        // 🔴 Whether a row exists at all, which is NOT the same question as
+        // whether it is confirmed. Before this line, a country nobody had
+        // analysed was reported as one awaiting a lawyer.
+        analysed: Boolean(p),
         confirmed: Boolean(p?.confirmed_at && p?.confirmed_by),
         platformBlocked: Boolean(p?.platform_blocked),
       })

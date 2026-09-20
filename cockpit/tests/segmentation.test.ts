@@ -206,19 +206,20 @@ test('the jurisdiction sentence comes FROM THE TABLE, and names the limit', () =
   // Spanish contacts would find out the hard way. But the sentence must also
   // never assert a conclusion the table does not hold.
   const s = jurisdictionSentence([
-    { country: 'PT', existingCustomer: 'available', confirmed: true, platformBlocked: false },
-    { country: 'ES', existingCustomer: 'unavailable', confirmed: true, platformBlocked: false },
+    { country: 'PT', existingCustomer: 'available', analysed: true, confirmed: true, platformBlocked: false },
+    { country: 'ES', existingCustomer: 'unavailable', analysed: true, confirmed: true, platformBlocked: false },
   ])
   assert.match(s, /Em Portugal podemos escrever-lhes/)
   assert.match(s, /Em Espanha não/)
 })
 
 test('AN UNCONFIRMED COUNTRY IS "WE DO NOT KNOW YET", NEVER "YOU CANNOT"', () => {
-  // Spain is `unknown` pending a lawyer. A screen saying "in Spain you cannot"
-  // would state as settled law something our own record calls unanalysed — the
-  // system disagreeing with itself in front of the person it protects.
+  // A row EXISTS and a lawyer is reviewing it. "À espera" is true here.
+  // A screen saying "in Spain you cannot" would state as settled law something
+  // our own record calls unanalysed — the system disagreeing with itself in
+  // front of the person it protects.
   const s = jurisdictionSentence([
-    { country: 'ES', existingCustomer: 'unknown', confirmed: false, platformBlocked: false },
+    { country: 'ES', existingCustomer: 'unknown', analysed: true, confirmed: false, platformBlocked: false },
   ])
   assert.match(s, /ainda não sabemos/)
   assert.match(s, /à espera da confirmação de uma advogada/)
@@ -227,14 +228,53 @@ test('AN UNCONFIRMED COUNTRY IS "WE DO NOT KNOW YET", NEVER "YOU CANNOT"', () =>
     'an unconfirmed country must not be described as prohibited')
 })
 
+test('🔴 NO ROW AT ALL IS NOT THE SAME NOT-YET AS A ROW AWAITING A LAWYER', () => {
+  /*
+   * The cross-screen sweep, 20 September 2026. Until then a country with no
+   * row was built as `unknown` + `confirmed: false` — byte-identical to a
+   * country whose row exists and is waiting on a lawyer — so the screen told
+   * agencies we were "à espera da confirmação de uma advogada" about Spain,
+   * where nobody has analysed anything and nobody is waiting for anyone.
+   *
+   * "À espera" implies somebody is working on it and an answer is coming.
+   * That is a claim, and it was false.
+   */
+  const noRow = jurisdictionSentence([
+    { country: 'ES', existingCustomer: 'unknown', analysed: false, confirmed: false, platformBlocked: false },
+  ])
+  const withLawyer = jurisdictionSentence([
+    { country: 'ES', existingCustomer: 'unknown', analysed: true, confirmed: false, platformBlocked: false },
+  ])
+  assert.notEqual(noRow, withLawyer, 'an absence of analysis and a pending confirmation must not share a sentence')
+
+  assert.match(noRow, /ainda não trabalhamos/)
+  assert.match(noRow, /ainda não as analisámos/, 'the absence is named as ours')
+  assert.equal(/advogada/.test(noRow), false, 'nobody is waiting on a lawyer for a country nobody has looked at')
+  assert.equal(/à espera/.test(noRow), false)
+  assert.equal(/a lei lá é mais restritiva/.test(noRow), false, 'and it never says prohibited — we do not know that either')
+})
+
+test('🔒 the two not-yets can appear in one sentence and stay distinguishable', () => {
+  // A Portuguese agency with Spanish contacts, on the day Portugal is under
+  // review and Spain has never been looked at. This is today.
+  const s = jurisdictionSentence([
+    { country: 'PT', existingCustomer: 'unknown', analysed: true, confirmed: false, platformBlocked: false },
+    { country: 'ES', existingCustomer: 'unknown', analysed: false, confirmed: false, platformBlocked: false },
+  ])
+  assert.match(s, /Em Portugal ainda não sabemos/)
+  assert.match(s, /à espera da confirmação de uma advogada/)
+  assert.match(s, /Em Espanha ainda não trabalhamos/)
+  assert.ok(s.indexOf('Portugal') < s.indexOf('Espanha'), 'the pending conclusion comes before the absence')
+})
+
 test('the wording changes because the TABLE changed, not the other way round', () => {
   // The same country, before and after a confirmation. Nothing in the copy is
   // edited between these two calls.
   const before = jurisdictionSentence([
-    { country: 'ES', existingCustomer: 'unknown', confirmed: false, platformBlocked: false },
+    { country: 'ES', existingCustomer: 'unknown', analysed: true, confirmed: false, platformBlocked: false },
   ])
   const after = jurisdictionSentence([
-    { country: 'ES', existingCustomer: 'available', confirmed: true, platformBlocked: false },
+    { country: 'ES', existingCustomer: 'available', analysed: true, confirmed: true, platformBlocked: false },
   ])
   assert.notEqual(before, after)
   assert.match(after, /Em Espanha podemos escrever-lhes/)
@@ -244,7 +284,7 @@ test('a platform block is stated as a limit even when nobody has confirmed anyth
   // Meta not delivering to +1 is a fact about delivery, not a legal conclusion,
   // so it does not wait for a lawyer.
   const s = jurisdictionSentence([
-    { country: 'US', existingCustomer: 'unknown', confirmed: false, platformBlocked: true },
+    { country: 'US', existingCustomer: 'unknown', analysed: true, confirmed: false, platformBlocked: true },
   ])
   assert.match(s, /Em Estados Unidos não/)
 })

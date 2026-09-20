@@ -273,6 +273,23 @@ export type JurisdictionFact = {
   country: string
   /** From jurisdiction_policy, exactly as the table holds it. */
   existingCustomer: 'available' | 'unavailable' | 'unknown'
+  /**
+   * 🔴 Is there a row for this country AT ALL.
+   *
+   * Added 20 September 2026, after the cross-screen sweep. Until then a
+   * country with no row was filled in as `unknown` + `confirmed: false` —
+   * IDENTICAL to a country whose row exists and is waiting on a lawyer. The
+   * screen then told an agency we were "à espera da confirmação de uma
+   * advogada" about Spain, where nobody has analysed anything and nobody is
+   * waiting for anyone.
+   *
+   * These are two different kinds of not-yet and the difference is the whole
+   * point: one is an absence of analysis that is OURS, the other is a
+   * conclusion pending somebody else's confirmation. Collapsing them is the
+   * conclusion/absence defect, told to the person the screen exists to
+   * protect.
+   */
+  analysed: boolean
   confirmed: boolean
   platformBlocked: boolean
 }
@@ -300,9 +317,15 @@ export function jurisdictionSentence(facts: JurisdictionFact[]): string {
   const yes: string[] = []
   const no: string[] = []
   const waiting: string[] = []
+  const unanalysed: string[] = []
 
   for (const f of [...facts].sort((a, b) => a.country.localeCompare(b.country))) {
+    // A platform block is a fact about delivery rather than a legal
+    // conclusion, so it does not wait for anyone and is stated first.
     if (f.platformBlocked) no.push(name(f.country))
+    // 🔴 No row at all comes BEFORE the unconfirmed branch. Nobody is waiting
+    // on a lawyer for a country nobody has looked at.
+    else if (!f.analysed) unanalysed.push(name(f.country))
     else if (!f.confirmed) waiting.push(name(f.country))
     else if (f.existingCustomer === 'available') yes.push(name(f.country))
     else no.push(name(f.country))
@@ -315,9 +338,33 @@ export function jurisdictionSentence(facts: JurisdictionFact[]): string {
   if (yes.length) parts.push(`Em ${list(yes)} podemos escrever-lhes.`)
   if (no.length) parts.push(`Em ${list(no)} não — a lei lá é mais restritiva.`)
   if (waiting.length) {
+    // A row exists and a lawyer is genuinely reviewing it. "À espera" is true
+    // here: somebody is working on it and an answer is coming.
     parts.push(
       `Em ${list(waiting)} ainda não sabemos: estamos à espera da confirmação de uma advogada, ` +
       'e até lá não escrevemos.',
+    )
+  }
+  if (unanalysed.length) {
+    /*
+     * The operator's wording, 20 September 2026, and each clause is doing a
+     * job that a shorter version would drop:
+     *
+     *   "ainda não trabalhamos"     true, and the answer to the only question
+     *                               the agency actually has
+     *   "ainda não as analisámos"   names the absence as OURS, not as a
+     *                               pending external event
+     *   and it never says prohibited, because we do not know that either —
+     *   the refusal is ours, not Spain's.
+     *
+     * One word differs from the sentence as dictated: "a esses contactos"
+     * rather than "a contactos espanhóis", because the list is built from
+     * whichever countries this agency's contacts are in and a demonym cannot
+     * be generated per country.
+     */
+    parts.push(
+      `Em ${list(unanalysed)} ainda não trabalhamos. As regras são diferentes das portuguesas ` +
+      'e ainda não as analisámos, por isso não escrevemos a esses contactos.',
     )
   }
   return parts.join(' ')
