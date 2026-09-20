@@ -44,8 +44,6 @@ const BOOK = JSON.parse(readFileSync(join(REPO, 'db', 'tests', 'proofs.json'), '
  * writing them out rather than counting them.
  */
 const NO_PROOF_OWED: Record<string, string> = {
-  '0012_consent_events.sql':
-    '🔴 PREDATES THE BOOK — the book opens at 0013, and 0012 is the consent ledger, the most load-bearing freeze in the system. It is owed a proof MORE than anything else here, not less. Its refusals are documented in its own footer and have never been registered.',
   '0014_jurisdiction_policy.sql':
     'Predates the book. A policy table with a confirmed_at; its constraints are exercised by the gate suite rather than by a SQL proof.',
   '0016_objection_race_check.sql':
@@ -88,7 +86,7 @@ test('the ratchet only tightens: a stated reason must name a file that exists', 
   assert.deepEqual(stale, [], `exempted files that no longer exist: ${stale.join(', ')}`)
 })
 
-test('every stated reason says something, and 0012 is marked as owed rather than excused', () => {
+test('every stated reason says something, and the ledger is in the book rather than the excuses', () => {
   for (const [f, why] of Object.entries(NO_PROOF_OWED)) {
     assert.ok(why.length > 40, `${f}: the reason is too short to be one`)
   }
@@ -98,10 +96,13 @@ test('every stated reason says something, and 0012 is marked as owed rather than
    * is one whose absence of an objection means nothing. If this line ever
    * softens into "predates the book", the debt stops being visible.
    */
-  assert.match(
-    NO_PROOF_OWED['0012_consent_events.sql'],
-    /owed a proof MORE than anything else/,
-    'the consent ledger has been downgraded to an ordinary exemption',
+  // 🔴 0012 WAS THE ENTRY THIS ASSERTED ON, and it is now REGISTERED rather
+  // than exempted — which is the ratchet tightening in the only direction it
+  // should. The assertion is replaced by its stronger form: the ledger must be
+  // in the book, not in the excuses.
+  assert.ok(
+    !('0012_consent_events.sql' in NO_PROOF_OWED),
+    'the consent ledger is back in the exemption list — it has a proof, so it belongs in the book',
   )
 })
 

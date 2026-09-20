@@ -499,6 +499,17 @@
       "hashes": {},
       "last_proved": null,
       "proved_by": null
+    },
+    {
+      "id": "0012-consent-events",
+      "what": "🔴 THE CONSENT LEDGER — the record of who may lawfully be messaged, and the table every other freeze in this database was argued from. It predates the proof book by one migration and had never been registered. Proves: service_role holds INSERT and NOT update, delete or truncate (the belt, asked of the database rather than read from the migration, because tonight found a revoke elsewhere that had never applied); the append-only trigger refuses UPDATE and DELETE (the guarantee); an unknown kind is refused, since the eight kinds are the vocabulary the gate reads and a ninth would be stored and silently ignored; consent_given with no occurred_at is refused, because consent without a moment cannot be evidenced; a non-E.164 number is refused, because the ledger is keyed on the number and an objection nobody can find protects nobody. AND THE RESTING STATE: a legitimate event must INSERT — six refusals pass just as well on a table that accepts nothing at all.",
+      "how": "🔴 THE ONLY PROOF HERE THAT RUNS AGAINST A LIVE TABLE WITH REAL DATA. Paste db/tests/0012_consent_events.test.sql. It does NOT apply 0012 — that is long applied — it tests the deployed table. Every case is in a transaction and rolls back, and cases 2-6 attempt writes that must be REFUSED, which by definition change nothing. Expect: (1) NOTICE 'Privileges: INSERT t, UPDATE f, DELETE f, TRUNCATE f', (2) UPDATE refused by the trigger, (3) DELETE refused, (4) consent_events_kind_known, (5) consent_events_consent_is_dated, (6) consent_events_phone_e164, (7) 🔴 NOTICE 'The resting state holds' — the case not to skip. Each refusal carries a sentinel that fires if the write was ACCEPTED. A final block verifies no fixture row survives: they are append-only and could not be deleted if one did.",
+      "watches": [
+        "db/migrations/0012_consent_events.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
     }
   ]
 }
