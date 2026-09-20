@@ -400,6 +400,53 @@ The matching run refuses for want of thresholds, F5 has no audience until the
 declaration happens, and the notification's wording cannot be judged. All three
 resolve in one afternoon with one agency, and none of them resolve without it.
 
+### 3.22 🔴 Nothing ever writes `agency_facts`, so the registration requirement refuses every property — permanently, and invisibly
+
+**Found 20 Sep 2026** while surveying what the compliance screens could read.
+Verified across the whole repo, not inferred:
+
+- `agency_facts` is **read** in exactly one place — `publication/facts-store.ts:61`,
+  a `select`.
+- **No code anywhere writes it.** The only `insert into agency_facts` strings in
+  the repository are inside 0030's own comments, as documentation of how a row
+  would be inserted by hand.
+- `checkRegistration()` (`publication/gate.ts:278`) returns
+  `{ refusal: 'requirement_unmet' }` the moment no matching fact is found.
+
+So every client's AMI registration requirement fails, for every property,
+always — because the row it looks for is never created. Onboarding collects the
+licence number nowhere, and nothing else does either.
+
+🔴 **THE SEQUENCING IS WHAT MAKES IT DANGEROUS, NOT THE DEFECT.** Today it is
+completely invisible, because Portugal's policy row is unconfirmed and
+`policy_not_confirmed` fires *first* — the gate screen's own central finding is
+that it "would refuse even if all three were held". So the refusal that is
+actually broken never gets reached.
+
+**The day a lawyer confirms Portugal is the day this becomes the only refusal
+standing**, and it will present as "the confirmation did not work" rather than
+as a missing write. That is a defect timed to surface at the worst possible
+moment, on the day the operator expects the automation to start working.
+
+**Two things to build, and they are separate:**
+
+1. **The write.** Onboarding takes the AMI licence once (it is already a
+   `🔒 fixed for the life of this client` field in the settings design, brief III
+   §12) and writes an `agency_facts` row. Until then no property can be
+   published in Portugal whatever else is true.
+2. **A check that surfaces it before a property does.** A client with no
+   `agency_facts` row is a client that cannot publish, and that belongs on the
+   client landing as something to fix — not discovered three screens deep in
+   one property's gate verdict. The gate refusing is correct behaviour; a
+   configuration gap only ever visible as a per-property refusal is not.
+
+⚠️ **The permanent test is the awkward part and is deliberately not added yet.**
+The honest one — *something in `src/` writes `agency_facts`* — fails today and
+would take `npm test` from 2 known failures to 3. This repo has the pattern (the
+0037 proof is red by design) but adding a second red baseline without the
+operator choosing it makes "the suite is red" mean two different things at once.
+Proposed, not applied.
+
 ### 3.21 🔴 An import accepts a row whose phone is the client's own escalation or agent number
 
 **Found 20 Sep 2026 by the cockpit's cross-screen sweep**, in sample data — and
