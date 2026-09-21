@@ -49,6 +49,16 @@ exception when others then
 end $$;
 
 -- ══ CASE 4 — a cost naming BOTH a web and an automation client is refused ═
+-- 🔒 WHICH RULE REFUSES IT, stated rather than hidden (operator, 21 Sep 2026):
+-- cost_client_is_on_its_own_side, never cost_names_at_most_one_client. Two
+-- reasons, both certain. (1) PostgreSQL tests multiple CHECK constraints "in
+-- alphabetical order by name" (CREATE TABLE docs), and "cost_client…" sorts
+-- before "cost_names…". (2) At-most-one is IMPLIED by the side rule: a row
+-- naming both clients breaks it whatever its side (automation → the web id is
+-- on the wrong side; web → the automation id is; shared → both are). So
+-- at-most-one can never be the reason, and is kept as a belt that states the
+-- intent on its own. This case asserts the refusal, that the side rule is what
+-- fired, and that the belt exists.
 do $$
 declare v text := 'FAIL'; why text := 'did not reach a verdict';
 begin
@@ -59,7 +69,13 @@ begin
                values ('proof 0052', 'other', 'web', 1, 'monthly', '2026-01-01', 'proof 0052',
                        '00000000-0000-0000-0000-000000052001', '00000000-0000-0000-0000-000000052002')$q$;
       v := 'FAIL'; why := 'ACCEPTED a cost naming two clients';
-    exception when check_violation then v := 'PASS'; why := 'refused: ' || sqlerrm;
+    exception when check_violation then
+      if sqlerrm like '%cost_client_is_on_its_own_side%'
+         and exists (select 1 from pg_constraint where conrelid = 'public.costs'::regclass and conname = 'cost_names_at_most_one_client') then
+        v := 'PASS'; why := 'refused by cost_client_is_on_its_own_side (at-most-one is implied by it, and present as a belt)';
+      else
+        v := 'FAIL'; why := 'refused, but not as stated: ' || sqlerrm;
+      end if;
     end;
     raise exception using errcode = 'ZZ052', message = 'undo';
   exception
@@ -177,7 +193,7 @@ select c.n as "case", c.what,
     (1, 'costs.automation_client_id → clients, RESTRICT',         'FAIL'),
     (2, 'costs.web_client_id → web_clients, RESTRICT',            'FAIL'),
     (3, 'service_role can insert every new column',                'FAIL'),
-    (4, 'a cost naming two clients is refused',                    'FAIL'),
+    (4, 'two clients refused — by the side rule; at-most-one implied','FAIL'),
     (5, 'a client''s cost on the wrong side is refused',           'FAIL'),
     (6, 'PERMITTED: a client''s own cost and a business''s cost',  'FAIL'),
     (7, 'for_month: mid-month and missing are refused',            'FAIL'),

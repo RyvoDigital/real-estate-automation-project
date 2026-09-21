@@ -547,26 +547,32 @@
     {
       "id": "0051-health-runs-n8n-api-key-exp",
       "what": "health_runs gains n8n_api_key_exp (timestamptz, nullable), written by healthcheck.sh from the n8n deploy key's own JWT exp claim, for the Expiries screen (brief §2.3, Ryvo's own). WHY: deploys go through n8n's public API with N8N_API_KEY since 21 Sep 2026, and a lapsed key blocks every deploy. Until 0051 is applied, healthcheck.sh's POST is refused (400, unknown column) and it retries without the field, so nothing breaks and only the date is lost.",
-      "how": "Apply db/migrations/0051_health_runs_n8n_api_key_exp.sql in the SQL editor, then run db/tests/0051_health_runs_n8n_api_key_exp.test.sql WHOLE. It ends in a SELECT with one row per case. Expect 1-4 PASS at once; case 5 PASS once the health check has run after 0051 (within 10 minutes). Before 0051 all five are FAIL.",
+      "how": "Apply db/migrations/0051_health_runs_n8n_api_key_exp.sql in the SQL editor, then run db/tests/0051_health_runs_n8n_api_key_exp.test.sql WHOLE. It ends in a SELECT with one row per case. Expect 1-4 PASS at once; case 5 PASS once the health check has run after 0051 (within 10 minutes). Before 0051 all five are FAIL. RUN 21 Sep 2026: Manuel ran it after applying 0051, cases 1-4 PASS; case 5 went PASS at the 21:50:03 UTC health run (n8n_api_key_exp 2027-09-20 22:00 UTC), read through the read-only MCP as an equivalent SELECT, since that connection refuses the proof's temp table.",
       "watches": [
         "db/migrations/0051_health_runs_n8n_api_key_exp.sql",
         "db/tests/0051_health_runs_n8n_api_key_exp.test.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0051_health_runs_n8n_api_key_exp.sql": "89f7b14a399548267cf095137f16b88d6e61719d01cb07b9b57d05b58c1dced9",
+        "db/tests/0051_health_runs_n8n_api_key_exp.test.sql": "41ae868e9de644753fe28d7fe3ea5d373a08f3f3abbf7bb5463925a5f440b0cc"
+      },
+      "last_proved": "2026-09-21",
+      "proved_by": "Manuel Vale"
     },
     {
       "id": "0052-costs-client-and-check-month",
       "what": "costs gains an optional automation_client_id / web_client_id pair (RESTRICT, at most one, each only on its own side), so a client's own cost can be recorded; cost_checks gains for_month (NOT NULL, a first day), the month an invoice total checks. WHY: The Month could not show what a client alone costs, and 'closed and checked' could not know which month a check was for (operator, 21 Sep 2026). PRECONDITION: cost_checks is empty; 0052 refuses otherwise.",
-      "how": "Run in the same sitting as 0051. Apply db/migrations/0052_costs_client_and_check_month.sql, then run db/tests/0052_costs_client_and_check_month.test.sql WHOLE: one row per case, every row PASS. Dry-run on 21 Sep in a throwaway postgres:16 with the four tables and their live constraints: before 0052, 1-8 FAIL and 9 PASS (as the file states); after, 9/9 PASS; with a cost_checks row present, 0052 refuses and adds no column.",
+      "how": "Run in the same sitting as 0051. Apply db/migrations/0052_costs_client_and_check_month.sql, then run db/tests/0052_costs_client_and_check_month.test.sql WHOLE: one row per case, every row PASS. Dry-run on 21 Sep in a throwaway postgres:16 with the four tables and their live constraints: before 0052, 1-8 FAIL and 9 PASS (as the file states); after, 9/9 PASS; with a cost_checks row present, 0052 refuses and adds no column. RUN 21 Sep 2026: Manuel ran it after applying 0052, 9/9 PASS. Case 4's text was then changed (not the migration) to name the rule that actually refuses two clients: cost_client_is_on_its_own_side, since PostgreSQL tests CHECK constraints in alphabetical order and at-most-one is implied by the side rule. The edited file was re-run in a throwaway postgres:16 after 0052: 9/9 PASS.",
       "watches": [
         "db/migrations/0052_costs_client_and_check_month.sql",
         "db/tests/0052_costs_client_and_check_month.test.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0052_costs_client_and_check_month.sql": "e2f7705cc945a2a5c5aef35608f35ce9276005512341434fd94cd1c65b50cf13",
+        "db/tests/0052_costs_client_and_check_month.test.sql": "e4cbb8331f3e292d60c70774d12c89803d84779350db061077243a8cd2239274"
+      },
+      "last_proved": "2026-09-21",
+      "proved_by": "Manuel Vale"
     }
   ]
 }
