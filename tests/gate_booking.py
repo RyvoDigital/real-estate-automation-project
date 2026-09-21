@@ -11,22 +11,27 @@ Each run is two fresh gate leads in one language (en, pt, es in turn):
   1. A asks to visit, and is offered slots; B asks too, and is offered slots —
      both offers are taken BEFORE either books, so both contain the slot S;
   2. A picks S, naming its weekday and time           expect: booked
-  3. B picks the same S                              expect: refused by the re-check
+  3. B picks the same S                              expect: NOT booked. Sequentially the
+     workflow already sees S busy and declines at the intent (booking_intent 'taken',
+     booking_result 'not_attempted'); the re-check before create (slot_taken) is only
+     reachable when both confirm at once: --race (corrected 22 Sep 2026)
 Proved per run (operator, 22 Sep 2026):
   - A: booking_result 'created'; the event exists in the GATE calendar with the
     run's event id, starting at S's exact instant (Lisbon time as offered);
     viewing.booked written; the confirmation names S's time, in A's language;
-  - B: booking_result 'slot_taken'; no second event at S; the reply in B's language.
+  - B: not booked (by the intent check, or by the re-check in a race); no second
+    event at S; the reply in B's language.
 The sink swallows every outbound call. Only the gate calendar is written, and
 tests/gate_calendar_clear.workflow.json empties it afterwards.
 """
-import argparse, base64, datetime, hashlib, hmac, json, subprocess, sys, time, urllib.parse, urllib.request, uuid
+import argparse, base64, datetime, hashlib, hmac, json, subprocess, sys, threading, time, urllib.parse, urllib.request, uuid
 
 ap = argparse.ArgumentParser()
 ap.add_argument('--runs', type=int, default=10)
 ap.add_argument('--env', default='/opt/ryvo-automation-platform/.env')
 ap.add_argument('--gate-path', default='twilio-inbound-gate-5e1d8c47')
 ap.add_argument('--out', default='/tmp/gate_booking.json')
+ap.add_argument('--race', action='store_true', help='A and B confirm the same slot at the same instant: the re-check (RecheckFreeBusy) is the only thing between them')
 args = ap.parse_args()
 
 E = {}
@@ -145,21 +150,64 @@ for i in range(1, args.runs + 1):
         hh = local.strftime('%H:%M')
         wd = WEEKDAY[lang][local.weekday()]
         rec['slot'] = S['local']
-        # A books
-        code, ra = turn(ca['id'], A, PICK[lang](wd, hh))
-        pa = (ra or {}).get('payload') or {}
-        rec['A'] = {k: pa.get(k) for k in ('booking_result', 'event_id', 'viewing_event_status', 'reply_lang', 'booking_intent')}
-        if pa.get('booking_result') != 'created': bad.append(f"A not booked: booking_result {pa.get('booking_result')} (intent {pa.get('booking_intent')})")
-        if pa.get('reply_lang') != lang: bad.append(f"A reply_lang {pa.get('reply_lang')}")
-        reply = last_reply(A)
-        rec['A_reply'] = reply
-        if hh not in reply and hh.lstrip('0') not in reply: bad.append(f'A confirmation does not name {hh}')
-        # B tries the same slot
-        code, rb = turn(ca['id'], B, PICK[lang](wd, hh))
-        pb = (rb or {}).get('payload') or {}
-        rec['B'] = {k: pb.get(k) for k in ('booking_result', 'event_id', 'reply_lang', 'booking_intent', 'escalated')}
-        if pb.get('booking_result') != 'slot_taken': bad.append(f"B not refused by the re-check: booking_result {pb.get('booking_result')}")
-        if pb.get('reply_lang') != lang: bad.append(f"B reply_lang {pb.get('reply_lang')}")
+        if args.race:
+            # Both confirm at the same instant. Neither can see the other's booking in its
+            # first freeBusy, so the only thing between them is the re-check before create.
+            # The threads only SEND. automation_runs has no lead column, so each run is tied to
+            # its lead afterwards through the outbound sid it recorded (unique per call since
+            # the sink fix) and the messages row carrying that sid.
+            since = time.strftime('%Y-%m-%dT%H:%M:%S+00:00', time.gmtime(time.time() - 1))
+            ts = [threading.Thread(target=send, args=(ph, PICK[lang](wd, hh))) for ph in (A, B)]
+            for t in ts: t.start()
+            for t in ts: t.join()
+            runs = []
+            for _ in range(60):
+                runs = db('GET', f'automation_runs?select=payload&client_automation_id=eq.{ca["id"]}&started_at=gte.{q(since)}&order=started_at.asc&limit=2')
+                if len(runs) == 2: break
+                time.sleep(3)
+            ids = {p_: db('GET', f'leads?select=id&client_id=eq.{cid}&phone=eq.{q(p_)}')[0]['id'] for p_ in (A, B)}
+            by_lead = {}
+            for r in runs:
+                sid = (r.get('payload') or {}).get('twilio_sid')
+                m = db('GET', f'messages?select=lead_id&client_id=eq.{cid}&external_id=eq.{q(str(sid))}') if sid else []
+                if m: by_lead[m[0]['lead_id']] = r.get('payload') or {}
+            pa = by_lead.get(ids[A], {})
+            pb = by_lead.get(ids[B], {})
+            if len(by_lead) != 2: bad.append(f'race: could map {len(by_lead)} of {len(runs)} runs to their leads')
+            results_ab = [pa.get('booking_result'), pb.get('booking_result')]
+            rec['A'] = {k: pa.get(k) for k in ('booking_result', 'event_id', 'reply_lang', 'booking_intent')}
+            rec['B'] = {k: pb.get(k) for k in ('booking_result', 'event_id', 'reply_lang', 'booking_intent')}
+            if results_ab.count('created') != 1: bad.append(f'race: {results_ab.count("created")} bookings, expected exactly 1 ({results_ab})')
+            loser = pb if pa.get('booking_result') == 'created' else pa
+            rec['loser_caught_by'] = 're-check (slot_taken)' if loser.get('booking_result') == 'slot_taken' else f"intent {loser.get('booking_intent')} / {loser.get('booking_result')}"
+            if pa.get('reply_lang') != lang or pb.get('reply_lang') != lang: bad.append(f"reply_lang {pa.get('reply_lang')}/{pb.get('reply_lang')}")
+            winner_phone = A if pa.get('booking_result') == 'created' else B
+            reply = last_reply(winner_phone)
+            rec['A_reply'] = reply
+            if hh not in reply and hh.lstrip('0') not in reply: bad.append(f'winner confirmation does not name {hh}')
+            if pa.get('booking_result') != 'created': pa = pb  # the calendar check below follows the winner
+        else:
+            # A books
+            code, ra = turn(ca['id'], A, PICK[lang](wd, hh))
+            pa = (ra or {}).get('payload') or {}
+            rec['A'] = {k: pa.get(k) for k in ('booking_result', 'event_id', 'viewing_event_status', 'reply_lang', 'booking_intent')}
+            if pa.get('booking_result') != 'created': bad.append(f"A not booked: booking_result {pa.get('booking_result')} (intent {pa.get('booking_intent')})")
+            if pa.get('reply_lang') != lang: bad.append(f"A reply_lang {pa.get('reply_lang')}")
+            reply = last_reply(A)
+            rec['A_reply'] = reply
+            if hh not in reply and hh.lstrip('0') not in reply: bad.append(f'A confirmation does not name {hh}')
+            # B tries the same slot, after A's booking exists. 🔒 Corrected 22 Sep 2026:
+            # sequentially the workflow already sees S busy and declines at the intent
+            # (booking_intent 'taken', booking_result 'not_attempted'); the RE-CHECK
+            # (slot_taken) is only reachable in a race (--race). Either way: not booked.
+            code, rb = turn(ca['id'], B, PICK[lang](wd, hh))
+            pb = (rb or {}).get('payload') or {}
+            rec['B'] = {k: pb.get(k) for k in ('booking_result', 'event_id', 'reply_lang', 'booking_intent', 'escalated')}
+            rec['B_reply'] = last_reply(B)
+            if pb.get('booking_result') == 'created': bad.append('B was BOOKED into a slot A already holds')
+            if pb.get('booking_result') not in ('slot_taken', 'not_attempted') or (pb.get('booking_result') == 'not_attempted' and pb.get('booking_intent') != 'taken'):
+                bad.append(f"B refused for an unexpected reason: {pb.get('booking_result')} / intent {pb.get('booking_intent')}")
+            if pb.get('reply_lang') != lang: bad.append(f"B reply_lang {pb.get('reply_lang')}")
         # the calendar itself
         evs = [e for e in calendar_events() if e.get('status') != 'cancelled' and e.get('start')]
         at_s = [e for e in evs if utc(e['start']) == utc(S['local'])]
@@ -174,10 +222,11 @@ for i in range(1, args.runs + 1):
     json.dump({'start': start_iso, 'stamp': stamp, 'runs': results}, open(args.out, 'w'), ensure_ascii=False, indent=1)
 
 booked = db('GET', f'events?select=type&client_id=eq.{cid}&type=eq.viewing.booked&created_at=gte.{q(start_iso)}')
-created = sum(1 for r in results if (r.get('A') or {}).get('booking_result') == 'created')
+created = sum(1 for r in results if 'created' in [(r.get('A') or {}).get('booking_result'), (r.get('B') or {}).get('booking_result')])
 print(f'\nBOOKING GATE: {len(results)} runs')
 print(f'  booked (A created):           {created}')
-print(f'  refused by the re-check (B):  {sum(1 for r in results if (r.get("B") or {}).get("booking_result") == "slot_taken")}')
+print(f'  second lead not booked:       {sum(1 for r in results if (r.get("B") or {}).get("booking_result") != "created" or (r.get("A") or {}).get("booking_result") != "created")}')
+print(f'  caught by the re-check:       {sum(1 for r in results if "slot_taken" in json.dumps([r.get("A"), r.get("B")]))}')
 print(f'  viewing.booked events:        {len(booked)} (must equal booked)')
 print(f'  confirmation language right:  {sum(1 for r in results if (r.get("A") or {}).get("reply_lang") == r["lang"])}')
 print(f'  runs with any problem:        {sum(1 for r in results if r["problems"])}')
