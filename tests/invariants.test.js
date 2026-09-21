@@ -14,6 +14,7 @@ const SRC = (f) => fs.readFileSync(path.join(__dirname, '..', 'src', f), 'utf8')
 eval(SRC('booking_claim.js'));
 eval(SRC('booking_stated.js'));
 eval(SRC('reply_name.js'));
+eval(SRC('time_guard.js'));   // invariants.js calls its timesNotSupplied/tgTimesIn (one rule, one place)
 eval(SRC('invariants.js'));
 
 let pass = 0, fail = 0;
@@ -78,6 +79,27 @@ console.log('\ninvariant 1 -- a time named is in an offer the row holds');
                        row: { qualification: { booking: Object.assign({ event_id: 'e9' }, MON) } } });
   chk('PASS: a booked time is on the row -> holds', !violated(booked, '1'));
   chk('PASS: no time named -> holds', !violated(run({ textSent: 'Que tipo de imóvel procura?' }), '1'));
+}
+
+console.log('\ninvariant 1 -- declining the lead\'s own time is not naming one (one rule, src/time_guard.js)');
+{
+  // Live check 2, 21 Sep 2026, WORD FOR WORD. The guard kept this reply; the
+  // invariant carried its own times-only copy of the rule and fired a false
+  // "time_without_offer: named 11:00; offer holds 9:00, 10:00" alarm.
+  const T9 = { local: '2026-09-24T09:00:00.000+01:00', zone: 'Europe/Lisbon' };
+  const T10 = { local: '2026-09-24T10:00:00.000+01:00', zone: 'Europe/Lisbon' };
+  const row = { qualification: { proposed_slots: { at: '2026-09-21T16:04:00.000Z', slots: [T9, T10] } } };
+  const CHECK2 = "11:00 isn't available I'm afraid, João - Thursday morning we only have 09:00 or 10:00 Lisbon time. Would either of those work for you?";
+  const live = run({ textSent: CHECK2, leadText: '11:00?', row });
+  chk('PASS: check 2\'s reply, the lead asked "11:00?" -> invariant 1 holds', !violated(live, '1'), JSON.stringify(live.detail['1']));
+  const noLead = run({ textSent: CHECK2, row });
+  chk('CONTROL: the same reply with no lead text -> fires (the exemption needs the lead\'s own time)', violated(noLead, '1'));
+  const accepted = run({ textSent: 'Great, 11:00 it is on Thursday!', leadText: '11:00?', row });
+  chk('BROKEN: ACCEPTING the lead\'s unoffered 11:00 still fires', violated(accepted, '1') && same(accepted.detail['1'].missing, ['11:00']));
+  const flip = run({ textSent: "11:00 isn't possible on Wednesday, but Thursday at 11:00 works", leadText: '11:00?', row });
+  chk('BROKEN: declined in one clause, affirmed in the next -> fires', violated(flip, '1'));
+  const other = run({ textSent: "12:00 isn't available, but 09:00 is.", leadText: '11:00?', row });
+  chk('BROKEN: declining a time the lead never named -> fires', violated(other, '1'));
 }
 
 console.log('\ninvariant 2 -- a booking confirmed in the text has an event behind it');

@@ -57,17 +57,18 @@ function deaccentInv(s) {
   return String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 }
 
-// timesNamedIn(text) -> ['9:00', '14:30'], normalised H:MM. The SAME shape the
-// invented-time guard in ParseClaude reads, on purpose: the invariant then
-// isolates the storage gap (shown but never stored) from any phrasing gap.
+// timesNamedIn(text) -> ['9:00', '14:30'], normalised H:MM, deduplicated.
+// 🔒 ONE RULE, ONE PLACE (2026-09-21): the extraction is src/time_guard.js's
+// tgTimesIn(), which the parsers' never-invent guard uses too. Until then this
+// file carried its own copy of the regex AND its own times-only rule for
+// invariant 1, so when the guard learned that DECLINING the lead's own time is
+// not inventing one, invariant 1 did not, and it fired a false alarm on the
+// correct reply "11:00 isn't available I'm afraid, João - Thursday morning we
+// only have 09:00 or 10:00" (live check 2, 21 Sep). time_guard.js must be
+// embedded BEFORE this file.
 function timesNamedIn(text) {
   const found = [];
-  const rx = /\b([01]?\d|2[0-3])[:h]([0-5]\d)\b/g;
-  let m;
-  while ((m = rx.exec(String(text || ''))) !== null) {
-    const t = String(Number(m[1])) + ':' + m[2];
-    if (found.indexOf(t) === -1) found.push(t);
-  }
+  for (const t of tgTimesIn(text)) if (found.indexOf(t) === -1) found.push(t);
   return found;
 }
 
@@ -129,6 +130,7 @@ function approxEqual(a, b) {
 //   ctx.rejectedBudgets figures the parser rejected this turn
 //   ctx.parsedBudget    { min, max } the model returned this turn
 //   ctx.nameAllow       agent name, agency name, configured areas
+//   ctx.leadText        the lead's own message this turn (invariant 1's decline exemption)
 function checkInvariants(ctx) {
   const out = { checked: [], violated: [], unverified: [], detail: {} };
   const text = String(ctx.textSent || '');
@@ -151,7 +153,10 @@ function checkInvariants(ctx) {
     if (bookedThisTurn && ctx.bookingSlot) add(ctx.bookingSlot);
     if (ctx.existingBooking) add(ctx.existingBooking);
     if (ctx.bookingRetired) add(ctx.bookingRetired);   // the retired note names it
-    const missing = named.filter(h => allowed.indexOf(h) === -1);
+    // The guard's own rule, not a copy of it: a time the lead named may appear
+    // in a clause that DECLINES it (src/time_guard.js). Without ctx.leadText
+    // there is no exemption, which is the pre-2026-09-21 behaviour.
+    const missing = timesNotSupplied(text, allowed.map(h => ({ timeLocal: h })), ctx.leadText);
     out.checked.push('1');
     out.detail['1'] = { named, allowed, missing };
     if (missing.length) out.violated.push('1');

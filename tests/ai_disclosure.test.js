@@ -10,7 +10,7 @@ const S = (f) => fs.readFileSync(path.join(__dirname, '..', 'src', f), 'utf8');
 eval(S('ai_disclosure.js'));
 // invariants.js reuses the detectors in these three, and checkDelivery's
 // invariant 6 calls disclosureIn() from the file above.
-eval(S('booking_claim.js') + S('booking_stated.js') + S('reply_name.js') + S('invariants.js'));
+eval(S('booking_claim.js') + S('booking_stated.js') + S('reply_name.js') + S('time_guard.js') + S('invariants.js'));
 
 let pass = 0, fail = 0;
 const chk = (n, c, d) => { c ? pass++ : fail++; console.log(`  [${c ? 'PASS' : 'FAIL'}] ${n}${d ? '  ' + d : ''}`); };

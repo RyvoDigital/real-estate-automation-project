@@ -430,3 +430,65 @@ are handled. The garbled one is not.
 words in the detected language, or a spelling-noise ratio. Worth building only
 once a second occurrence shows it is not a one-off, so this entry is where a
 second sighting gets recorded.
+
+## NEW (21 Sep) — Invariant 1 fired a false alarm on a correct decline. Fix built, not deployed
+
+**Live check 2 of the `aeaaffb7` deploy** (16:05 UTC). The lead-facing result was
+right: the guard kept "11:00 isn't available I'm afraid, João - Thursday morning
+we only have 09:00 or 10:00 Lisbon time…". But the operator got
+"Ryvo invariant violated (pre_send) / 1 time_without_offer: named 11:00; offer
+holds 9:00, 10:00".
+
+**Cause:** the time guard and invariant 1 enforced one rule with **two copies of
+the logic**, and only one was updated. `src/invariants.js` had its own
+`timesNamedIn()` regex and its own times-only comparison.
+
+**Fix (built, tested, not deployed):**
+- Invariant 1 calls `timesNotSupplied()` from `src/time_guard.js`, with the
+  lead's message. AssertInvariants passes `leadText: lu.body`.
+- `timesNamedIn()` takes its extraction from `tgTimesIn()`: one rule and one
+  regex, in one place.
+- `time_guard.js` is embedded before `invariants.js` in AssertInvariants and
+  AssertDelivery. The drift test covers both files in both nodes.
+
+**Tests:**
+- Check 2's reply, word for word, must not fire. It does fire on the old
+  `invariants.js`, with `missing: ["11:00"]`.
+- Still firing: the same reply with no lead text, an accepted unoffered time,
+  declined-then-affirmed, and a declined time the lead never named.
+- `tests/invariants.test.js` 75/75.
+
+**Replay of AssertInvariants on check 2's recorded inputs** (execution 4559,
+inside the n8n container): old = violated, missing ["11:00"], alert; new = not
+violated, no alert.
+
+## NEW (21 Sep) — Logic copied instead of shared: the sweep
+
+Found by stripping every embedded `src/` copy out of each Code node and
+listing what is left:
+
+1. **Invariant 1 ↔ the time guard.** Fixed above.
+2. 🔴 **ReadRecheck carries a STALE copy of `src/slot_engine.js`.**
+   `computeSlots` and `readFreeBusy` are identical. `extractPreferredDate` lacks
+   the "dia 12" fix, and `matchConfirmation` differs by 91 lines. ReadRecheck
+   calls only `readFreeBusy`, so **nothing stale runs today**. But it is a copy
+   waiting to be called, and no drift test sees it, because it is not verbatim.
+   Fix: embed the current `slot_engine.js` verbatim, as ProposeSlots and
+   MatchConfirmation do, and add it to the drift test. Or cut the node down to
+   `readFreeBusy`.
+3. **ParseClaude ↔ ParseGuardRetry** share no source for their own logic:
+   `replyLooksBroken()` and `fail()` are defined in both, and the parse body
+   around them is a near-copy. A fix to one parser can miss the other, which is
+   exactly how the time guard had two inline copies.
+   Fix: move `replyLooksBroken` (and the shared parse steps) into `src/`,
+   embed both, and cover it with the drift test.
+4. **The "system failure" list, n8n ↔ cockpit, and the copies DISAGREE.**
+   PrepRunEscalated: `claude_failed|bad_reply_twice|booking_failed|no_availability|media_unprocessable`.
+   `cockpit/src/lib/escalation.ts:24` adds `booking_retired`. A
+   booking-retired escalation is `success` in the run row and "system" on the
+   cockpit's escalation screen. Which is right is a decision, not a fix.
+
+**Checked and NOT duplicates:** invariant 5's `moneyAmountsIn` reads text, while
+the parsers' `rejectedBudgets` judges the model's structured fields, so they are
+different questions. Invariants 2 and 5 already CALL `bookingClaim`,
+`replyStatesSlot` and the name detectors, and invariant 6 calls `disclosureIn`.

@@ -40,7 +40,8 @@ chk('at least one marker embed was found (a check that reads nothing proves noth
 console.log('\nunmarked embeds contain their src file verbatim');
 const UNMARKED = {
   'src/booking_claim.js': ['ParseClaude', 'ParseGuardRetry', 'AssertInvariants', 'AssertDelivery'],
-  'src/time_guard.js': ['ParseClaude', 'ParseGuardRetry'],
+  'src/time_guard.js': ['ParseClaude', 'ParseGuardRetry', 'AssertInvariants', 'AssertDelivery'],
+  'src/invariants.js': ['AssertInvariants', 'AssertDelivery'],
   'src/language.js': ['BuildClaudeRequest', 'ParseClaude', 'ParseGuardRetry', 'DecideEscalation',
                       'AfterBooking', 'MediaReply', 'CatchInternal'],
 };
