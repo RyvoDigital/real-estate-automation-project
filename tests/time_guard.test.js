@@ -121,6 +121,17 @@ for (const [lang, lead, reply] of ACCEPTING) {
   chk(`${lang}: ${reply}`, b.includes('11:00'), `-> ${JSON.stringify(b)}`);
 }
 
+console.log('\nEVERY real decline captured on 21 Sep evening passes (tests/fixtures/real_replies_2026-09-21_gate.json)');
+// The gate's three, and 90 from tests/time_guard_measure.py (30 per language, the
+// gate's shape). The guard before this change rejected 4 of the 30 English ones
+// ("I don't have an 11:00 slot"), and the gate's three.
+{
+  const fx = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'real_replies_2026-09-21_gate.json'), 'utf8')).replies;
+  const bad = fx.filter(r => timesNotSupplied(r.reply, CHECK2, r.lead).length);
+  chk(`all ${fx.length} real declines pass (a false escalation is any that does not)`, fx.length === 93 && bad.length === 0,
+      bad.length ? bad.map(r => r.reply.slice(0, 60)).join(' | ') : '');
+}
+
 console.log('\n🔒 KNOWN GAP, recorded rather than hidden: the guard compares TIMES, never DAYS');
 // It has never checked days. If 11:00 is offered on Tuesday only, "Thursday at
 // 11:00 works" passes. Not introduced by 21 Sep, and not closed by it. See

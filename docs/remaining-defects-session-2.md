@@ -135,6 +135,77 @@ available", "não está/estão disponível/is", "no está/están disponible/s",
   permanent cases word for word, embedded in ParseClaude and ParseGuardRetry,
   under the embed-drift test. Then the language fix is re-deployed with it.
 
+## NEW (21 Sep, evening) — The time guard still misses decline shapes, and accepts some affirmations 🔴 Tier 1: LIVE IN PRODUCTION until the next deploy
+
+**Found by the first deploy gate** (21 Sep, 18:43 UTC, against `f80faf3`).
+The guard above is live (`aeaaffb7` content, served version `93da8218`), and
+it still has two defects, in opposite directions. **Both stay live until the
+next Concierge deploy.**
+
+**1. False escalations: a decline it cannot read.** Gate runs 2 and 4: the
+lead asked "11:00?", and the model answered correctly, with the retry making
+the same point. Both were rejected, and the lead was escalated
+`bad_reply_twice`. Verbatim (executions 4636, 4653):
+- "We actually have Thursday 24 September at 09:00 or 10:00 Lisbon time available, but not 11:00 - would either of those work for you, João?"
+- "We have Thursday 24 September at 09:00 or 10:00 Lisbon time, but not 11:00 - would either of those work for you, João?"
+- "Thursday morning we have 09:00 or 10:00 Lisbon time, but not 11:00 - would either of those work for you, João?"
+
+The clause split eats the "but", leaving "not 11:00", and a bare "not" counts
+only when it governs an availability word. **Measured on production's guard:
+4 of 30 real English replies to an unoffered time are rejected**, all shaped
+"I don't have an 11:00 slot". This is the third shape the wording list missed,
+after "quedamos entonces" and the plurals.
+
+**2. False acceptances: a decline about ANOTHER time, or a bare sentiment
+word, exempts the lead's time.** The clause-level rule exempted every
+lead-named time in a clause that declined anything:
+- "10:00 isn't available, so 11:00 it is" passes;
+- "Sadly I had to move things, 11:00 is yours" passes;
+- "Everything except 11:00 is taken" passes.
+
+15 hand-written affirmations in en/pt/es pass. On REAL output (the sweep
+below), three Spanish replies shaped "A las 16:00 no tengo disponibilidad,
+solo puedo ofrecerle … a las 09:00 o 10:00" would have let an unoffered 09:00
+through, because the comma does not split and "no tengo disponibilidad" covers
+the whole clause. Nothing shows this happened live. The gate's replies all
+declined.
+
+**Fix BUILT (`61f50cc`, on top of `f80faf3`), not deployed:**
+- **Per occurrence:** a negation directly in front of the lead's time declines
+  it. Only a day and a preposition may stand between them.
+  - en: not, except (for), don't have an, can't do, no X slot;
+  - pt: não, menos, exceto, salvo, não consigo marcar;
+  - es: no a las, excepto, salvo, menos, no puedo ofrecer.
+- **Never declines:**
+  - "why not", "if not", "porque não", "por qué no", "si no";
+  - "pelo/al/por lo menos" ("at least") and "mais ou/más o menos" ("around");
+  - an except that carves the time out of something unavailable, or out of a
+    negation, or beside "also" (these are offers);
+  - "apart from", "other than", "besides" and "tirando" are left out, because
+    they add the time.
+- **A clause-level decline now covers only the time nearest to it.** Bare
+  "unfortunately", "infelizmente" and "lamentablemente" no longer decline on
+  their own.
+
+**Evidence:**
+- `tests/time_guard.test.js`: 103/103, and 37 fail on production's guard
+  (sabotage applied: the old file has no `tgGoverned`). The gate replies are
+  in it word for word. So are 22 governed declines and 52 accepting shapes
+  across the three languages.
+- **Measured on real output** (`tests/time_guard_measure.py`: the real prompt,
+  the shipping language note and slot block, the gate's shape, 30 per
+  language):
+  - false escalations: **0 of 90** new, against **4 of 90** old (all en);
+  - 49 replies named the lead's time, every one a decline, all exempted;
+  - 0 affirmed an unoffered time.
+  All 93 are `tests/fixtures/real_replies_2026-09-21_gate.json`, asserted in
+  the test.
+- **False-acceptance sweep over every real reply captured so far** (163
+  replies, 398 time occurrences, each treated as lead-named and unoffered):
+  - new guard: 59 exemptions, **all declines of that exact time**, 0
+    acceptances;
+  - old guard: 58, including the three Spanish false acceptances above.
+
 ## NEW (21 Sep) — Short English messages get Portuguese replies 🔴 Tier 1: live in production, demo-critical
 
 **Found** re-running suite 7 on the live build (21 Sep 2026, prompt and

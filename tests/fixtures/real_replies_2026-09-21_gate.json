@@ -1,0 +1,661 @@
+{
+ "_readme": [
+  "Real model replies captured on 21 Sep 2026 (evening), word for word. Never edited.",
+  "The first deploy gate's rejected declines, and tests/time_guard_measure.py on build 61f50cc: the gate's shape",
+  "(09:00 and 10:00 Thursday, 09:00 Wednesday offered), the lead asks an unoffered time, 30 per language.",
+  "Every entry is a correct decline: the time guard must pass every one of them (0 false escalations)."
+ ],
+ "replies": [
+  {
+   "source": "first deploy gate, execution 4636 and 4653, first attempt",
+   "lead": "11:00?",
+   "lang": "en",
+   "reply": "We actually have Thursday 24 September at 09:00 or 10:00 Lisbon time available, but not 11:00 - would either of those work for you, João?",
+   "garbled": false
+  },
+  {
+   "source": "first deploy gate, execution 4636, guard retry",
+   "lead": "11:00?",
+   "lang": "en",
+   "reply": "We have Thursday 24 September at 09:00 or 10:00 Lisbon time, but not 11:00 - would either of those work for you, João?",
+   "garbled": false
+  },
+  {
+   "source": "first deploy gate, execution 4653, guard retry",
+   "lead": "11:00?",
+   "lang": "en",
+   "reply": "Thursday morning we have 09:00 or 10:00 Lisbon time, but not 11:00 - would either of those work for you, João?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "11:00?",
+   "lang": "en",
+   "reply": "Sorry, 11:00 isn't available on our current slots. I can offer Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time — do any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Could we do 11:30 instead?",
+   "lang": "en",
+   "reply": "11:30 isn't one of the times I have available, but I can offer Thursday 24 September at 09:00 or 10:00, or Wednesday 23 September at 09:00, all Lisbon time. Would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "What about 12:00?",
+   "lang": "en",
+   "reply": "12:00 isn't available, I'm afraid. I can offer Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time - would any of those work?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Is 16:00 possible?",
+   "lang": "en",
+   "reply": "16:00 isn't available, but I can offer Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time. Would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "11:00 would be better for me",
+   "lang": "en",
+   "reply": "I don't have an 11:00 slot available, but I can offer Thursday 24 September at 09:00 or 10:00, or Wednesday 23 September at 09:00, all Lisbon time. Would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Any chance of 13:30?",
+   "lang": "en",
+   "reply": "That time isn't available, but I can offer Thursday 24 September 2026 at 09:00 or 10:00 Lisbon time, or Wednesday 23 September 2026 at 09:00 Lisbon time. Would any of those work?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "11:00?",
+   "lang": "en",
+   "reply": "11:00 isn't available, I'm afraid - the options I have are Thursday 24 September at 09:00 or 10:00, or Wednesday 23 September at 09:00, all Lisbon time. Would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Could we do 11:30 instead?",
+   "lang": "en",
+   "reply": "11:30 isn't one of the times I have available, I'm afraid. I can offer Thursday 24 September at 09:00 or 10:00, or Wednesday 23 September at 09:00, all Lisbon time - would any of those work?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "What about 12:00?",
+   "lang": "en",
+   "reply": "I only have Thursday 24 September at 09:00 or 10:00, or Wednesday 23 September at 09:00, all Lisbon time - 12:00 isn't available. Would one of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Is 16:00 possible?",
+   "lang": "en",
+   "reply": "16:00 isn't one of the available slots I have. I can offer Thursday 24 September at 09:00 or 10:00, or Wednesday 23 September at 09:00, all Lisbon time - would any of these work?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "11:00 would be better for me",
+   "lang": "en",
+   "reply": "11:00 isn't one of the times I have available, I'm afraid. I can offer Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time. Would any of those work?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Any chance of 13:30?",
+   "lang": "en",
+   "reply": "13:30 isn't available I'm afraid, but I can offer Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time. Would any of those work?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "11:00?",
+   "lang": "en",
+   "reply": "11:00 isn't available, unfortunately. I can offer Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time - do any of these work for you?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Could we do 11:30 instead?",
+   "lang": "en",
+   "reply": "11:30 isn't available, but I can offer Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time. Would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "What about 12:00?",
+   "lang": "en",
+   "reply": "12:00 isn't available, but I can offer Thursday 24 September 2026 at 09:00 or 10:00 Lisbon time, or Wednesday 23 September 2026 at 09:00 Lisbon time. Would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Is 16:00 possible?",
+   "lang": "en",
+   "reply": "16:00 isn't available, I'm afraid. For Thursday I can offer 09:00 or 10:00 Lisbon time, or Wednesday 23 September 2026 at 09:00 Lisbon time - would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "11:00 would be better for me",
+   "lang": "en",
+   "reply": "I don't have an 11:00 slot, but I do have Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time. Would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Any chance of 13:30?",
+   "lang": "en",
+   "reply": "Unfortunately 13:30 isn't available - the times I have are Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time. Would any of those work?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "11:00?",
+   "lang": "en",
+   "reply": "11:00 isn't available, but I do have Thursday 24 September 2026 at 09:00 or 10:00 Lisbon time, or Wednesday 23 September 2026 at 09:00 Lisbon time. Would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Could we do 11:30 instead?",
+   "lang": "en",
+   "reply": "That time isn't available, but I can offer Thursday 24 September 2026 at 09:00 or 10:00 Lisbon time, or Wednesday 23 September 2026 at 09:00 Lisbon time. Would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "What about 12:00?",
+   "lang": "en",
+   "reply": "12:00 isn't available, I'm afraid. I can offer Thursday 24 September 2026 at 09:00 or 10:00 Lisbon time, or Wednesday 23 September 2026 at 09:00 Lisbon time - would any of those work?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Is 16:00 possible?",
+   "lang": "en",
+   "reply": "16:00 isn't available, I'm afraid. The only slots I have are Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time. Would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "11:00 would be better for me",
+   "lang": "en",
+   "reply": "I don't have 11:00 available, but I can offer Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time. Would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Any chance of 13:30?",
+   "lang": "en",
+   "reply": "Unfortunately 13:30 isn't available - the options I have are Thursday 24 September at 09:00 or 10:00, or Wednesday 23 September at 09:00, all Lisbon time. Would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "11:00?",
+   "lang": "en",
+   "reply": "",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Could we do 11:30 instead?",
+   "lang": "en",
+   "reply": "That time isn't available, but I can offer Thursday 24 September at 09:00 or 10:00, or Wednesday 23 September at 09:00, all Lisbon time. Would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "What about 12:00?",
+   "lang": "en",
+   "reply": "12:00 isn't available, I'm afraid. I can offer Thursday 24 September 2026 at 09:00 or 10:00 Lisbon time, or Wednesday 23 September 2026 at 09:00 Lisbon time - would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Is 16:00 possible?",
+   "lang": "en",
+   "reply": "16:00 isn't available, I'm afraid, but I can offer Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time. Would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "11:00 would be better for me",
+   "lang": "en",
+   "reply": "I don't have an 11:00 slot available, but I can offer Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time. Would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Any chance of 13:30?",
+   "lang": "en",
+   "reply": "That time isn't available, but I can offer Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time - would any of those work?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Às 11:00?",
+   "lang": "pt",
+   "reply": "Às 11:00 não tenho disponibilidade, mas posso oferecer quinta-feira, 24 de setembro, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma dessas serve?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "E às 11:30?",
+   "lang": "pt",
+   "reply": "Esse horário não está disponível, infelizmente. Só posso oferecer quinta-feira, 24 de setembro, às 09:00 ou 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Qual destes prefere?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Pode ser às 12:00?",
+   "lang": "pt",
+   "reply": "Às 12:00 não tenho disponibilidade para oferecer. Posso propor quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma destas funciona para si?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Às 16:00 é possível?",
+   "lang": "pt",
+   "reply": "Às 16:00 não tenho disponibilidade, mas posso oferecer quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Qual delas prefere?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Preferia às 11:00",
+   "lang": "pt",
+   "reply": "Essa hora ainda não está disponível, mas posso oferecer quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma destas serve?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Há hipótese às 13:30?",
+   "lang": "pt",
+   "reply": "Nesse dia só tenho disponíveis os horários de manhã: quinta-feira 24 de setembro às 09:00 ou às 10:00, ou quarta-feira 23 de setembro às 09:00, hora de Lisboa. Prefere algum destes?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Às 11:00?",
+   "lang": "pt",
+   "reply": "Não tenho essa hora disponível, mas posso oferecer quinta-feira, 24 de setembro, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma dessas serve?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "E às 11:30?",
+   "lang": "pt",
+   "reply": "Esse horário não está disponível. Tenho quinta-feira, 24 de setembro às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro às 09:00, hora de Lisboa. Alguma destas serve?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Pode ser às 12:00?",
+   "lang": "pt",
+   "reply": "Esse horário não está disponível, mas posso oferecer quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Qual destas prefere?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Às 16:00 é possível?",
+   "lang": "pt",
+   "reply": "Às 16:00 não tenho disponibilidade, infelizmente. Posso oferecer quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma dessas funciona para si?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Preferia às 11:00",
+   "lang": "pt",
+   "reply": "Às 11:00 não tenho disponibilidade, infelizmente. Posso oferecer quinta-feira, 24 de setembro às 09:00 ou 10:00, ou quarta-feira, 23 de setembro às 09:00, hora de Lisboa. Alguma destas serve?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Há hipótese às 13:30?",
+   "lang": "pt",
+   "reply": "Esse horário não está disponível. Posso oferecer quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Qual destes prefere?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Às 11:00?",
+   "lang": "pt",
+   "reply": "Às 11:00 não tenho disponibilidade, mas posso oferecer quinta-feira, 24 de setembro, às 09:00 ou 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma dessas serve?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "E às 11:30?",
+   "lang": "pt",
+   "reply": "Nesse dia só tenho disponibilidade às 09:00 ou às 10:00 (hora de Lisboa) para quinta-feira, 24 de setembro, ou às 09:00 na quarta-feira, 23 de setembro. Alguma destas horas funciona para si?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Pode ser às 12:00?",
+   "lang": "pt",
+   "reply": "Esse horário não está disponível. Tenho quinta-feira, 24 de setembro, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Qual destas prefere?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Às 16:00 é possível?",
+   "lang": "pt",
+   "reply": "Às 16:00 não tenho disponibilidade, mas posso oferecer quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma dessas serve?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Preferia às 11:00",
+   "lang": "pt",
+   "reply": "Essa hora não está disponível, mas posso oferecer quinta-feira, 24 de setembro, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma dessas serve?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Há hipótese às 13:30?",
+   "lang": "pt",
+   "reply": "Nesse dia só tenho disponibilidade às 09:00 ou 10:00 (quinta, 24 de setembro), ou quarta, 23 de setembro, às 09:00, hora de Lisboa. Alguma dessas funciona para si?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Às 11:00?",
+   "lang": "pt",
+   "reply": "Às 11:00 não tenho disponível, mas posso oferecer quinta-feira, 24 de setembro, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma dessas horas serve?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "E às 11:30?",
+   "lang": "pt",
+   "reply": "Esse horário não está disponível, mas posso oferecer quinta-feira, 24 de setembro, às 09:00 ou 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Qual desses prefere?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Pode ser às 12:00?",
+   "lang": "pt",
+   "reply": "Esse horário não está disponível, mas posso propor quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Qual destes lhe convém?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Às 16:00 é possível?",
+   "lang": "pt",
+   "reply": "Às 16:00 não tenho disponibilidade, infelizmente. Posso oferecer quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Qual destas prefere?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Preferia às 11:00",
+   "lang": "pt",
+   "reply": "Infelizmente não tenho esse horário disponível. Posso oferecer quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma destas serve?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Há hipótese às 13:30?",
+   "lang": "pt",
+   "reply": "Nesse horário não tenho disponibilidade, mas posso oferecer quinta-feira, 24 de setembro, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma dessas funciona para si?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Às 11:00?",
+   "lang": "pt",
+   "reply": "Esse horário não está disponível, mas posso oferecer quinta-feira, 24 de setembro, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Qual destes prefere?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "E às 11:30?",
+   "lang": "pt",
+   "reply": "Esse horário não está disponível, mas tenho quinta-feira, 24 de setembro, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Qual destes prefere?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Pode ser às 12:00?",
+   "lang": "pt",
+   "reply": "Às 12:00 não tenho disponibilidade, mas posso propor quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma destas funciona para si?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Às 16:00 é possível?",
+   "lang": "pt",
+   "reply": "Às 16:00 não tenho disponibilidade, infelizmente. Posso oferecer quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Qual destas lhe convém?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Preferia às 11:00",
+   "lang": "pt",
+   "reply": "Essa hora não está disponível, mas posso oferecer quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma dessas serve?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Há hipótese às 13:30?",
+   "lang": "pt",
+   "reply": "Nesse dia só tenho disponibilidade às 09:00 ou 10:00, hora de Lisboa - às 13:30 não tenho esse horário disponível. Prefere um desses dois?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "¿A las 11:00?",
+   "lang": "es",
+   "reply": "A las 11:00 no tengo disponibilidad, pero puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Cuál de estos le viene mejor?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "¿Y a las 11:30?",
+   "lang": "es",
+   "reply": "A las 11:30 no tengo disponibilidad, pero puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de esas?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "¿Puede ser a las 12:00?",
+   "lang": "es",
+   "reply": "Esa hora no está disponible, pero puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de esas?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "¿Es posible a las 16:00?",
+   "lang": "es",
+   "reply": "Esa hora no está disponible, pero puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de estas?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Preferiría a las 11:00",
+   "lang": "es",
+   "reply": "Esa hora no la tengo disponible, pero sí puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, hora de Lisboa. ¿Le sirve alguna de esas?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "¿Hay alguna posibilidad a las 13:30?",
+   "lang": "es",
+   "reply": "A las 13:30 no tengo disponibilidad para ofrecerle, solo puedo confirmar el jueves 24 de septiembre a las 09:00 o 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de esas opciones?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "¿A las 11:00?",
+   "lang": "es",
+   "reply": "A las 11:00 no tengo disponibilidad, pero puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de esas horas?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "¿Y a las 11:30?",
+   "lang": "es",
+   "reply": "Esa hora no está disponible, pero sí tengo el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le sirve alguna de estas?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "¿Puede ser a las 12:00?",
+   "lang": "es",
+   "reply": "Ese horario no está disponible por ahora, pero puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Alguno de estos le funciona?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "¿Es posible a las 16:00?",
+   "lang": "es",
+   "reply": "A las 16:00 no tengo disponibilidad para ofrecerle en este momento. Los horarios que puedo confirmar son el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguno de estos?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Preferiría a las 11:00",
+   "lang": "es",
+   "reply": "Esa hora en concreto no está disponible, pero sí tengo jueves 24 de septiembre a las 09:00 o a las 10:00, o miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de esas?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "¿Hay alguna posibilidad a las 13:30?",
+   "lang": "es",
+   "reply": "Esa hora no está entre las disponibles ahora mismo. Puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de estas?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "¿A las 11:00?",
+   "lang": "es",
+   "reply": "Esa hora no está disponible, pero sí puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Alguna de esas le viene bien?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "¿Y a las 11:30?",
+   "lang": "es",
+   "reply": "A las 11:30 no tengo disponibilidad, solo puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguno de esos horarios?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "¿Puede ser a las 12:00?",
+   "lang": "es",
+   "reply": "A las 12:00 no tengo disponibilidad, lo siento. Los horarios que puedo ofrecerle son jueves 24 de septiembre a las 09:00 o 10:00, o miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguno de estos?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "¿Es posible a las 16:00?",
+   "lang": "es",
+   "reply": "A las 16:00 no tengo disponibilidad para ofrecerle; los horarios que tengo son el jueves 24 de septiembre a las 09:00 o 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguno de esos?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Preferiría a las 11:00",
+   "lang": "es",
+   "reply": "A las 11:00 no tengo disponibilidad, pero puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de estas?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "¿Hay alguna posibilidad a las 13:30?",
+   "lang": "es",
+   "reply": "Por ahora solo tengo disponibles el jueves 24 de septiembre a las 09:00 o 10:00, y el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguno de esos horarios?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "¿A las 11:00?",
+   "lang": "es",
+   "reply": "Esa hora no está disponible, pero sí tengo el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de esas?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "¿Y a las 11:30?",
+   "lang": "es",
+   "reply": "Esa hora no está disponible, pero sí tengo el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguno de esos?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "¿Puede ser a las 12:00?",
+   "lang": "es",
+   "reply": "Esa hora no está disponible por el momento, pero sí tengo el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de esas?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "¿Es posible a las 16:00?",
+   "lang": "es",
+   "reply": "Esa hora no está disponible, pero sí tengo el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Alguna de estas le viene bien?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Preferiría a las 11:00",
+   "lang": "es",
+   "reply": "A las 11:00 no tengo esa franja disponible, pero sí puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de estas?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "¿Hay alguna posibilidad a las 13:30?",
+   "lang": "es",
+   "reply": "A esa hora no tengo disponibilidad en este momento; los horarios que puedo ofrecerle son jueves 24 de septiembre a las 09:00 o a las 10:00, o miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguno de estos?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "¿A las 11:00?",
+   "lang": "es",
+   "reply": "Esa hora no está disponible, pero puedo ofrecerle el jueves 24 de septiembre de 2026 a las 09:00 o a las 10:00 (hora de Lisboa). ¿Le viene bien alguna de esas?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "¿Y a las 11:30?",
+   "lang": "es",
+   "reply": "Esa hora no está disponible, pero sí tengo el jueves 24 de septiembre a las 09:00 o 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de estas?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "¿Puede ser a las 12:00?",
+   "lang": "es",
+   "reply": "Esa hora no está disponible, pero puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le sirve alguna de estas?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "¿Es posible a las 16:00?",
+   "lang": "es",
+   "reply": "A las 16:00 no tengo disponibilidad, solo puedo ofrecerle el jueves 24 de septiembre a las 09:00 o 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguno de esos horarios?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "Preferiría a las 11:00",
+   "lang": "es",
+   "reply": "A las 11:00 no tengo disponibilidad, pero puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de estas opciones?",
+   "garbled": false
+  },
+  {
+   "source": "time_guard_measure.py, build 61f50cc",
+   "lead": "¿Hay alguna posibilidad a las 13:30?",
+   "lang": "es",
+   "reply": "Esa hora no está entre las disponibles por ahora, pero puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de estas?",
+   "garbled": false
+  }
+ ]
+}
