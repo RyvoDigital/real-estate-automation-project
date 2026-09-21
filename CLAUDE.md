@@ -51,6 +51,25 @@ The Supabase MCP server reads the one database there is, which is production.
 - **Never edit the `supabase` entry in `~/.claude.json`**, and never remove
   `read_only`, `project_ref` or `features` from its URL.
 
+## 🔴 The Concierge deploy gate
+
+Before asking for the go on ANY Concierge deploy, run the live-check
+conversation end to end, through the real workflow, **at least 20 times**
+against the build to be deployed:
+
+1. an English slot request ("Ok let's go with Thursday morning");
+2. a time that was not offered ("11:00?");
+3. a request for a person ("Talk to a human").
+
+Pass means **zero unexpected escalations, zero invariant alerts, and the
+correct language every time**. Report the counts; only then ask for the go.
+The phone checks stay, but they confirm the gate rather than replace it.
+
+Why (21 Sep 2026): three phone checks, one message each, passed a build that
+escalated the lead on the next try. The model returns an empty reply about
+once in 13 to 18 unoffered-time requests, and a single run cannot see a
+failure that rare. Twenty runs of the whole conversation can.
+
 ## Before changing anything
 
 - `docs/engineering-lessons.md` — ways of thinking that outlived the component

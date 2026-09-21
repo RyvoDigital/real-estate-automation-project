@@ -46,3 +46,6 @@ cockpit/.vercel/
 tests/*.SABOTAGE.json
 .playwright-mcp
 /tmp-shots/
+
+# The deploy-gate copy of the Concierge: generated per gate run by tests/build_gate.py.
+tests/*.GATE.json

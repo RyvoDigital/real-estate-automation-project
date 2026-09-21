@@ -217,10 +217,17 @@ fi
 if [[ -n "${SUPABASE_URL:-}" && -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
   SINCE="$(date -u -d '30 minutes ago' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
            || date -u -v-30M +%Y-%m-%dT%H:%M:%SZ)"
+  # The deploy gate (CLAUDE.md) runs the Concierge 20 times against a build that is
+  # NOT live, under its own rehearsal client. Its runs must never page anybody: a
+  # failing gate is reported by the gate, to the person running it. Only that ONE
+  # client automation is excluded. The Ryvo Test Client is rehearsal too, and its
+  # errors MUST still alert: that is how the live sabotage checks prove the alert.
+  GATE_FILTER=""
+  [[ -n "${GATE_CLIENT_AUTOMATION_ID:-}" ]] && GATE_FILTER="&client_automation_id=neq.${GATE_CLIENT_AUTOMATION_ID}"
   ERRS="$(curl -sS --max-time 20 \
       -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
       -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
-      "${SUPABASE_URL%/}/rest/v1/automation_runs?select=error_type&status=eq.error&created_at=gte.${SINCE}" \
+      "${SUPABASE_URL%/}/rest/v1/automation_runs?select=error_type&status=eq.error&created_at=gte.${SINCE}${GATE_FILTER}" \
       2>/dev/null)"
   NERR="$(printf '%s' "${ERRS}" | grep -o '"error_type"' | wc -l)"
   if [[ "${NERR}" -eq 0 ]]; then

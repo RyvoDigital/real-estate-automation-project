@@ -1,0 +1,62 @@
+{
+  "id": "ryvoGateSink01",
+  "name": "gate_sink (deploy gate: swallows every outbound call, sends nothing)",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": false,
+    "saveDataSuccessExecution": "none"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "gate-sink-9b2f6a31",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b0000000-0000-4000-8000-000000000001",
+      "name": "SinkWebhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "ryvo-gate-sink-hook"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"sid\":\"SMgatesink0000000000000000000000\",\"id\":\"gate-sink\",\"status\":\"queued\",\"note\":\"deploy gate sink: nothing was sent\"}",
+        "options": {
+          "responseCode": 201
+        }
+      },
+      "id": "b0000000-0000-4000-8000-000000000002",
+      "name": "SinkRespond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "SinkWebhook": {
+      "main": [
+        [
+          {
+            "node": "SinkRespond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "meta": {
+    "note": "Reached only from the gate copy of the Concierge (tests/build_gate.py), at localhost:5678 inside the n8n container. Answers every Twilio / Resend / cockpit call with a canned success (a Twilio sid, a Resend id) so the gate copy behaves as if the send worked, while nothing leaves the server. Executions are not saved: the bodies are gate messages."
+  }
+}

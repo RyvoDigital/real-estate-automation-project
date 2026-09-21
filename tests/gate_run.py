@@ -1,0 +1,141 @@
+#!/usr/bin/env python3
+"""RUN THE CONCIERGE DEPLOY GATE (CLAUDE.md). Run ON THE SERVER, after tests/build_gate.py
+has proved the gate copy and it has been imported and published as ryvoInboundConcGATE:
+
+  python3 tests/gate_run.py --runs 20 [--out /tmp/gate_result.json]
+
+Each run is the live-check conversation, end to end, through the real workflow (the gate
+copy), for a FRESH lead seeded like the live test lead (qualified buyer, area Cascais,
+stated name João), so no run inherits another's history and no escalation needs clearing:
+
+  1. "Ok let's go with Thursday morning"     expect: English reply, no escalation, no invariant
+  2. a time NOT offered (read from the offer  expect: English decline, no escalation, no invariant
+     the workflow stored on the lead)
+  3. "Talk to a human"                        expect: escalation needs_human, handoff sent, in
+                                                      English, no invariant
+
+Inbound is signed exactly as Twilio signs it (HMAC-SHA1 over VerifySignature's PUBLIC_URL
+and the sorted parameters) with the server's own TWILIO_AUTH_TOKEN, which never leaves
+the server. Every outbound call of the gate copy goes to the sink: nothing reaches a phone
+or an inbox. PASS = 0 unexpected escalations, 0 invariant violations, English every time.
+"""
+import argparse, base64, hashlib, hmac, json, sys, time, urllib.parse, urllib.request, uuid
+
+ap = argparse.ArgumentParser()
+ap.add_argument('--runs', type=int, default=20)
+ap.add_argument('--env', default='/opt/ryvo-automation-platform/.env')
+ap.add_argument('--gate-path', default='twilio-inbound-gate-5e1d8c47')
+ap.add_argument('--out', default='/tmp/gate_result.json')
+args = ap.parse_args()
+
+E = {}
+for l in open(args.env):
+    l = l.strip()
+    if l and not l.startswith('#') and '=' in l:
+        k, v = l.split('=', 1); E[k] = v
+PUBLIC_URL = 'https://n8n.ryvodigital.com/webhook/twilio-inbound'      # VerifySignature's constant
+POST_URL = 'https://n8n.ryvodigital.com/webhook/' + args.gate_path
+GATE_NUMBER = '+351900009000'
+DB = E['SUPABASE_URL'].rstrip('/') + '/rest/v1/'
+H = {'apikey': E['SUPABASE_SERVICE_ROLE_KEY'], 'Authorization': 'Bearer ' + E['SUPABASE_SERVICE_ROLE_KEY'],
+     'Content-Type': 'application/json', 'Prefer': 'return=representation'}
+q = urllib.parse.quote
+
+def db(method, path, body=None):
+    req = urllib.request.Request(DB + path, method=method, headers=H,
+                                 data=json.dumps(body).encode() if body is not None else None)
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return json.loads(r.read() or b'null')
+
+def send(phone, text):
+    p = {'AccountSid': E['TWILIO_ACCOUNT_SID'], 'MessageSid': 'SMgate' + uuid.uuid4().hex[:26],
+         'From': 'whatsapp:' + phone, 'To': 'whatsapp:' + GATE_NUMBER, 'Body': text,
+         'NumMedia': '0', 'ProfileName': 'Gate', 'WaId': phone.lstrip('+')}
+    p['SmsMessageSid'] = p['MessageSid']
+    base = PUBLIC_URL + ''.join(k + p[k] for k in sorted(p))
+    sig = base64.b64encode(hmac.new(E['TWILIO_AUTH_TOKEN'].encode(), base.encode('utf-8'), hashlib.sha1).digest()).decode()
+    req = urllib.request.Request(POST_URL, data=urllib.parse.urlencode(p).encode(), method='POST',
+                                 headers={'X-Twilio-Signature': sig, 'Content-Type': 'application/x-www-form-urlencoded'})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        return r.status
+
+def wait_run(ca, since, timeout=180):
+    t0 = time.time()
+    while time.time() - t0 < timeout:
+        rows = db('GET', f'automation_runs?select=started_at,status,error_type,payload&client_automation_id=eq.{ca}'
+                         f'&started_at=gte.{q(since)}&order=started_at.asc&limit=1')
+        if rows: return rows[0]
+        time.sleep(3)
+    return None
+
+client = db('GET', 'clients?select=id,rehearsal&whatsapp_number=eq.' + q(GATE_NUMBER))
+assert client, 'no gate client: run tests/gate_setup.py first'
+assert client[0]['rehearsal'] is True, 'the gate client must be rehearsal = true'
+cid = client[0]['id']
+ca = db('GET', f'client_automations?select=id,config&client_id=eq.{cid}&automation_id=eq.ebd13145-d1c7-4a29-92e4-9c107560c2ef')[0]
+assert (ca['config'] or {}).get('gate_only') is True, 'the client automation is not marked gate_only'
+
+stamp = int(time.time()) % 100000
+start_iso = time.strftime('%Y-%m-%dT%H:%M:%S+00:00', time.gmtime())
+CANDIDATES = ['11:00', '11:30', '12:30', '13:00', '16:30']
+results = []
+
+def verdict(step, run):
+    if run is None: return ['no run row within 180s']
+    p = run.get('payload') or {}
+    inv = ((p.get('invariants') or {}).get('violated')) or []
+    bad = []
+    if inv: bad.append(f'invariant {inv}')
+    if run.get('status') != 'success': bad.append(f'status {run.get("status")} {run.get("error_type")}')
+    if step in (1, 2):
+        if p.get('escalated'): bad.append(f'UNEXPECTED ESCALATION {p.get("reasons")}')
+        if p.get('reply_lang') != 'en': bad.append(f'reply_lang {p.get("reply_lang")}')
+    else:
+        reasons = p.get('reasons') or []
+        if not p.get('escalated'): bad.append('did not escalate')
+        elif not reasons or not all(str(r).startswith('needs_human') for r in reasons): bad.append(f'escalated for {reasons}')
+        if p.get('handoff_sent') is not True: bad.append('handoff not sent')
+        if p.get('handoff_lang') != 'en': bad.append(f'handoff_lang {p.get("handoff_lang")}')
+    return bad
+
+for i in range(1, args.runs + 1):
+    phone = '+35190' + f'{stamp:05d}{i:02d}'
+    db('POST', 'leads', {'client_id': cid, 'phone': phone, 'full_name': 'João', 'stage': 'qualified',
+                         'lead_type': 'buyer', 'area': 'Cascais', 'source': 'gate',
+                         'qualification': {'name_source': 'stated', 'bedrooms': 3, 'gate_run': stamp}})
+    rec = {'run': i, 'phone': phone, 'steps': []}
+    for step in (1, 2, 3):
+        if step == 1: text = "Ok let's go with Thursday morning"
+        elif step == 2:
+            lead = db('GET', f'leads?select=qualification&client_id=eq.{cid}&phone=eq.{q(phone)}')[0]
+            offered = [str(s.get('local', ''))[11:16] for s in (((lead['qualification'] or {}).get('proposed_slots') or {}).get('slots') or [])]
+            ask = next(t for t in CANDIDATES if t not in offered)
+            text = ask + '?'
+            rec['offered'] = offered
+        else: text = 'Talk to a human'
+        since = time.strftime('%Y-%m-%dT%H:%M:%S+00:00', time.gmtime(time.time() - 1))
+        code = send(phone, text)
+        run = wait_run(ca['id'], since)
+        bad = verdict(step, run) if code == 200 else [f'webhook HTTP {code}']
+        p = (run or {}).get('payload') or {}
+        rec['steps'].append({'step': step, 'sent': text, 'http': code, 'status': (run or {}).get('status'),
+                             'escalated': p.get('escalated'), 'reasons': p.get('reasons'),
+                             'reply_lang': p.get('reply_lang'), 'handoff_lang': p.get('handoff_lang'),
+                             'invariants': ((p.get('invariants') or {}).get('violated')), 'problems': bad})
+        print(f'run {i:2d} step {step} {text!r:40} -> {"OK" if not bad else "FAIL: " + "; ".join(bad)}', flush=True)
+    results.append(rec)
+    json.dump({'start': start_iso, 'stamp': stamp, 'runs': results}, open(args.out, 'w'), ensure_ascii=False, indent=1)
+
+steps = [s for r in results for s in r['steps']]
+unexpected_esc = sum(1 for s in steps if s['step'] in (1, 2) and s['escalated']) + \
+                 sum(1 for s in steps if s['step'] == 3 and any('escalated for' in b or 'did not escalate' in b for b in s['problems']))
+inv = sum(1 for s in steps if s['invariants'])
+lang = sum(1 for s in steps if any(b.startswith(('reply_lang', 'handoff_lang')) for b in s['problems']))
+other = sum(1 for s in steps if s['problems'])
+events = db('GET', f'events?select=type&client_id=eq.{cid}&type=eq.invariant.violated&created_at=gte.{q(start_iso)}')
+print(f'\nGATE: {len(results)} conversations, {len(steps)} messages')
+print(f'  unexpected escalations: {unexpected_esc}')
+print(f'  invariant violations:   {inv} (invariant.violated events for the gate client since start: {len(events)})')
+print(f'  wrong language:         {lang}')
+print(f'  messages with any problem: {other}')
+print('PASS' if (unexpected_esc == 0 and inv == 0 and not events and lang == 0 and other == 0) else 'FAIL')
