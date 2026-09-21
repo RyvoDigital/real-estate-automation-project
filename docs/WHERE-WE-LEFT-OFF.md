@@ -66,9 +66,16 @@ tripped us up. **Sections are newest first.**
 - **So "Stage C is nearly done" is not true.** At least two screens that
   write, a hand-back and a regression fix are owed before anything old can go.
 
-**Open, not fixed:** the Concierge replies in Portuguese to short English
-messages the language detector cannot read (4 of 5 in suite 7).
-`docs/remaining-defects-session-2.md`.
+**Open, not fixed (both in `docs/remaining-defects-session-2.md`):**
+- **Language drift:** the Concierge replies in Portuguese to short English
+  messages the detector cannot read (4 of 5 in suite 7). The fix was built,
+  deployed (`64b0376d`) and half-proved live, then **rolled back at 15:01 UTC**
+  (served now: `f04b9f97`, the `fe2e7857` content). It is reverted in the repo
+  and returns with the next fix.
+- 🔴 **The never-invent guard escalates a lead whose own unoffered time the
+  reply correctly declines** ("11:00 isn't available, but…"). This is what the
+  rollback was for. It is older than every 21 Sep change, proved by replay. A
+  fix is prototyped, not built.
 
 ---
 

@@ -66,6 +66,46 @@ At retirement the model's own reason says the lead asked about a meeting "that i
 
 ---
 
+## NEW (21 Sep) — Declining the lead's own unoffered time escalates the lead 🔴 Tier 1: live, older than every 21 Sep change
+
+**Found by live check 2** of the language deploy, 15:01 UTC. The lead asked
+"11:00?", and 09:00 and 10:00 had been offered. **Both model replies were
+correct**, and both were rejected by ParseClaude's never-invent guard
+(`timesNotSupplied`): "reply named times the workflow never supplied: 11:00".
+The lead was escalated `bad_reply_twice` and got the handoff note instead of an
+answer. Verbatim (execution 4531):
+
+1. "11:00 isn't available, but I do have Thursday 24 September 2026 at 09:00 Lisbon time or 10:00 Lisbon time - would either of those work for you, João?"
+2. "11:00 isn't available, but I can offer Thursday 24 September 2026 at 09:00 Lisbon time or Thursday 24 September 2026 at 10:00 Lisbon time - which one suits you?"
+
+**Why it happens:** the guard takes every H:MM in the reply and rejects any
+not in the offered list. It cannot tell *naming* a time (inventing one) from
+*declining* the time the lead asked for. The prompt tells the model to say an
+unavailable time is unavailable, so the model does the right thing and the
+guard punishes it.
+
+**Proved older than the 21 Sep changes, not reasoned:**
+- Both replies replayed through the guard from the `fe2e7857` build and from
+  the language-fix build: `["11:00"]` on both.
+- The guard function and its call site are byte-identical between them.
+- The guard ignores language, so the same reply in Portuguese would have been
+  rejected the same way.
+
+**Why Tier 1:** asking for a time that is not on offer is ordinary. Every lead
+who does it, and gets a correct refusal, is escalated to a human. In a demo it
+looks like the assistant gave up on a simple question.
+
+**Proposed fix, prototyped (9/9), not built:** a time the LEAD named in their
+own message is allowed in a reply sentence that DECLINES it ("isn't
+available", "não está/estão disponível/is", "no está/están disponible/s",
+"infelizmente", "lamentablemente"…).
+- **Still rejected:** an accepted unoffered time ("11:00 it is", "11:00 works
+  for us"), a declined time the lead never named, and an invented alternative
+  ("11:00 isn't available, but 14:00 is").
+- **Where it goes:** into `src/` as its own file, with the two replies above as
+  permanent cases word for word, embedded in ParseClaude and ParseGuardRetry,
+  under the embed-drift test. Then the language fix is re-deployed with it.
+
 ## NEW (21 Sep) — Short English messages get Portuguese replies 🔴 Tier 1: live in production, demo-critical
 
 **Found** re-running suite 7 on the live build (21 Sep 2026, prompt and
@@ -109,7 +149,25 @@ node -e "eval(require('fs').readFileSync('src/language.js','utf8'));console.log(
   message "Ok let's go with Thursday morning" with no history.
 - **Live:** from the test phone, after a hand-back, send that sentence alone.
 
-**Fix:** proposed separately (see the diagnosis commit). Not deployed.
+**Fix: built, deployed, proved in part, then ROLLED BACK. Not live.**
+- **Built** in `7b585c0`, deployed as `64b0376d` at 14:56 UTC. It adds the word
+  lists, `resolveLeadLanguage()` in BuildClaudeRequest, and the same history
+  fallback for the handoff note.
+- **Check 1** ("Ok let's go with Thursday morning", 14:59 UTC): English reply,
+  `leadLangSource: message`, en 10 / pt 0.
+- **Check 2** ("11:00?", 15:01 UTC): the language part worked as designed.
+  `leadLangSource: history` inherited English past an unreadable message, and
+  the handoff note came out English through the new fallback
+  (`handoffLangDetected: null`, `handoffLang: en`). But the run escalated
+  `bad_reply_twice`, on the **never-invent-a-time guard**, not on language
+  (next entry).
+- **Rolled back** to the `fe2e7857` content at 15:01:48 UTC (served version
+  `f04b9f97`, confirmed identical node for node), per the rule. `7b585c0` is
+  **reverted in the repository** so it matches production. It returns with one
+  cherry-pick, in the same deploy as the guard fix.
+- **Proved not the cause.** Replaying both rejected replies through both
+  versions' guard gives `["11:00"]` on each, and the guard code is
+  byte-identical between them.
 
 ## ✅ FIXED (21 Sep) — A failed handoff send is logged as a successful run. Served version `fe2e7857`
 
@@ -165,7 +223,14 @@ Suite 7 on the deployed build (15a2b23) missed twice on Spanish present-as-futur
 
 So a run that errored produced: a row in `automation_runs`, no event, no invariant, and an alert of unknown status. **If that email did not arrive, a caught internal failure is silent** — visible only to someone who queries `automation_runs` — and that is the §3.7 Layer 2 gap ("the workflow reports what it *failed to do*") in its most literal form, on the single most likely kind of failure.
 
-**How to check:** the operator's inbox (`manuelvale@ryvodigital.com`, no dot) around 00:19 and 00:23 on 17 Sep; the Resend dashboard for those two timestamps; and `EmailInternalFailure`'s response status in the executions for those runs.
+**🔁 Corrected 21 Sep 2026:** alerts do NOT go to `manuelvale@ryvodigital.com`.
+Every alert email goes to **`manuel.seixasvale@gmail.com` and
+`hello@ryvodigital.com`**. That covers the health check (`ALERT_EMAIL_TO`,
+confirmed in `/var/log/ryvo-health.log`) and all four n8n email nodes
+(EmailInternalFailure, EmailNotifyFailure, EmailMediaEscalation, EmailDbOutage),
+read from the workflow. The original line is kept below as written.
+
+**How to check (as written 17 Sep):** the operator's inbox (`manuelvale@ryvodigital.com`, no dot) around 00:19 and 00:23 on 17 Sep; the Resend dashboard for those two timestamps; and `EmailInternalFailure`'s response status in the executions for those runs.
 
 **RESOLVED — it fired, and so did the layer above it.** The operator received *"Ryvo: internal failure in PrepRunAI - a lead may be unanswered"* at 02:23 **with a count of 2**, so neither failure was dropped. Independently, the server health check reported *"2 failed automation run(s) in the last 30 minutes"* at 02:30 — from outside n8n, seven minutes later, without reading the same signal.
 
@@ -277,3 +342,40 @@ Step 5 of the language rehearsal: after "Not yet, I'll confirm tomorrow" (offer 
 ## Closed 13 Sep, ~02:00 — the "first meeting" phantom booking
 
 Five-step rehearsal on the hardest transcript in the system, all clean first drafts (no retries in any payload): the phantom message books nothing; "Is Tuesday still available?" is answered, not escalated; a real acceptance is booked and stated; with a booking held, a question about Wednesday is answered with Tuesday stated as standing. Lessons §8c.
+
+## ACCEPTED (21 Sep) — One failed run produces exactly one email, 10–20 minutes later, by design
+
+Seen live with the SABOTAGE-D handoff failure (14:34:22 UTC):
+- **14:40:** the health check counted it, `consecutive=1`, "below the alert
+  threshold (1/2) - not alerting yet".
+- **14:50:** `consecutive=2`, emailed through Resend (HTTP 200) to
+  `manuel.seixasvale@gmail.com` and `hello@ryvodigital.com`.
+
+`FAIL_THRESHOLD=2` at a 10-minute cadence, and a failed run stays visible for
+30 minutes. So a single failed run is always sampled by at least two
+consecutive checks and always produces exactly one email, **10 to 20 minutes
+after it**, then a "recovered" email once it leaves the window.
+
+**Accepted as designed.** The threshold exists because alerting on the first
+failing check produced bursts of byte-identical mail that landed in spam. **The
+fast signal is the invariant WhatsApp**: it arrived 12 seconds after the
+failed handoff.
+
+## NEW (21 Sep) — The no-promise judge flips on identical input: a harness defect 🟡 Tier 2
+
+In suite 7 (21 Sep, 10 English replies to "Ok let's go with Thursday
+morning"), the LLM judge gave **opposite verdicts to identical wording**:
+- "…Shall I lock that in?" passed once and failed twice;
+- "…11:00 Lisbon time it is — can you confirm that works for you?" passed once
+  and failed once.
+
+**A judge that flips on identical input is not a gate.** Its failures cannot
+be read as signal until it is fixed. The suite's 6/10 on that run says nothing
+about the replies. Every one of them ended by asking the lead to confirm, and
+the claim guard skips a question by design.
+
+**Not fixed.** When it is: either make the judge deterministic enough to agree
+with itself (a fixed rubric that decides on phrases, several samples and a
+majority, temperature 0 where available), or replace the judgement with a rule
+the code can check. Until then, read a suite-7 FAIL by looking at the reply,
+never at the count.
