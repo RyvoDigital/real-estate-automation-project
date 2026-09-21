@@ -43,6 +43,75 @@ for (const [label, text] of [
   chk(`${label} -> undecided`, r.lang === null && !r.confident, `got=${r.lang}`);
 }
 
+console.log('\n  -- 2026-09-21: short booking replies, which scored 0 in every language');
+// "Ok let's go with Thursday morning" got no REPLY LANGUAGE note and 4 of 5
+// replies in Portuguese (suite 7 on the live build). Word for word first.
+for (const [want, text] of [
+  ['en', "Ok let's go with Thursday morning"],
+  ['en', 'Tuesday at 15:00 works'],
+  ['en', 'Thursday works'],
+  ['en', 'Sounds good, Friday afternoon'],
+  ['en', 'What about next Monday?'],
+  ['pt', 'Quinta de manhã'],
+  ['pt', 'Pode ser terça às 15:00'],
+  ['pt', 'Sexta à tarde, combinado'],
+  ['es', 'El martes por la tarde'],
+  ['es', 'Vale, el lunes'],
+  ['es', 'El jueves a las 11 me viene bien'],
+]) {
+  const r = detectLanguage(text);
+  chk(`${want}: ${JSON.stringify(text)}`, r.lang === want, `got=${r.lang} scores=${JSON.stringify(r.scores)}`);
+}
+for (const [label, text] of [
+  ['a bare time', '15:00'],
+  ['ok and a time', 'ok 15h'],
+  ['a place name', 'Cascais'],
+  ['a shared weekend word', 'sábado'],
+]) {
+  const r = detectLanguage(text);
+  chk(`${label} is still undecided: ${JSON.stringify(text)}`, r.lang === null, `got=${r.lang}`);
+}
+
+console.log('\n  -- resolveLeadLanguage: an undecided message inherits, it does not go blank');
+{
+  const r1 = resolveLeadLanguage("Ok let's go with Thursday morning", []);
+  chk('the current message decides when it can', r1.lang === 'en' && r1.source === 'message');
+  const r2 = resolveLeadLanguage('ok 15h', ['Hi, do you have anything in Cascais under 1 million?']);
+  chk('undecided -> the lead\'s last decided message', r2.lang === 'en' && r2.source === 'history');
+  const r3 = resolveLeadLanguage('ok', ['15:00', 'Cascais', 'Quero falar com uma pessoa por favor', 'Hi there']);
+  chk('skips undecided history, takes the NEWEST decided (list is newest first)', r3.lang === 'pt' && r3.source === 'history');
+  const r4 = resolveLeadLanguage('ok', ['15:00']);
+  chk('nothing decided anywhere -> null, and nothing is stated', r4.lang === null && r4.source === null);
+  const r5 = resolveLeadLanguage('ok', null);
+  chk('no history at all -> null, not a throw', r5.lang === null);
+  const r6 = resolveLeadLanguage('Pode ser terça às 15:00', ['I would like to speak to a person please']);
+  chk('a decided message beats history: a lead who switches language is followed', r6.lang === 'pt' && r6.source === 'message');
+}
+
+console.log('\n  -- 2026-09-21: the HANDOFF NOTE inherits too (systemMessage with history)');
+{
+  // The Ryvo Test Client's shape: a pt default, and a note in each language.
+  const CFG = { default_language: 'pt', system_messages: { handoff: {
+    pt: 'Um colega da nossa equipa vai continuar a conversa consigo.',
+    en: 'A member of our team will take over from here.',
+    es: 'Un compañero de nuestro equipo continuará la conversación.' } } };
+  const EN_HISTORY = ["Ok let's go with Thursday morning", 'Hi, do you have anything in Cascais under 1 million?'];
+  // "Talk to a human" scores 0 in every language, even with the 21 Sep lists.
+  chk('precondition: "Talk to a human" is unreadable on its own', detectLanguage('Talk to a human').lang === null);
+  const h = systemMessage(CFG, 'handoff', 'Talk to a human', EN_HISTORY);
+  chk('an English lead asking for a person unreadably gets the ENGLISH note, not the pt default',
+      h.lang === 'en' && /take over/.test(h.text) && h.source === 'history', `lang=${h.lang} source=${h.source}`);
+  const without = systemMessage(CFG, 'handoff', 'Talk to a human');
+  chk('CONTROL: the same message with no history falls back to the configured default (pt)',
+      without.lang === 'pt' && without.source === null, `lang=${without.lang}`);
+  const pt = systemMessage(CFG, 'handoff', 'Quero falar com uma pessoa', EN_HISTORY);
+  chk('a readable message still decides: pt now beats English history', pt.lang === 'pt' && pt.source === 'message');
+  const esHist = systemMessage(CFG, 'handoff', 'Human?', ['Hola, busco una casa en Cascais con vistas al mar']);
+  chk('Spanish history -> the Spanish note', esHist.lang === 'es' && /compañero/.test(esHist.text));
+  chk('`detected` still reports the CURRENT message only (null here), for the audit trail',
+      h.detected === null);
+}
+
 console.log('\n  -- pt/es separation, the pair most likely to be confused');
 chk('accented pt beats shared vocabulary', detectLanguage('Não, obrigado').lang === 'pt');
 chk('ñ settles es', detectLanguage('mañana por favor').lang === 'es');

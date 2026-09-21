@@ -36,8 +36,19 @@ r = replyLanguageMismatch(EN_Q, 'Of course! Our colleague Sofia can meet you in 
 chk('an English reply quoting a Portuguese phrase passes (English scores)', r.mismatch === false);
 r = replyLanguageMismatch('', 'Claro! Posso agendar uma primeira reunião com o nosso colega na terça-feira às 09:00, hora de Lisboa.', { leadLang: 'en' });
 chk('an upstream leadLang is honoured even when the lead text is empty', r.mismatch === true && r.leadLang === 'en');
-r = replyLanguageMismatch(EN_Q, 'Claro! Temos disponibilidade na terça-feira às 09:00.');
+r = replyLanguageMismatch(EN_Q, 'Claro! Temos disponibilidade na terça às 09:00.');
 chk('a SHORT wrong-language reply is below the bar and passes: this guard is for the leak, not every edge', r.mismatch === false);
+// 2026-09-21: the pt lexicon gained the weekdays (terca, quinta...), so this
+// sentence, the one the case above used until then, now scores 11 against a
+// bar of 10 and is flagged. It IS a Portuguese reply to an English lead, and
+// the outcome is one retry, never an escalation, so flagging it is correct. The
+// test is kept to record the change, and the case above keeps the bar honest.
+r = replyLanguageMismatch(EN_Q, 'Claro! Temos disponibilidade na terça-feira às 09:00.');
+chk('CHANGED 21 Sep: "na terça-feira" now crosses the bar (pt weekdays are evidence)', r.mismatch === true && r.replyLang === 'pt');
+r = replyLanguageMismatch(EN_Q, 'Thursday (quinta-feira) at 11:00 works for our colleague - shall I confirm?');
+chk('an English reply quoting the Portuguese weekday still passes (English dominates)', r.mismatch === false);
+r = replyLanguageMismatch(EN_Q, 'Great, Sofia can see you on Thursday - quinta-feira, as we say here.');
+chk('an English reply with a local word still passes', r.mismatch === false);
 
 console.log('\nthe note and the retry hint');
 chk('note names the language and forbids translating a name', /REPLY LANGUAGE: English/.test(renderReplyLanguageNote('en')) && /never translated/.test(renderReplyLanguageNote('en')));
