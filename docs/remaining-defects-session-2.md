@@ -114,6 +114,11 @@ garbled (below), leaving 34 replies:
   The decline list matched **6, all genuine declines**, and **0 of the 77**
   that offer or confirm a time. Hand-written affirmations (en/pt/es, "no
   problem"-shaped, "booked!", declined-then-affirmed) are all rejected.
+  🔴 **CORRECTED 21 Sep, evening: incomplete.** Those affirmations never shared a
+  clause with a decline of ANOTHER time. When they do, this guard (live since
+  `aeaaffb7`) lets the unoffered time through, e.g. "10:00 isn't available, so
+  11:00 it is". See the next entry ("Production's time guard can LET THROUGH
+  an unoffered time").
 - **Replay** of both parser versions on execution 4531's recorded inputs,
   inside the n8n container: the old parsers give `bad_reply` "…never
   supplied: 11:00" twice (the live failure, reproduced); the new ones keep the
@@ -135,14 +140,33 @@ available", "não está/estão disponível/is", "no está/están disponible/s",
   permanent cases word for word, embedded in ParseClaude and ParseGuardRetry,
   under the embed-drift test. Then the language fix is re-deployed with it.
 
-## NEW (21 Sep, evening) — The time guard still misses decline shapes, and accepts some affirmations 🔴 Tier 1: LIVE IN PRODUCTION until the next deploy
+## NEW (21 Sep, evening) — Production's time guard can LET THROUGH an unoffered time, and escalates some correct declines 🔴 Tier 1: LIVE IN PRODUCTION until the next deploy
 
 **Found by the first deploy gate** (21 Sep, 18:43 UTC, against `f80faf3`).
 The guard above is live (`aeaaffb7` content, served version `93da8218`), and
-it still has two defects, in opposite directions. **Both stay live until the
-next Concierge deploy.**
+it has two defects in opposite directions. **Both stay live until the next
+Concierge deploy.**
 
-**1. False escalations: a decline it cannot read.** Gate runs 2 and 4: the
+🔴 **The false acceptance is the dangerous direction, and ranks ABOVE the
+false escalations.** A false escalation costs a lead a human reply. A false
+acceptance lets the assistant confirm a time nobody offered, and the lead turns
+up for a meeting that does not exist. **It is the main reason this deploy goes
+ahead once the gate passes** (operator, 21 Sep 2026).
+
+**1. 🔴 FALSE ACCEPTANCES: production's guard can let an unoffered time through.** A decline about ANOTHER time, or a bare sentiment word, exempts the lead's time. The clause-level rule exempted every
+lead-named time in a clause that declined anything:
+- "10:00 isn't available, so 11:00 it is" passes;
+- "Sadly I had to move things, 11:00 is yours" passes;
+- "Everything except 11:00 is taken" passes.
+
+15 hand-written affirmations in en/pt/es pass, including "…so 11:00 it is". **On REAL output** (the sweep
+below), three Spanish replies shaped "A las 16:00 no tengo disponibilidad,
+solo puedo ofrecerle … a las 09:00 o 10:00" would have let an unoffered 09:00
+through, because the comma does not split and "no tengo disponibilidad" covers
+the whole clause. Nothing shows this happened live. The gate's replies all
+declined.
+
+**2. False escalations: a decline it cannot read.** Lower severity: the lead gets a human instead of an answer. Gate runs 2 and 4: the
 lead asked "11:00?", and the model answered correctly, with the retry making
 the same point. Both were rejected, and the lead was escalated
 `bad_reply_twice`. Verbatim (executions 4636, 4653):
@@ -155,20 +179,6 @@ only when it governs an availability word. **Measured on production's guard:
 4 of 30 real English replies to an unoffered time are rejected**, all shaped
 "I don't have an 11:00 slot". This is the third shape the wording list missed,
 after "quedamos entonces" and the plurals.
-
-**2. False acceptances: a decline about ANOTHER time, or a bare sentiment
-word, exempts the lead's time.** The clause-level rule exempted every
-lead-named time in a clause that declined anything:
-- "10:00 isn't available, so 11:00 it is" passes;
-- "Sadly I had to move things, 11:00 is yours" passes;
-- "Everything except 11:00 is taken" passes.
-
-15 hand-written affirmations in en/pt/es pass. On REAL output (the sweep
-below), three Spanish replies shaped "A las 16:00 no tengo disponibilidad,
-solo puedo ofrecerle … a las 09:00 o 10:00" would have let an unoffered 09:00
-through, because the comma does not split and "no tengo disponibilidad" covers
-the whole clause. Nothing shows this happened live. The gate's replies all
-declined.
 
 **Fix BUILT (`61f50cc`, on top of `f80faf3`), not deployed:**
 - **Per occurrence:** a negation directly in front of the lead's time declines
