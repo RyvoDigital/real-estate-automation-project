@@ -238,7 +238,9 @@ It also carries a different correction model: stamp `superseded_at` on the old
 row, and the view filters on that stamp. Under `0046`'s grants the application
 cannot UPDATE, so it cannot stamp, and every correction it made would be
 counted twice. **`0050` states the whole end state** (full append-only,
-insert-only corrections, anti-join view). Written, not applied.
+insert-only corrections, anti-join view). ✅ **Applied 21 September**,
+proved before and after in the verdict shape, and confirmed through the MCP
+connection. The freeze described above no longer exists.
 
 ✅ **Resolved by `0049`, applied on 21 September.** All six are now `RESTRICT`
 and validated. I confirmed that independently through the read-only MCP
