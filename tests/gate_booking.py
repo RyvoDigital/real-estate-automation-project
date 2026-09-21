@@ -21,6 +21,11 @@ Proved per run (operator, 22 Sep 2026):
     viewing.booked written; the confirmation names S's time, in A's language;
   - B: not booked (by the intent check, or by the re-check in a race); no second
     event at S; the reply in B's language.
+  - ZERO invariant alerts, counted by THIS script from events (invariant.violated)
+    for every run, not read off the payloads: on 21 Sep two critical alerts fired
+    in ten runs and the per-run checks, which read payloads, missed both (22 Sep 2026);
+  - escalations: none sequentially; in a race exactly the loser, as a lost race
+    (booking_lost_race, a person reason), with the run NOT an error.
 The sink swallows every outbound call. Only the gate calendar is written, and
 tests/gate_calendar_clear.workflow.json empties it afterwards.
 """
@@ -131,12 +136,32 @@ def last_reply(phone):
     return rows[0]['body'] if rows else ''
 
 
+def lead_id(phone):
+    return db('GET', f'leads?select=id&client_id=eq.{cid}&phone=eq.{q(phone)}')[0]['id']
+
+
+def outbound_since(lid, since):
+    return db('GET', f'messages?select=origin,external_id,created_at&lead_id=eq.{lid}&direction=eq.outbound'
+                     f'&created_at=gte.{q(since)}&order=created_at.asc')
+
+
+def events_since(etype, since):
+    # Narrow columns: the type, when, and whose. Never the summary's text.
+    return db('GET', f'events?select=created_at,data&client_id=eq.{cid}&type=eq.{etype}&created_at=gte.{q(since)}'
+                     f'&order=created_at.asc')
+
+
+SETTLE = 25   # seconds after a run's last turn before its alerts are counted: AssertDelivery
+              # writes at the very end of a run, and on 21 Sep the alerts landed 7-19s after the turn
+
+
 for i in range(1, args.runs + 1):
     lang = ['en', 'pt', 'es'][(i - 1) % 3]
     A = '+35191' + f'{stamp:05d}{i:02d}'
     B = '+35192' + f'{stamp:05d}{i:02d}'
     rec = {'run': i, 'lang': lang, 'problems': []}
     bad = rec['problems']
+    run_since = time.strftime('%Y-%m-%dT%H:%M:%S+00:00', time.gmtime(time.time() - 1))
     try:
         new_lead(A); new_lead(B)
         turn(ca['id'], A, ASK[lang]); turn(ca['id'], B, ASK[lang])
@@ -154,38 +179,66 @@ for i in range(1, args.runs + 1):
             # Both confirm at the same instant. Neither can see the other's booking in its
             # first freeBusy, so the only thing between them is the re-check before create.
             # The threads only SEND. automation_runs has no lead column, so each run is tied to
-            # its lead afterwards through the outbound sid it recorded (unique per call since
-            # the sink fix) and the messages row carrying that sid.
+            # its lead afterwards. 🔒 22 Sep 2026: NOT by the outbound sid alone -- a lost race
+            # escalates, and an escalated run's payload carries no twilio_sid (races 1-4 on
+            # 21 Sep could each map only one run). A run with a sid maps through the messages
+            # row carrying it; the one left over maps to the lead left over, and that is then
+            # CROSS-CHECKED against the lead's own outbound message and row, never assumed.
             since = time.strftime('%Y-%m-%dT%H:%M:%S+00:00', time.gmtime(time.time() - 1))
             ts = [threading.Thread(target=send, args=(ph, PICK[lang](wd, hh))) for ph in (A, B)]
             for t in ts: t.start()
             for t in ts: t.join()
-            runs = []
+            ids = {A: lead_id(A), B: lead_id(B)}
+            runs, outs = [], {}
             for _ in range(60):
-                runs = db('GET', f'automation_runs?select=payload&client_automation_id=eq.{ca["id"]}&started_at=gte.{q(since)}&order=started_at.asc&limit=2')
-                if len(runs) == 2: break
+                runs = db('GET', f'automation_runs?select=status,error_type,payload&client_automation_id=eq.{ca["id"]}&started_at=gte.{q(since)}&order=started_at.asc&limit=3')
+                outs = {ph: outbound_since(ids[ph], since) for ph in (A, B)}
+                if len(runs) >= 2 and all(outs.values()): break
                 time.sleep(3)
-            ids = {p_: db('GET', f'leads?select=id&client_id=eq.{cid}&phone=eq.{q(p_)}')[0]['id'] for p_ in (A, B)}
-            by_lead = {}
+            if len(runs) != 2: bad.append(f'race: {len(runs)} runs, expected 2')
+            by_phone, mapped_by = {}, {}
             for r in runs:
                 sid = (r.get('payload') or {}).get('twilio_sid')
-                m = db('GET', f'messages?select=lead_id&client_id=eq.{cid}&external_id=eq.{q(str(sid))}') if sid else []
-                if m: by_lead[m[0]['lead_id']] = r.get('payload') or {}
-            pa = by_lead.get(ids[A], {})
-            pb = by_lead.get(ids[B], {})
-            if len(by_lead) != 2: bad.append(f'race: could map {len(by_lead)} of {len(runs)} runs to their leads')
+                for ph in (A, B):
+                    if sid and any(o['external_id'] == sid for o in outs.get(ph, [])):
+                        by_phone[ph] = r; mapped_by[ph] = 'sid'
+            left_runs = [r for r in runs if all(r is not v for v in by_phone.values())]
+            left_phones = [ph for ph in (A, B) if ph not in by_phone]
+            if len(left_runs) == 1 and len(left_phones) == 1:
+                by_phone[left_phones[0]] = left_runs[0]; mapped_by[left_phones[0]] = 'elimination'
+            if len(by_phone) != 2: bad.append(f'race: could map {len(by_phone)} of {len(runs)} runs to their leads')
+            ra_, rb_ = by_phone.get(A) or {}, by_phone.get(B) or {}
+            pa, pb = ra_.get('payload') or {}, rb_.get('payload') or {}
+            lang_of = lambda p_: p_.get('reply_lang') or p_.get('handoff_lang')
+            fields = ('booking_result', 'event_id', 'reply_lang', 'handoff_lang', 'booking_intent', 'escalated', 'reasons')
+            rec['A'] = dict({k: pa.get(k) for k in fields}, status=ra_.get('status'), mapped_by=mapped_by.get(A))
+            rec['B'] = dict({k: pb.get(k) for k in fields}, status=rb_.get('status'), mapped_by=mapped_by.get(B))
             results_ab = [pa.get('booking_result'), pb.get('booking_result')]
-            rec['A'] = {k: pa.get(k) for k in ('booking_result', 'event_id', 'reply_lang', 'booking_intent')}
-            rec['B'] = {k: pb.get(k) for k in ('booking_result', 'event_id', 'reply_lang', 'booking_intent')}
             if results_ab.count('created') != 1: bad.append(f'race: {results_ab.count("created")} bookings, expected exactly 1 ({results_ab})')
-            loser = pb if pa.get('booking_result') == 'created' else pa
-            rec['loser_caught_by'] = 're-check (slot_taken)' if loser.get('booking_result') == 'slot_taken' else f"intent {loser.get('booking_intent')} / {loser.get('booking_result')}"
-            if pa.get('reply_lang') != lang or pb.get('reply_lang') != lang: bad.append(f"reply_lang {pa.get('reply_lang')}/{pb.get('reply_lang')}")
-            winner_phone = A if pa.get('booking_result') == 'created' else B
-            reply = last_reply(winner_phone)
+            win_ph = A if pa.get('booking_result') == 'created' else B
+            lose_ph = B if win_ph == A else A
+            pw, pl = (pa, pb) if win_ph == A else (pb, pa)
+            rl = rb_ if win_ph == A else ra_
+            # the cross-check: the winner was sent the model's reply, the loser a handoff (lost race)
+            # or a decline (caught at the intent); the loser's row holds no booking
+            if [o['origin'] for o in outs.get(win_ph, [])] != ['ai']: bad.append(f"race: winner's outbound {[o['origin'] for o in outs.get(win_ph, [])]}, expected ['ai']")
+            lose_row = db('GET', f'leads?select=qualification&id=eq.{ids[lose_ph]}')[0]
+            if ((lose_row['qualification'] or {}).get('booking')): bad.append("race: the loser's row holds a booking")
+            reasons = pl.get('reasons') or []
+            if any(str(x).startswith('booking_lost_race:') for x in reasons):
+                rec['loser_caught_by'] = 're-check' if 'slot_taken_since_offer' in json.dumps(reasons) else "Google's 409"
+                if [o['origin'] for o in outs.get(lose_ph, [])] != ['handoff']: bad.append(f"race: loser's outbound {[o['origin'] for o in outs.get(lose_ph, [])]}, expected ['handoff']")
+                if rl.get('status') == 'error' or pl.get('system_failure'): bad.append(f"race: a lost race recorded as a system failure (status {rl.get('status')})")
+            elif pl.get('booking_intent') == 'taken' and pl.get('booking_result') == 'not_attempted':
+                rec['loser_caught_by'] = 'intent (taken)'
+            else:
+                bad.append(f"race: loser not booked for an unexpected reason: {pl.get('booking_result')} / {pl.get('booking_intent')} / {reasons}")
+                rec['loser_caught_by'] = 'unexpected'
+            if lang_of(pa) != lang or lang_of(pb) != lang: bad.append(f"language {lang_of(pa)}/{lang_of(pb)}, expected {lang}")
+            reply = last_reply(win_ph)
             rec['A_reply'] = reply
             if hh not in reply and hh.lstrip('0') not in reply: bad.append(f'winner confirmation does not name {hh}')
-            if pa.get('booking_result') != 'created': pa = pb  # the calendar check below follows the winner
+            pa = pw  # the calendar check below follows the winner
         else:
             # A books
             code, ra = turn(ca['id'], A, PICK[lang](wd, hh))
@@ -215,6 +268,16 @@ for i in range(1, args.runs + 1):
         if len(mine) != 1: bad.append(f"A's event {pa.get('event_id')} not in the gate calendar")
         elif utc(mine[0]['start']) != utc(S['local']): bad.append(f"A's event starts {mine[0]['start']}, offered {S['local']}")
         if len(at_s) != 1: bad.append(f'{len(at_s)} events at the slot (double booking if > 1)')
+        # 🔒 The alerts, counted here and not read off a payload (22 Sep 2026).
+        time.sleep(SETTLE)
+        run_ids = {lead_id(A), lead_id(B)}
+        inv = [e for e in events_since('invariant.violated', run_since) if (e.get('data') or {}).get('lead_id') in run_ids]
+        esc = [e for e in events_since('lead.escalated', run_since) if (e.get('data') or {}).get('lead_id') in run_ids]
+        rec['invariant_alerts'] = [(e['data'].get('invariant'), e['data'].get('slug')) for e in inv]
+        rec['escalations'] = len(esc)
+        if inv: bad.append(f'{len(inv)} invariant alert(s): {rec["invariant_alerts"]}')
+        want_esc = 1 if (args.race and str(rec.get('loser_caught_by', '')) in ('re-check', "Google's 409")) else 0
+        if len(esc) != want_esc: bad.append(f'{len(esc)} escalation(s), expected {want_esc}')
     except Exception as e:
         bad.append(f'the run itself errored: {e}')
     results.append(rec)
@@ -228,7 +291,14 @@ print(f'  booked (A created):           {created}')
 print(f'  second lead not booked:       {sum(1 for r in results if (r.get("B") or {}).get("booking_result") != "created" or (r.get("A") or {}).get("booking_result") != "created")}')
 print(f'  caught by the re-check:       {sum(1 for r in results if "slot_taken" in json.dumps([r.get("A"), r.get("B")]))}')
 print(f'  viewing.booked events:        {len(booked)} (must equal booked)')
-print(f'  confirmation language right:  {sum(1 for r in results if (r.get("A") or {}).get("reply_lang") == r["lang"])}')
+print(f'  language right, both leads:   {sum(1 for r in results if all(((r.get(k) or {}).get("reply_lang") or (r.get(k) or {}).get("handoff_lang")) == r["lang"] for k in ("A", "B")))}')
+if args.race:
+    from collections import Counter
+    print(f'  loser caught by:              {dict(Counter(r.get("loser_caught_by") for r in results))}')
+# The whole window, once more, after the last run settled: an alert for ANY gate lead counts.
+all_inv = events_since('invariant.violated', start_iso)
+print(f'  invariant alerts (whole run): {len(all_inv)}  {[(e["data"].get("invariant"), e["data"].get("slug")) for e in all_inv]}')
+print(f'  escalations:                  {sum(r.get("escalations", 0) for r in results)}')
 print(f'  runs with any problem:        {sum(1 for r in results if r["problems"])}')
-ok = all(not r['problems'] for r in results) and len(booked) == created
+ok = all(not r['problems'] for r in results) and len(booked) == created and not all_inv
 print('PASS' if ok else 'FAIL')
