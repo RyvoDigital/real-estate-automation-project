@@ -1,3 +1,54 @@
+-- ╔═════════════════════════════════════════════════════════════════════════╗
+-- ║  ⚠️  WHAT WAS APPLIED AS "0045" IS NOT THIS FILE.                        ║
+-- ╚═════════════════════════════════════════════════════════════════════════╝
+--
+-- Recorded 21 September 2026, from the operator's account and verified against
+-- this file's own text.
+--
+-- THIS FILE touches `client_contracts_uncorrected` and nothing else: zero
+-- occurrences of `public.client_contracts` anywhere in it. It sets
+-- security_invoker on the VIEW and revokes the four write verbs on the VIEW.
+--
+-- WHAT WAS APPLIED additionally carried:
+--
+--   revoke insert, update, delete, truncate
+--     on public.client_contracts from anon, authenticated, service_role;
+--
+-- 🔴 THAT REVOKED **INSERT ON THE TABLE**, so no contract could be recorded at
+-- all. The application could not write to `client_contracts` between that
+-- apply and `0046`.
+--
+-- It was survivable only because the table was empty and because `0046`
+-- re-grants `select, insert` explicitly — see the note below, which is the
+-- interesting half.
+--
+-- 🔒 THE DIFFERENCE IS RECORDED RATHER THAN RECONCILED. This file is not
+-- edited to match what ran: the applied version was wrong, and rewriting the
+-- file to agree with it would make the repository record a mistake as the
+-- intent. `docs/deployed-schema-observed.md` is where the database's actual
+-- state belongs; this is where the design belongs, and they are allowed to
+-- differ as long as the difference is written down.
+--
+-- ───────────────────────────────────────────────────────────────────────────
+-- 🔒 WHY 0046 REPAIRED IT BY ACCIDENT, AND WHY THAT IS NOT LUCK
+-- ───────────────────────────────────────────────────────────────────────────
+-- `0046` re-states every legitimate grant rather than only subtracting:
+--
+--   grant select, insert on public.client_contracts to service_role;
+--
+-- That decision was made for LEGIBILITY — so the file would be "the whole
+-- answer to what may write here, rather than a list of subtractions from a
+-- default nobody chose". It had nothing to do with this breakage, which was
+-- unknown when it was written.
+--
+-- **A file that states the whole intended end-state repairs damage it does not
+-- know about. A file that only states its own delta cannot.** That is the
+-- argument for declarative over incremental, arrived at by being rescued by it.
+--
+-- ───────────────────────────────────────────────────────────────────────────
+-- THE ORIGINAL FILE FOLLOWS, UNCHANGED.
+-- ───────────────────────────────────────────────────────────────────────────
+
 -- ====== the uncorrected view must not be a way through the freeze ======
 --
 -- ALONE, in a transaction, with 0032's treatment.

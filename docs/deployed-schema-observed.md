@@ -176,6 +176,19 @@ before any query runs. `fetch` against PostgREST has no such dependency.
 
 ---
 
+## Where the database and the repository knowingly differ
+
+**`0045`** — what was applied additionally revoked `insert, update, delete,
+truncate` on **`public.client_contracts`** itself. The file in this repository
+revokes only on the VIEW and never names the table. The applied version left
+the application unable to record a contract until `0046` re-granted `insert`.
+
+🔒 The file is NOT edited to match. The applied version was wrong, and
+rewriting the file to agree would make the repository record a mistake as the
+intent. The difference is recorded in `0045`'s own header and here.
+
+---
+
 ## What this record makes visible
 
 1. 🔴 **`payments.received_on` and `payments.settled_on` both exist**, and only
