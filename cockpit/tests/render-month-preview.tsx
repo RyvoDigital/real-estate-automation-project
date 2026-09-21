@@ -23,13 +23,14 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { TheMonth } from '../src/components/month/TheMonth'
+import { Entry } from '../src/components/month/Entry'
 import { buildMonth, lisbonToday, monthKey, monthOf, type MonthInputs } from '../src/lib/month/model'
 import { readMonthInputs, type ReadFailure } from '../src/lib/month/read'
 
 const OUT = process.argv[2] ?? '/tmp/month-preview'
 mkdirSync(OUT, { recursive: true })
 const SRC = new URL('../src/', import.meta.url).pathname
-const css = ['app/tokens.css', 'components/month/month.module.css', 'components/state-chip.module.css']
+const css = ['app/tokens.css', 'components/month/month.module.css', 'components/month/entry.module.css', 'components/state-chip.module.css']
   .map((f) => readFileSync(join(SRC, f), 'utf8')).join('\n')
 
 const SAMPLE: MonthInputs = {
@@ -75,8 +76,15 @@ ${body}</div></body></html>`
 
 function render(name: string, title: string, sample: boolean, inputs: MonthInputs, today: string, failures: ReadFailure[] = [], month = monthOf(today)) {
   const model = buildMonth(inputs, month, today)
+  const parties = [
+    ...(inputs.webClients ?? []).map((c) => ({ value: `w:${c.id}`, label: c.name, business: 'web' as const, rehearsal: c.rehearsal })),
+    ...(inputs.automationClients ?? []).map((c) => ({ value: `a:${c.id}`, label: c.name, business: 'automation' as const, rehearsal: c.rehearsal })),
+  ]
   const html = renderToStaticMarkup(
-    <TheMonth model={model} readAt={new Date().toISOString()} failures={failures} hrefFor={(m) => `?m=${monthKey(m)}`} />,
+    <>
+      <TheMonth model={model} readAt={new Date().toISOString()} failures={failures} hrefFor={(m) => `?m=${monthKey(m)}`} />
+      <div style={{ marginTop: 32 }}><Entry parties={parties} contracts={[]} recordable={inputs.clientCostsRecordable !== false} /></div>
+    </>,
   )
   writeFileSync(join(OUT, `${name}.html`), page(title, sample, html))
   console.log(`${name}: ${join(OUT, `${name}.html`)}  (phase ${model.phase.kind}, S2 ${model.neverAnything}, failed [${model.failed.join(', ')}])`)
