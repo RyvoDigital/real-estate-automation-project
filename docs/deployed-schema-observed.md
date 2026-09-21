@@ -224,7 +224,21 @@ repository or its history. The repository's `0042` instead creates
 `client_contracts_no_update` (BEFORE UPDATE **OR DELETE**) and
 `client_contracts_no_truncate`, and **neither exists in the database.** So
 what was applied as `0042` is not the file either, the same as `0045`.
-Recorded, not reconciled.
+
+**Where it came from is unrecorded.** I searched every branch's history by
+content, the working tree including ignored files, unreachable git objects
+(lost commits and dropped stashes) and the local Claude Code session
+transcripts. Nothing names `client_contracts_freeze` before this reading. The
+database's own migration history (`supabase_migrations`) is empty. What is
+known: it is owned by `postgres`, as is everything the SQL editor creates, and
+it is written in this repository's allowlist-freeze idiom (`0017`, `0020`,
+`0025`). Neither fact says who wrote it.
+
+It also carries a different correction model: stamp `superseded_at` on the old
+row, and the view filters on that stamp. Under `0046`'s grants the application
+cannot UPDATE, so it cannot stamp, and every correction it made would be
+counted twice. **`0050` states the whole end state** (full append-only,
+insert-only corrections, anti-join view). Written, not applied.
 
 ✅ **Resolved by `0049`, applied on 21 September.** All six are now `RESTRICT`
 and validated. I confirmed that independently through the read-only MCP
