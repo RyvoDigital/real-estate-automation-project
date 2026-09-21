@@ -8,7 +8,8 @@
 // The real replies below are WORD FOR WORD: two from live check 2 (execution
 // 4531, 21 Sep 2026), and four from a measurement of 34 real replies to
 // unoffered-time requests in en/pt/es, which the pre-21-Sep guard rejected
-// while the model was right.
+// while the model was right. And three from the first deploy gate (21 Sep,
+// executions 4636 and 4653): "but not 11:00", rejected with its retry.
 const fs = require('fs');
 const path = require('path');
 const SRC = process.env.TIME_GUARD_SRC || path.join(__dirname, '..', 'src', 'time_guard.js');
@@ -62,6 +63,63 @@ rejects('declining a time the LEAD never named is still inventing one', 'Thursda
 rejects('an invented alternative in a declining sentence', '11:00?', "11:00 isn't available, but 14:00 is.", CHECK2, ['14:00']);
 rejects('an invented time with nothing declined', 'hi', 'We could do 16:30 on Friday.', CHECK2, ['16:30']);
 rejects('no lead text: no exemption (the pre-21-Sep behaviour)', undefined, "11:00 isn't available, but 09:00 is.", CHECK2, ['11:00']);
+
+console.log('\nthe FIRST DEPLOY GATE\'s false escalations, 21 Sep 2026 (executions 4636, 4653), word for word');
+// The model declined the lead's "11:00?" with "but not 11:00", and the guard
+// rejected the reply AND its retry: runs 2 and 4 of the gate escalated.
+passes('gate, first attempt (4636 and 4653, identical)', '11:00?',
+  "We actually have Thursday 24 September at 09:00 or 10:00 Lisbon time available, but not 11:00 - would either of those work for you, João?", CHECK2);
+passes('gate, guard retry (4636)', '11:00?',
+  "We have Thursday 24 September at 09:00 or 10:00 Lisbon time, but not 11:00 - would either of those work for you, João?", CHECK2);
+passes('gate, guard retry (4653)', '11:00?',
+  "Thursday morning we have 09:00 or 10:00 Lisbon time, but not 11:00 - would either of those work for you, João?", CHECK2);
+
+console.log('\na negation that GOVERNS the lead\'s time declines it, in all three languages');
+const GOVERNED = [
+['en','11:00?','We have 09:00 or 10:00, but not 11:00.'],['en','11:00?','Not at 11:00, I\'m sorry - 09:00 or 10:00?'],
+['en','11:00?','Any time on Thursday except 11:00: 09:00 or 10:00.'],['en','11:00?','I have 09:00 or 10:00, just not Thursday at 11:00.'],
+['en','11:00?','I don\'t have an 11:00 slot, but 09:00 or 10:00 work.'],['en','11:00?','I can\'t do 11:00, but 09:00 or 10:00 are free.'],
+['en','11:00?','There\'s no 11:00 slot on Thursday; 09:00 or 10:00?'],['en','11:00?','Except for 11:00, Thursday has 09:00 and 10:00.'],
+['pt','Pode ser às 11:00?','Tenho às 09:00 ou às 10:00, mas não às 11:00.'],['pt','Pode ser às 11:00?','Menos às 11:00: tenho quinta às 09:00 ou às 10:00.'],
+['pt','Pode ser às 11:00?','Não às 11:00, mas posso às 09:00 ou 10:00.'],['pt','Pode ser às 11:00?','Qualquer hora exceto às 11:00 - 09:00 ou 10:00?'],
+['pt','Pode ser às 11:00?','Não consigo marcar às 11:00; tenho 09:00 ou 10:00.'],['pt','Pode ser às 11:00?','Não tenho vaga às 11:00, mas tenho às 09:00.'],
+['pt','Pode ser às 11:00?','Na quinta tenho 09:00 e 10:00, só não na quinta às 11:00.'],
+['es','¿A las 11:00?','Tengo a las 09:00 o a las 10:00, pero no a las 11:00.'],['es','¿A las 11:00?','Excepto a las 11:00, tengo el jueves a las 09:00 o 10:00.'],
+['es','¿A las 11:00?','Cualquier hora menos a las 11:00: 09:00 o 10:00.'],['es','¿A las 11:00?','No puedo ofrecer las 11:00; tengo 09:00 o 10:00.'],
+['es','¿A las 11:00?','No tengo hueco a las 11:00, pero sí a las 09:00.'],['es','¿A las 11:00?','Salvo a las 11:00, el jueves tengo 09:00 y 10:00.'],
+['es','¿A las 11:00?','Pero no el jueves a las 11:00; sí a las 09:00.'],
+];
+for (const [lang, lead, reply] of GOVERNED) passes(`${lang}: ${reply}`, lead, reply, CHECK2);
+
+console.log('\n🔴 accepting shapes: 11:00 must be REJECTED in every one (21 Sep 2026)');
+// Includes the four the clause-level rule accepted before 21 Sep: a decline
+// about ANOTHER time, or a bare "unfortunately", let the lead's time through.
+const ACCEPTING = [
+['en','11:00?','Why not 11:00? See you then.'],['en','11:00?','Great, 11:00 it is.'],['en','11:00?','If not 11:00, then 09:00 works.'],
+['en','11:00?','Everything except 11:00 is taken.'],['en','11:00?','Nothing is free except 11:00.'],['en','11:00?','I have nothing except 11:00 left.'],
+['en','11:00?','Apart from 11:00, we also have 09:00.'],['en','11:00?','Other than 11:00 there is also 10:00.'],['en','11:00?','Besides 11:00, 09:00 is free too.'],
+['en','11:00?','Except 11:00, which is also free, I have 09:00.'],['en','11:00?','Not a problem, 11:00 works.'],['en','11:00?','No problem, 11:00 it is.'],
+['en','11:00?','Not only 11:00 but also 09:00 is free.'],['en','11:00?','I have no problem with 11:00.'],['en','11:00?','You are not late, 11:00 is booked.'],
+['en','11:00?','Not before 11:00, so 11:00 it is.'],['en','11:00?','I\'ve booked you at 11:00, not 10:00.'],
+['en','11:00?','11:00 isn\'t possible on Wednesday, but Thursday at 11:00 works.'],['en','11:00?','Not Wednesday at 11:00 - Thursday at 11:00 is confirmed.'],
+['en','11:00?','Unfortunately 10:00 is gone, so 11:00 it is.'],['en','11:00?','Sadly I had to move things, 11:00 is yours.'],
+['pt','Pode ser às 11:00?','Porque não às 11:00? Fica marcado.'],['pt','Pode ser às 11:00?','Por que não às 11:00?'],['pt','Pode ser às 11:00?','Pelo menos às 11:00 tenho vaga.'],
+['pt','Pode ser às 11:00?','Mais ou menos às 11:00, combinado.'],['pt','Pode ser às 11:00?','Não há problema, às 11:00 então.'],['pt','Pode ser às 11:00?','Não, às 11:00 está ótimo.'],
+['pt','Pode ser às 11:00?','Está tudo ocupado exceto às 11:00.'],['pt','Pode ser às 11:00?','Não tenho nada exceto às 11:00.'],['pt','Pode ser às 11:00?','Se não às 11:00, então às 09:00.'],
+['pt','Pode ser às 11:00?','Não tenho problema com as 11:00.'],['pt','Pode ser às 11:00?','Infelizmente as 10:00 já foram, fica às 11:00.'],
+['es','¿A las 11:00?','¿Por qué no a las 11:00? Queda reservado.'],['es','¿A las 11:00?','Al menos a las 11:00 tengo hueco.'],['es','¿A las 11:00?','Más o menos a las 11:00, perfecto.'],
+['es','¿A las 11:00?','Por lo menos a las 11:00 sí.'],['es','¿A las 11:00?','No hay problema, a las 11:00 entonces.'],['es','¿A las 11:00?','No, a las 11:00 está bien.'],
+['es','¿A las 11:00?','Todo está ocupado menos a las 11:00.'],['es','¿A las 11:00?','No tengo nada salvo a las 11:00.'],['es','¿A las 11:00?','Si no a las 11:00, a las 09:00.'],
+['es','¿A las 11:00?','Solo tengo libre excepto... a las 11:00 sí.'],['es','¿A las 11:00?','Lamentablemente las 10:00 ya no están, quedamos a las 11:00.'],
+['en','11:00?','10:00 isn\'t available so 11:00 it is.'],['en','11:00?','Sorry, 10:00 is already taken, I booked you at 11:00.'],['en','11:00?','11:00 isn\'t available on Wednesday, so Thursday at 11:00 then.'],
+['pt','Pode ser às 11:00?','As 10:00 não estão disponíveis, então fica às 11:00.'],['pt','Pode ser às 11:00?','As 10:00 já estão ocupadas, marquei às 11:00.'],
+['es','¿A las 11:00?','Las 10:00 no están disponibles, así que quedamos a las 11:00.'],['es','¿A las 11:00?','Las 10:00 ya están ocupadas, te reservé a las 11:00.'],
+['en','11:00?','I\'m afraid I moved you: 11:00 is confirmed.'],['pt','Pode ser às 11:00?','Infelizmente mudei tudo, fica às 11:00.'],
+];
+for (const [lang, lead, reply] of ACCEPTING) {
+  const b = timesNotSupplied(reply, CHECK2, lead);
+  chk(`${lang}: ${reply}`, b.includes('11:00'), `-> ${JSON.stringify(b)}`);
+}
 
 console.log('\n🔒 KNOWN GAP, recorded rather than hidden: the guard compares TIMES, never DAYS');
 // It has never checked days. If 11:00 is offered on Tuesday only, "Thursday at
