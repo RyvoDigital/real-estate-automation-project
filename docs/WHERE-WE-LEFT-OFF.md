@@ -1,6 +1,6 @@
 # Where we left off
 
-**Last updated:** 2026-09-21.
+**Last updated:** 2026-09-21, evening (handover before /clear).
 **Where the work is:** the COCKPIT REDESIGN, stage C — building it. §0 below is
 the current state.
 
@@ -36,6 +36,123 @@ under `docs/`; this file records what is actually deployed right now and what
 tripped us up. **Sections are newest first.**
 
 ---
+
+# 000. HANDOVER — 21 September 2026, evening. READ THIS FIRST
+
+## Production, right now
+- **n8n Concierge: served version `93da8218`** = the **`aeaaffb7` content**:
+  - the handoff-send fix (`handoff_send_failed`);
+  - the claim guard ("quedamos entonces para", ficamos/we're-set neighbours);
+  - the language fallback (`resolveLeadLanguage`, and the handoff note inherits);
+  - the time guard (`src/time_guard.js`: declining the lead's own time is allowed).
+  It is NOT carrying: the invariant-1 fix, the shared parse source, the
+  empty-reply retry, the garbled-reply check, or the shared system-failure list.
+- **Rollback target: `aeaaffb7`.** The file is `workflows/ryvoInboundConc01.json`
+  at commit `1126ebd`. Verify what is served by querying `workflow_history`,
+  never by reading the repo.
+- **Database:** `0049` (money foreign keys RESTRICT) and `0050`
+  (client_contracts append-only, stated whole) are applied and blessed.
+
+## Pushed, NOT deployed (origin/main = `012c2e1`)
+- **The batch `f80faf3`:** the parsers share `src/parse_reply.js`; an empty
+  reply takes one guard retry; the garbled-reply markers; the system-failure
+  list shared via `src/system_reasons.js` plus a cockpit mirror; the
+  no-stale-copies test; and the invariant-1 fix (`4a35877`) riding with it.
+- **The gate tooling:** `tests/build_gate.py`, `gate_run.py`, `gate_setup.py`,
+  `gate_sink.workflow.json`, `gate_calendar_probe.workflow.json`;
+  `healthcheck.sh` ignores only `GATE_CLIENT_AUTOMATION_ID`; `backup.sh`
+  excludes the three gate workflows.
+- 🔴 **origin's `workflows/ryvoInboundConc01.json` is the batch build, NOT
+  production**, until the 03:00 UTC backup re-exports production over it (see
+  the note below).
+- 🔴 **UNVERIFIED: the push deployed the COCKPIT on Vercel** (push = deploy).
+  Its only runtime change: a `booking_retired` escalation now shows as
+  "person" instead of "system". The build status was NOT checked. First
+  thing: `vercel ls ryvo-cockpit` and `curl -s https://ryvo-cockpit.vercel.app/login | grep -c login__mark`.
+  If the build failed, say so at once and fix or redeploy the previous one.
+  Viewing /queue and the escalation screen is the OPERATOR's job (see the rules).
+
+## The deploy gate (CLAUDE.md): state and conditions
+**Exists already:**
+- **Test calendar:** "Ryvo GATE, test only" in hello@ryvodigital.com,
+  `c_d465470e9dc79fb87c089612c3b8b1c83928e9fb7e5fc715cde5b4d70bdb4177@group.calendar.google.com`.
+  The probe passed through n8n's own Google credential: HTTP 200, no `errors`
+  key, and the control calendar returned notFound.
+- **The calendar probe workflow `ryvoGateCalProbe01`** is imported in n8n,
+  inactive. Run it with
+  `docker exec -e N8N_RUNNERS_BROKER_PORT=5690 infra-n8n-1 n8n execute --id=ryvoGateCalProbe01 --rawOutput`.
+  The port flag avoids the live broker on 5679.
+- **Gate rows (created with the operator's go):** client `9b069c16-82a6-404f-88d0-ed8c54cdbf99`,
+  'ZZ GATE — deploy gate (never a real client)', rehearsal = true, number
+  +351900009000. Client automation `992795bb-7fbb-4327-ac64-b18acf642944`,
+  config copied from the Ryvo Test Client with `gate_only: true`, the gate
+  calendar and `escalate_to` +351900009999.
+- **The server `.env`** has
+  `GATE_CLIENT_AUTOMATION_ID=992795bb-7fbb-4327-ac64-b18acf642944`, and was
+  proven to load cleanly in a subshell. The pre-edit backup is
+  `~ryvo/.env.bak.20260921-gate` (mode 600).
+
+**Does NOT exist yet:**
+- the server `git pull` (the server checkout is still at `2d67ff6`);
+- the gate copy and the sink imported in n8n;
+- the n8n restart that registers their webhooks;
+- any gate run.
+
+**The operator's conditions:**
+1. Every outbound channel goes to the sink: 8 Twilio, 4 Resend, PostListing,
+   and `errorWorkflow` off.
+2. The gate copy differs from the build ONLY in the sink URLs, the id and
+   name, the webhook path and webhookId, and version metadata. Show
+   `build_gate.py`'s node-by-node diff before EVERY gate.
+3. The health check must not alert on gate runs, and gate rows never count in
+   The Month.
+4. The dedicated test calendar only.
+5. Report whether later gates need a restart: check `execution_entity.workflowVersionId`
+   after a re-import plus publish, without restarting. Keep the gate inactive
+   between gates if possible (the UI toggle needs no restart).
+
+Fresh, pre-qualified lead per run (approved). Every gate records its
+empty-reply count: that is the measurement, revisited at a few hundred samples.
+No prompt change until then.
+
+## The test lead (…230, Ryvo Test Client)
+Escalated since **16:17:59 UTC** (`claude_failed:bad_json`, live check step 2
+of the `c420d90b` deploy, rolled back). **Needs a hand-back** (cockpit /queue →
+lead → "Hand back to the AI") **before any live message**. Confirm the flag is
+cleared by query first.
+
+## Next steps, in order
+1. Verify the cockpit's Vercel build from the `012c2e1` push (above).
+2. On the server: `git pull` (a clean checkout; only `tests/__pycache__/` is
+   untracked).
+3. Run `infra/scripts/healthcheck.sh` once by hand, and show it works.
+4. The backup check: `backup.sh` has no `--dry-run`. Show tonight's run will
+   succeed by proving the pull is clean and the export exclusion works on a
+   real export into a scratch dir, or add a dry-run flag.
+5. Build the gate copy from the batch (`python3 tests/build_gate.py`) and show
+   the diff. Import the gate copy (`tests/ryvoInboundConc01.GATE.json`) and
+   the sink (`tests/gate_sink.workflow.json`), publish both, then ONE restart.
+   **State the exact minute to the operator first.** Verify: the live webhook
+   returns 403, and the gate path is registered.
+6. Run the gate: `python3 tests/gate_run.py --runs 20` on the server. Report
+   unexpected escalations, invariant violations, wrong language, and the
+   empty-reply count.
+7. **Pause before any production deploy.**
+
+## Standing rules from 21 Sep
+- **The 20-run gate before every Concierge deploy** (CLAUDE.md). The phone
+  checks confirm it; they don't replace it.
+- **Proofs end in a visible verdict row per case** (CLAUDE.md). The SQL editor
+  does not show NOTICEs.
+- 🔴 **Never mint a Supabase admin session (generateLink) to view the cockpit
+  as the operator.** Page checks on the live cockpit are the operator's to do,
+  or need their explicit go.
+- **Roll back first on any failed live check**, investigate after, and prove
+  the cause by replaying the recorded inputs.
+- **Hand-backs are the operator's** (a production write through the cockpit).
+  Confirm the flag by query before and after.
+- **Service-side edits to tracked files break the 03:00 backup** (it runs `git
+  pull --rebase`). Server scripts change only through git: push, then pull.
 
 > 🔴 **`workflows/ryvoInboundConc01.json` on origin is NOT what is live
 > (pushed 21 Sep 2026, evening).** The file is the not-yet-deployed batch build
