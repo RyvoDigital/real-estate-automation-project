@@ -126,6 +126,46 @@ for i in range(1, args.runs + 1):
     results.append(rec)
     json.dump({'start': start_iso, 'stamp': stamp, 'runs': results}, open(args.out, 'w'), ensure_ascii=False, indent=1)
 
+# ---- every guard retry, by reason, from the gate copy's own n8n executions ----------------
+# The gate is also the MEASUREMENT for empty replies (operator, 21 Sep 2026): a first-
+# attempt empty reply is retried and may never show in a run row, so it is counted where
+# it happens, in ParseClaude's output. Read-only SELECT against n8n's own database.
+import subprocess
+from collections import Counter
+def n8n_sql(sql):
+    cmd = ['docker', 'compose', '--env-file', '../.env', 'exec', '-T', 'postgres', 'psql', '-U', E['N8N_DB_USER'],
+           '-d', E['N8N_DB_NAME'], '-At', '-c', 'begin read only;', '-c', sql, '-c', 'rollback;']
+    out = subprocess.run(cmd, cwd='/opt/ryvo-automation-platform/infra', capture_output=True, text=True, check=True).stdout
+    return [l for l in out.split('\n') if l and l not in ('BEGIN', 'ROLLBACK')]
+def flatted(txt):
+    arr = json.loads(txt); memo = {}
+    def rv(i):
+        if i in memo: return memo[i]
+        t = arr[i]
+        if isinstance(t, dict):
+            o = {}; memo[i] = o
+            for k, v in t.items(): o[k] = rv(int(v)) if isinstance(v, str) and v.isdigit() else v
+            return o
+        if isinstance(t, list):
+            o = []; memo[i] = o
+            for v in t: o.append(rv(int(v)) if isinstance(v, str) and v.isdigit() else v)
+            return o
+        return t
+    return rv(0)
+retry_reasons, model_calls = Counter(), 0
+ids = n8n_sql("select e.id from execution_entity e where e.\"workflowId\"='ryvoInboundConcGATE' "
+              f"and e.\"startedAt\" >= '{start_iso}' order by e.id")
+for ex in ids:
+    rows = n8n_sql(f'select data from execution_data where "executionId"={int(ex)}')
+    if not rows: continue
+    runs = (flatted(rows[0]).get('resultData') or {}).get('runData') or {}
+    for node in ('ParseClaude', 'ParseGuardRetry'):
+        for r in runs.get(node) or []:
+            model_calls += 1
+            j = (((r.get('data') or {}).get('main') or [[{}]])[0] or [{}])[0].get('json', {})
+            if j.get('errorType'):
+                retry_reasons[f'{node}: {j.get("errorType")} / {str(j.get("errorMessage"))[:60]}'] += 1
+
 steps = [s for r in results for s in r['steps']]
 unexpected_esc = sum(1 for s in steps if s['step'] in (1, 2) and s['escalated']) + \
                  sum(1 for s in steps if s['step'] == 3 and any('escalated for' in b or 'did not escalate' in b for b in s['problems']))
@@ -138,4 +178,10 @@ print(f'  unexpected escalations: {unexpected_esc}')
 print(f'  invariant violations:   {inv} (invariant.violated events for the gate client since start: {len(events)})')
 print(f'  wrong language:         {lang}')
 print(f'  messages with any problem: {other}')
+print(f'  model replies parsed:   {model_calls}')
+empty = sum(v for k, v in retry_reasons.items() if 'empty reply' in k)
+print(f'  EMPTY REPLIES:          {empty} of {model_calls} (the running measurement; each is retried once)')
+for k, v in retry_reasons.most_common(): print(f'    {v:3d}  {k}')
+json.dump({'start': start_iso, 'stamp': stamp, 'runs': results, 'model_calls': model_calls,
+           'retry_reasons': dict(retry_reasons)}, open(args.out, 'w'), ensure_ascii=False, indent=1)
 print('PASS' if (unexpected_esc == 0 and inv == 0 and not events and lang == 0 and other == 0) else 'FAIL')

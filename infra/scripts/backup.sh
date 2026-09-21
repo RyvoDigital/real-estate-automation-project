@@ -133,6 +133,10 @@ if [[ "${EXPORT_RC}" -ne 0 ]]; then
 else
   # Pull the exported files from the container into the repo workflows/ dir.
   WF_CID="$(compose ps -q n8n)"
+  # workflows/ holds ONLY what production runs (operator, 21 Sep 2026). The deploy
+  # gate's copy of the Concierge and its sink live in n8n but are test fixtures:
+  # removed from the export BEFORE it reaches the repo, never committed, never pushed.
+  compose exec -T n8n rm -f /tmp/wf-export/ryvoInboundConcGATE.json /tmp/wf-export/ryvoGateSink01.json || true
   docker cp "${WF_CID}:/tmp/wf-export/." "${WORKFLOWS_DIR}/"
   compose exec -T n8n rm -rf /tmp/wf-export || true
   echo "  -> Workflow export refreshed in ${WORKFLOWS_DIR}"

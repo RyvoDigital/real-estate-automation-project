@@ -29,7 +29,7 @@ GATE_ID = 'ryvoInboundConcGATE'
 GATE_NAME = 'inbound_concierge_GATE (deploy gate, never live traffic)'
 GATE_PATH = 'twilio-inbound-gate-5e1d8c47'
 GATE_WEBHOOK_ID = 'ryvo-twilio-inbound-gate-hook'
-SINK_URL = 'http://localhost:5678/webhook/gate-sink-9b2f6a31'   # workflows/ryvoGateSink01.json
+SINK_URL = 'http://localhost:5678/webhook/gate-sink-9b2f6a31'   # tests/gate_sink.workflow.json
 
 SINK_NODES = [
     # Twilio: every WhatsApp the workflow can send
