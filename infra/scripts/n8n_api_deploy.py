@@ -6,8 +6,9 @@
   python3 infra/scripts/n8n_api_deploy.py verify   --id ID --file F --path WEBHOOK_PATH [--signed-probe]
   python3 infra/scripts/n8n_api_deploy.py state    --id ID
 
-Run ON THE SERVER. Reads N8N_API_KEY from the repo's .env and sends it only as a
-request header; it never appears in argv, a URL or the output.
+Run ON THE SERVER. Reads N8N_API_KEY from the repo's .env and hands it to node inside
+the n8n container on STDIN; it never appears in argv, the environment, a URL or the output.
+Caddy refuses /api/* from outside, so the API is only reachable from within the server.
 
 WHY (21 Sep 2026): `n8n import:workflow` DELETES the workflow's webhook_entity row
 and `publish:workflow` does not recreate it, so the CLI route needs a restart.
@@ -50,18 +51,31 @@ for l in open(REPO + '/.env', encoding='utf-8'):
         k, v = l.split('=', 1); E[k] = v
 
 
+# The API is called from INSIDE the n8n container (node's fetch on localhost:5678),
+# because Caddy refuses /api/* from everywhere (21 Sep 2026). The key travels on
+# stdin: never in argv, the environment or a URL, so it shows in no process list.
+_NODE_CALL = r"""
+let raw = ''; process.stdin.on('data', d => raw += d).on('end', async () => {
+  const q = JSON.parse(raw);
+  try {
+    const r = await fetch('http://localhost:5678/api/v1' + q.path, { method: q.method,
+      headers: { 'X-N8N-API-KEY': q.key, 'Content-Type': 'application/json', accept: 'application/json' },
+      body: q.body == null ? undefined : JSON.stringify(q.body) });
+    const t = await r.text();
+    process.stdout.write(JSON.stringify({ status: r.status, text: t }));
+  } catch (e) { process.stdout.write(JSON.stringify({ status: 0, text: String(e) })); }
+});"""
+
+
 def api(method, path, body=None):
-    req = urllib.request.Request(BASE + '/api/v1' + path, method=method,
-                                 data=json.dumps(body).encode() if body is not None else None,
-                                 headers={'X-N8N-API-KEY': E['N8N_API_KEY'], 'Content-Type': 'application/json',
-                                          'accept': 'application/json'})
-    try:
-        with urllib.request.urlopen(req, timeout=120) as r:
-            return r.status, json.loads(r.read() or b'null')
-    except urllib.error.HTTPError as e:
-        raw = e.read()
-        try: return e.code, json.loads(raw)
-        except Exception: return e.code, raw.decode(errors='replace')[:500]
+    q = json.dumps({'key': E['N8N_API_KEY'], 'method': method, 'path': path, 'body': body})
+    out = subprocess.run(['docker', 'exec', '-i', 'infra-n8n-1', 'node', '-e', _NODE_CALL],
+                         input=q, capture_output=True, text=True, timeout=180)
+    if out.returncode != 0:
+        return 0, out.stderr[:500]
+    r = json.loads(out.stdout)
+    try: return r['status'], json.loads(r['text'] or 'null')
+    except Exception: return r['status'], r['text'][:500]
 
 
 def sql(q):

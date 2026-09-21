@@ -2,5 +2,14 @@
 # n8n.<DOMAIN> on its own — the n8n DNS record must be DNS-only (grey cloud on
 # Cloudflare), or ACME validation will fail.
 n8n.{$DOMAIN} {
-	reverse_proxy n8n:5678
+	# n8n's public API (/api/*) is never served from outside (21 Sep 2026). It holds
+	# a full-owner key's powers; the deploy tool reaches it from INSIDE the n8n
+	# container (infra/scripts/n8n_api_deploy.py). The editor uses /rest/* and the
+	# webhooks /webhook/*, both untouched.
+	handle /api/* {
+		respond "Forbidden" 403
+	}
+	handle {
+		reverse_proxy n8n:5678
+	}
 }
