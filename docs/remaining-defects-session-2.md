@@ -423,8 +423,10 @@ In the time-guard measurement (the real prompt, es, "¿Podemos el jueves a las
 - the time guard (11:00 was offered).
 
 It would have reached the lead. **Two more of the 36 came back with an EMPTY
-reply.** In production those fail `bad_json` and take the guard retry, so they
-are handled. The garbled one is not.
+reply.** 🔁 **Corrected 21 Sep:** this entry first said those "take the guard
+retry, so they are handled". **That was wrong.** An empty reply is `bad_json`,
+the retry runs only for `bad_reply`, and so an empty reply escalates at once.
+It happened live the same afternoon (next entry).
 
 **Not fixed.** A cheap check: the share of the reply's words that are real
 words in the detected language, or a spelling-noise ratio. Worth building only
@@ -492,3 +494,46 @@ listing what is left:
 the parsers' `rejectedBudgets` judges the model's structured fields, so they are
 different questions. Invariants 2 and 5 already CALL `bookingClaim`,
 `replyStatesSlot` and the name detectors, and invariant 6 calls `disclosureIn`.
+
+## NEW (21 Sep) — One empty reply from the model escalates the lead: `bad_json` is never retried 🔴 Tier 1
+
+**Live, 16:18 UTC**, on the `c420d90b` deploy (the invariant-1 fix). The live
+check was "11:00?" after an offer of 09:00/10:00. The lead got the handoff note,
+and the operator got "Reason: claude_failed:bad_json". The build was rolled back
+to the `aeaaffb7` content (served `93da8218`) per the rule.
+
+**What the model returned** (execution 4569, the only attempt): HTTP 200,
+`stop_reason: end_turn`, valid JSON with **`"reply": ""`**. Everything else was
+well formed: `wants_booking: true`, and `proposed_times` holding exactly the
+offered 09:00 and 10:00.
+
+**Why it escalated instead of retrying:**
+- ParseClaude rejects an empty reply as `bad_json` ("empty reply").
+- `IsRetryableReply` retries only `errorType === 'bad_reply' && !wasGuardRetry`.
+- So a single empty reply goes straight to DecideEscalation as
+  `claude_failed:bad_json`.
+- The guard retry, the step built for exactly "the reply was unusable, ask once
+  more", is never tried.
+
+**Proved to be the model, not the new code:** replaying execution 4569's
+recorded inputs through both builds (`aeaaffb7` and `4a35877`), inside the n8n
+container, gives identical results:
+- ParseClaude: `bad_json` / "empty reply" on both;
+- AssertInvariants: nothing violated and nothing thrown, on both.
+The empty-reply check runs before the time guard ever sees the reply. **The
+invariant-1 fix was not the cause, and remains correct.**
+
+**How often:**
+- **Production, all time:** 1 `claude_failed:bad_json` in 128 runs that
+  called the model. This one; there is no other `claude_failed` of any kind.
+- **Measurement, 21 Sep:** 2 empty replies in 36 (~6%), both to unoffered-time
+  requests.
+
+Every empty reply seen so far answered a request for an unoffered time. That is
+a pattern in a small sample, not a proven cause.
+
+**Proposed fix, not built:** classify an empty reply as `bad_reply`, so it takes
+the one guard retry before escalating. A second empty reply would still
+escalate, which is correct. It is a one-line change in the parse code that
+batch item 2 moves into `src/`, so it belongs in that batch, with this
+execution's output as a permanent test case.
