@@ -2484,6 +2484,56 @@ rejected draft, while all 38 Code nodes that ran were the active version's. Prov
 what ran from the execution's snapshot (`execution_data.workflowData`), as
 `verify --signed-probe` does.
 
+### The deploy gate's workflows: off between gates, back on before one (2026-09-21)
+
+**Between gates, the gate copy (`ryvoInboundConcGATE`) and the sink
+(`ryvoGateSink01`) are UNPUBLISHED:** `active=false`, no webhook row, 404. They were
+switched off through the API on 21 Sep, live and with no restart. Production's row
+and its 403 were checked untouched.
+(`ryvoGateCalProbe01` is only ever run with `n8n execute` and stays unpublished.)
+
+**Before the next gate**, on the server:
+
+```bash
+cd /opt/ryvo-automation-platform
+T=infra/scripts/n8n_api_deploy.py
+python3 tests/build_gate.py <build.json>              # show the permitted-differences list first
+python3 $T activate --id ryvoGateSink01 --version draft       # the sink first: the gate sends into it
+python3 $T deploy   --id ryvoInboundConcGATE --file tests/ryvoInboundConc01.GATE.json
+python3 $T activate --id ryvoInboundConcGATE --version draft  # a PUT on an UNPUBLISHED workflow only saves the draft
+python3 $T verify   --id ryvoInboundConcGATE --file tests/ryvoInboundConc01.GATE.json \
+                    --path twilio-inbound-gate-5e1d8c47 --signed-probe
+python3 tests/gate_run.py --runs 20
+python3 $T deactivate --id ryvoInboundConcGATE && python3 $T deactivate --id ryvoGateSink01
+```
+
+No import and no restart: activation from the running instance registers the
+webhook row. The sink's saved version is the one that mints a fresh sid per call
+(`ff3f157`).
+
+### Caddy: config changes are a graceful reload, and the bind mount lags (2026-09-21)
+
+`infra/Caddyfile` is bind-mounted as a **single file**. `git pull` replaces the file
+(a new inode), so the running container **keeps seeing the old one** until it is
+next recreated. To apply a change with no restart, after commit, push and pull:
+
+```bash
+docker cp infra/Caddyfile infra-caddy-1:/tmp/Caddyfile.new
+docker exec infra-caddy-1 caddy validate --config /tmp/Caddyfile.new --adapter caddyfile
+docker exec infra-caddy-1 caddy reload   --config /tmp/Caddyfile.new --adapter caddyfile
+```
+
+Until Caddy is next recreated, `/etc/caddy/Caddyfile` inside the container shows
+the OLD text while the NEW config is live. **Read the behaviour, not the file.**
+
+**Since 21 Sep, `/api/*` returns 403 from outside.** n8n's public API holds a
+full-owner key's powers, and the deploy tool reaches it from inside the n8n
+container. Checked from outside after the reload:
+- `/api/v1/*` returns 403, and so do the usual bypass spellings (case, `%61`,
+  `%2F`, `//`, `/./`, `..`);
+- `/api` alone serves the editor's HTML, not the API;
+- `/webhook/*` is unchanged (403 unsigned), and so is `/rest/*`, the editor.
+
 ### Deploying a workflow from the CLI: import, **publish**, restart (FALLBACK)
 
 🔴 **`import:workflow` DELETES the workflow's `webhook_entity` row, and `publish`
