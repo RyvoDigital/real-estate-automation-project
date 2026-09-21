@@ -1,0 +1,71 @@
+{
+  "id": "ryvoGateCalProbe01",
+  "name": "gate_calendar_probe (deploy gate: can the Google credential read the gate calendar?)",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "c0000000-0000-4000-8000-000000000001",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/calendar/v3/freeBusy",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleCalendarOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ timeMin: new Date().toISOString(), timeMax: new Date(Date.now() + 14*86400000).toISOString(), timeZone: 'Europe/Lisbon', items: [{ id: 'c_d465470e9dc79fb87c089612c3b8b1c83928e9fb7e5fc715cde5b4d70bdb4177@group.calendar.google.com' }, { id: 'c_0000000000000000000000000000000000000000000000000000000000000000@group.calendar.google.com' }] }) }}",
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "c0000000-0000-4000-8000-000000000002",
+      "name": "FreeBusyProbe",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        0
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "0CNoqiQNtevOTCNz",
+          "name": "Ryvo Google Calendar"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "FreeBusyProbe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "meta": {
+    "note": "The SAME credential and request shape as the Concierge's QueryFreeBusy, against the gate calendar and a deliberately non-existent calendar (the control). Run with `n8n execute --id=ryvoGateCalProbe01 --rawOutput`; no activation, no restart. C1 lesson: an unreachable calendar answers 200 with busy: [] and hides the failure in calendars[id].errors."
+  }
+}

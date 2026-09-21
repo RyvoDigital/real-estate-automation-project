@@ -37,6 +37,15 @@ tripped us up. **Sections are newest first.**
 
 ---
 
+> 🔴 **`workflows/ryvoInboundConc01.json` on origin is NOT what is live
+> (pushed 21 Sep 2026, evening).** The file is the not-yet-deployed batch build
+> (`f80faf3`: shared parse source, empty-reply retry, garbled-reply check, one
+> system-failure list, invariant-1 fix). Production runs the `aeaaffb7` content
+> (served version `93da8218`). The mismatch lasts until the 03:00 UTC backup
+> re-exports production over it, or until the batch is deployed. **Never read
+> origin's workflow file as what is live: query `workflow_history` for the
+> served version** (`docs/concierge-runbook.md`, "Restore is verified by a query").
+
 # 00. 21 September 2026: the Concierge redeployed, the money tables hardened, the screens counted
 
 **Deployed (BUILT AND REACHABLE):**
