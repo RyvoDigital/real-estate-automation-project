@@ -95,7 +95,36 @@ guard punishes it.
 who does it, and gets a correct refusal, is escalated to a human. In a demo it
 looks like the assistant gave up on a simple question.
 
-**Proposed fix, prototyped (9/9), not built:** a time the LEAD named in their
+**Fix BUILT (21 Sep), not yet deployed:** `src/time_guard.js`, embedded in
+ParseClaude and ParseGuardRetry, and covered by the embed-drift test. The
+decision is taken per occurrence, in the clause around it. Clauses split on
+contrast words and dashes, never on plain commas. A negation counts as a
+decline only when it governs an availability word, so "no problem" / "não há
+problema" / "no hay problema" never count. `tests/time_guard.test.js`: 25/25,
+and 10 fail on the old guard.
+
+**Measured on real model output**: the real prompt and the shipping slot block,
+unoffered-time requests in en/pt/es, 36 calls. Two came back empty and one
+garbled (below), leaving 34 replies:
+- **(a) False escalations (correct refusals rejected):** old guard **4 of 34**,
+  new guard **0 of 34**. The four are now permanent cases word for word.
+- **(b) False acceptances:** none of the 34 replies affirmed an unoffered time,
+  so this direction was not exercised by the model. It was measured instead on
+  every real clause naming a time (66 replies captured on 21 Sep, 83 clauses).
+  The decline list matched **6, all genuine declines**, and **0 of the 77**
+  that offer or confirm a time. Hand-written affirmations (en/pt/es, "no
+  problem"-shaped, "booked!", declined-then-affirmed) are all rejected.
+- **Replay** of both parser versions on execution 4531's recorded inputs,
+  inside the n8n container: the old parsers give `bad_reply` "…never
+  supplied: 11:00" twice (the live failure, reproduced); the new ones keep the
+  reply both times.
+
+🔒 **KNOWN GAP, not introduced and not closed:** the guard compares TIMES,
+never DAYS. If 11:00 is offered on Tuesday, "Thursday at 11:00 works" passes.
+It is asserted in the test as today's behaviour, so changing it is
+deliberate.
+
+**The original proposal, prototyped (9/9):** a time the LEAD named in their
 own message is allowed in a reply sentence that DECLINES it ("isn't
 available", "não está/estão disponível/is", "no está/están disponible/s",
 "infelizmente", "lamentablemente"…).
@@ -379,3 +408,25 @@ with itself (a fixed rubric that decides on phrases, several samples and a
 majority, temperature 0 where available), or replace the judgement with a rule
 the code can check. Until then, read a suite-7 FAIL by looking at the reply,
 never at the count.
+
+## NEW (21 Sep) — A garbled reply passes every guard 🟡 Tier 2, seen once in 36
+
+In the time-guard measurement (the real prompt, es, "¿Podemos el jueves a las
+17:00?"), one reply in 36 came back as corrupted text. Verbatim:
+
+"ueero elosesa hora concreo, ualdebo confentar que el actualmente no tenemos ninguna cita agendada. Puedo confirmar directamente el jueves 10 de septiembre a las 11:00, hora de Lisbo,, si le viene bien.dígame para me confirma y quedaría, y con gusto lo dejo registado.ado con si me lo confirma."
+
+**It passes every guard:**
+- `replyLooksBroken` (more than 15 characters, 3+ words, letters, no braces);
+- the language check (es scores 12);
+- the claim guard (no pattern matches the misspellings);
+- the time guard (11:00 was offered).
+
+It would have reached the lead. **Two more of the 36 came back with an EMPTY
+reply.** In production those fail `bad_json` and take the guard retry, so they
+are handled. The garbled one is not.
+
+**Not fixed.** A cheap check: the share of the reply's words that are real
+words in the detected language, or a spelling-noise ratio. Worth building only
+once a second occurrence shows it is not a one-off, so this entry is where a
+second sighting gets recorded.
