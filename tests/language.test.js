@@ -143,5 +143,13 @@ chk('a missing language in a bag falls back, not blank',
 chk('an unknown message name falls back to the legacy note',
     systemMessage(CFG, 'nonexistent', 'Olá').text === 'LEGACY');
 
+// Typographic apostrophes (21 Sep 2026): a phone keyboard types "let’s" (U+2019).
+// The word pass kept only [a-z0-9'], so "let’s" became "let s" and matched nothing.
+for (const [straight, curly] of [["Ok let's go with Thursday morning", 'Ok let’s go with Thursday morning'],
+                                 ["let's go", 'let’s go'], ["it's fine", 'it’s fine'], ["I'm looking for a flat", 'I’m looking for a flat']]) {
+  const a = detectLanguage(straight), b = detectLanguage(curly);
+  chk(`"${curly}" scores exactly as "${straight}"`, JSON.stringify(a) === JSON.stringify(b), `${JSON.stringify(b.scores)} vs ${JSON.stringify(a.scores)}`);
+}
+
 console.log(`\n  language: ${pass}/${pass + fail} passed`);
 if (fail) process.exit(1);

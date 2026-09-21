@@ -101,5 +101,14 @@ chk('"um marco histórico" is not a booking', bookingClaim('A Quinta da Marinha 
 chk('"I\'m looking forward to it" is not a booking', bookingClaim("I'm looking forward to hearing which time suits you.") === null);
 chk('"reservo o direito" style prose is not a booking', bookingClaim('Reservo a minha opinião até falar com um colega.') === null);
 
+// Typographic apostrophes (21 Sep 2026). Every contraction pattern here is written
+// with a straight quote, and a phone or a model can type ’ (U+2019). A missed claim
+// is the dangerous direction: the lead believes in a booking nobody made.
+claims('en, U+2019: "that’s booked"', 'Perfect, that’s booked for Thursday at 10:00.');
+claims('en, U+2019: "we’re set for"', 'Great, we’re set for Thursday at 11:00 then.');
+claims('en, U+2019: "we’re on for"', 'So we’re on for Tuesday at 15:00.');
+claims('en, U+02BC: "weʼre all set for"', 'Brilliant, weʼre all set for Thursday.');
+chk('en, U+2019: "I’m looking forward to it" is still not a booking', bookingClaim('I’m looking forward to hearing which time suits you.') === null);
+
 console.log(`\n  ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

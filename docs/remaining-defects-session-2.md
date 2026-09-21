@@ -189,8 +189,30 @@ decline. The guard retry used a straight apostrophe and passed, so the run did
 not escalate. Two curly apostrophes in a row would have escalated the lead.
 Rate: 1 of 62 gate replies, and 0 of the 163 captured replies. Production's
 guard and `61f50cc` both reject it (replayed). Direction: false escalation
-only, never a false acceptance. **NOT fixed in `61f50cc`.** The fix is to
-normalise ’ ‘ to ' in `tgDeaccent`, with 4790's reply as a permanent case.
+only, never a false acceptance. Not fixed in `61f50cc`. **FIXED in the next
+build (21 Sep, evening), not deployed:** ’ ‘ ‛ ʼ ′ ＇ ´ and the backtick are folded
+to ' before any pattern runs. The same gap was found and closed in two more places:
+- **The claim guard** (`src/booking_claim.js`, also embedded in invariants 2):
+  "that’s booked" and "we’re set for Thursday" went UNCAUGHT. That is the
+  dangerous direction.
+- **The language detector** (`src/language.js`): "let’s", "it’s" and "I’m", as a
+  phone keyboard types them, lost their English evidence.
+- `opt_out` was already safe (`do ?n.?t` matches any character). A test now
+  holds that.
+
+4790's reply is a permanent case verbatim. Every governed decline and accepting
+shape is re-run with each typographic mark. The new cases fail on the pre-fix
+sources: 7 time guard, 4 claim, 4 language.
+
+**Sweeps over every real reply so far** (244 replies, 543 time occurrences,
+including both gates' 81 replies):
+- **False acceptances: 0.** 93 exemptions, each a decline of that exact time.
+- **False escalations: 0 from a normal history.** 6 of 174 are rejected, all
+  from the FIRST gate's "Talk to a human" step: the broken sink had lost the
+  model's own earlier reply, so it re-declined an 11:00 the lead named one
+  message before. The exemption covers only the lead's CURRENT message, by
+  design.
+- For comparison, `61f50cc` rejects 7 (adds 4790) and production rejects 19.
 
 **Fix BUILT (`61f50cc`, on top of `f80faf3`), not deployed:**
 - **Per occurrence:** a negation directly in front of the lead's time declines

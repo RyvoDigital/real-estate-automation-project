@@ -132,6 +132,22 @@ console.log('\nEVERY real decline captured on 21 Sep evening passes (tests/fixtu
       bad.length ? bad.map(r => r.reply.slice(0, 60)).join(' | ') : '');
 }
 
+console.log('\ntypographic apostrophes read exactly as straight ones (21 Sep 2026, the gate that passed 61f50cc)');
+// Execution 4790, word for word: the first attempt used ’ (U+2019) and was
+// rejected; the guard retry used ' and passed. Every pattern is written with '.
+passes('gate exec 4790, first attempt: "isn’t available" (U+2019)', '11:00?',
+  '11:00 isn’t available on Thursday, João - I have 09:00 or 10:00 Lisbon time that morning. Would either of those work for you?', CHECK2);
+passes('gate exec 4790, guard retry (straight apostrophe)', '11:00?',
+  "11:00 isn't available, João - for Thursday we only have 09:00 or 10:00 Lisbon time. Would either of those work for you?", CHECK2);
+// Every case above, re-typed with each typographic mark: same verdict, both ways.
+for (const mark of ['’', '‘', 'ʼ', '＇', '′', '`']) {
+  const re = s => s.replace(/'/g, mark);
+  const fe = GOVERNED.filter(([, l, r]) => r.includes("'") && timesNotSupplied(re(r), CHECK2, l).length);
+  const fa = ACCEPTING.filter(([, l, r]) => r.includes("'") && !timesNotSupplied(re(r), CHECK2, l).includes('11:00'));
+  chk(`U+${mark.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}: every governed decline still passes, every accepting shape still rejects`,
+      fe.length === 0 && fa.length === 0, fe.concat(fa).map(x => x[2]).join(' | '));
+}
+
 console.log('\n🔒 KNOWN GAP, recorded rather than hidden: the guard compares TIMES, never DAYS');
 // It has never checked days. If 11:00 is offered on Tuesday only, "Thursday at
 // 11:00 works" passes. Not introduced by 21 Sep, and not closed by it. See

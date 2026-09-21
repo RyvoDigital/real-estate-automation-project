@@ -80,7 +80,10 @@ function detectLanguage(text) {
   const out = (lang, scores, confident) => ({ lang, scores, confident });
   if (!raw.trim()) return out(null, { pt: 0, en: 0, es: 0 }, false);
 
-  const lower = raw.toLowerCase();
+  // Typographic apostrophes folded to ' (21 Sep 2026): a phone keyboard turns
+  // "let's" into "let’s" (U+2019), and the word pass below kept only [a-z0-9'],
+  // so "let’s" became "let s" and matched neither "let's" nor "lets".
+  const lower = raw.replace(/[\u2018\u2019\u201B\u02BC\u2032\uFF07\u00B4\u0060]/g, "'").toLowerCase();
   const scores = { pt: 0, en: 0, es: 0 };
 
   for (const m of HARD_MARKERS) {

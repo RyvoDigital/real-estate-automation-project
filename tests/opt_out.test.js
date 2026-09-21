@@ -46,6 +46,12 @@ console.log('  -- unambiguous: halt AND record');
   chk(`opt_out: "${t}"`, r.verdict === 'opt_out' && r.halt && r.record, r.verdict);
 });
 
+console.log('  -- typographic apostrophes (21 Sep 2026): already caught by "do ?n.?t"; this holds it');
+['Please don’t message me again', 'I don’t want any more messages', 'Don’t contact me'].forEach((t) => {
+  const r = v(t);
+  chk(`opt_out, U+2019: "${t}"`, r.verdict === 'opt_out' && r.halt && r.record, r.verdict);
+});
+
 console.log('  -- THE FALSE POSITIVES. A keyword inside a sentence that means the opposite');
 [
   ['Não quero perder esta oportunidade', 'the operator\'s own example: a HOT lead'],

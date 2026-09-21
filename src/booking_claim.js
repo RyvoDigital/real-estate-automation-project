@@ -28,8 +28,13 @@
 // not creating one this turn; an honest confirmation is never tested.
 // ============================================================================
 
+// Typographic apostrophes are folded to ' first (21 Sep 2026): "that’s booked"
+// and "we’re all set for Thursday" (U+2019) slipped past the patterns below,
+// which are written with a straight quote. A missed claim is the dangerous
+// direction: a booking the lead believes in and nobody made.
 function deaccentClaim(s) {
-  return String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  return String(s == null ? '' : s).replace(/[\u2018\u2019\u201B\u02BC\u2032\uFF07\u00B4\u0060]/g, "'")
+    .normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 }
 
 const BOOKING_CLAIMS = [

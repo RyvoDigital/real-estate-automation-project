@@ -155,8 +155,12 @@ const TG_DECLINE_RX = new RegExp([
 // Contrast words and dashes end a clause. Deaccented text.
 const TG_CLAUSE_SPLIT_RX = /\s*;\s*|\s+[-–—]\s+|\s*—\s*|,?\s+\b(?:but|however|though|although|whereas|instead|mas|porem|contudo|no entanto|pero|sin embargo|en cambio)\b/;
 
+// Typographic apostrophes are folded to ' before any pattern runs (21 Sep 2026,
+// the gate that passed 61f50cc: "11:00 isn’t available", U+2019, was rejected
+// because every pattern here is written with a straight quote).
 function tgDeaccent(s) {
-  return String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  return String(s == null ? '' : s).replace(/[\u2018\u2019\u201B\u02BC\u2032\uFF07\u00B4\u0060]/g, "'")
+    .normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 }
 
 // Which time each clause-level decline is ABOUT: the occurrence nearest to it.
