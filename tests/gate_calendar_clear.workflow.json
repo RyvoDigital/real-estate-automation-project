@@ -1,0 +1,224 @@
+{
+  "id": "ryvoGateCalClear01",
+  "name": "gate_calendar_clear (deploy gate: delete the gate calendar's events)",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "note": "Deletes the events on the gate calendar only; refuses any other calendar by its name. Cleanup after a gate. Run with `n8n execute --id=ryvoGateCalClear01 --rawOutput`. Never published. With no events it issues no DELETE at all; the delete URL is only ever an event URL (a DELETE on the calendar URL would delete the calendar itself)."
+  },
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "c0000000-0000-4000-8000-000000000401",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.googleapis.com/calendar/v3/calendars/c_d465470e9dc79fb87c089612c3b8b1c83928e9fb7e5fc715cde5b4d70bdb4177%40group.calendar.google.com",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleCalendarOAuth2Api",
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "c0000000-0000-4000-8000-000000000103",
+      "name": "ReadCalendar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "0CNoqiQNtevOTCNz",
+          "name": "Ryvo Google Calendar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 🔒 The gate calendar and nothing else: its own name must say so, or nothing below runs.\nconst r = $input.first().json;\nif (r.statusCode !== 200) throw new Error('could not read the gate calendar: HTTP ' + r.statusCode);\nif (r.body.summary !== 'Ryvo GATE, test only') throw new Error('REFUSED: calendar is \"' + r.body.summary + '\", not the gate calendar');\nreturn [{ json: { calendar: r.body.summary } }];"
+      },
+      "id": "c0000000-0000-4000-8000-000000000203",
+      "name": "OnlyTheGateCalendar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://www.googleapis.com/calendar/v3/calendars/c_d465470e9dc79fb87c089612c3b8b1c83928e9fb7e5fc715cde5b4d70bdb4177%40group.calendar.google.com/events?singleEvents=true&showDeleted=false&maxResults=250&timeMin={{ encodeURIComponent(new Date(Date.now() - 2*86400000).toISOString()) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleCalendarOAuth2Api",
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "c0000000-0000-4000-8000-000000000104",
+      "name": "ListEvents",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "0CNoqiQNtevOTCNz",
+          "name": "Ryvo Google Calendar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $input.first().json;\nif (r.statusCode !== 200) throw new Error('events list failed: HTTP ' + r.statusCode);\n// 🔒 No events means NO items, so no DELETE is ever sent. There is no path on\n// which the delete URL is anything but one event's own URL.\nreturn (r.body.items || []).filter((e) => e.status !== 'cancelled' && e.id).map((e) => ({ json: { id: e.id } }));"
+      },
+      "id": "c0000000-0000-4000-8000-000000000204",
+      "name": "EachEvent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "={{ (() => { if (!$json.id) throw new Error('no event id: refusing to build a DELETE'); return 'https://www.googleapis.com/calendar/v3/calendars/c_d465470e9dc79fb87c089612c3b8b1c83928e9fb7e5fc715cde5b4d70bdb4177%40group.calendar.google.com/events/' + encodeURIComponent($json.id); })() }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleCalendarOAuth2Api",
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "c0000000-0000-4000-8000-000000000105",
+      "name": "DeleteEvent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        0
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "0CNoqiQNtevOTCNz",
+          "name": "Ryvo Google Calendar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const all = $input.all().map((i) => i.json);\nconst deleted = all.filter((r) => r.statusCode === 204).length;\nconst failed = all.filter((r) => r.statusCode && r.statusCode !== 204 && r.statusCode !== 410);\nreturn [{ json: { deleted, failed: failed.map((f) => f.statusCode) } }];"
+      },
+      "id": "c0000000-0000-4000-8000-000000000205",
+      "name": "Done",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "ReadCalendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ReadCalendar": {
+      "main": [
+        [
+          {
+            "node": "OnlyTheGateCalendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OnlyTheGateCalendar": {
+      "main": [
+        [
+          {
+            "node": "ListEvents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ListEvents": {
+      "main": [
+        [
+          {
+            "node": "EachEvent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EachEvent": {
+      "main": [
+        [
+          {
+            "node": "DeleteEvent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeleteEvent": {
+      "main": [
+        [
+          {
+            "node": "Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

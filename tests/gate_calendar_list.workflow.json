@@ -1,0 +1,158 @@
+{
+  "id": "ryvoGateCalList01",
+  "name": "gate_calendar_list (deploy gate: the gate calendar's events)",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "note": "Lists the events on the gate calendar only; refuses any other calendar by its name. Run with `n8n execute --id=ryvoGateCalList01 --rawOutput`. Never published."
+  },
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "c0000000-0000-4000-8000-000000000301",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.googleapis.com/calendar/v3/calendars/c_d465470e9dc79fb87c089612c3b8b1c83928e9fb7e5fc715cde5b4d70bdb4177%40group.calendar.google.com",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleCalendarOAuth2Api",
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "c0000000-0000-4000-8000-000000000101",
+      "name": "ReadCalendar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "0CNoqiQNtevOTCNz",
+          "name": "Ryvo Google Calendar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 🔒 The gate calendar and nothing else: its own name must say so, or nothing below runs.\nconst r = $input.first().json;\nif (r.statusCode !== 200) throw new Error('could not read the gate calendar: HTTP ' + r.statusCode);\nif (r.body.summary !== 'Ryvo GATE, test only') throw new Error('REFUSED: calendar is \"' + r.body.summary + '\", not the gate calendar');\nreturn [{ json: { calendar: r.body.summary } }];"
+      },
+      "id": "c0000000-0000-4000-8000-000000000201",
+      "name": "OnlyTheGateCalendar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://www.googleapis.com/calendar/v3/calendars/c_d465470e9dc79fb87c089612c3b8b1c83928e9fb7e5fc715cde5b4d70bdb4177%40group.calendar.google.com/events?singleEvents=true&showDeleted=false&maxResults=250&timeMin={{ encodeURIComponent(new Date(Date.now() - 2*86400000).toISOString()) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleCalendarOAuth2Api",
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "c0000000-0000-4000-8000-000000000102",
+      "name": "ListEvents",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "0CNoqiQNtevOTCNz",
+          "name": "Ryvo Google Calendar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $input.first().json;\nif (r.statusCode !== 200) throw new Error('events list failed: HTTP ' + r.statusCode);\nconst events = (r.body.items || []).map((e) => ({ id: e.id, status: e.status, start: e.start && (e.start.dateTime || e.start.date), end: e.end && (e.end.dateTime || e.end.date), summary: e.summary || '' }));\nreturn [{ json: { count: events.length, events } }];"
+      },
+      "id": "c0000000-0000-4000-8000-000000000202",
+      "name": "Out",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "ReadCalendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ReadCalendar": {
+      "main": [
+        [
+          {
+            "node": "OnlyTheGateCalendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OnlyTheGateCalendar": {
+      "main": [
+        [
+          {
+            "node": "ListEvents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ListEvents": {
+      "main": [
+        [
+          {
+            "node": "Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
