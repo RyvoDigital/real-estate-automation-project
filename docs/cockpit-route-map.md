@@ -187,3 +187,87 @@ screen you open when you already suspect something, not one you browse to.
 
 🔒 **No route is deleted in the same commit that creates its replacement.** The
 replacement lands, is used, and only then does the old one become a redirect.
+
+---
+
+## 7. 🔴 The count, 21 September 2026: eleven old routes, and what retiring them costs
+
+Nothing had counted this, and the build plan's stage table has no task for
+retirement. The only schedule is the tokens ratchet's "until" labels, and all
+of them have passed: /queue "C3"; listings, segmentation and calibrate "C5";
+review and silence "C6". Every cell below is cited from the repository.
+
+| Old route | Verdict | Where it goes | Built? |
+|---|---|---|---|
+| `/queue` | **replaced** | `/today` and `/c/<client>/escalations` (build plan C3/C4) | yes. There is **no redirect, and login still lands here** (`login/page.tsx:92`, `auth/callback/route.ts:65`, `manifest.ts:14` `start_url`) |
+| `/leads` | **replaced, partly** | the list becomes `/c/<client>/contacts` (built). `/leads/[id]` becomes the contact record (§2 says `contacts/<lead>`, the built route is `contacts/[phone]`) | the list and the record are built; cross-client search is not (§5 open question) |
+| `/listings` | **split** | the list becomes `/c/<client>/listings` (built). Detail, triage and exemption are **owed** (`frame.ts:129-130` `built:false`) | partly |
+| `/import` | **replaced, partly** | `/c/<client>/import` and `[batch]` are the **record**. Upload, map, plan and commit **deliberately stayed at `/import`** (commit `4f78050`) | the record is built; the flow is old-direction on purpose |
+| `/report` | **replaced** | `/c/<client>/report` (`3ee939c`) | yes. ⚠️ **The old page's "Copy as text" (`Report.tsx:151-159`) has no equivalent on the new one**, and the report is sent by hand, so that button *is* the send step |
+| `/review` | **replaced** | `/c/<client>/review` (`75eb2bb`) | yes |
+| `/silence` | **replaced** | `/c/<client>/silence` (`b153e20`) | yes |
+| `/segmentation` | 🔴 **still owed a rebuild** | `/c/<client>/declaration` (§2; `frame.ts:93` `built:false`). **Not in any build-plan stage**: C5's list names listings, the gate, piece, exemption, expiries, policy, templates, the re-check notice, and no declaration | **no.** It is the **only screen that writes a consent declaration** (`lib/segmentation/actions.ts` `declareGroupAction`). Nothing has taken that job over |
+| `/calibrate` | **still owed a rebuild** | `/c/<client>/thresholds` (§2; `frame.ts:115` `built:false`). Not in any build-plan stage | no. ⚠️ **The gated ledger holds the calibration *data*, not the route.** `gates.ts` `matching-thresholds` (gate `calibration_afternoon`) says "the calibration screen exists and is reachable", so the **old** screen is where that afternoon is planned to happen |
+| `/onboarding` | **kept (URL); screen owed** | stays per §2 (onboarding row); the rebuild is noted in §2 and in `WHERE-WE-LEFT-OFF.md`; not in any build-plan stage | old direction |
+| `/health` | **kept, but not settled** | §5.4: "My reading: it stays at `/health`", inside a section headed "decided before I move anything". Brief §1.2 puts it at `/ops/infrastructure` instead (`cockpit-design-brief.md` §1.2), so the two documents disagree | old direction |
+
+**So:**
+- **Replaced, fully or partly:** `/queue`, `/leads`, `/listings` (list), `/import` (record), `/report`, `/review`, `/silence`.
+- **Still owed a rebuild:** `/segmentation`, `/calibrate`, and the listing detail, triage and exemption.
+- **Kept:** `/onboarding` (URL) and `/health`, both unsettled.
+
+### What retiring the replaced routes involves
+
+**Redirects: none exist.** `next.config.ts` has headers only and
+`src/proxy.ts` only refreshes sessions. §3 is intent, not code. Three problems
+with §3 as written:
+- `/import → /` would strand the upload flow, which lives only at `/import`.
+- `/listings?client=` and `/report?client=` need query-to-path redirects that
+  §3 does not list.
+- `/leads/[id]` needs a lookup (lead → client and phone) and is missing from
+  §3's "two that cannot be static".
+
+**Inbound links from outside the cockpit: none found.** No n8n workflow links
+to an old cockpit page. The `/leads` hits in workflows are Supabase `rest/v1`,
+and `/listings/inbound` is the API. The runbook's prose mentions `/import` and
+`/leads`.
+
+**🔴 New screens that link back into old ones.** `/leads/[id]` cannot retire
+while these links exist:
+- `c/[client]/contacts/[phone]/page.tsx:339`
+- `c/[client]/anomalies/page.tsx:68`
+- `components/Anomalies.tsx:74`
+
+**Navigation:**
+- `Shell.tsx` (/queue, /leads, /report, /import) and `MoreSheet.tsx` (/import).
+- The login redirect and the phone manifest's `start_url` both point at /queue.
+
+**`revalidatePath` calls naming old paths:**
+- `lib/actions.ts:87-88, 221-222, 444`
+- `lib/import/actions.ts` (six places)
+- `calibrate-actions.ts`, `triage-actions.ts` and `exemption-actions.ts`, which
+  revalidate `/listings`.
+
+**Tests and probes:**
+- `routes.test.ts` and `probe-layout.ts` enumerate routes from the filesystem.
+- `links-resolve.test.ts` fails on any href to a deleted route. That is the
+  check that will catch a missed link.
+- Hard-coded old paths: `probe-e2e.ts`, `probe-dod.ts`, `probe-timing.ts`,
+  `probe-contrast.ts`, `probe-report.ts`, `matching-screen.test.ts`,
+  `tokens.test.ts` (the "until" labels), `silence.test.ts:146` (reads the old
+  page's source), `proxy-screen.test.ts` and `no-secret-in-bundle.sh`.
+
+**Code used only by old routes:** `components/Queue.tsx`,
+`components/Reply.tsx`, `components/Report.tsx`, and `Shell` / `MoreSheet`
+once nothing renders them.
+
+### Disagreements found while counting, none resolved here
+1. **/queue timing:** the build plan says C3 replaces /queue. §5 says it
+   stays until C4 and the redirect ships with Today. Today is live, and the
+   redirect is not.
+2. **/import:** the build plan calls it "a reskin of a working flow". The
+   built screen deliberately left the flow behind (`4f78050`).
+3. **Publish:** `frame.ts:132` says `publish` `built:false`, but the page
+   exists and `reachability.test.ts` calls it wired.
+4. **/health and /onboarding URLs:** brief §1.2 (`/ops/...`) and this
+   document (unchanged URLs) disagree.
