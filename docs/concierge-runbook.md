@@ -949,7 +949,7 @@ caption.
 
 ### metrics_daily is DERIVED, never incremented (D4, 2026-09-05)
 
-`infra/scripts/metrics_daily.py`, nightly at 03:20 Europe/Lisbon.
+`infra/scripts/metrics_daily.py`, nightly at 03:20 UTC (04:20 Lisbon in summer, 03:20 in winter). The crontab runs on UTC (`CRON_TZ` is ignored; see "The nightly jobs run on UTC" below). The job works out each client's day in the client's own zone, so the clock change does not move which day it derives.
 
 **Why derived.** The original spec had the workflow increment
 `viewings_booked` at the moment it booked. **An increment that does not happen
@@ -1715,6 +1715,14 @@ UTC (04:00 Lisbon in summer, 03:00 in winter, 05:00/04:00 Spain) and
 `metrics_daily.py` at 03:20 UTC. Nothing has broken because of it. Read every
 time in that crontab as UTC, and don't rely on `CRON_TZ` unless the daemon is
 changed. Logged, not fixed (operator, 21 Sep 2026).
+
+**22 Sep 2026:** the crontab's comment now says so ("EVERY TIME BELOW IS UTC.
+CRON_TZ is IGNORED by this cron"); only the comment changed, and the crontab
+before the edit is `/tmp/crontab.before.<stamp>` on the server. Nothing in it
+depends on Lisbon time: the backup and the metrics job are fine at either
+offset, and `metrics_daily.py` works each client's day out in its own zone.
+The clock change on 25 Oct moves them an hour earlier in Lisbon terms, and
+that is all.
 
 ### DNS consolidation — the exact edits, and the order they must happen in (2026-09-05)
 

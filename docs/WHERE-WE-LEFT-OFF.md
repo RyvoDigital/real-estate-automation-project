@@ -1341,10 +1341,10 @@ rather than growing this by hand.
 
 ## 4. Backups
 
-`infra/scripts/backup.sh`, nightly at **03:00 Europe/Lisbon** via the `ryvo`
-crontab. The host is UTC, so the crontab sets `CRON_TZ=Europe/Lisbon` — this
-keeps the run at 03:00 local across DST instead of drifting an hour twice a
-year.
+`infra/scripts/backup.sh`, nightly at **03:00 UTC (04:00 Lisbon in summer, 03:00
+in winter)** via the `ryvo` crontab. The crontab sets `CRON_TZ=Europe/Lisbon`,
+but Ubuntu's cron ignores it (runbook, 21 Sep 2026): every time in that crontab
+is UTC, and the run moves an hour in Lisbon terms twice a year.
 
 What it does, in order: `pg_dump` the engine Postgres → gzip to `backups/` →
 export n8n workflows to `workflows/` → commit → prune dumps older than 14 days

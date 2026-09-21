@@ -28,7 +28,7 @@ decisions here look arbitrary until you know which failure produced them.
 
 **Workflows:** `ryvoInboundConc01` (86 nodes) and `ryvoSupaKeepAlv` (8 nodes).
 
-**Scheduled work** (`crontab -l`, `CRON_TZ=Europe/Lisbon`):
+**Scheduled work** (`crontab -l`; every time is **UTC**: the crontab's `CRON_TZ=Europe/Lisbon` is ignored by Ubuntu's cron, runbook 21 Sep 2026):
 
 ```
 0  3 * * *   backup.sh        dump, export workflows, push offsite

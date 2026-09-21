@@ -1576,7 +1576,7 @@ the page is designed from empty outward, not with a fallback added at the end.
 | **S3** | per client | A client whose `rehearsal` is still null — created between migrations 0037 and 0038 — is listed by name as **undeclared**, and is counted in neither the business's numbers nor the rehearsals' |
 | **S4** | per panel | The thrown sentence, in place; the other panels still render |
 | **S5** | per automation | 02 and 05 sent nothing **because they are gated** — *"cannot send: waiting on Meta's verification"*, linked to the waiting room. Never rendered as zero activity |
-| **S8** | per panel | *"derived 03:20 Lisbon"* on panels from `metrics_daily`; *"live"* on panels read from `messages` and `events` |
+| **S8** | per panel | *"derived 03:20 UTC (04:20 Lisbon in summer, 03:20 in winter)"* on panels from `metrics_daily`; *"live"* on panels read from `messages` and `events` |
 | **S9** | contracts | Terms are append-only: a correction is a new record superseding the old, with its own author |
 | **S10** | footer | No forecast beyond contract dates, no blended total, no ranking, **no *time saved*** (below) |
 
@@ -1652,7 +1652,7 @@ memory of it.
 | Per automation: live, or gated and why | `client_automations`; the gate's refusals | 02 and 05 show S5, not zeros |
 
 Day history per client is in the client's local day, from `metrics_daily`
-(derived nightly at 03:20 Lisbon) — except where it is lossy, as noted.
+(derived nightly at 03:20 UTC (04:20 Lisbon in summer, 03:20 in winter)) — except where it is lossy, as noted.
 
 ### Writes — a proposal, not a migration
 

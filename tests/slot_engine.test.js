@@ -120,6 +120,60 @@ chk('freebusy: transport failure (no statusCode) is an error', !readFreeBusy({},
 const genuinelyFree={statusCode:200,body:{calendars:{[CAL]:{busy:[]}}}};
 chk('freebusy: a GENUINELY free calendar is still ok', readFreeBusy(genuinelyFree,CAL).ok===true);
 
+// ---- the clock change: Lisbon leaves WEST (+01:00) for WET (+00:00) --------
+// Sunday 25 Oct 2026, 02:00 local -> 01:00. Working hours are LOCAL: 09:00 in
+// Lisbon is 08:00 UTC on Friday and 09:00 UTC on Monday. An engine adding fixed
+// offsets would offer Monday at 10:00, or 08:00, local; this is the proof it does
+// not, written before the first change it would have to survive (22 Sep 2026).
+console.log('\n  -- DST: Fri 23 Oct to Mon 26 Oct 2026, +01:00 then +00:00');
+{
+  const DSTNOW = '2026-10-22T06:00:00Z';                        // Thu; 24h notice -> from Fri
+  const all = (days) => computeSlots({ ...base, nowISO:DSTNOW, tz:'Europe/Lisbon', bookingWindowDays:5,
+                                       maxSlots:200, workingHours:{ start:'09:00', end:'19:00', days } }).slots;
+  const sl = all([1,2,3,4,5,6]);
+  const on = (date) => sl.filter(s => s.dateLocal === date).sort((a, b) => a.startUtc.localeCompare(b.startUtc));
+  const fri = on('2026-10-23'), sat = on('2026-10-24'), mon = on('2026-10-26');
+  chk('DST: Fri 23 Oct 09:00 Lisbon is 08:00 UTC, +01:00',
+      fri[0] && fri[0].timeLocal==='09:00' && fri[0].startUtc==='2026-10-23T08:00:00.000Z' && fri[0].startLocal.endsWith('+01:00'),
+      fri[0] && `${fri[0].timeLocal} ${fri[0].startUtc} ${fri[0].startLocal}`);
+  chk('DST: Sat 24 Oct, the last day of summer time, is still +01:00',
+      sat[0] && sat[0].startUtc==='2026-10-24T08:00:00.000Z' && sat.every(s => s.startLocal.endsWith('+01:00')));
+  chk('DST: Mon 26 Oct 09:00 Lisbon is 09:00 UTC, +00:00 (09:00 local stays 09:00 local)',
+      mon[0] && mon[0].timeLocal==='09:00' && mon[0].startUtc==='2026-10-26T09:00:00.000Z' && mon[0].startLocal.endsWith('+00:00'),
+      mon[0] && `${mon[0].timeLocal} ${mon[0].startUtc} ${mon[0].startLocal}`);
+  // The engine spreads one slot per day; a day's whole list comes back only when
+  // it is the one day with anything free. So each day is isolated by marking
+  // everything outside it busy, and its full list read.
+  const dayOnly = (date, days) => {
+    const d0 = DateTime.fromISO(date, { zone:'Europe/Lisbon' }).startOf('day'), d1 = d0.plus({ days:1 });
+    const busy = [{ start:'2026-10-01T00:00:00Z', end:d0.toUTC().toISO() }, { start:d1.toUTC().toISO(), end:'2026-11-30T00:00:00Z' }];
+    return computeSlots({ ...base, nowISO:DSTNOW, tz:'Europe/Lisbon', bookingWindowDays:5, maxSlots:200, busy,
+                          workingHours:{ start:'09:00', end:'19:00', days: days || [1,2,3,4,5,6] } }).slots;
+  };
+  const HOURS = ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00'];
+  for (const [date, off, utc9] of [['2026-10-23','+01:00','08'], ['2026-10-24','+01:00','08'], ['2026-10-26','+00:00','09']]) {
+    const d = dayOnly(date);
+    chk(`DST: ${date} offers 09:00..18:00 local, ten slots, all ${off}, 09:00 local = ${utc9}:00 UTC`,
+        d.length===10 && d.every((x, i) => x.timeLocal===HOURS[i] && x.dateLocal===date && x.startLocal.endsWith(off))
+          && d[0].startUtc===`${date}T${utc9}:00:00.000Z`,
+        `${d.length}: ${d.map(x => x.timeLocal + x.startLocal.slice(-6)).join(',')}`);
+  }
+  chk('DST: no slot outside working hours in LOCAL time (no 08:00, no 19:00)',
+      sl.every(s => s.timeLocal >= '09:00' && s.timeLocal <= '18:00'), sl.map(s => s.timeLocal).join(','));
+  chk('DST: Sunday is closed here, so nothing on the day of the change', on('2026-10-25').length===0);
+  // A client open on Sundays: the change day itself. 02:00 happens twice; the
+  // working day starts long after, so it is a plain +00:00 day.
+  const sun = dayOnly('2026-10-25', [1,2,3,4,5,6,7]);
+  chk('DST: open on Sunday 25 Oct: 09:00 local is 09:00 UTC, +00:00, ten slots',
+      sun.length===10 && sun[0].startUtc==='2026-10-25T09:00:00.000Z' && sun.every(s => s.startLocal.endsWith('+00:00')),
+      `${sun.length} ${sun[0] && sun[0].startUtc}`);
+  // Confirming across the change: "segunda às 9" must book Monday 09:00 LOCAL.
+  const offer = [fri[0], mon[0]].map(s => ({ startUtc:s.startUtc, endUtc:s.endUtc, local:s.startLocal, zone:'Europe/Lisbon' }));
+  const m = matchConfirmation('segunda às 9 pode ser', offer, 'Europe/Lisbon', '2026-10-22T10:00:00Z');
+  chk('DST: "segunda às 9" across the change matches Monday 09:00 local (09:00 UTC)',
+      m.status==='matched' && m.slot && m.slot.startUtc==='2026-10-26T09:00:00.000Z', JSON.stringify(m));
+}
+
 console.log(`\n  engine + freebusy: ${pass}/${pass+fail} passed`);
 if (fail) process.exit(1);
 
