@@ -1697,6 +1697,25 @@ instead of exporting onto a stale tree.
 > the server unable to push until it next pulls. If a backup failure alert
 > arrives at 03:00, this is the first thing to check.
 
+### The nightly jobs run on UTC: `CRON_TZ` is ignored (2026-09-21)
+
+The server crontab starts with `CRON_TZ=Europe/Lisbon` and a comment saying it
+keeps the backup at 03:00 Lisbon across DST changes. **The variable is not
+honoured.** The timing was read correctly. The cron is wrong:
+
+- the host clock is `Etc/UTC`, and the backup log stamps are `+00:00`;
+- the runs started at `03:00:01+00:00` on 20 and 21 Sep. On those dates Lisbon
+  is WEST (UTC+1), so 03:00 Lisbon would have been **02:00 UTC**;
+- the daemon is Ubuntu's `cron 3.0pl1-184ubuntu2` (Vixie cron), and
+  `/usr/sbin/cron` contains no `CRON_TZ` string at all. `CRON_TZ` is a cronie
+  feature, and this daemon treats the line as an ordinary environment variable.
+
+So every job in that crontab runs at a fixed **UTC** time: the backup at 03:00
+UTC (04:00 Lisbon in summer, 03:00 in winter, 05:00/04:00 Spain) and
+`metrics_daily.py` at 03:20 UTC. Nothing has broken because of it. Read every
+time in that crontab as UTC, and don't rely on `CRON_TZ` unless the daemon is
+changed. Logged, not fixed (operator, 21 Sep 2026).
+
 ### DNS consolidation — the exact edits, and the order they must happen in (2026-09-05)
 
 **Header verdicts settled the spam question first:** a delivered alert and a
