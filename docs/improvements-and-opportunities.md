@@ -185,6 +185,53 @@ The double-booking guard derives the event id from the time slot. A generation c
 Deleting a lead orphans its messages (`on delete set null`) rather than removing them. Correct for an audit trail, wrong for a right-to-be-forgotten request.
 **This has a legal deadline rather than an engineering one.** Needs a designed and documented erasure runbook, later a cockpit button.
 
+### 3.3a 🔴 Deleting a client is declared to erase its objections and its send record — one decision, not three
+
+**Logged 21 September 2026. No keys changed. This needs a design decision, not a migration.**
+
+Read from `pg_constraint` and `pg_trigger` on 21 September:
+
+| record | key to `clients` | guard on the child | what `delete from clients` does today |
+|---|---|---|---|
+| `consent_events` (who objected, who consented) | `ON DELETE CASCADE` | row trigger refusing UPDATE and DELETE | **Refused.** The cascade reaches the ledger, its trigger fires, and the whole delete fails. |
+| `sends` (every business-initiated message, with the evidence it was authorised) | `ON DELETE CASCADE` | frozen against UPDATE only | **Erased, silently**, with the client. |
+
+- **An objection is meant to be permanent.** The ledger is keyed on
+  `(client_id, phone_e164)` precisely so an objection survives revert, dedupe
+  and re-import. The schema *declares* that deleting the client erases it.
+  Today only the ledger's trigger contradicts the key. The permanence rests on
+  two mechanisms disagreeing, and the first person to "fix" the refused delete
+  (by disabling the trigger, or by deleting the ledger rows first) erases every
+  objection that agency ever received.
+- **The send record goes with no resistance at all.** It is the evidence that
+  each message was authorised. It is also the thing a complaint or a regulator
+  asks for, possibly after the agency has left.
+- **Why it is one decision.** Deleting a client, erasing a person (§3.3) and
+  retaining evidence pull against each other:
+  - A right-to-be-forgotten request wants personal data *gone*.
+  - An objection must *outlive* the lead it came from, or the next import
+    messages the person again. Suppressing someone requires keeping enough
+    to recognise them: a hash of the number, not the number, is the usual
+    answer.
+  - A departed agency's contract ends Ryvo's processing, but the evidence
+    that past sends were lawful may need to outlive it.
+  Settling any one of these alone re-opens the others.
+- **What the decision must produce:**
+  - what a client delete is (probably never a delete: an `ended` status, as
+    `web_clients` already has);
+  - what an erasure request removes and what it replaces with a suppression
+    key;
+  - how long `sends` and `consent_events` are retained after a client ends,
+    and on what legal basis;
+  - then the keys: RESTRICT, as `0049` did for money, once there is an
+    erasure path that does not need a cascade.
+- **Related:**
+  - `0049` made money RESTRICT for the same reason.
+  - `docs/concierge-runbook.md` ("ZZ TEST") now says which of these a test
+    client's deletion will hit.
+  - The processor/controller split (Ryvo processes for each agency) decides
+    who may order an erasure. Settle that first.
+
 ### 3.4 Consent audit ⚠️ highest unaudited risk
 `consent_status` and `consent_at` exist on `leads` and **have never been tested.** Outbound automations are legally required to respect them and nothing has verified that they do.
 This is a legal exposure, not a quality one, and it sits directly in Automation 02's path — the automation most likely to be sold first.
