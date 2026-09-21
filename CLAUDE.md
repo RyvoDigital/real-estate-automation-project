@@ -29,6 +29,23 @@ layout defects on 18 September were found by homegrown probes approximating what
 a browser would simply report. **The probes are the approximation, not the
 answer.**
 
+## Is the cockpit deploy live? One check, never a poll of `vercel ls`
+
+`vercel ls` does not give a status that can be read here. It was polled twice
+on 21 Sep and stopped both times. Use this, once, from the repo root:
+
+```
+vercel inspect ryvo-cockpit.vercel.app --format=json   # readyState: READY, target: production
+vercel inspect ryvo-cockpit.vercel.app --logs | grep -i cloning   # "(Branch: main, Commit: <sha>)"
+```
+
+The alias resolves to the deployment actually serving production. READY plus
+the commit you pushed is the proof: the state alone does not say which build
+it is. Proved on 21 Sep 2026: READY, Commit 4799b40 = HEAD. The Vercel MCP
+tool returns 403 for this team, so do not use it for this. If the inspect
+fails or the commit is not yours yet, **ask Manuel to check the dashboard**;
+do not loop.
+
 ## The database connection: read, never act
 
 The Supabase MCP server reads the one database there is, which is production.
