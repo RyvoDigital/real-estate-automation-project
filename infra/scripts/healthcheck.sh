@@ -238,6 +238,35 @@ if [[ -n "${SUPABASE_URL:-}" && -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
   fi
 fi
 
+# --- the n8n API key (21 Sep 2026) ------------------------------------------
+# Deploys go through n8n's public API with N8N_API_KEY (infra/scripts/
+# n8n_api_deploy.py). A lapsed key blocks every deploy, and nothing else would
+# say so until the day a fix is needed. Its expiry is its own JWT exp claim, read
+# here without the key ever leaving this process: python reads it from the
+# environment, never from argv. It fails at <= N8N_KEY_WARN_DAYS so the ordinary
+# alert email goes out a week ahead.
+N8N_KEY_WARN_DAYS="${N8N_KEY_WARN_DAYS:-7}"
+N8N_API_KEY_EXP=""
+if [[ -z "${N8N_API_KEY:-}" ]]; then
+  fail "n8n API key missing from .env - deploys cannot run"
+else
+  N8N_API_KEY_EXP="$(python3 -c 'import os, json, base64
+p = os.environ["N8N_API_KEY"].split(".")[1]
+print(int(json.loads(base64.urlsafe_b64decode(p + "=" * (-len(p) % 4)))["exp"]))' 2>/dev/null)"
+  if [[ ! "${N8N_API_KEY_EXP}" =~ ^[0-9]+$ ]]; then
+    N8N_API_KEY_EXP=""
+    fail "n8n API key has no readable expiry - check it is the whole key"
+  else
+    KEY_DAYS=$(( (N8N_API_KEY_EXP - $(date +%s)) / 86400 ))
+    KEY_DATE="$(date -u -d "@${N8N_API_KEY_EXP}" +%Y-%m-%d)"
+    if (( KEY_DAYS <= N8N_KEY_WARN_DAYS )); then
+      fail "n8n API key expires ${KEY_DATE} (${KEY_DAYS} days) - deploys stop when it lapses; create a new one in n8n (Settings, n8n API)"
+    else
+      pass "n8n API key expires ${KEY_DATE} (${KEY_DAYS} days left)"
+    fi
+  fi
+fi
+
 # --- verdict ---------------------------------------------------------------
 # State: "<state> <since_epoch> <consecutive_fails> <notified 0|1>"
 #
@@ -277,6 +306,8 @@ NOW=$(date +%s)
 # signal, and email remains the channel that does not depend on what it
 # watches.
 publish_health() {
+  # HC_PUBLISH=0: a test run (a forced failure) must not reach the cockpit's screen.
+  [[ "${HC_PUBLISH:-1}" == "1" ]] || { log "  publish skipped - HC_PUBLISH=0"; return 0; }
   [[ -n "${SUPABASE_URL:-}" && -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]] || {
     log "  publish skipped - no Supabase credentials in the environment"
     return 0
@@ -288,7 +319,7 @@ publish_health() {
   # unsigned POST, expected 403"), and hand-rolled JSON would break on the
   # first one and publish nothing.
   payload="$(
-    HC_OK="$1" HC_MS="$2" HC_HOST="$(hostname)" \
+    HC_OK="$1" HC_MS="$2" HC_HOST="$(hostname)" HC_KEY_EXP="${N8N_API_KEY_EXP:-}" \
     python3 - "${PASSED[@]:-}" --failed-- "${FAILURES[@]:-}" <<'PYEOF'
 import json, os, sys
 args = sys.argv[1:]
@@ -302,6 +333,8 @@ print(json.dumps({
     "failed": failed,
     "duration_ms": int(os.environ["HC_MS"]),
     "host": os.environ["HC_HOST"],
+    **({"n8n_api_key_exp": __import__("datetime").datetime.fromtimestamp(int(os.environ["HC_KEY_EXP"]), __import__("datetime").timezone.utc).isoformat()}
+       if os.environ.get("HC_KEY_EXP") else {}),
 }))
 PYEOF
   )" || { log "  publish skipped - could not build the payload"; return 0; }
@@ -314,6 +347,20 @@ PYEOF
     -H "content-type: application/json" \
     -H "Prefer: return=minimal" \
     -d "${payload}" 2>/dev/null)" || code="000"
+
+  # n8n_api_key_exp needs migration 0051. Until it is applied, PostgREST rejects the
+  # unknown column (400) -- so retry once without it rather than publish nothing.
+  if [[ ! "${code}" =~ ^2 && "${payload}" == *n8n_api_key_exp* ]]; then
+    log "  publish with n8n_api_key_exp got HTTP ${code} - retrying without it (is migration 0051 applied?)"
+    payload="$(printf '%s' "${payload}" | python3 -c 'import json, sys; d = json.load(sys.stdin); d.pop("n8n_api_key_exp", None); print(json.dumps(d))')"
+    code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
+      -X POST "${SUPABASE_URL%/}/rest/v1/health_runs" \
+      -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+      -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+      -H "content-type: application/json" \
+      -H "Prefer: return=minimal" \
+      -d "${payload}" 2>/dev/null)" || code="000"
+  fi
 
   # The status is READ, not assumed. A 401 or a 42501 permission error returns
   # a perfectly ordinary-looking curl exit 0 -- the whole point of #6.
