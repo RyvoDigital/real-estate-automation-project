@@ -69,7 +69,15 @@ const BOOKING_CLAIMS = [
   { rx: /\bvamos (?:marcar|agendar|reservar) (?:para|na|no|a|as|o) (?:segunda|terca|quarta|quinta|sexta|sabado|domingo|dia \d|\d)/, label: 'vamos marcar para <dia>' },
   { rx: /\b(?:ja )?vou tratar (?:disso|de tudo|da marcacao)\b/, label: 'vou tratar disso' },
   { rx: /\bdejo (?:propuest|reservad|agendad|apuntad)/, label: 'dejo propuesto' },
-  { rx: /\bquedamos (?:para|el|en) (?:el |la |lunes|martes|miercoles|jueves|viernes|sabado|domingo|\d)/, label: 'quedamos para' },
+  // 2026-09-21: an adverb between the verb and the day. Suite 7 on 16 Sep produced
+  // "quedamos entonces para el jueves", which the pattern above it could not see:
+  // it allowed nothing after "quedamos". The same neighbour in pt ("ficamos entao
+  // para quinta") and en ("we're set for Thursday then") is checked here too.
+  // Each still needs a day or a time after it, so "quedamos a la espera",
+  // "ficamos a aguardar" and "ficamos para ja" never match.
+  { rx: /\bquedamos (?:(?:entonces|ya|asi|pues) )?(?:para|el|en) (?:el |la |lunes|martes|miercoles|jueves|viernes|sabado|domingo|\d)/, label: 'quedamos para' },
+  { rx: /\bficamos (?:(?:entao|assim|ja|pois) )?(?:combinad[oa]s? )?(?:para|na|no|em|a) (?:a |o |segunda|terca|quarta|quinta|sexta|sabado|domingo|dia \d|\d)/, label: 'ficamos entao para' },
+  { rx: /\bwe(?:'re| are) (?:all |now |then )?(?:set|on|booked|confirmed) for (?:the |mon|tue|wed|thu|fri|sat|sun|\d|next|this|tomorrow)/, label: "we're set for <day>" },
   { rx: /\b(?:reservamos|agendamos|programamos) (?:para |el |la )?(?:lunes|martes|miercoles|jueves|viernes|sabado|domingo|el dia|\d)/, label: 'reservamos el' },
   { rx: /\bte lo dejo (?:agendad|reservad|apuntad)/, label: 'te lo dejo agendado' },
   // --- 2026-09-14, the present tense used as a future --------------------------

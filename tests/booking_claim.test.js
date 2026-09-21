@@ -73,6 +73,29 @@ chk('"queda reservado el jueves"', bookingClaim('Perfecto, queda reservado el ju
 chk('"I\'m booking you in for Thursday"', bookingClaim("Lovely, I'm booking you in for Thursday 10 September at 11:00 Lisbon time.") !== null);
 chk('"I\'m putting you down for Thursday"', bookingClaim("I'm putting you down for Thursday at 11:00.") !== null);
 chk('"I\'m setting up that first meeting"', bookingClaim("Great, I'm setting up that first meeting for Thursday.") !== null);
+
+console.log('\n2026-09-21: an adverb between "quedamos" and the day, and its neighbours');
+// CAPTURED OUTPUT, word for word: suite 7 re-run on 21 Sep 2026 against the
+// deployed build (prompt and workflow identical to HEAD 9ba3d59e), judged FAIL.
+// The first of the two 16 Sep misses, reproduced. The rule above it already caught
+// this shape; it is kept as the verbatim record the 16 Sep run never saved.
+claims('es: CAPTURED suite-7 output, 21 Sep', 'Perfecto, entonces quedamos el jueves 10 de septiembre de 2026 a las 11:00 (hora de Lisboa) para una primera reunión con nuestro colega. ¿Me confirmas que ese horario te va bien?');
+// NOT CAPTURED OUTPUT. This is the wording of docs/remaining-defects-session-2.md,
+// quoted there as truncated ("..."). The 21 Sep re-run (20 replies) did not
+// reproduce this shape, and the 16 Sep output was never saved in full.
+claims("es: the DOC'S WORDING of the 16 Sep miss, not captured output", 'Perfecto, quedamos entonces para el jueves');
+// Constructed neighbours, the same shape in each language:
+claims('es: quedamos ya para el', 'Muy bien, quedamos ya para el martes a las 10:00.');
+claims('pt: ficamos entao para', 'Perfeito, ficamos então para quinta-feira às 11:00.');
+claims('pt: ficamos combinados para', 'Combinado, ficamos combinados para quinta às 11:00.');
+claims("en: we're set for", "Great, we're set for Thursday at 11:00 then.");
+claims("en: we're on for", "So we're on for Tuesday at 15:00.");
+passes('es: quedamos a la espera is not a booking', 'Quedamos a la espera de su respuesta.');
+passes('pt: ficamos a aguardar is not a booking', 'Ficamos a aguardar a sua resposta.');
+passes('pt: ficamos para ja is not a booking', 'Ficamos para já por aqui, obrigado.');
+passes("en: we're on for a season is not a booking", "We're on for a busy season in Cascais.");
+passes('es: the same words as a question are not a claim', '¿Quedamos entonces para el jueves?');
+
 chk('a colleague called Marco is not a booking', bookingClaim('O Marco, o nosso colega, entra em contacto consigo em breve.') === null);
 chk('"um marco histórico" is not a booking', bookingClaim('A Quinta da Marinha é um marco histórico da zona.') === null);
 chk('"I\'m looking forward to it" is not a booking', bookingClaim("I'm looking forward to hearing which time suits you.") === null);

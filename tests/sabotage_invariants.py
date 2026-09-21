@@ -13,6 +13,10 @@ message carries a marker:
                  text carried none                                          => 6 fires
                  (the lead still receives a correctly disclosed message: the sabotage
                  falsifies the EVIDENCE the check reads, never the text sent)
+  SABOTAGE-D  -> SendHandoffNote is sent to an invalid number, so the handoff note
+                 REALLY fails at Twilio      => the run is status='error',
+                 error_type='handoff_send_failed'; invariant 4 fires; the health
+                 check emails. The message must escalate (ask for a person).
 Output: tests/ryvoInboundConc01.SABOTAGE.json (gitignored: never commit, never leave published)
 
   python3 tests/sabotage_invariants.py
@@ -62,6 +66,24 @@ sub('AssertDelivery',
     "    disclosure: { required: true, reason: 'first_contact', ever_before: false, lang: 'pt', v: 1,\n"
     "                  applied: true, sent_head: 'Ola! Sou a Sofia. Em que posso ajudar?' } }) });\n"
     "  d = checkDelivery(sabRun);\n")
+
+# SABOTAGE-D (21 Sep 2026): the HANDOFF SEND itself fails. Unlike A-C this is
+# not false evidence. SendHandoffNote is given an invalid `To`, so Twilio
+# really rejects it (400, 21211) and the failure travels the real path:
+# AfterHandoff sets handoffOk=false, PrepRunEscalated must write
+# status='error' / error_type='handoff_send_failed', invariant 4 must still
+# fire, and the health check must email. Needs a message that ESCALATES, e.g.
+# "Quero falar com uma pessoa, por favor. SABOTAGE-D". The operator is still
+# notified; the lead (the test phone) receives no handoff note, which is the
+# failure under test.
+hn = by['SendHandoffNote']['parameters']['bodyParameters']['parameters']
+to = [p for p in hn if p['name'] == 'To']
+assert len(to) == 1 and to[0]['value'] == "=whatsapp:{{ $('AfterBooking').first().json.from }}", to
+# Gated on the Webhook node, which runs on EVERY path: AfterLeadUpdate does not
+# run on every escalation path, and an expression that throws there would cost a
+# real lead their handoff for as long as this build is published.
+to[0]['value'] = ("={{ /SABOTAGE-D/.test(String((($('Webhook').first().json.body) || {}).Body || '')) "
+                  "? 'whatsapp:+000' : 'whatsapp:' + $('AfterBooking').first().json.from }}")
 
 out = os.path.join(HERE, 'ryvoInboundConc01.SABOTAGE.json')
 json.dump(w, open(out, 'w', encoding='utf-8'), indent=2, ensure_ascii=False)

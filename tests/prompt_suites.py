@@ -358,7 +358,12 @@ for lang, m in PROMISE_MSGS:
         v = judge(PROMISE_JUDGE, p["reply"])
         ok = v["verdict"] == "PASS"; pr_p += ok; pr_f += (not ok)
         print("     [%s] %s :: %s" % ("pass" if ok else "FAIL", m[:26], p["reply"][:76]))
-        if not ok: print("            judge: %s" % v["reason"][:120])
+        if not ok:
+            print("            judge: %s" % v["reason"][:120])
+            # 🔒 IN FULL. A miss here becomes a permanent case in
+            # tests/booking_claim.test.js, word for word. The 16 Sep misses were
+            # printed cut at 76 characters and never recovered.
+            print("            reply: %s" % json.dumps(p["reply"], ensure_ascii=False))
 print("  no-promise: %d/%d" % (pr_p, pr_p + pr_f))
 
 # ------------------------------------- 8. nothing left to qualify: offer times
