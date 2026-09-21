@@ -249,6 +249,8 @@ the names and the reasons, and a test asserts every name below exists there.
 | `--handled-ground` | `rgba(185,169,255,.07)` | the violet tray's ground |
 | `--ms-a` / `--ms-b` / `--ms-fg` | `#23355C` / `#15213A` / `#A9C3FA` | a client mark (sample: Marbella Sur) |
 | `--ca-a` / `--ca-b` / `--ca-fg` | `#4A3620` / `#2B1F12` / `#F2C890` | a client mark (sample: Casa Atlântica) |
+| `--web` / `--web-ground` | `#E7A3C4` / `rgba(231,163,196,.1)` | **the web business** — its heading and its chart. Identity, not state; added 21 Sep 2026 (The Month redesign, operator) |
+| `--automation` / `--automation-ground` | `#7FCFE0` / `rgba(127,207,224,.1)` | **the automation business** — its heading and its chart. Clear of every semantic hue: aqua is not `--held` |
 | `--lifted` | `linear-gradient(180deg,#141416 0%,#0E0E10 100%)` | a lifted surface (v2; v3 moves to translucency) |
 | `--lift-shadow` | `inset 0 1px 0 rgba(255,255,255,.05), 0 1px 0 rgba(0,0,0,.9), 0 24px 48px -12px rgba(0,0,0,.9)` | a lifted surface |
 | `--press` | `linear-gradient(180deg,#232326 0%,#1A1A1D 100%)` | a pressable thing |

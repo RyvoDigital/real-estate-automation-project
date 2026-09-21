@@ -52,7 +52,7 @@ const SAMPLE: MonthInputs = {
   ],
   costs: [
     { id: 'c1', label: 'Web hosting server', category: 'hosting', side: 'web', amount_eur: 20, cadence: 'monthly', started_on: '2023-01-01', ended_on: null },
-    { id: 'c2', label: 'Domain .com — Estúdio Fictício', category: 'domain', side: 'web', amount_eur: 15, cadence: 'annual', started_on: '2024-10-28', ended_on: null },
+    { id: 'c2', label: 'Domain .com', category: 'domain', side: 'web', amount_eur: 15, cadence: 'annual', started_on: '2024-10-28', ended_on: null, web_client_id: 'w2' },
     { id: 'c3', label: 'Server — Hetzner', category: 'infrastructure', side: 'automation', amount_eur: 18.5, cadence: 'monthly', started_on: '2026-07-01', ended_on: null },
     { id: 'c4', label: 'Database — Supabase', category: 'infrastructure', side: 'automation', amount_eur: 25, cadence: 'monthly', started_on: '2026-07-01', ended_on: null },
     { id: 'c5', label: 'Accountant', category: 'other', side: 'shared', amount_eur: 60, cadence: 'monthly', started_on: '2025-01-01', ended_on: null },
@@ -87,10 +87,10 @@ const real = await readMonthInputs()
 render('real', `today, ${lisbonToday(new Date())}`, false, real.inputs, lisbonToday(new Date()), real.failures)
 render('day3', '3 October 2026, in progress', true, SAMPLE, '2026-10-03')
 render('closed', 'September 2026, closed', true, SAMPLE, '2026-10-03', [], { y: 2026, m: 9 })
-render('first', 'the first automation contract, from 1 Oct', true, {
+render('first', 'the first automation contract, from 17 Oct (prorated)', true, {
   ...SAMPLE,
   automationClients: [...SAMPLE.automationClients!, { id: 'a1', name: 'Casa Atlântica', status: 'active', rehearsal: false }],
-  contracts: [...SAMPLE.contracts!, { id: 'k9', automation_client_id: 'a1', web_client_id: null, monthly_eur: 650, setup_eur: 1500, setup_terms: 'two instalments', starts_on: '2026-10-01', ends_on: null, automations: ['inbound_concierge'], signed_by: 'sample', recorded_by: 'sample', recorded_at: '2026-09-18T10:00:00Z', created_at: '2026-09-18T10:00:00Z', supersedes_id: null }],
+  contracts: [...SAMPLE.contracts!, { id: 'k9', automation_client_id: 'a1', web_client_id: null, monthly_eur: 650, setup_eur: 1500, setup_terms: 'two instalments', starts_on: '2026-10-17', ends_on: null, automations: ['inbound_concierge'], signed_by: 'sample', recorded_by: 'sample', recorded_at: '2026-09-18T10:00:00Z', created_at: '2026-09-18T10:00:00Z', supersedes_id: null }],
 }, '2026-10-19')
 render('failed', 'the costs read failed', true, { ...SAMPLE, costs: null }, '2026-10-19',
   [{ source: 'costs', message: 'costs read failed: canceling statement due to statement timeout' }])

@@ -1,48 +1,57 @@
-import { StateChip, StateSurface } from '@/components/state-chip'
+import { Signed, StateChip, StateSurface } from '@/components/state-chip'
 import { whyEmpty } from '@/lib/why-empty'
 import {
-  USAGE, addMonths, eur, monthKey, monthLabel, monthName,
+  addMonths, eur, monthKey, monthLabel, monthName,
   type CostLine, type Half, type Leaves, type MonthModel,
 } from '@/lib/month/model'
 import type { ReadFailure } from '@/lib/month/read'
 import styles from './month.module.css'
 
 /*
- * The Month, presentational. Brief I §2.10–2.11, design v3.
+ * The Month, presentational. Brief I §2.10–2.11, design v3, redesigned 21 Sep
+ * 2026 on the operator's review ("the spacing reads thrown together, and the
+ * page is bland").
  *
- * Takes a computed model and renders it; reads nothing and decides nothing.
- * The rules live in lib/month/model.ts and are unit-tested there. This file
- * owes the design its slots: the two halves carry IDENTICAL slots in IDENTICAL
- * order — recurring, the year, clients, costs, what it leaves, one-off — so a
- * full half and an empty one read as two true states, not as a page
- * half-rendered.
+ * One rhythm everywhere: a block is a LABEL, a FIGURE, and at most ONE
+ * supporting line. Sections are separated by space, never by stacked rules.
+ * Each business has its accent (tokens --web / --automation) in its heading and
+ * its chart; what a business leaves reads green or red by its sign (Signed, in
+ * state-chip, which owns the semantic colours); a renewal stays amber.
+ *
+ * It renders a computed model and decides nothing: the rules are in
+ * lib/month/model.ts and are unit-tested there. The halves keep IDENTICAL
+ * slots in IDENTICAL order, so a full half and an empty one read as two states.
  */
 
 type Props = {
   model: MonthModel
   readAt: string
   failures: ReadFailure[]
-  /** the month link builder: the page decides the URL shape */
   hrefFor: (m: { y: number; m: number }) => string
 }
 
-function Amount({ cents, per }: { cents: number; per?: string }) {
+const SHORT = (m: { y: number; m: number }) => monthName(m).slice(0, 3)
+const endOf = (m: { y: number; m: number }) => `${new Date(Date.UTC(m.y, m.m, 0)).getUTCDate()} ${SHORT(m)}`
+
+function Money({ cents, per }: { cents: number; per?: string }) {
   const s = eur(cents)
   const k = s.lastIndexOf(',')
   return (
-    <span className={styles.amt}>
-      <span className={styles.big}>{s.slice(0, k)}</span>
-      <span className={styles.cents}>{s.slice(k)}</span>
+    <span className={styles.money}>
+      {s.slice(0, k)}<span className={styles.cents}>{s.slice(k)}</span>
       {per ? <span className={styles.per}>{per}</span> : null}
     </span>
   )
 }
 
-function Track({ day, days }: { day: number; days: number }) {
+/** A block: label, figure, one supporting line. The page's only rhythm. */
+function Block({ label, aside, children, line }: { label: string; aside?: string; children: React.ReactNode; line?: React.ReactNode }) {
   return (
-    <span className={styles.track} role="img" aria-label={`Day ${day} of ${days}`}>
-      <i style={{ width: `${((day / days) * 100).toFixed(1)}%` }} />
-    </span>
+    <div className={styles.block}>
+      <div className={styles.label}><span>{label}</span>{aside ? <span className={styles.aside}>{aside}</span> : null}</div>
+      <div className={styles.figure}>{children}</div>
+      {line ? <div className={styles.line}>{line}</div> : null}
+    </div>
   )
 }
 
@@ -56,169 +65,156 @@ function Failed({ thing, messages }: { thing: string; messages: string[] }) {
   )
 }
 
-/** The year as a step line. 🔒 Nothing is drawn before the first contract — not even a zero. */
+/** The year, in the business's accent. 🔒 No line before the first contract — not even a zero. */
 function Year({ half }: { half: Half }) {
   const year = half.year!
-  const W = 520, H = 150, PL = 4, PR = 46, PT = 12, PB = 22
-  const x = (i: number) => PL + ((W - PL - PR) * i) / 11
+  const W = 560, H = 120, PT = 10, PB = 20
+  const x = (i: number) => (W * (i + 0.5)) / 12 // the middle of month i's column
   const drawn = year.filter((p) => p.cents !== null)
-  const max = drawn.length ? Math.max(100, ...drawn.map((p) => p.cents as number)) * 1.2 : 1
+  const max = Math.max(100, ...drawn.map((p) => p.cents as number)) * 1.25
   const y = (v: number) => PT + (H - PT - PB) * (1 - v / max)
-  const labels = year.map((p, i) => (i % 2 === 1 || i === 11) ? (
-    <text key={monthKey(p.month)} x={x(i)} y={H - 5} textAnchor={i === 11 ? 'end' : 'middle'} className={i === 11 ? styles.axisNow : styles.axis}>
-      {monthName(p.month).slice(0, 3)}{p.month.m === 1 ? ` ’${String(p.month.y).slice(2)}` : ''}
+  const axis = year.map((p, i) => (i % 3 === 2 || i === 11) ? (
+    <text key={monthKey(p.month)} x={x(i)} y={H - 4} textAnchor="middle" className={i === 11 ? styles.tickNow : styles.tick}>
+      {SHORT(p.month)}{p.month.m === 1 ? ` ’${String(p.month.y).slice(2)}` : ''}
     </text>
   ) : null)
   if (!drawn.length) {
     return (
-      <div className={styles.chart}>
+      <figure className={styles.chart} data-business={half.business}>
         <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label="No recurring revenue has ever been recorded">
-          <rect x={PL} y={PT} width={W - PL - PR} height={H - PT - PB} rx={6} className={styles.chartFrame} />
-          {labels}
+          <rect x={0} y={PT} width={W} height={H - PT - PB} rx={10} className={styles.chartGround} />
+          {axis}
         </svg>
-        <div className={styles.chartMsg}><b>The line starts with the first contract.</b>Nothing is drawn until then — not even a zero.</div>
-      </div>
+        <figcaption className={styles.chartNote}>Starts with the first contract — nothing is drawn until then.</figcaption>
+      </figure>
     )
   }
+  // Each month is a flat segment across its own width, so one month drawn is
+  // still a visible step — never a lone dot that reads as nothing.
+  const seg = (i: number) => [(W * i) / 12, (W * (i + 1)) / 12] as const
   const pts: [number, number][] = []
   year.forEach((p, i) => {
     if (p.cents === null) return
-    if (pts.length) pts.push([x(i), pts[pts.length - 1][1]])
-    pts.push([x(i), y(p.cents)])
+    const [a, b] = seg(i)
+    pts.push([a, y(p.cents)], [b, y(p.cents)])
   })
-  const d = 'M' + pts.map((p) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' L')
+  const line = 'M' + pts.map((p) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' L')
+  const area = `${line} L${pts[pts.length - 1][0].toFixed(1)} ${H - PB} L${pts[0][0].toFixed(1)} ${H - PB} Z`
   const last = pts[pts.length - 1]
   return (
-    <div className={styles.chart}>
+    <figure className={styles.chart} data-business={half.business}>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label="Recurring revenue, last twelve months">
-        <path d={d} className={styles.line} />
-        <circle cx={last[0]} cy={last[1]} r={3.6} className={styles.dot} />
-        {labels}
+        <path d={area} className={styles.area} />
+        <path d={line} className={styles.stroke} vectorEffect="non-scaling-stroke" />
+        <circle cx={last[0]} cy={last[1]} r={3.5} className={styles.dot} />
+        {axis}
       </svg>
-    </div>
+    </figure>
   )
 }
 
-function Costs({ lines }: { lines: CostLine[] }) {
-  if (!lines.length) return <p className={styles.empty}>No cost recorded at this level.</p>
+function CostRows({ lines }: { lines: CostLine[] }) {
+  if (!lines.length) return <span className={styles.none}>None recorded</span>
   return (
-    <div>
+    <ul className={styles.rows}>
       {lines.map((c) => (
-        <div key={c.id} className={styles.cost}>
-          <span className={styles.n}>{c.label}{c.note ? <span>{c.note}</span> : null}</span>
-          {c.renewsWithin30 ? <StateChip meaning="clock">renews within 30 days</StateChip>
-            : <span className={styles.kind}>{c.kind === 'one_off' ? 'one-off' : 'fixed'}</span>}
-          <span className={styles.v}>{eur(c.cents)}</span>
-        </div>
+        <li key={c.id} className={styles.row}>
+          <span className={styles.rowName}>{c.label}{c.note ? <small>{c.note}</small> : null}</span>
+          {c.renewsWithin30 ? <StateChip meaning="clock">renews soon</StateChip> : <span />}
+          <span className={styles.amount}>{eur(c.cents)}</span>
+        </li>
       ))}
-    </div>
+    </ul>
   )
 }
 
-function LeavesSlot({ leaves, month, note }: { leaves: Leaves; month: MonthModel['month']; note: string }) {
-  if (leaves.kind === 'unreadable') return <p className={styles.empty}>Not shown: a read it depends on failed (above).</p>
-  if (leaves.kind === 'nothing') return <p className={styles.empty}>Nothing to show: no contract and no cost is recorded for {monthName(month)} here. Not €0 — nothing has started.</p>
+/** What a business (or the company) leaves: a signed figure, a withheld date, or nothing. */
+function LeavesFigure({ leaves, month }: { leaves: Leaves; month: MonthModel['month'] }) {
+  if (leaves.kind === 'unreadable') return <span className={styles.none}>Not shown — a read failed</span>
+  if (leaves.kind === 'nothing') return <span className={styles.none}>Nothing recorded</span>
+  if (leaves.kind === 'withheld') return <span className={styles.withheld}>After {endOf(month)}</span>
+  return <Signed cents={leaves.cents}><Money cents={leaves.cents} /></Signed>
+}
+function LeavesLine({ leaves, web }: { leaves: Leaves; web: boolean }) {
   if (leaves.kind === 'withheld') {
-    return (
-      <div>
-        <div className={styles.withheld}>When {monthName(month)} closes<small>usage is still being counted; a figure now would compare a whole month of revenue with part of a month of cost</small></div>
-        {leaves.lastClosed ? (
-          <div className={styles.prev}>{monthLabel(leaves.lastClosed.month)} left <b>{eur(leaves.lastClosed.cents)}</b> <span className={styles.caveat}>excludes usage — not measured yet</span></div>
-        ) : null}
-      </div>
-    )
+    return leaves.lastClosed
+      ? <>Costs still counting · {SHORT(leaves.lastClosed.month)} <Signed cents={leaves.lastClosed.cents}>{eur(leaves.lastClosed.cents)}</Signed></>
+      : <>Costs still counting</>
   }
-  return (
-    <div className={styles.contrib}>
-      <Amount cents={leaves.cents} per={leaves.completeFromDayOne ? 'this month' : `in ${monthName(month)}`} />
-      <span className={styles.note}>{note}</span>
-    </div>
-  )
+  if (leaves.kind === 'value') return <>{web ? (leaves.completeFromDayOne ? 'Complete already — no usage costs' : 'No usage costs') : 'Excludes usage'}</>
+  return null
 }
 
 function HalfView({ half, model, failures }: { half: Half; model: MonthModel; failures: ReadFailure[] }) {
   const web = half.business === 'web'
   const inProgress = model.phase.kind === 'in_progress'
-  const contractsFailed = half.recurringCents === null
   const msgs = failures.map((f) => f.message)
   const status = half.everContracted
     ? `${half.clients?.length ?? 0} under contract`
-    : web ? 'no web client under contract' : 'being built · no client under contract'
+    : web ? 'No client under contract' : 'Being built · no client under contract'
   return (
-    <section className={styles.half} aria-label={web ? 'Web' : 'Automations'}>
-      <div className={styles.hh}>
+    <section className={styles.half} data-business={half.business} aria-label={web ? 'Web' : 'Automations'}>
+      <header className={styles.halfHead}>
         <h2>{web ? 'Web' : 'Automations'}</h2>
-        <span className={styles.state}>
-          {status}{half.rehearsals ? ` · ${half.rehearsals} rehearsal${half.rehearsals === 1 ? '' : 's'}, not counted` : ''}
-        </span>
-      </div>
+        <span>{status}{half.rehearsals ? ` · ${half.rehearsals} rehearsal${half.rehearsals === 1 ? '' : 's'} not counted` : ''}</span>
+      </header>
 
-      <div className={styles.slot}>
-        <div className={styles.sl}>Recurring</div>
-        {contractsFailed ? <Failed thing={`the ${web ? 'web' : 'automation'} contracts`} messages={msgs} />
-          : half.everContracted ? <Amount cents={half.recurringCents as number} per="a month" />
-            : <><div className={styles.s2}>No contract yet.</div><p className={styles.sub2}>Not €0 this month — nothing has started.</p></>}
-      </div>
+      <Block label="Recurring" line={half.everContracted && half.monthCents !== null && half.monthCents !== half.recurringCents ? <>This month {eur(half.monthCents)} · prorated</> : undefined}>
+        {half.recurringCents === null ? <Failed thing={`the ${web ? 'web' : 'automation'} contracts`} messages={msgs} />
+          : half.everContracted ? <Money cents={half.recurringCents} per="/ month" />
+            : <span className={styles.none}>No contract yet</span>}
+      </Block>
 
-      <div className={styles.slot}>
-        <div className={styles.sl}>The last twelve months</div>
-        {half.year ? <Year half={half} /> : <p className={styles.empty}>Not drawn: the contracts could not be read.</p>}
-      </div>
+      <Block label="Twelve months">
+        {half.year ? <Year half={half} /> : <span className={styles.none}>Not drawn — a read failed</span>}
+      </Block>
 
-      <div className={styles.slot}>
-        <div className={styles.sl}>Clients<span>in the order they started, never by fee</span></div>
-        {half.clients === null ? <p className={styles.empty}>Not listed: the contracts could not be read.</p> : (
+      <Block label="Clients" aside="in order of signing">
+        {half.clients === null ? <span className={styles.none}>Not listed — a read failed</span> : (
           <>
             {half.clients.length ? (
-              <div className={styles.rows}>
-                <div className={`${styles.cr} ${styles.hd}`}><span>Client</span><span className={styles.v}>Pays</span></div>
+              <ul className={styles.rows}>
                 {half.clients.map((c) => (
-                  <div key={c.key} className={styles.cr}>
-                    <span className={styles.n}><b>{c.name}</b><span>{c.since}{c.note ? ` · ${c.note}` : ''}</span></span>
-                    <span className={styles.v}>{eur(c.monthlyCents)}</span>
-                  </div>
+                  <li key={c.key} className={styles.row}>
+                    <span className={styles.rowName}>{c.name}<small>{c.note ?? c.since}</small></span>
+                    {c.ownRenewsSoon ? <StateChip meaning="clock">renews soon</StateChip>
+                      : <span className={styles.amountDim}>{c.ownCents ? `own −${eur(c.ownCents)}` : ''}</span>}
+                    <span className={styles.amount}>{eur(c.monthCents)}</span>
+                  </li>
                 ))}
-              </div>
-            ) : (
-              <p className={styles.empty}><b>No client under contract.</b> The first one appears here with its terms, in the order they are signed, never by fee.{!web && half.rehearsals ? ` The ${half.rehearsals} rehearsal clients are not here.` : ''}</p>
-            )}
+              </ul>
+            ) : <span className={styles.none}>None yet</span>}
             {half.unknown.length ? (
-              <p className={styles.unknown}><StateChip meaning="grey">terms not recorded</StateChip> {half.unknown.length === 1 ? '1 client has' : `${half.unknown.length} clients have`} no contract terms recorded — revenue for {half.unknown.length === 1 ? 'it' : 'them'} is not zero, it is not known: {half.unknown.join(', ')}.</p>
+              <p className={styles.flag}><StateChip meaning="grey">terms unknown</StateChip>{half.unknown.join(', ')} — not €0, not known</p>
             ) : null}
             {half.conflicts.map((c) => (
-              <p key={c.name} className={styles.unknown}><StateChip meaning="red">unresolved</StateChip> {c.name}: {c.why}.</p>
+              <p key={c.name} className={styles.flag}><StateChip meaning="red">unresolved</StateChip>{c.name}: status says it left, contract has no end</p>
             ))}
-            <p className={styles.fine}>What each client alone costs is not recordable yet: a cost belongs to a business or to the company, and nothing records one against a client.</p>
           </>
         )}
-      </div>
+      </Block>
 
-      <div className={styles.slot}>
-        <div className={styles.sl}>Costs of the {web ? 'web' : 'automation'} business<span>{web ? 'shared by every web client — not split' : 'running whether or not there is a client'}</span></div>
-        {half.costs === null ? <Failed thing="the costs" messages={msgs} /> : <Costs lines={half.costs} />}
-        {!web ? <p className={styles.fine}>{USAGE.why}. These costs exclude usage until it is.</p> : null}
-      </div>
+      <Block label="Costs" aside={web ? 'the business, not split' : undefined} line={!web ? 'Excludes usage — not measured yet' : undefined}>
+        {half.costs === null ? <Failed thing="the costs" messages={msgs} /> : <CostRows lines={half.costs} />}
+      </Block>
 
-      <div className={styles.slot}>
-        <div className={styles.sl}>What the {web ? 'web' : 'automation'} business leaves</div>
-        <LeavesSlot
-          leaves={half.leaves}
-          month={model.month}
-          note={web ? `complete${inProgress ? ' already' : ''}: the web business has no usage costs`
-            : half.everContracted ? 'excludes usage — not measured yet' : 'the cost of building it — real, expected, and not a fault'}
-        />
-      </div>
+      <Block label="Leaves" line={<LeavesLine leaves={half.leaves} web={web} />}>
+        <LeavesFigure leaves={half.leaves} month={model.month} />
+      </Block>
 
-      <div className={styles.slot}>
-        <div className={styles.sl}>One-off{inProgress ? ' so far' : ''}</div>
-        {half.oneOff === null ? <p className={styles.empty}>Not listed: the payments could not be read.</p>
-          : half.oneOff.length ? half.oneOff.map((o) => (
-            <div key={o.key} className={styles.cost}><span className={styles.n}>{o.label}<span>arrived {o.on}</span></span><span /><span className={styles.v}>{eur(o.cents)}</span></div>
-          )) : <p className={styles.empty}>{web ? `None recorded in ${monthName(model.month)}.` : half.everContracted ? `None recorded in ${monthName(model.month)}.` : 'No setup fee has ever been recorded.'}</p>}
-        {half.setupOutstanding.map((s) => (
-          <p key={s.name} className={styles.unknown}><StateChip meaning="clock">outstanding</StateChip> {s.name}: {eur(s.cents)} of setup contracted and not yet arrived.</p>
-        ))}
-      </div>
+      <Block label={`One-off${inProgress ? ' so far' : ''}`} line={half.setupOutstanding.length ? <>Setup outstanding · {half.setupOutstanding.map((s) => `${s.name} ${eur(s.cents)}`).join(', ')}</> : undefined}>
+        {half.oneOff === null ? <span className={styles.none}>Not listed — a read failed</span>
+          : half.oneOff.length ? (
+            <ul className={styles.rows}>
+              {half.oneOff.map((o) => (
+                <li key={o.key} className={styles.row}>
+                  <span className={styles.rowName}>{o.label}<small>arrived {o.on}</small></span><span />
+                  <span className={styles.amount}>{eur(o.cents)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : <span className={styles.none}>None recorded</span>}
+      </Block>
     </section>
   )
 }
@@ -230,78 +226,42 @@ export function TheMonth({ model, readAt, failures, hrefFor }: Props) {
   const s = model.sums
   const msgs = failures.map((f) => f.message)
   const at = new Date(readAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Lisbon' })
-
-  const netCell = (() => {
-    if (s.net.kind === 'unreadable') return <p className={styles.empty}>Not shown: a read it depends on failed.</p>
-    if (s.net.kind === 'nothing') return <span className={styles.withheld}>Nothing to net<small>no contract and no cost is recorded for {monthName(M)}</small></span>
-    if (s.net.kind === 'withheld') {
-      return (
-        <>
-          <span className={styles.withheld}>When {monthName(M)} closes<small>a net now would compare a whole month of revenue with part of a month of cost</small></span>
-          {inProgress ? <Track day={p.day} days={p.days} /> : null}
-          {s.net.lastClosed ? (
-            <div className={styles.prev}>Last closed month · {monthName(s.net.lastClosed.month)}: <b>{eur(s.net.lastClosed.cents)}</b> <span className={styles.caveat}>excludes usage — not measured yet</span></div>
-          ) : null}
-        </>
-      )
-    }
-    return <><Amount cents={s.net.cents} /><span className={styles.d}><span className={styles.caveat}>excludes usage — not measured yet</span></span></>
-  })()
+  const allCosts = [...(model.halves.web.costs ?? []), ...(model.halves.automation.costs ?? []), ...(model.company.costs ?? [])]
+  const ever = model.halves.web.everContracted || model.halves.automation.everContracted
 
   return (
     <div className={styles.page}>
-      <div className={styles.head}>
-        <div>
-          <h1 className={styles.title}>Two businesses, one company</h1>
-          <p className={styles.subtitle}>The Month · Ryvo Digital · amounts net of VAT</p>
-        </div>
+      <header className={styles.top}>
+        <h1 className={styles.title}>The Month</h1>
         <nav className={styles.stepper} aria-label="Month">
           <a href={hrefFor(addMonths(M, -1))} aria-label="Previous month">‹</a>
-          <span>{monthLabel(M)}{inProgress ? ` · day ${p.day} of ${p.days}` : p.kind === 'closed' ? ' · closed' : ' · not started'}</span>
-          {/* No next arrow while the month is in progress: there is no later month to show, and a disabled control is refused here (probe: no control is disabled). */}
+          <span>{monthLabel(M)}</span>
+          {/* No next arrow in the month in progress: a disabled control is refused here. */}
           {inProgress ? null : <a href={hrefFor(addMonths(M, 1))} aria-label="Next month">›</a>}
         </nav>
-        <span className={styles.readAt}>read {at} Lisbon</span>
-      </div>
+        <span className={styles.phase}>{inProgress ? `Day ${p.day} of ${p.days}` : p.kind === 'closed' ? 'Closed' : 'Not started'}</span>
+        <span className={styles.readAt}>Read {at} · net of VAT</span>
+      </header>
 
-      {model.neverAnything ? (
-        <p className={styles.thesis}><b>No contract has been recorded.</b> Ryvo has no recorded revenue yet — this is the beginning, not a fault.</p>
-      ) : s.recurringCents !== null ? (
-        <p className={styles.thesis}>
-          Ryvo Digital {p.kind === 'closed' ? 'earned' : 'earns'} <b>{eur(s.recurringCents)} a month in recurring revenue</b>{p.kind === 'closed' ? ` in ${monthLabel(M)}` : ''}.
-          {inProgress ? ` ${monthName(M)} is ${p.day} of ${p.days} days in: its costs are still being counted, so what the month leaves is shown when it closes — not before.` : ''}
-        </p>
-      ) : null}
+      {model.neverAnything ? <p className={styles.lede}><b>No contract recorded yet.</b> The beginning, not a fault.</p> : null}
 
-      <div className={styles.sums} aria-label="The company's sums">
-        <div className={styles.sum}>
-          <span className={styles.l}>Recurring revenue</span>
-          {s.recurringCents === null ? <p className={styles.empty}>Not shown: the contracts could not be read.</p>
-            : !model.halves.web.everContracted && !model.halves.automation.everContracted ? <><span className={styles.withheld}>None recorded</span><span className={styles.d}>no contract has ever been recorded</span></> : <>
-            <Amount cents={s.recurringCents} per="a month" />
-            <span className={styles.d}>web <b>{s.composition!.web ? eur(s.composition!.web) : 'none yet'}</b> · automations <b>{s.composition!.automation ? eur(s.composition!.automation) : 'none yet'}</b></span>
-          </>}
-        </div>
-        <div className={styles.sum}>
-          <span className={styles.l}>One-off{inProgress ? ' so far' : ''}</span>
-          {s.oneOffCents === null ? <p className={styles.empty}>Not shown: the payments could not be read.</p>
-            : s.oneOffCents ? <Amount cents={s.oneOffCents} /> : <span className={styles.withheld}>None recorded</span>}
-          <span className={styles.d}>never added to recurring</span>
-        </div>
-        <div className={styles.sum}>
-          <span className={styles.l}>Costs{inProgress ? ' so far' : ''}</span>
-          {s.costCents === null ? <p className={styles.empty}>Not shown: the costs could not be read.</p>
-            : ![...(model.halves.web.costs ?? []), ...(model.halves.automation.costs ?? []), ...(model.company.costs ?? [])].length
-              ? <><span className={styles.withheld}>None recorded</span><span className={styles.d}>no cost is recorded for {monthName(M)} · usage is not measured yet</span></> : <>
-            <Amount cents={s.costCents} />
-            <span className={styles.d}>{s.costCents ? 'fixed and one-off as recorded' : 'no cost recorded'} · excludes usage, not measured yet</span>
-          </>}
-        </div>
-        <div className={styles.sum} aria-label="Recurring minus costs">
-          <span className={styles.l}>Recurring minus costs</span>
-          {netCell}
-        </div>
-      </div>
+      <section className={styles.sums} aria-label="The company's sums">
+        <Block label="Recurring" line={s.composition && ever ? <><i className={styles.keyWeb} />Web {eur(s.composition.web)} · <i className={styles.keyAuto} />Automations {s.composition.automation ? eur(s.composition.automation) : 'none'}</> : 'No contract ever recorded'}>
+          {s.recurringCents === null ? <span className={styles.none}>Not shown — a read failed</span>
+            : ever ? <Money cents={s.recurringCents} per="/ month" /> : <span className={styles.none}>None recorded</span>}
+        </Block>
+        <Block label={`One-off${inProgress ? ' so far' : ''}`} line="Never added to recurring">
+          {s.oneOffCents === null ? <span className={styles.none}>Not shown — a read failed</span>
+            : s.oneOffCents ? <Money cents={s.oneOffCents} /> : <span className={styles.none}>None recorded</span>}
+        </Block>
+        <Block label={`Costs${inProgress ? ' so far' : ''}`} line="Excludes usage — not measured yet">
+          {s.costCents === null ? <span className={styles.none}>Not shown — a read failed</span>
+            : allCosts.length ? <Money cents={s.costCents} /> : <span className={styles.none}>None recorded</span>}
+        </Block>
+        <Block label="Recurring − costs" line={<LeavesLine leaves={s.net} web={false} />}>
+          <LeavesFigure leaves={s.net} month={M} />
+        </Block>
+      </section>
 
       {model.failed.length ? <Failed thing={`part of ${monthLabel(M)} (${model.failed.join(', ')})`} messages={msgs} /> : null}
 
@@ -309,43 +269,32 @@ export function TheMonth({ model, readAt, failures, hrefFor }: Props) {
         <HalfView half={model.halves.web} model={model} failures={failures} />
         <HalfView half={model.halves.automation} model={model} failures={failures} />
       </div>
+      {!model.clientCostsRecordable ? <p className={styles.footnote}>A single client&rsquo;s own costs are not recordable until migration 0052 is applied.</p> : null}
 
-      <div className={styles.two}>
-        <section className={styles.card} aria-label="Costs of the company">
-          <h2>Costs of the company</h2>
-          <p className={styles.intro}>Belong to neither business and are never split between them.</p>
-          {model.company.costs === null ? <Failed thing="the company's costs" messages={msgs} /> : <Costs lines={model.company.costs} />}
+      <div className={styles.lower}>
+        <section className={styles.panel} aria-label="Costs of the company">
+          <Block label="Costs of the company" aside="never split between the businesses">
+            {model.company.costs === null ? <Failed thing="the company's costs" messages={msgs} /> : <CostRows lines={model.company.costs} />}
+          </Block>
         </section>
-        <section className={styles.card} aria-label="Invoices to check">
-          <h2>Invoices to check</h2>
-          <p className={styles.intro}>{whyEmpty({
-            state: 'notBuilt',
-            thing: 'the monthly invoice check for the two suppliers that bill by usage',
-            haveWhat: `${USAGE.why}, so there is no computed figure to check an invoice against`,
-            when: 'it comes with usage measurement, which is not scheduled yet',
-          }).sentence}</p>
-        </section>
+        {/* Not boxed: two things this page does not have yet, said plainly. */}
+        <dl className={styles.pending}>
+          <div><dt>Invoices to check</dt><dd>Not built — WhatsApp and model usage are not measured yet.</dd></div>
+          <div><dt>What the system did · Firsts</dt><dd>Not built — the next checkpoint.</dd></div>
+        </dl>
       </div>
 
-      <section className={styles.card} aria-label="What the system did, and Firsts">
-        <h2>What the automation business did, what is holding it, and Firsts</h2>
-        <p className={styles.intro}>{whyEmpty({
-          state: 'notBuilt',
-          thing: 'the approved panels beneath the halves — what the system did per automation, what is holding it, and the Firsts register',
-          haveWhat: 'they read events, messages and the waiting room, which this checkpoint does not',
-          when: 'the next checkpoint builds them, with the forms',
-        }).sentence}</p>
-      </section>
-
-      <div className={styles.absent}>
-        <h2>What this page does not do</h2>
-        <p>No net for a month still in progress. A whole month of revenue against part of a month of cost looks current and is not.</p>
-        <p>No shared cost is split between clients or businesses. Each cost sits at its own level: a business, or the company.</p>
-        <p>Recurring and one-off revenue are never added into one figure.</p>
-        <p>No client is ranked. Clients are listed in the order they started, never by fee.</p>
-        <p>No computed cost is shown as a checked one, and last month&rsquo;s costs never stand in for this month&rsquo;s.</p>
-        <p>It is not the books. The figures are contracted, not invoiced; the accountant and the invoicing software hold the record.</p>
-      </div>
+      <details className={styles.absent}>
+        <summary>What this page does not do</summary>
+        <ul>
+          <li>No net for a month in progress.</li>
+          <li>No shared cost split between clients or businesses.</li>
+          <li>Recurring and one-off never added together.</li>
+          <li>No client ranked — listed in order of signing.</li>
+          <li>No computed cost shown as checked.</li>
+          <li>Not the books: contracted, not invoiced.</li>
+        </ul>
+      </details>
     </div>
   )
 }

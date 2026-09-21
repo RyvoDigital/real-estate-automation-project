@@ -93,3 +93,9 @@
 .surface.red { background: var(--red-ground); box-shadow: inset 0 0 0 1px var(--red-ground); color: var(--text-2); }
 .surface.handled { background: var(--handled-ground); box-shadow: none; color: var(--text-2); }
 .surface.grey { background: var(--glass); box-shadow: var(--glass-hi); color: var(--text-2); }
+
+/* Signed: an amount whose sign is the meaning (The Month). */
+.signed { font-variant-numeric: tabular-nums; }
+.signedUp { color: var(--through); }
+.signedDown { color: var(--red); }
+

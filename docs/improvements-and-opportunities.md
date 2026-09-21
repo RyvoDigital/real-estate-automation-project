@@ -695,6 +695,23 @@ in the served code instead, which is the only place that difference exists.
 
 Real value, no deadline. Do when a quiet block appears — never while a defect list is open.
 
+### 4.0 Measure usage cost — ⏰ TRIGGER: when the first real client goes live
+*Logged 21 Sep 2026 (operator, The Month checkpoint 1).* The Month says "excludes
+usage" on every net, because nothing measures WhatsApp or model cost:
+- **WhatsApp:** Twilio fills `price` / `price_unit` on a message after it is
+  sent. Nothing reads it back and stores it per message. It is also unconfirmed
+  whether it includes Meta's fee; check that in the console.
+- **Model:** `automation_runs.payload` stores one call's tokens, even when a
+  language or name retry made a second call, and no per-model price is recorded
+  anywhere.
+- **Then:** the computed-cost state (*computed, not checked*) and the monthly
+  invoice check (`cost_checks.for_month`, 0052) become buildable. Until then The
+  Month keeps saying "excludes usage", and the invoice-check panel says it is not
+  built.
+- **Why the trigger and not now:** today's usage is rehearsal traffic only (the
+  cost of building). The first real client is the first month in which a net
+  without usage would mislead.
+
 ### 4.1 Prompt caching — ~10 minutes
 Not enabled. The system prompt is sent in full on every inbound message, on a system that makes one call per message. Caching it cuts input cost substantially.
 Console → Prompt caching → Set up.

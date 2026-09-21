@@ -29,6 +29,8 @@ export const PAYMENT_COLUMNS = [
   'id', 'automation_client_id', 'web_client_id', 'kind', 'amount_eur', 'settled_on', 'settled_amount_eur', 'written_off_on',
 ] as const
 export const COST_COLUMNS = ['id', 'label', 'category', 'side', 'amount_eur', 'cadence', 'started_on', 'ended_on'] as const
+/** 0052: a client's own cost. Read when present; until 0052 is applied the read falls back (below). */
+export const COST_CLIENT_COLUMNS = ['automation_client_id', 'web_client_id'] as const
 
 export const MONTH_SOURCES = {
   contracts: { from: 'client_contracts_uncorrected', columns: CONTRACT_COLUMNS },
@@ -38,12 +40,13 @@ export const MONTH_SOURCES = {
   costs: { from: 'costs', columns: COST_COLUMNS },
 } as const
 
-export type ReadFailure = { source: keyof MonthInputs; message: string }
+type Source = keyof typeof MONTH_SOURCES
+export type ReadFailure = { source: Source; message: string }
 
-async function one<T>(key: keyof MonthInputs, failures: ReadFailure[]): Promise<T[] | null> {
+async function one<T>(key: Source, failures: ReadFailure[], extra: readonly string[] = []): Promise<T[] | null> {
   const src = MONTH_SOURCES[key]
   try {
-    const { data, error } = await admin().from(src.from).select(src.columns.join(', '))
+    const { data, error } = await admin().from(src.from).select([...src.columns, ...extra].join(', '))
     if (error) {
       failures.push({ source: key, message: `${src.from} read failed: ${error.message}` })
       return null
@@ -55,6 +58,28 @@ async function one<T>(key: keyof MonthInputs, failures: ReadFailure[]): Promise<
   }
 }
 
+/**
+ * Costs with the client reference when the database has it (0052), without it
+ * when it does not. PostgreSQL answers an unknown column with 42703, and only
+ * that falls back: any other failure is a failure. So the page is right on both
+ * sides of the migration, and says which side it is on (clientCostsRecordable).
+ */
+async function costsRead(failures: ReadFailure[]): Promise<{ rows: CostRow[] | null; recordable: boolean }> {
+  const src = MONTH_SOURCES.costs
+  try {
+    const { data, error } = await admin().from(src.from).select([...src.columns, ...COST_CLIENT_COLUMNS].join(', '))
+    if (!error) return { rows: (data ?? []) as unknown as CostRow[], recordable: true }
+    if (error.code !== '42703') {
+      failures.push({ source: 'costs', message: `${src.from} read failed: ${error.message}` })
+      return { rows: null, recordable: true }
+    }
+  } catch (e) {
+    failures.push({ source: 'costs', message: `${src.from} read failed: ${(e as Error).message}` })
+    return { rows: null, recordable: true }
+  }
+  return { rows: await one<CostRow>('costs', failures), recordable: false }
+}
+
 /** Every source at once; none waits for another, and none can take another down. */
 export async function readMonthInputs(): Promise<{ inputs: MonthInputs; failures: ReadFailure[]; readAt: string }> {
   const failures: ReadFailure[] = []
@@ -63,7 +88,11 @@ export async function readMonthInputs(): Promise<{ inputs: MonthInputs; failures
     one<AutomationClientRow>('automationClients', failures),
     one<WebClientRow>('webClients', failures),
     one<PaymentRow>('payments', failures),
-    one<CostRow>('costs', failures),
+    costsRead(failures),
   ])
-  return { inputs: { contracts, automationClients, webClients, payments, costs }, failures, readAt: new Date().toISOString() }
+  return {
+    inputs: { contracts, automationClients, webClients, payments, costs: costs.rows, clientCostsRecordable: costs.recordable },
+    failures,
+    readAt: new Date().toISOString(),
+  }
 }

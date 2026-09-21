@@ -67,6 +67,9 @@ export type CostRow = {
   cadence: 'monthly' | 'annual' | 'one_off' | string
   started_on: string
   ended_on: string | null
+  /** 0052: the client this cost belongs to alone; absent before 0052 is applied */
+  automation_client_id?: string | null
+  web_client_id?: string | null
 }
 
 /** Each source is read on its own; null means THAT read failed (S4), and only its panels say so. */
@@ -76,6 +79,8 @@ export type MonthInputs = {
   webClients: WebClientRow[] | null
   payments: PaymentRow[] | null
   costs: CostRow[] | null
+  /** false until 0052 adds the client reference to costs; then a client's own costs have a home */
+  clientCostsRecordable?: boolean
 }
 
 // ---------------------------------------------------------------- dates
@@ -145,19 +150,22 @@ export function coversMonth(c: { starts_on: string; ends_on: string | null }, M:
 const SHORT_DAY = (d: string) => `${Number(d.slice(8, 10))} ${monthName(monthOf(d)).slice(0, 3)}`
 
 /**
- * A contract that covers only part of the month is COUNTED WHOLE for it, and
- * says so on its row. 🔴 An open decision (checkpoint 1): the brief sums "the
- * periods covering that month" and does not say how a period that starts on the
- * 15th counts. Counting it whole and saying so is visible; prorating silently
- * would be a number resting on a rule nobody chose.
+ * A contract that covers only part of a month is PRORATED BY DAYS for that
+ * month's figures, and says so on its row: "from 17 Oct · 15 of 31 days"
+ * (operator, 21 Sep 2026). The run rate — what the client pays a month — stays
+ * the full fee; only what the month actually earned is prorated.
  */
-function partialNote(c: ContractRow, M: Month): string | null {
-  const starts = c.starts_on > firstDay(M)
-  const ends = c.ends_on !== null && c.ends_on < lastDay(M)
-  if (starts && ends) return `runs ${SHORT_DAY(c.starts_on)}–${SHORT_DAY(c.ends_on as string)} — counted whole`
-  if (starts) return `starts ${SHORT_DAY(c.starts_on)} — counted whole`
-  if (ends) return `ends ${SHORT_DAY(c.ends_on as string)} — counted whole`
-  return null
+function coverage(c: { starts_on: string; ends_on: string | null }, M: Month): { days: number; note: string | null } {
+  const from = c.starts_on > firstDay(M) ? c.starts_on : firstDay(M)
+  const to = c.ends_on !== null && c.ends_on < lastDay(M) ? c.ends_on : lastDay(M)
+  const days = daysBetween(from, to) + 1
+  const of = `${days} of ${daysIn(M)} days`
+  const starts = from !== firstDay(M)
+  const ends = to !== lastDay(M)
+  if (starts && ends) return { days, note: `${Number(from.slice(8, 10))}–${SHORT_DAY(to)} · ${of}` }
+  if (starts) return { days, note: `from ${SHORT_DAY(from)} · ${of}` }
+  if (ends) return { days, note: `until ${SHORT_DAY(to)} · ${of}` }
+  return { days, note: null }
 }
 
 // ---------------------------------------------------------------- costs
@@ -217,7 +225,20 @@ export const USAGE = {
 
 // ---------------------------------------------------------------- the model
 
-export type ClientLine = { key: string; name: string; since: string; monthlyCents: number; note: string | null }
+export type ClientLine = {
+  key: string
+  name: string
+  since: string
+  monthlyCents: number
+  monthCents: number
+  note: string | null
+  /** what this client alone costs this month; null = not recordable yet (before 0052), never €0 */
+  ownCents: number | null
+  /** monthCents minus ownCents; null when ownCents is */
+  leavesCents: number | null
+  /** one of its own costs renews within 30 days: the clock goes where the cost sits */
+  ownRenewsSoon: boolean
+}
 export type OneOffLine = { key: string; label: string; cents: number; on: string }
 export type Leaves =
   /** nothing was recorded for this month at this level: no false zero, a sentence */
@@ -229,8 +250,10 @@ export type Leaves =
 
 export type Half = {
   business: Business
-  /** null: a read this half depends on failed (S4). */
+  /** the run rate: full monthly fees of the contracts covering the month. null: a read failed (S4). */
   recurringCents: number | null
+  /** what the month earned: the same contracts, prorated by the days each covers */
+  monthCents: number | null
   everContracted: boolean
   firstContractMonth: Month | null
   /** twelve months ending with M; null before the first contract ever (no line), cents after */
@@ -255,7 +278,10 @@ export type MonthModel = {
   halves: { web: Half; automation: Half }
   company: { costs: CostLine[] | null; costCents: number | null }
   sums: {
+    /** the run rate */
     recurringCents: number | null
+    /** what the month earned, prorated */
+    monthCents: number | null
     composition: { web: number; automation: number } | null
     oneOffCents: number | null
     costCents: number | null
@@ -266,6 +292,7 @@ export type MonthModel = {
   }
   /** nothing at all has ever been recorded: S2, the page's primary state */
   neverAnything: boolean
+  clientCostsRecordable: boolean
   failed: string[]
 }
 
@@ -308,6 +335,7 @@ function recurringFor(inp: MonthInputs, ctx: Ctx, b: Business, M: Month) {
   const lines: ClientLine[] = []
   const conflicts: { name: string; why: string }[] = []
   let total = 0
+  let earned = 0
   const covering = realContracts(inp, ctx, b)
     .filter((c) => coversMonth(c, M))
     .sort((x, y) => (x.starts_on === y.starts_on ? x.recorded_at.localeCompare(y.recorded_at) : x.starts_on.localeCompare(y.starts_on)))
@@ -320,10 +348,13 @@ function recurringFor(inp: MonthInputs, ctx: Ctx, b: Business, M: Month) {
       continue
     }
     const m = cents(c.monthly_eur) ?? 0
+    const cov = coverage(c, M)
+    const got = Math.round((m * cov.days) / daysIn(M))
     total += m
-    lines.push({ key: c.id, name, since: `from ${SHORT_DAY(c.starts_on)} ${c.starts_on.slice(0, 4)}`, monthlyCents: m, note: partialNote(c, M) })
+    earned += got
+    lines.push({ key: c.id, name, since: `since ${SHORT_DAY(c.starts_on)} ${c.starts_on.slice(0, 4)}`, monthlyCents: m, monthCents: got, note: cov.note, ownCents: null, leavesCents: null, ownRenewsSoon: false })
   }
-  return { total, lines, conflicts }
+  return { total, earned, lines, conflicts }
 }
 
 function oneOffFor(inp: MonthInputs, ctx: Ctx, b: Business, M: Month): OneOffLine[] {
@@ -359,15 +390,28 @@ function setupOutstandingFor(inp: MonthInputs, ctx: Ctx, b: Business, today: str
   return out
 }
 
+const costParty = (c: CostRow) => c.automation_client_id ?? c.web_client_id ?? null
+
+/** A business's (or the company's) own costs: its side, and no client named. */
 function costsFor(inp: MonthInputs, side: string, M: Month, today: string): CostLine[] | null {
   if (inp.costs === null) return null
   return inp.costs
-    .filter((c) => c.side === side)
+    .filter((c) => c.side === side && costParty(c) === null)
     .map((c) => costLineFor(c, M, today))
     .filter((x): x is CostLine => x !== null)
 }
 
 const sumC = (xs: { cents: number }[]) => xs.reduce((s, x) => s + x.cents, 0)
+
+/** What one client alone costs in month M (0052's reference). */
+function clientCostLines(inp: MonthInputs, party: string, M: Month, today: string): CostLine[] {
+  return (inp.costs ?? []).filter((c) => costParty(c) === party).map((c) => costLineFor(c, M, today)).filter((x): x is CostLine => x !== null)
+}
+/** Every client-owned cost on this side in month M, for real clients only. */
+function clientCostsOnSide(inp: MonthInputs, ctx: Ctx, side: Business, M: Month, today: string): number {
+  return sumC((inp.costs ?? []).filter((c) => c.side === side && costParty(c) !== null && ctx.realParties.has(costParty(c) as string))
+    .map((c) => costLineFor(c, M, today)).filter((x): x is CostLine => x !== null))
+}
 
 /**
  * Whether anything was recorded that counts in month M at this level: a real
@@ -400,7 +444,7 @@ function half(inp: MonthInputs, ctx: Ctx, b: Business, M: Month, today: string, 
     ? Array.from({ length: 12 }, (_, i) => {
         const mm = addMonths(M, i - 11)
         const before = firstContractMonth === null || monthKey(mm) < monthKey(firstContractMonth)
-        return { month: mm, cents: before ? null : recurringFor(inp, ctx, b, mm).total }
+        return { month: mm, cents: before ? null : recurringFor(inp, ctx, b, mm).earned }
       })
     : null
 
@@ -415,24 +459,34 @@ function half(inp: MonthInputs, ctx: Ctx, b: Business, M: Month, today: string, 
   }
 
   const costs = costsFor(inp, b, M, today)
-  const costCents = costs ? sumC(costs) : null
+  // the business's costs PLUS what its clients alone cost: nothing apportioned, nothing lost
+  const costCents = costs ? sumC(costs) + clientCostsOnSide(inp, ctx, b, M, today) : null
+  const recordable = inp.clientCostsRecordable !== false && inp.costs !== null
+  if (rec) for (const l of rec.lines) {
+    const party = realContracts(inp, ctx, b).find((c) => c.id === l.key)
+    const own = recordable && party ? clientCostLines(inp, partyOf(party), M, today) : null
+    l.ownCents = own ? sumC(own) : null
+    l.leavesCents = l.ownCents === null ? null : l.monthCents - l.ownCents
+    l.ownRenewsSoon = (own ?? []).some((c) => c.renewsWithin30)
+  }
   const oneOff = inp.payments !== null && contractsOk ? oneOffFor(inp, ctx, b, M) : null
 
   let leaves: Leaves
   if (rec === null || costCents === null) leaves = { kind: 'unreadable' }
   else if (!anythingIn(inp, ctx, [b], M, today)) leaves = { kind: 'nothing' }
-  else if (b === 'web') leaves = { kind: 'value', cents: rec.total - costCents, completeFromDayOne: phase.kind === 'in_progress' }
+  else if (b === 'web') leaves = { kind: 'value', cents: rec.earned - costCents, completeFromDayOne: phase.kind === 'in_progress' }
   else if (phase.kind === 'in_progress') {
     const prev = addMonths(M, -1)
-    const pr = recurringFor(inp, ctx, b, prev).total
-    const pc = sumC(costsFor(inp, b, prev, today) ?? [])
+    const pr = recurringFor(inp, ctx, b, prev).earned
+    const pc = sumC(costsFor(inp, b, prev, today) ?? []) + clientCostsOnSide(inp, ctx, b, prev, today)
     leaves = { kind: 'withheld', lastClosed: anythingIn(inp, ctx, [b], prev, today) ? { month: prev, cents: pr - pc } : null }
-  } else leaves = { kind: 'value', cents: rec.total - costCents, completeFromDayOne: false }
+  } else leaves = { kind: 'value', cents: rec.earned - costCents, completeFromDayOne: false }
 
   const rows = b === 'automation' ? inp.automationClients : inp.webClients
   return {
     business: b,
     recurringCents: rec ? rec.total : null,
+    monthCents: rec ? rec.earned : null,
     everContracted: all.length > 0,
     firstContractMonth,
     year,
@@ -459,6 +513,7 @@ export function buildMonth(inp: MonthInputs, M: Month, today: string): MonthMode
   const companyCents = companyCosts ? sumC(companyCosts) : null
 
   const recurring = web.recurringCents !== null && automation.recurringCents !== null ? web.recurringCents + automation.recurringCents : null
+  const earned = web.monthCents !== null && automation.monthCents !== null ? web.monthCents + automation.monthCents : null
   const costCents =
     web.costCents !== null && automation.costCents !== null && companyCents !== null ? web.costCents + automation.costCents + companyCents : null
   const fixedCents =
@@ -475,9 +530,9 @@ export function buildMonth(inp: MonthInputs, M: Month, today: string): MonthMode
   else if (phase.kind === 'in_progress') {
     const prev = addMonths(M, -1)
     const pm = buildMonth(inp, prev, today) // today is past prev's last day, so prev is closed
-    const pn = pm.sums.recurringCents !== null && pm.sums.costCents !== null ? pm.sums.recurringCents - pm.sums.costCents : null
+    const pn = pm.sums.monthCents !== null && pm.sums.costCents !== null ? pm.sums.monthCents - pm.sums.costCents : null
     net = { kind: 'withheld', lastClosed: pn === null || !anythingIn(inp, ctx, ALL, prev, today) ? null : { month: prev, cents: pn } }
-  } else net = { kind: 'value', cents: recurring - costCents, completeFromDayOne: false }
+  } else net = { kind: 'value', cents: (earned as number) - costCents, completeFromDayOne: false }
 
   const neverAnything =
     inp.contracts !== null && inp.payments !== null && inp.costs !== null &&
@@ -493,6 +548,7 @@ export function buildMonth(inp: MonthInputs, M: Month, today: string): MonthMode
     company: { costs: companyCosts, costCents: companyCents },
     sums: {
       recurringCents: recurring,
+      monthCents: earned,
       composition: recurring === null ? null : { web: web.recurringCents ?? 0, automation: automation.recurringCents ?? 0 },
       oneOffCents: oneOff,
       costCents,
@@ -501,6 +557,7 @@ export function buildMonth(inp: MonthInputs, M: Month, today: string): MonthMode
       anythingRecorded,
     },
     neverAnything,
+    clientCostsRecordable: inp.clientCostsRecordable !== false,
     failed: [...new Set([...web.failed, ...automation.failed, ...(companyCosts === null ? ['costs'] : [])])],
   }
 }

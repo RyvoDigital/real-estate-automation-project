@@ -102,6 +102,16 @@
   --ca-b: #2b1f12;
   --ca-fg: #f2c890;
 
+  /* ── The two businesses ───────────────────────────────────────────────────
+     Identity, not state (added 21 Sep 2026, The Month redesign): which business
+     a heading or a chart belongs to. Like the client marks, they sit outside
+     the semantic five and mean nothing beyond "web, not automations". Chosen
+     clear of every semantic hue: rose is not --red, aqua is not --held. */
+  --web: #e7a3c4;
+  --web-ground: rgba(231, 163, 196, 0.1);
+  --automation: #7fcfe0;
+  --automation-ground: rgba(127, 207, 224, 0.1);
+
   /* ── Surfaces ─────────────────────────────────────────────────────────────
      Translucent, so the sidebar's light reads through them. --lifted is the v2
      opaque surface, kept because §0.5 records it; new surfaces use --glass. */

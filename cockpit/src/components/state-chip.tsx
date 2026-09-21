@@ -122,3 +122,16 @@ export function StateSurface({
 }) {
   return <div className={`${styles.surface} ${styles[meaning]} ${className ?? ''}`}>{children}</div>
 }
+
+/**
+ * An amount whose SIGN is its meaning: what a business leaves, a net. Positive
+ * is `through` (green), negative is `red`, zero is uncoloured. Added 21 Sep 2026
+ * for The Month (operator: "September's −€43,50 must read red"). It lives here,
+ * with the other owners of the semantic five, so a screen says "this amount's
+ * sign matters" and never reaches for green itself.
+ */
+export function Signed({ cents, children }: { cents: number; children: React.ReactNode }) {
+  const tone = cents > 0 ? styles.signedUp : cents < 0 ? styles.signedDown : ''
+  return <span className={`${styles.signed} ${tone}`}>{children}</span>
+}
+

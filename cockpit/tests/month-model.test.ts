@@ -89,10 +89,31 @@ test('🔒 recurring comes from the contracts covering the month, never from a s
   assert.equal(buildMonth(inp, SEP, '2026-10-03').halves.web.recurringCents, 0)
 })
 
-test('a contract starting mid-month is counted whole, and says so on its row', () => {
-  const m = buildMonth(base({ contracts: [contract({ starts_on: '2026-10-15' })] }), OCT, '2026-10-20')
-  assert.equal(m.halves.web.recurringCents, 25000)
-  assert.match(m.halves.web.clients![0].note!, /starts 15 Oct — counted whole/)
+test('a contract starting mid-month: the month\'s figures are prorated by days, the run rate is not', () => {
+  // operator, 21 Sep 2026: prorate, say so on the row, keep the headline at the full fee
+  const m = buildMonth(base({ contracts: [contract({ starts_on: '2026-10-17' })] }), OCT, '2026-10-20')
+  assert.equal(m.halves.web.recurringCents, 25000) // the run rate: a month's fee
+  assert.equal(m.halves.web.monthCents, Math.round((25000 * 15) / 31)) // 17–31 Oct is 15 of 31 days
+  assert.equal(m.halves.web.clients![0].monthCents, 12097)
+  assert.equal(m.halves.web.clients![0].note, 'from 17 Oct · 15 of 31 days')
+  assert.equal(m.halves.web.year!.at(-1)!.cents, 12097) // the month's figure, not the run rate
+})
+
+test('a contract ending mid-month, and one inside a month, are prorated the same way', () => {
+  const ends = buildMonth(base({ contracts: [contract({ ends_on: '2026-10-10' })] }), OCT, '2026-11-02')
+  assert.equal(ends.halves.web.clients![0].note, 'until 10 Oct · 10 of 31 days')
+  assert.equal(ends.halves.web.monthCents, Math.round((25000 * 10) / 31))
+  const inside = buildMonth(base({ contracts: [contract({ starts_on: '2026-10-05', ends_on: '2026-10-11' })] }), OCT, '2026-11-02')
+  assert.equal(inside.halves.web.clients![0].note, '5–11 Oct · 7 of 31 days')
+})
+
+test('🔒 what a business leaves and the net use the month\'s figure, not the run rate', () => {
+  const m = buildMonth(base({ contracts: [contract({ starts_on: '2026-09-16' })], costs: [cost({ side: 'web', amount_eur: 20 })] }), SEP, '2026-10-03')
+  const earned = Math.round((25000 * 15) / 30)
+  assert.deepEqual(m.halves.web.leaves, { kind: 'value', cents: earned - 2000, completeFromDayOne: false })
+  assert.deepEqual(m.sums.net, { kind: 'value', cents: earned - 2000, completeFromDayOne: false })
+  assert.equal(m.sums.recurringCents, 25000)
+  assert.equal(m.sums.monthCents, earned)
 })
 
 test('🔒 rehearsal clients are never counted: not in revenue, not in unknown, only counted apart', () => {
@@ -197,3 +218,26 @@ test('setup outstanding is the contract\'s setup minus what has arrived', () => 
   )
   assert.deepEqual(m.halves.web.setupOutstanding, [{ name: 'Alfaiataria Exemplo', cents: 80000 }])
 })
+
+test('🔒 a client\'s own cost sits on its row, never in the business\'s costs, and still counts in what the business leaves', () => {
+  const m = buildMonth(base({
+    contracts: [contract({})],
+    costs: [cost({ side: 'web', amount_eur: 20 }), cost({ id: 'c2', side: 'web', amount_eur: 12, cadence: 'annual', started_on: '2024-03-03', web_client_id: 'w1' })],
+  }), SEP, '2026-10-03')
+  const row = m.halves.web.clients![0]
+  assert.equal(row.ownCents, 100) // €12 a year, one twelfth
+  assert.equal(row.leavesCents, 25000 - 100)
+  assert.deepEqual(m.halves.web.costs!.map((c) => c.label), ['Server']) // the business's own, not the client's
+  assert.deepEqual(m.halves.web.leaves, { kind: 'value', cents: 25000 - 2000 - 100, completeFromDayOne: false })
+  assert.equal(m.clientCostsRecordable, true)
+  // the renewal clock goes where the cost sits: on the client's row
+  const soon = buildMonth(base({ contracts: [contract({})], costs: [cost({ cadence: 'annual', amount_eur: 15, started_on: '2024-10-28', side: 'web', web_client_id: 'w1' })] }), OCT, '2026-10-03')
+  assert.equal(soon.halves.web.clients![0].ownRenewsSoon, true)
+})
+
+test('before 0052, client costs are "not recordable yet" — said once, at the page level', () => {
+  const m = buildMonth({ ...base({ contracts: [contract({})] }), clientCostsRecordable: false }, SEP, '2026-10-03')
+  assert.equal(m.clientCostsRecordable, false)
+  assert.equal(m.halves.web.clients![0].ownCents, null) // unknown, not €0
+})
+

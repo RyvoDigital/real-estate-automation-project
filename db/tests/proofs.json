@@ -555,6 +555,18 @@
       "hashes": {},
       "last_proved": null,
       "proved_by": null
+    },
+    {
+      "id": "0052-costs-client-and-check-month",
+      "what": "costs gains an optional automation_client_id / web_client_id pair (RESTRICT, at most one, each only on its own side), so a client's own cost can be recorded; cost_checks gains for_month (NOT NULL, a first day), the month an invoice total checks. WHY: The Month could not show what a client alone costs, and 'closed and checked' could not know which month a check was for (operator, 21 Sep 2026). PRECONDITION: cost_checks is empty; 0052 refuses otherwise.",
+      "how": "Run in the same sitting as 0051. Apply db/migrations/0052_costs_client_and_check_month.sql, then run db/tests/0052_costs_client_and_check_month.test.sql WHOLE: one row per case, every row PASS. Dry-run on 21 Sep in a throwaway postgres:16 with the four tables and their live constraints: before 0052, 1-8 FAIL and 9 PASS (as the file states); after, 9/9 PASS; with a cost_checks row present, 0052 refuses and adds no column.",
+      "watches": [
+        "db/migrations/0052_costs_client_and_check_month.sql",
+        "db/tests/0052_costs_client_and_check_month.test.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
     }
   ]
 }
