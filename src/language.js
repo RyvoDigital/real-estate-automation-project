@@ -42,16 +42,32 @@ const WORD_MARKERS = {
        'boa noite', 'feira', 'imovel', 'imoveis', 'moradia', 'preciso',
        'gostava', 'entao', 'onde', 'com', 'uma', 'um', 'quando', 'quanto',
        'qual', 'mais', 'na', 'nas', 'dos', 'das', 'ate', 'posso', 'pode',
-       'procuro', 'visitar', 'marcar', 'falar', 'pessoa', 'afinal', 'mudar'],
+       'procuro', 'visitar', 'marcar', 'falar', 'pessoa', 'afinal', 'mudar',
+       // 2026-09-21: weekdays and parts of the day that only pt uses. es says
+       // lunes..viernes, and sabado/domingo/tarde are shared, so they stay out.
+       'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'manha', 'amanha',
+       'fica', 'serve', 'combinado', 'perfeito', 'otimo'],
   es: ['hola', 'gracias', 'quisiera', 'usted', 'tambien', 'buenos dias',
        'buenas tardes', 'buenas noches', 'vivienda', 'piso', 'necesito',
        'busco', 'con', 'una', 'cuando', 'cuanto', 'donde', 'ahora', 'manana',
        'el', 'los', 'las', 'muy', 'mucho', 'estoy', 'tengo', 'puedo',
-       'hablar', 'jueves', 'viernes', 'quiero'],
+       'hablar', 'jueves', 'viernes', 'quiero',
+       // 2026-09-21: the other weekdays es alone uses, and short replies.
+       'lunes', 'martes', 'miercoles', 'viene', 'vale', 'perfecto', 'genial'],
   en: ['the', 'and', 'you', 'are', 'is', 'would', 'like', 'hello', 'hi',
        'thanks', 'thank', 'please', 'can', 'i', 'im', 'looking', 'house',
        'flat', 'apartment', 'available', 'viewing', 'week', 'time', 'do',
-       'have', 'see', 'come', 'speak', 'person', 'anything', 'something'],
+       'have', 'see', 'come', 'speak', 'person', 'anything', 'something',
+       // 2026-09-21: "Ok let's go with Thursday morning" scored 0 in every
+       // language, so no REPLY LANGUAGE note was sent and 4 of 5 replies came
+       // back in Portuguese. A booking reply is short and made of exactly these
+       // words: weekdays, parts of the day, and the function words around them.
+       // Only words pt and es never use: not 'ok', 'no', 'me', 'a' or 'sim'.
+       'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday',
+       'sunday', 'morning', 'afternoon', 'evening', 'tonight', 'tomorrow',
+       'today', 'next', 'lets', "let's", 'go', 'with', 'works', 'sounds',
+       'good', 'great', 'perfect', 'that', 'this', 'what', 'when', 'which',
+       'at', 'for', 'yes', 'sure', 'fine', 'its', "it's", 'how', 'about'],
 };
 
 const SUPPORTED = ['pt', 'en', 'es'];
@@ -98,6 +114,30 @@ function detectLanguage(text) {
   return out(confident ? top : null, scores, confident);
 }
 
+// resolveLeadLanguage(text, priorInbound) -> {lang, source}
+//
+// The language to STATE for this reply. 2026-09-21: the current message alone
+// decided it, and a short reply the detector cannot read ("ok, Thursday 15h")
+// stated nothing, so the model drifted to the prompt's Portuguese. A lead does
+// not change language by writing briefly, so an undecided message inherits the
+// language of the lead's most recent message that WAS decided.
+//   source: 'message'  the current message decided it
+//           'history'  inherited from an earlier inbound message
+//           null       nothing decided it (a first message the detector
+//                      cannot read), and nothing is stated
+// `priorInbound` is the lead's earlier messages as text, NEWEST FIRST. Only
+// the lead's own words count: the assistant writes in whatever it was told,
+// so its messages are not evidence of the lead's language.
+function resolveLeadLanguage(text, priorInbound) {
+  const now = detectLanguage(text);
+  if (now.lang) return { lang: now.lang, source: 'message' };
+  for (const t of (Array.isArray(priorInbound) ? priorInbound : [])) {
+    const d = detectLanguage(t);
+    if (d.lang) return { lang: d.lang, source: 'history' };
+  }
+  return { lang: null, source: null };
+}
+
 // pickMessage(messages, lang, fallbackLang) -> string|null
 //
 // `messages` is the config map, e.g. {pt: '...', en: '...', es: '...'}. Resolution
@@ -117,17 +157,26 @@ function pickMessage(messages, lang, fallbackLang) {
 
 // Convenience: resolve a named system message for a lead's text in one call.
 // `cfg` is client_automations.config.
-function systemMessage(cfg, name, leadText) {
+//
+// `priorInbound` (optional, 2026-09-21): the lead's earlier messages, NEWEST
+// FIRST. An English lead who asks for a person in words the lists cannot read
+// ("Talk to a human") inherits English from history (resolveLeadLanguage)
+// rather than getting the client's default. `detected` stays the current
+// message's own verdict, and `source` says where `lang` came from:
+// 'message' | 'history' | null (the configured default).
+function systemMessage(cfg, name, leadText, priorInbound) {
   const c = cfg || {};
   const det = detectLanguage(leadText);
+  const res = resolveLeadLanguage(leadText, priorInbound);
   const fallback = c.default_language
     || (Array.isArray(c.languages) && c.languages.length ? c.languages[0] : 'en');
   const bag = (c.system_messages || {})[name];
-  const picked = pickMessage(bag, det.lang, fallback);
+  const picked = pickMessage(bag, res.lang, fallback);
   return {
     text: picked || c.handoff_note || null,
-    lang: det.lang || fallback,
+    lang: res.lang || fallback,
     detected: det.lang,
+    source: res.source,
     confident: det.confident,
     scores: det.scores,
   };
