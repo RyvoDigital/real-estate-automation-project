@@ -1,6 +1,6 @@
 # Where we left off
 
-**Last updated:** 2026-09-21, evening (handover before /clear).
+**Last updated:** 2026-09-21, late evening: `31b8a8e` deployed, gated and phone-checked.
 **Where the work is:** the COCKPIT REDESIGN, stage C — building it. §0 below is
 the current state.
 
@@ -36,6 +36,75 @@ under `docs/`; this file records what is actually deployed right now and what
 tripped us up. **Sections are newest first.**
 
 ---
+
+# 0000. 21 September 2026, late evening: `31b8a8e` IS LIVE. READ THIS FIRST
+
+§000 below was true until 20:23 UTC. **Its "Production", "Pushed, NOT deployed" and
+"test lead" sections are superseded by this one.**
+
+## Production, right now
+- **n8n Concierge: `31b8a8e`, served version `b28ba526`**, deployed at 20:23 UTC.
+  - Checks at 20:23:37: `activeVersionId` set; exactly one `twilio-inbound` row;
+    403 on an unsigned POST.
+  - The served `workflow_history` equals the build file in **every field of every
+    node** (126/126) and in the connections.
+  - `errorWorkflow` is still `ryvoErrorHandler01`.
+- **Live now, all of it gated first** (20 runs, 60 messages: 0 unexpected
+  escalations, 0 invariant alerts, 0 wrong language, 0 empty replies, 0 guard
+  retries):
+  - the `f80faf3` batch: one parse source, the empty-reply retry, the
+    garbled-reply check, the shared system-failure list, and the invariant-1 fix;
+  - **the time guard fixes** (`61f50cc`):
+    - a negation that governs the lead's time declines it ("but not 11:00",
+      "I don't have an 11:00 slot");
+    - a clause-level decline covers only the time nearest to it, which **closes
+      the false acceptance** ("10:00 isn't available, so 11:00 it is");
+  - **typographic apostrophes** (`31b8a8e`): ’ ‘ ʼ … are folded to `'` in the time
+    guard, the claim guard ("that’s booked" was missed) and the language
+    detector ("let’s").
+- **Phone checks passed** (20:30–20:33 UTC, one at a time):
+  1. "Ok let's go with Thursday morning": English, 09:00 or 10:00 only,
+     ambiguous so no booking.
+  2. "11:00?": English decline, accepted by the guard on the FIRST attempt.
+  3. "Talk to a human": `needs_human`, English handoff note, operator alert.
+
+  All ran on `b28ba526`, with 0 invariants violated.
+- **Rollback target: the previous PRODUCTION content, not the previous commit.**
+  That is the `aeaaffb7` content, `workflows/ryvoInboundConc01.json` at
+  `1126ebd`, formerly served as `93da8218`. `61f50cc` and `f80faf3` were never in
+  production, so they are not rollback targets. Restore = import that file,
+  publish, **restart** (see the webhook note below), then confirm the served
+  nodes by query (every field).
+- `workflows/ryvoInboundConc01.json` on origin **is** production again (re-exported
+  after the deploy), so tonight's 03:00 UTC backup commits nothing new.
+
+## Learned tonight (details in the runbook and remaining-defects)
+- 🔴 **`import:workflow` DELETES the workflow's `webhook_entity` row, and
+  `publish:workflow` does not recreate it.**
+  - The endpoint lives on n8n's in-memory webhook cache, whose TTL is one hour and
+    which a cache hit does not refresh (n8n 2.28.3 source).
+  - So every CLI re-import of a webhook workflow needs a restart, or an
+    activation from the running instance.
+  - The version itself switches without a restart: proven with
+    `execution_entity.workflowVersionId`.
+- **The gate works.** Its first run found a harness defect (the sink returned one
+  fixed sid, so `(client_id, external_id)` collided) and a real false escalation.
+  Its second found the typographic apostrophe. See remaining-defects, "Production's
+  time guard can LET THROUGH an unoffered time".
+- **`CRON_TZ` is ignored** by the server's cron: every nightly job runs on UTC
+  (runbook).
+
+## Open, in order
+1. **The test lead (…230) is escalated again, ON PURPOSE:** `needs_human` from phone
+   check 3 (20:33 UTC). Hand it back (cockpit /queue) before the next live message,
+   and confirm by query first.
+2. **The gate copy and the sink are still published.** The operator unpublishes
+   them in the n8n UI: Workflows, then the dropdown by **Publish**, then
+   **Unpublish** (or the card's ⋯ menu).
+3. **Deploys without a restart** (operator, 21 Sep): test n8n's REST API route on
+   the gate copy only. Until it is proven, deploys run at the next available
+   minute. One failed health check does not alert.
+4. The Month.
 
 # 000. HANDOVER — 21 September 2026, evening. READ THIS FIRST
 
