@@ -66,13 +66,94 @@ At retirement the model's own reason says the lead asked about a meeting "that i
 
 ---
 
-## NEW (16 Sep) — A failed handoff send is logged as a successful run 🔴 Tier 1, found by design, not by a lead
+## NEW (21 Sep) — Short English messages get Portuguese replies 🔴 Tier 1: live in production, demo-critical
+
+**Found** re-running suite 7 on the live build (21 Sep 2026, prompt and
+workflow identical to what is served). **Not fixed in the `fe2e7857` deploy.**
+
+**What happens:** to the English message *"Ok let's go with Thursday
+morning"*, **4 of 5 replies came back in Portuguese** (an earlier note said
+3 of 5, counted from truncated output). Verbatim:
+
+1. "Perfeito, quinta-feira 10 de setembro às 11:00 (hora de Lisboa) para uma primeira reunião com o nosso colega. Pode confirmar-me esse horário?"
+2. "Perfeito! Fico a confirmar então a quinta-feira, 10 de setembro às 11:00 (hora de Lisboa) para uma primeira reunião com o nosso colega - pode confirmar para eu garantir esse horário?"
+3. *(English, correct)* "Great choice! Just to confirm, that's Thursday 10 September 2026 at 11:00 Lisbon time for a first meeting with our colleague - shall I lock that in?"
+4. "Perfeito! Fico então com a quinta-feira, 10 de setembro às 11:00, horário de Lisboa - pode confirmar para eu deixar reservado?"
+5. "Perfeito! Fico então com quinta-feira, 10 de setembro às 11:00 (hora de Lisboa) - pode confirmar-me só para eu deixar isto certo?"
+
+**Why Tier 1:** the one live prospect's pitch is multilingual, and an English
+lead answered in Portuguese in a demo undoes it. It is also live for every
+real English lead who writes briefly.
+
+**Cause** (confirmed by running the shipping source):
+- `detectLanguage()` scores **0 in every language** for this message: none
+  of "ok, let's, go, with, thursday, morning" is in its 31-word English
+  lexicon. So it returns `lang: null`.
+- `BuildClaudeRequest` then renders **no REPLY LANGUAGE note**
+  (`renderReplyLanguageNote(null)` returns `''`). It reads only the current
+  message, with no fallback to the conversation's language.
+- The model is left to infer the language against a prompt and slot block full
+  of Portuguese. That is exactly the drift the 12 Sep note was built to remove,
+  and here the note is never sent.
+- **Two layers are blind at once:** the parsers' `replyLanguageMismatch()`
+  also needs a confident lead language, so no retry fires either.
+- "Tuesday at 15:00 works" also scores 0. Its replies happened to be English
+  in this run.
+
+**Reproduce:**
+```
+node -e "eval(require('fs').readFileSync('src/language.js','utf8'));console.log(detectLanguage(\"Ok let's go with Thursday morning\"))"
+# -> { lang: null, scores: { pt: 0, en: 0, es: 0 }, confident: false }
+```
+- **Behaviourally:** suite 7 in `tests/prompt_suites.py` (on the server), the
+  message "Ok let's go with Thursday morning" with no history.
+- **Live:** from the test phone, after a hand-back, send that sentence alone.
+
+**Fix:** proposed separately (see the diagnosis commit). Not deployed.
+
+## ✅ FIXED (21 Sep) — A failed handoff send is logged as a successful run. Served version `fe2e7857`
+
+**Fixed and proved live on 21 Sep 2026.** `PrepRunEscalated` now writes
+`status='error'`, `error_type='handoff_send_failed'` whenever
+`handoffOk !== true`, first in precedence.
+- **Sabotage run** (`SABOTAGE-D`, a real Twilio rejection, 21211), 14:34:22 UTC:
+  - the lead got no note, and the operator was notified;
+  - the run row: `error` / `handoff_send_failed`;
+  - invariant 4 fired: a critical event plus the WhatsApp.
+- **Resting run**, 14:41:32 UTC: `success`, `handoff_sent=true`, nothing fired.
+- **Permanent test:** `tests/prep_run_escalated.test.js`, which runs the
+  shipping node's code. It fails 5 of 10 on the pre-fix build.
+
+The original entry follows.
+
+### (as logged 16 Sep) A failed handoff send is logged as a successful run 🔴 Tier 1, found by design, not by a lead
 
 Found while designing invariant 4 (improvements §3.11), before it was built. `PrepRunEscalated` sets `status` from the operator notify and the system-failure reasons only: a run where `SendHandoffNote` **failed** but `NotifyOperator` succeeded is written as `status='success'` with `handoff_sent: false` buried in the payload. The lead who asked for a human hears nothing, the operator is told a handoff went out, and nothing alerts — the same shape as the 992ms `Success` that sent nothing.
 
 **Now caught, not yet fixed:** invariant 4 reads `handoff_sent` on every escalated run and writes an `invariant.violated` event (critical) plus a WhatsApp when it is false, so the silence is visible within a minute. The run row itself still says `success`. **Fix:** `PrepRunEscalated` treats `!handoffOk` as an error (`error_type: 'handoff_send_failed'`), the same way `PrepRunAI` treats a failed reply send. Small change, one node. **The invariants were seen to fire live on 16 Sep (proof cycle in the runbook), so this can now be done without confounding the two.** Next session.
 
-## NEW (16 Sep) — Claim guard misses "quedamos entonces para el jueves" 🟡 Tier 2, next session
+## ✅ FIXED (21 Sep) — Claim guard misses "quedamos entonces para el jueves". Served version `fe2e7857`
+
+**What changed:**
+- `src/booking_claim.js` allows an optional adverb after `quedamos`, and adds
+  the pt (`ficamos então/combinados para`) and en (`we're set/on for <day>`)
+  neighbours.
+- It is re-embedded in all four nodes, and `tests/embeds_current.test.js`
+  now fails if a copy drifts from `src/`.
+
+**Suite 7 re-run** against the live build, 20 replies:
+- It reproduced the FIRST shape only. That reply is now a permanent case,
+  word for word.
+- The adverb shape did not recur, so its test uses the doc's wording, labelled
+  as such.
+- The old and new guard give identical verdicts on all 20 replies.
+
+**Harness:** `prompt_suites.py` now prints suite-7 misses in full. It was
+truncating them at 76 characters, which is why the 16 Sep text was lost.
+
+The original entry follows.
+
+### (as logged 16 Sep) Claim guard misses "quedamos entonces para el jueves" 🟡 Tier 2
 
 Suite 7 on the deployed build (15a2b23) missed twice on Spanish present-as-future: *"Perfecto, entonces quedamos el jueves 10 de septiembre..."* and *"Perfecto, quedamos entonces para el jueves..."*. The first shape is caught in production by `src/booking_claim.js` (`quedamos (para|el|en) <día>`). The second is **not**: the pattern allows nothing between the verb and `para`, and "entonces" sits there. Same lesson as "marco então" vs "vou marcar" (engineering-lessons 1i): the check was built for the shape someone thought of. **Fix:** allow an optional adverb (`entonces|ya|así|pues`) after `quedamos`, check the same neighbour in pt (`ficamos então para`) and en, add both suite-7 outputs verbatim to `tests/booking_claim.test.js` as permanent cases (§0.6). Prompt suites after.
 

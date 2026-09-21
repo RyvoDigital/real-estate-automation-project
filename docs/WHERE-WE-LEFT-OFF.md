@@ -1,6 +1,6 @@
 # Where we left off
 
-**Last updated:** 2026-09-20.
+**Last updated:** 2026-09-21.
 **Where the work is:** the COCKPIT REDESIGN, stage C — building it. §0 below is
 the current state.
 
@@ -34,6 +34,41 @@ This file is the running state-of-play for whoever (human or agent) picks the
 project up next. The durable *design* lives in the handoff and design documents
 under `docs/`; this file records what is actually deployed right now and what
 tripped us up. **Sections are newest first.**
+
+---
+
+# 00. 21 September 2026: the Concierge redeployed, the money tables hardened, the screens counted
+
+**Deployed (BUILT AND REACHABLE):**
+- **The Concierge**, served version `fe2e7857`, deployed 14:35 UTC. It adds
+  two fixes, proved live:
+  - A failed handoff note is now `status='error'`,
+    `error_type='handoff_send_failed'`. Sabotaged at 14:34 UTC: the run went
+    to error and invariant 4 fired. Resting case at 14:41 UTC: `success`,
+    `handoff_sent=true`, nothing fired.
+  - The claim guard catches "quedamos entonces para" and its pt/en neighbours.
+- **The database:** `0049` (money foreign keys RESTRICT) and `0050`
+  (client_contracts' append-only protection stated whole) are applied and
+  blessed.
+
+🔴 **The screen count changes the redesign estimate.** See
+`docs/cockpit-route-map.md` §7.
+- **The rule:** no old route is retired until its replacement exists and is
+  reachable.
+- **`/segmentation` above all.** It is the only screen that writes a consent
+  declaration, and its replacement `/c/<client>/declaration` is in **no build
+  stage**. Nor is `/calibrate`'s.
+- **Blockers on the "replaced" routes:**
+  - `/leads/[id]` holds the only hand-back to the AI.
+  - `/c/<client>/report` lost "Copy as text", its send step. That is a
+    regression.
+  - `/import` keeps the upload flow, and its planned redirect is dropped.
+- **So "Stage C is nearly done" is not true.** At least two screens that
+  write, a hand-back and a regression fix are owed before anything old can go.
+
+**Open, not fixed:** the Concierge replies in Portuguese to short English
+messages the language detector cannot read (4 of 5 in suite 7).
+`docs/remaining-defects-session-2.md`.
 
 ---
 
@@ -120,8 +155,9 @@ decided once, in the ledger, never parsed out of prose on a screen.
 
 `/queue` · `/leads` · `/listings` · `/import` · `/report` · `/review` ·
 `/silence` · `/segmentation` · `/calibrate` · **`/onboarding`** · `/health`.
-All work, all in production, none rebuilt. **BUILT AND REACHABLE, on the old
-direction** — a third state this file's table does not name, and the one that
+All work, all in production. 🔁 *Some now have replacements* (route map §7);
+none may be retired until its replacement exists and is reachable. **BUILT AND
+REACHABLE, on the old direction** — a third state this file's table does not name, and the one that
 reads as "done" from a URL list.
 
 🔴 **`/onboarding` is the one that matters most out of order.** Since

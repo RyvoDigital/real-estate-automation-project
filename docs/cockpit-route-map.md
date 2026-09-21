@@ -99,8 +99,13 @@ Old links exist in the operator's browser, in notes and in alerts.
 /calibrate/:id    → /c/:id/thresholds
 /silence/:id      → /c/:id/silence
 /review/:id       → /c/:id/review
-/calibrate | /review | /segmentation | /silence | /import → /
+/calibrate | /review | /segmentation | /silence → /
 ```
+
+🔁 **`/import → /` is DROPPED (21 September 2026).** The upload flow — upload,
+map, plan, commit, revert — lives only at `/import`, and the per-client screen
+is deliberately the record, not the flow (commit `4f78050`). Redirecting
+`/import` would strand the only way to import. `/import` stays where it is.
 
 **🔴 Two cannot be static, because the new path needs a lookup the config
 cannot do:**
@@ -203,7 +208,7 @@ review and silence "C6". Every cell below is cited from the repository.
 | `/leads` | **replaced, partly** | the list becomes `/c/<client>/contacts` (built). `/leads/[id]` becomes the contact record (§2 says `contacts/<lead>`, the built route is `contacts/[phone]`) | the list and the record are built; cross-client search is not (§5 open question) |
 | `/listings` | **split** | the list becomes `/c/<client>/listings` (built). Detail, triage and exemption are **owed** (`frame.ts:129-130` `built:false`) | partly |
 | `/import` | **replaced, partly** | `/c/<client>/import` and `[batch]` are the **record**. Upload, map, plan and commit **deliberately stayed at `/import`** (commit `4f78050`) | the record is built; the flow is old-direction on purpose |
-| `/report` | **replaced** | `/c/<client>/report` (`3ee939c`) | yes. ⚠️ **The old page's "Copy as text" (`Report.tsx:151-159`) has no equivalent on the new one**, and the report is sent by hand, so that button *is* the send step |
+| `/report` | **replaced** | `/c/<client>/report` (`3ee939c`) | yes, with a 🔴 **regression**: "Copy as text" (`Report.tsx:151-159`) is missing, and it is the send step. See the rule below |
 | `/review` | **replaced** | `/c/<client>/review` (`75eb2bb`) | yes |
 | `/silence` | **replaced** | `/c/<client>/silence` (`b153e20`) | yes |
 | `/segmentation` | 🔴 **still owed a rebuild** | `/c/<client>/declaration` (§2; `frame.ts:93` `built:false`). **Not in any build-plan stage**: C5's list names listings, the gate, piece, exemption, expiries, policy, templates, the re-check notice, and no declaration | **no.** It is the **only screen that writes a consent declaration** (`lib/segmentation/actions.ts` `declareGroupAction`). Nothing has taken that job over |
@@ -216,12 +221,42 @@ review and silence "C6". Every cell below is cited from the repository.
 - **Still owed a rebuild:** `/segmentation`, `/calibrate`, and the listing detail, triage and exemption.
 - **Kept:** `/onboarding` (URL) and `/health`, both unsettled.
 
+### 🔒 The rule: no old route is retired until its replacement exists AND is reachable
+
+Decided 21 September 2026, because of this count. **A redirect or a deletion
+ships only after the new screen does every job the old one did, and can be
+reached from where people actually arrive.** Being designed does not count, and
+nor does being built while nothing links to it.
+
+1. 🔴 **`/segmentation` above all.** It is the only screen that writes a
+   consent declaration (`declareGroupAction`). Retiring it before
+   `/c/<client>/declaration` exists and writes would leave no way to declare
+   where a contact list came from. The gate, the forecast and every campaign
+   read that declaration. `/c/<client>/declaration` is in no build stage
+   today. That is the finding that changes the redesign estimate.
+2. **`/calibrate`** likewise. The gated ledger plans the calibration afternoon
+   on the old screen.
+3. **`/leads/[id]`: 🔴 BLOCKER, the hand-back.** The only control that hands an
+   escalated lead back to the AI (`HandBack`, `components/Reply.tsx`) exists
+   only on the old `/leads/[id]` page. It was used for exactly that on
+   21 September, during the Concierge deploy proof. The new escalation surface
+   (`/today`, `/c/<client>/escalations`, the contact record) has no hand-back.
+   Until it does, `/leads/[id]` cannot retire. Without it, an escalated lead is
+   silenced permanently: `IsLeadEscalated` stops every reply, and no other
+   screen clears the flag.
+4. **`/report`: 🔴 REGRESSION on the new screen, not a nice-to-have.** The old
+   page's "Copy as text" (`components/Report.tsx:151-159`) is how the report is
+   sent: it goes to the agency by hand. `/c/<client>/report` has no
+   equivalent, so the new screen cannot do the old one's job. It must be
+   restored on `/c/<client>/report` before `/report` redirects.
+5. **`/import`** is not retired at all (see §3).
+
 ### What retiring the replaced routes involves
 
 **Redirects: none exist.** `next.config.ts` has headers only and
 `src/proxy.ts` only refreshes sessions. §3 is intent, not code. Three problems
 with §3 as written:
-- `/import → /` would strand the upload flow, which lives only at `/import`.
+- `/import → /` would have stranded the upload flow. **Dropped** (§3).
 - `/listings?client=` and `/report?client=` need query-to-path redirects that
   §3 does not list.
 - `/leads/[id]` needs a lookup (lead → client and phone) and is missing from
