@@ -180,6 +180,18 @@ only when it governs an availability word. **Measured on production's guard:
 "I don't have an 11:00 slot". This is the third shape the wording list missed,
 after "quedamos entonces" and the plurals.
 
+**3. OPEN, found by the gate that PASSED `61f50cc` (21 Sep, 19:34 UTC): a
+typographic apostrophe hides the decline.** In execution 4790 the first attempt
+said "11:00 isn’t available on Thursday, João - I have 09:00 or 10:00 Lisbon
+time that morning." The apostrophe is ’ (U+2019), and every pattern in the
+guard is written with a straight `'`, so "isn’t available" does not read as a
+decline. The guard retry used a straight apostrophe and passed, so the run did
+not escalate. Two curly apostrophes in a row would have escalated the lead.
+Rate: 1 of 62 gate replies, and 0 of the 163 captured replies. Production's
+guard and `61f50cc` both reject it (replayed). Direction: false escalation
+only, never a false acceptance. **NOT fixed in `61f50cc`.** The fix is to
+normalise ’ ‘ to ' in `tgDeaccent`, with 4790's reply as a permanent case.
+
 **Fix BUILT (`61f50cc`, on top of `f80faf3`), not deployed:**
 - **Per occurrence:** a negation directly in front of the lead's time declines
   it. Only a day and a preposition may stand between them.
