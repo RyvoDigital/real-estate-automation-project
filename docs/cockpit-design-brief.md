@@ -1815,6 +1815,29 @@ the cost of building, and never billed against a client.
 
 If a web client ever buys an automation, a shared billing party links the two
 rows when it first happens — never a merged table.
+
+### Reads — named columns, from the view, and never three dead ones 🔒
+Added 21 September 2026, after `0050`.
+
+- **Contracts are read from `client_contracts_uncorrected`, never from the
+  table.** A superseded row still carries its period and its fee, so summing
+  the table counts every correction twice.
+- **Select named columns, never `*`.** The Month reads exactly: `id`,
+  `automation_client_id`, `web_client_id`, `monthly_eur`, `setup_eur`,
+  `setup_terms`, `starts_on`, `ends_on`, `automations`, `signed_by`,
+  `recorded_by`, `recorded_at`, `created_at`, `supersedes_id`.
+- **Never read `superseded_at`, `superseded_by` or `updated_at`.** Since
+  `0050` a correction is recorded only by the new row's `supersedes_id`:
+  - `superseded_at` and `superseded_by` are always null, enforced by
+    `contract_is_never_stamped`;
+  - `updated_at` can never change, because no UPDATE survives.
+  All three are owed a drop, and the drop changes the view's shape. A page
+  that names its columns survives that drop, and one using `*` or reading a
+  dead column breaks.
+  The drop is not written yet. When it is, it is a one-migration change
+  *because* nothing reads them.
+- **Nothing on the page may infer a correction from a stamp.** "This contract
+  was corrected" is true exactly when another row's `supersedes_id` names it.
 ---
 
 # §3. The checklist a design is measured against
