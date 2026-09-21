@@ -5,6 +5,8 @@
   python3 infra/scripts/n8n_api_deploy.py activate --id ID --version VERSION_ID
   python3 infra/scripts/n8n_api_deploy.py verify   --id ID --file F --path WEBHOOK_PATH [--signed-probe]
   python3 infra/scripts/n8n_api_deploy.py state    --id ID
+  python3 infra/scripts/n8n_api_deploy.py deactivate --id ID          (unpublish, live, no restart)
+  python3 infra/scripts/n8n_api_deploy.py activate --id ID --version draft   (publish the saved draft)
 
 Run ON THE SERVER. Reads N8N_API_KEY from the repo's .env and hands it to node inside
 the n8n container on STDIN; it never appears in argv, the environment, a URL or the output.
@@ -125,6 +127,8 @@ def cmd_deploy(args):
 def cmd_activate(args):
     guard(args)
     before = state(args.id)
+    if args.version == 'draft':   # the version a PUT saved on an unpublished workflow
+        args.version = before[0].split('|')[2]
     code, resp = api('POST', f'/workflows/{args.id}/activate', {'versionId': args.version})
     print(f'POST /workflows/{args.id}/activate versionId={args.version[:8]} -> HTTP {code}')
     if code != 200: print('  error:', json.dumps(resp)[:600])
@@ -200,13 +204,23 @@ def cmd_verify(args):
     sys.exit(0 if ok else 1)
 
 
+def cmd_deactivate(args):
+    guard(args)
+    before = state(args.id)
+    code, resp = api('POST', f'/workflows/{args.id}/deactivate')
+    print(f'POST /workflows/{args.id}/deactivate -> HTTP {code}')
+    if code != 200: print('  error:', json.dumps(resp)[:600])
+    print('  before:', before); print('  after: ', state(args.id))
+    sys.exit(0 if code == 200 else 1)
+
+
 def cmd_state(args):
     print(state(args.id))
 
 
 ap = argparse.ArgumentParser()
 sub = ap.add_subparsers(dest='cmd', required=True)
-for name in ('deploy', 'activate', 'verify', 'state'):
+for name in ('deploy', 'activate', 'deactivate', 'verify', 'state'):
     s = sub.add_parser(name)
     s.add_argument('--id', required=True)
     s.add_argument('--production', action='store_true')
@@ -216,4 +230,4 @@ for name in ('deploy', 'activate', 'verify', 'state'):
         s.add_argument('--path', required=True)
         s.add_argument('--signed-probe', action='store_true')
 args = ap.parse_args()
-{'deploy': cmd_deploy, 'activate': cmd_activate, 'verify': cmd_verify, 'state': cmd_state}[args.cmd](args)
+{'deploy': cmd_deploy, 'activate': cmd_activate, 'deactivate': cmd_deactivate, 'verify': cmd_verify, 'state': cmd_state}[args.cmd](args)
