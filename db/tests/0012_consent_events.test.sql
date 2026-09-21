@@ -30,6 +30,14 @@
 --   5  ERROR   consent_events_consent_is_dated
 --   6  ERROR   consent_events_phone_e164
 --   7  NOTICE  'The resting state holds: a legitimate event inserts.'
+--      NOTICE  'Revert verified: no fixture rows remain in the ledger.'
+--
+--   🔴 8  is SEPARATE and runs LAST, with its own read-only query first. See
+--         the block at the foot of this file — it takes ACCESS EXCLUSIVE on
+--         the ledger, so it is not run casually alongside the others.
+--      NOTICE  'Dropping <fk> for the duration of this transaction.'
+--      ERROR   consent_events cannot be truncated …
+--      NOTICE  'Revert verified: the foreign key is back, and the ledger holds N row(s).'
 
 -- ══ CASE 1 — the grants 0012 claims ════════════════════════════════════════
 -- 🔒 The belt. Tonight found a revoke that had never applied on another table,
