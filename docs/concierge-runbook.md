@@ -212,7 +212,19 @@ calendar id that passes free/busy, and it will appear in the client list, the
 all-leads filters and the weekly-report client picker. Delete it before a real
 agency is onboarded.
 
-Cleanup order — `events` does NOT cascade, so delete it explicitly:
+Cleanup order. 🔁 **Corrected 21 September 2026.** This used to say `events`
+does not cascade, and that was wrong. `events_client_id_fkey` is
+`ON DELETE CASCADE` (from `0001`, confirmed in `pg_constraint`). The explicit
+deletes are still needed for a different reason: `events.client_id` is
+nullable, and an event that names the lead only in `data->>'lead_id'`, with no
+`client_id`, is reached by no key at all. The third statement below is covered
+by the cascade and is kept only for clarity.
+
+⚠️ **Since `0049`, the last statement is REFUSED if the client has any
+contract or payment** (`client_contracts` or `payments`, which are now
+`ON DELETE RESTRICT`). That refusal is deliberate. A client with money
+recorded against it is not a test client to be deleted. If the refusal
+appears, stop and find out why that row exists.
 
 ```sql
 delete from messages where lead_id = 'e4d8dcc9-b3c8-4a86-ada2-6f956b55ec21';
@@ -221,8 +233,19 @@ delete from events   where client_id = '20e5c7ec-eaa6-4f5d-bf38-49e9ab24fc12';
 delete from clients  where id = '20e5c7ec-eaa6-4f5d-bf38-49e9ab24fc12';
 ```
 
-The last statement cascades to `leads`, `client_automations` and
-`metrics_daily`. Confirm with `select count(*) from clients` returning 1.
+The last statement cascades to every table with a `client_id` key except the
+money tables: `leads`, `client_automations`, `metrics_daily`, `events` and the
+rest. 🔴 The two records that matter behave differently (read from
+`pg_trigger`, 21 September):
+
+- `consent_events` has a row trigger refusing DELETE. A cascade into it is
+  refused, so a client with any consent record cannot be deleted this way.
+  The whole statement fails.
+- `sends` is frozen against UPDATE only. A cascade into it **succeeds, and
+  the record of every message sent is erased silently.**
+
+See the erasure/retention item in `docs/improvements-and-opportunities.md`.
+Confirm with `select count(*) from clients` returning 1.
 
 ### Multi-client INBOUND routing is unproven, and cannot be proven on the sandbox
 

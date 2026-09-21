@@ -271,8 +271,8 @@ intent. The difference is recorded in `0045`'s own header and here.
    disk. That agrees with what the catalogue shows.
    ⚠️ The same entry's `what` and `how` text still says the destructive guard
    is *UNPROVEN*. Commit `eabaf98` says it was later seen to fire and blessed,
-   so the text is stale and the blessing is current. The Month may treat
-   `received_on` as gone. The prose is owed a correction.
+   so the text was stale and the blessing is current. The Month may treat
+   `received_on` as gone. The proof-book text was corrected on 21 September.
 2. 🔴 **`client_contracts.updated_at` is dead.** `0042` made the table
    append-only, so nothing can update a row and the column can only ever equal
    `created_at`. Named in `0042`'s header and owed a `0032`-treatment drop.
