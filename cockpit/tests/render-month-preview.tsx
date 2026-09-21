@@ -26,6 +26,9 @@ import { TheMonth } from '../src/components/month/TheMonth'
 import { Entry } from '../src/components/month/Entry'
 import { buildMonth, lisbonToday, monthKey, monthOf, type MonthInputs } from '../src/lib/month/model'
 import { readMonthInputs, type ReadFailure } from '../src/lib/month/read'
+import { readActivity } from '../src/lib/month/activity-read'
+import { automationLines, countsFor, firstsFor } from '../src/lib/month/activity'
+import type { ActivityModel } from '../src/components/month/TheMonth'
 
 const OUT = process.argv[2] ?? '/tmp/month-preview'
 mkdirSync(OUT, { recursive: true })
@@ -74,7 +77,7 @@ body{margin:0;background:var(--black);color:var(--text);font:15px/1.5 var(--sans
 ${body}</div></body></html>`
 }
 
-function render(name: string, title: string, sample: boolean, inputs: MonthInputs, today: string, failures: ReadFailure[] = [], month = monthOf(today)) {
+function render(name: string, title: string, sample: boolean, inputs: MonthInputs, today: string, failures: ReadFailure[] = [], month = monthOf(today), activity?: ActivityModel) {
   const model = buildMonth(inputs, month, today)
   const parties = [
     ...(inputs.webClients ?? []).map((c) => ({ value: `w:${c.id}`, label: c.name, business: 'web' as const, rehearsal: c.rehearsal })),
@@ -82,7 +85,7 @@ function render(name: string, title: string, sample: boolean, inputs: MonthInput
   ]
   const html = renderToStaticMarkup(
     <>
-      <TheMonth model={model} readAt={new Date().toISOString()} failures={failures} hrefFor={(m) => `?m=${monthKey(m)}`} />
+      <TheMonth model={model} activity={activity} readAt={new Date().toISOString()} failures={failures} hrefFor={(m) => `?m=${monthKey(m)}`} />
       <div style={{ marginTop: 32 }}><Entry parties={parties} contracts={[]} recordable={inputs.clientCostsRecordable !== false} /></div>
     </>,
   )
@@ -92,7 +95,18 @@ function render(name: string, title: string, sample: boolean, inputs: MonthInput
 
 async function main() {
 const real = await readMonthInputs()
-render('real', `today, ${lisbonToday(new Date())}`, false, real.inputs, lisbonToday(new Date()), real.failures)
+const today = lisbonToday(new Date())
+const autoC = real.inputs.automationClients ?? []
+const realIds = autoC.filter((c) => !c.rehearsal).map((c) => c.id)
+const act = await readActivity(monthOf(today), realIds, [])
+const activity: ActivityModel = {
+  real: act.events && act.messages ? countsFor(act.events, act.messages, new Set(realIds), monthOf(today)) : null,
+  rehearsal: act.events && act.messages ? countsFor(act.events, act.messages, new Set(autoC.filter((c) => c.rehearsal).map((c) => c.id)), monthOf(today)) : null,
+  realClients: realIds.length, lines: automationLines(act.runsFor ?? new Map(), today),
+  firsts: firstsFor({ firstClient: act.firstClient, firstLead: act.firstLead, firstSystemReply: act.firstSystemReply, firstMeeting: act.firstMeeting, contracts: real.inputs.contracts ?? [], payments: real.inputs.payments ?? [], realParties: new Set(realIds) }, today),
+  failures: act.failures,
+}
+render('real', `today, ${today}`, false, real.inputs, today, real.failures, monthOf(today), activity)
 render('day3', '3 October 2026, in progress', true, SAMPLE, '2026-10-03')
 render('closed', 'September 2026, closed', true, SAMPLE, '2026-10-03', [], { y: 2026, m: 9 })
 render('first', 'the first automation contract, from 17 Oct (prorated)', true, {

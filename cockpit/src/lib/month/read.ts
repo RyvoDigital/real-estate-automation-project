@@ -80,18 +80,34 @@ async function costsRead(failures: ReadFailure[]): Promise<{ rows: CostRow[] | n
   return { rows: await one<CostRow>('costs', failures), recordable: false }
 }
 
+/**
+ * The deploy gate's test clients: a client whose automation is marked
+ * config.gate_only = true (set when the gate was built). Read by the marker,
+ * never by name. A failed read is not fatal: those clients stay counted as
+ * rehearsals, which is what they also are.
+ */
+async function testClientsRead(): Promise<string[] | null> {
+  try {
+    const { data, error } = await admin().from('client_automations').select('client_id').eq('config->>gate_only', 'true')
+    return error ? null : [...new Set((data ?? []).map((r) => (r as { client_id: string }).client_id))]
+  } catch {
+    return null
+  }
+}
+
 /** Every source at once; none waits for another, and none can take another down. */
 export async function readMonthInputs(): Promise<{ inputs: MonthInputs; failures: ReadFailure[]; readAt: string }> {
   const failures: ReadFailure[] = []
-  const [contracts, automationClients, webClients, payments, costs] = await Promise.all([
+  const [contracts, automationClients, webClients, payments, costs, testClientIds] = await Promise.all([
     one<ContractRow>('contracts', failures),
     one<AutomationClientRow>('automationClients', failures),
     one<WebClientRow>('webClients', failures),
     one<PaymentRow>('payments', failures),
     costsRead(failures),
+    testClientsRead(),
   ])
   return {
-    inputs: { contracts, automationClients, webClients, payments, costs: costs.rows, clientCostsRecordable: costs.recordable },
+    inputs: { contracts, automationClients, webClients, payments, costs: costs.rows, clientCostsRecordable: costs.recordable, testClientIds },
     failures,
     readAt: new Date().toISOString(),
   }

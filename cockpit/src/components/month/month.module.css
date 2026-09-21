@@ -116,3 +116,14 @@
   .stepper a, .refuseLink { transition: none; }
   .stepper a:active, .refuseLink:active { transform: none; }
 }
+
+/* Visually hidden, read by assistive technology: the exact value a count-up is heading to. */
+.srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ── what the system did · Firsts ────────────────────────────────────────── */
+.activity { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: var(--s4); align-items: start; }
+.metrics { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s4) var(--s5); }
+.metrics li { display: flex; flex-direction: column; gap: 2px; font-size: 12.5px; color: var(--text-3); }
+.metrics b { font-family: var(--display); font-size: 24px; font-weight: 600; letter-spacing: -0.03em; color: var(--text); font-variant-numeric: tabular-nums; }
+.never { font-style: italic; font-size: 13.5px; color: var(--text-3); white-space: nowrap; }
+@media (max-width: 1100px) { .activity { grid-template-columns: 1fr; } .metrics { grid-template-columns: 1fr 1fr; } }

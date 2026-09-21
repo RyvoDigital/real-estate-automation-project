@@ -241,3 +241,27 @@ test('before 0052, client costs are "not recordable yet" — said once, at the p
   assert.equal(m.halves.web.clients![0].ownCents, null) // unknown, not €0
 })
 
+test('🔒 a month that has not started has no net either — withheld, never computed', () => {
+  // found 22 Sep 2026 on the first real entry: ?m=2026-10 computed "−€5,99" for October on 21 Sep
+  const inp = base({ contracts: [contract({})], costs: [cost({ side: 'automation', amount_eur: 5.99 })] })
+  const m = buildMonth(inp, OCT, '2026-09-21')
+  assert.equal(m.phase.kind, 'future')
+  assert.equal(m.sums.net.kind, 'withheld')
+  assert.equal(m.halves.automation.leaves.kind, 'withheld')
+  assert.equal(m.halves.web.leaves.kind, 'withheld')
+})
+
+test('the deploy-gate client is counted apart from rehearsals, by its marker, never its name', () => {
+  const inp = base({
+    automationClients: [
+      { id: 'a1', name: 'ZZ rehearsal', status: 'active', rehearsal: true },
+      { id: 'a2', name: 'anything at all', status: 'active', rehearsal: true },
+      { id: 'g1', name: 'ZZ GATE', status: 'active', rehearsal: true },
+    ],
+    testClientIds: ['g1'],
+  })
+  const h = buildMonth(inp, OCT, '2026-10-03').halves.automation
+  assert.equal(h.rehearsals, 2)
+  assert.equal(h.testClients, 1)
+})
+

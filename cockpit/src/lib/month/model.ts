@@ -81,6 +81,8 @@ export type MonthInputs = {
   costs: CostRow[] | null
   /** false until 0052 adds the client reference to costs; then a client's own costs have a home */
   clientCostsRecordable?: boolean
+  /** clients whose automation is the deploy gate's (config.gate_only): test clients, not rehearsals */
+  testClientIds?: string[] | null
 }
 
 // ---------------------------------------------------------------- dates
@@ -267,7 +269,10 @@ export type Half = {
   oneOff: OneOffLine[] | null
   oneOffCents: number | null
   setupOutstanding: { name: string; cents: number }[]
+  /** rehearsal clients that are not test clients */
   rehearsals: number | null
+  /** the deploy gate's test clients, identified by config.gate_only — never counted either */
+  testClients: number
   failed: string[]
 }
 
@@ -474,6 +479,8 @@ function half(inp: MonthInputs, ctx: Ctx, b: Business, M: Month, today: string, 
   let leaves: Leaves
   if (rec === null || costCents === null) leaves = { kind: 'unreadable' }
   else if (!anythingIn(inp, ctx, [b], M, today)) leaves = { kind: 'nothing' }
+  // 🔒 a month that has not started leaves nothing yet, for either business (22 Sep 2026)
+  else if (phase.kind === 'future') leaves = { kind: 'withheld', lastClosed: null }
   else if (b === 'web') leaves = { kind: 'value', cents: rec.earned - costCents, completeFromDayOne: phase.kind === 'in_progress' }
   else if (phase.kind === 'in_progress') {
     const prev = addMonths(M, -1)
@@ -499,7 +506,8 @@ function half(inp: MonthInputs, ctx: Ctx, b: Business, M: Month, today: string, 
     oneOff,
     oneOffCents: oneOff ? sumC(oneOff) : null,
     setupOutstanding: contractsOk && inp.payments !== null ? setupOutstandingFor(inp, ctx, b, today) : [],
-    rehearsals: rows ? rows.filter((r) => r.rehearsal).length : null,
+    rehearsals: rows ? rows.filter((r) => r.rehearsal && !(inp.testClientIds ?? []).includes(r.id)).length : null,
+    testClients: rows ? rows.filter((r) => (inp.testClientIds ?? []).includes(r.id)).length : 0,
     failed,
   }
 }
@@ -527,6 +535,9 @@ export function buildMonth(inp: MonthInputs, M: Month, today: string): MonthMode
   let net: Leaves
   if (recurring === null || costCents === null) net = { kind: 'unreadable' }
   else if (!anythingRecorded) net = { kind: 'nothing' }
+  // 🔒 no net for a month that has not started, as for one in progress (22 Sep 2026:
+  // ?m=2026-10 computed "−€5,99" for October on 21 September)
+  else if (phase.kind === 'future') net = { kind: 'withheld', lastClosed: null }
   else if (phase.kind === 'in_progress') {
     const prev = addMonths(M, -1)
     const pm = buildMonth(inp, prev, today) // today is past prev's last day, so prev is closed

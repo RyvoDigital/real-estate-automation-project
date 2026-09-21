@@ -19,7 +19,7 @@ import styles from './entry.module.css'
  * the button says so instead.
  */
 
-export type PartyOption = { value: string; label: string; business: 'automation' | 'web'; rehearsal: boolean }
+export type PartyOption = { value: string; label: string; business: 'automation' | 'web'; rehearsal: boolean; test?: boolean }
 export type ContractOption = { id: string; label: string }
 
 const LABEL: Record<string, string> = {
@@ -49,7 +49,7 @@ function Parties({ parties, only, state, optional }: { parties: PartyOption[]; o
         const group = list.filter((p) => p.business === b)
         return group.length ? (
           <optgroup key={b} label={b === 'web' ? 'Web clients' : 'Automation clients'}>
-            {group.map((p) => <option key={p.value} value={p.value}>{p.label}{p.rehearsal ? ' (rehearsal, not counted)' : ''}</option>)}
+            {group.map((p) => <option key={p.value} value={p.value}>{p.label}{p.test ? ' (deploy-gate test client, not counted)' : p.rehearsal ? ' (rehearsal, not counted)' : ''}</option>)}
           </optgroup>
         ) : null
       })}

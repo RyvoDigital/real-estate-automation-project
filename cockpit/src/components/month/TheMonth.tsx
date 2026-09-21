@@ -5,6 +5,8 @@ import {
   type CostLine, type Half, type Leaves, type MonthModel,
 } from '@/lib/month/model'
 import type { ReadFailure } from '@/lib/month/read'
+import type { AutomationLine, Counts, First } from '@/lib/month/activity'
+import { CountUp } from './CountUp'
 import styles from './month.module.css'
 
 /*
@@ -23,8 +25,20 @@ import styles from './month.module.css'
  * slots in IDENTICAL order, so a full half and an empty one read as two states.
  */
 
+export type ActivityModel = {
+  /** real clients' counts for the month; null = a read failed */
+  real: Counts | null
+  /** rehearsal and test clients, counted apart */
+  rehearsal: Counts | null
+  realClients: number
+  lines: AutomationLine[]
+  firsts: First[]
+  failures: string[]
+}
+
 type Props = {
   model: MonthModel
+  activity?: ActivityModel
   readAt: string
   failures: ReadFailure[]
   hrefFor: (m: { y: number; m: number }) => string
@@ -32,17 +46,6 @@ type Props = {
 
 const SHORT = (m: { y: number; m: number }) => monthName(m).slice(0, 3)
 const endOf = (m: { y: number; m: number }) => `${new Date(Date.UTC(m.y, m.m, 0)).getUTCDate()} ${SHORT(m)}`
-
-function Money({ cents, per }: { cents: number; per?: string }) {
-  const s = eur(cents)
-  const k = s.lastIndexOf(',')
-  return (
-    <span className={styles.money}>
-      {s.slice(0, k)}<span className={styles.cents}>{s.slice(k)}</span>
-      {per ? <span className={styles.per}>{per}</span> : null}
-    </span>
-  )
-}
 
 /** A block: label, figure, one supporting line. The page's only rhythm. */
 function Block({ label, aside, children, line }: { label: string; aside?: string; children: React.ReactNode; line?: React.ReactNode }) {
@@ -133,7 +136,7 @@ function LeavesFigure({ leaves, month }: { leaves: Leaves; month: MonthModel['mo
   if (leaves.kind === 'unreadable') return <span className={styles.none}>Not shown — a read failed</span>
   if (leaves.kind === 'nothing') return <span className={styles.none}>Nothing recorded</span>
   if (leaves.kind === 'withheld') return <span className={styles.withheld}>After {endOf(month)}</span>
-  return <Signed cents={leaves.cents}><Money cents={leaves.cents} /></Signed>
+  return <Signed cents={leaves.cents}><CountUp cents={leaves.cents} /></Signed>
 }
 function LeavesLine({ leaves, web }: { leaves: Leaves; web: boolean }) {
   if (leaves.kind === 'withheld') {
@@ -143,6 +146,15 @@ function LeavesLine({ leaves, web }: { leaves: Leaves; web: boolean }) {
   }
   if (leaves.kind === 'value') return <>{web ? (leaves.completeFromDayOne ? 'Complete already — no usage costs' : 'No usage costs') : 'Excludes usage'}</>
   return null
+}
+
+/** "2 rehearsals · 1 test client, not counted" — both kept apart, neither hidden. */
+function notCounted(half: Half): string {
+  const parts = [
+    half.rehearsals ? `${half.rehearsals} rehearsal${half.rehearsals === 1 ? '' : 's'}` : '',
+    half.testClients ? `${half.testClients} test client${half.testClients === 1 ? '' : 's'}` : '',
+  ].filter(Boolean)
+  return parts.length ? ` · ${parts.join(' · ')}, not counted` : ''
 }
 
 function HalfView({ half, model, failures }: { half: Half; model: MonthModel; failures: ReadFailure[] }) {
@@ -156,12 +168,12 @@ function HalfView({ half, model, failures }: { half: Half; model: MonthModel; fa
     <section className={styles.half} data-business={half.business} aria-label={web ? 'Web' : 'Automations'}>
       <header className={styles.halfHead}>
         <h2>{web ? 'Web' : 'Automations'}</h2>
-        <span>{status}{half.rehearsals ? ` · ${half.rehearsals} rehearsal${half.rehearsals === 1 ? '' : 's'} not counted` : ''}</span>
+        <span>{status}{notCounted(half)}</span>
       </header>
 
       <Block label="Recurring" line={half.everContracted && half.monthCents !== null && half.monthCents !== half.recurringCents ? <>This month {eur(half.monthCents)} · prorated</> : undefined}>
         {half.recurringCents === null ? <Failed thing={`the ${web ? 'web' : 'automation'} contracts`} messages={msgs} />
-          : half.everContracted ? <Money cents={half.recurringCents} per="/ month" />
+          : half.everContracted ? <CountUp cents={half.recurringCents} per="/ month" />
             : <span className={styles.none}>No contract yet</span>}
       </Block>
 
@@ -219,7 +231,79 @@ function HalfView({ half, model, failures }: { half: Half; model: MonthModel; fa
   )
 }
 
-export function TheMonth({ model, readAt, failures, hrefFor }: Props) {
+const fmtSeconds = (s: number) => (s < 90 ? `${Math.round(s)} s` : `${Math.floor(s / 60)} min ${Math.round(s % 60)} s`)
+const fmtDay = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+
+function CountsLine({ c }: { c: Counts }) {
+  return (
+    <>
+      {c.leads} lead{c.leads === 1 ? '' : 's'} · {c.systemReplies} repl{c.systemReplies === 1 ? 'y' : 'ies'} by the system · {c.handedOver} handed to a person
+      {c.medianFirstReplySeconds !== null ? <> · median first reply {fmtSeconds(c.medianFirstReplySeconds)}</> : null}
+    </>
+  )
+}
+
+/**
+ * What the automation business did, what is holding it, and Firsts (brief I
+ * §2.10). Real clients only; measured, never estimated. Rehearsals and the
+ * deploy gate's test clients on one separate line, never mixed in.
+ */
+function ActivityPanels({ activity: a, month }: { activity: ActivityModel; month: MonthModel['month'] }) {
+  const real = a.real
+  return (
+    <div className={styles.activity}>
+      <section className={styles.panel} aria-label="What the automation business did">
+        <div className={styles.block}>
+          <div className={styles.label}><span>What the system did · {monthName(month)}</span><span className={styles.aside}>real clients only</span></div>
+          {a.failures.length ? <Failed thing="what the system did" messages={a.failures} /> : null}
+          {real && real.clients > 0 ? (
+            <ul className={styles.metrics}>
+              <li><b>{real.leads}</b>leads received</li>
+              <li><b>{real.systemReplies}</b>replies by the system</li>
+              <li><b>{real.handedOver}</b>handed to a person</li>
+              <li><b>{real.personReplies}</b>replies by a person</li>
+              <li><b>{real.meetings}</b>introductory meetings booked</li>
+              <li><b>{real.medianFirstReplySeconds === null ? '—' : fmtSeconds(real.medianFirstReplySeconds)}</b>median time to first reply{real.firstReplySamples ? ` · ${real.firstReplySamples} leads` : ''}</li>
+            </ul>
+          ) : null}
+          <ul className={styles.rows}>
+            {a.lines.map((l) => (
+              <li key={l.key} className={styles.row}>
+                <span className={styles.rowName}>{l.label}<small>{
+                  l.heldBy ? `Held — waiting on ${l.heldBy.who}${l.heldBy.since ? ` since ${fmtDay(l.heldBy.since)}` : ''}`
+                    : l.runsFor ? `Runs for ${l.runsFor} client${l.runsFor === 1 ? '' : 's'}`
+                      : 'No real client runs it yet'
+                }</small></span>
+                {l.heldBy?.days !== null && l.heldBy?.days !== undefined ? <StateChip meaning="clock">waiting · {l.heldBy.days} days</StateChip> : <span />}
+                <span />
+              </li>
+            ))}
+          </ul>
+          {a.rehearsal && a.rehearsal.clients > 0 ? (
+            <div className={styles.line}>Rehearsals and test clients, not counted above: <CountsLine c={a.rehearsal} />.</div>
+          ) : null}
+        </div>
+      </section>
+      <section className={styles.panel} aria-label="Firsts">
+        <div className={styles.block}>
+          <div className={styles.label}><span>Firsts</span><span className={styles.aside}>the business, honestly incomplete</span></div>
+          <ul className={styles.rows}>
+            {a.firsts.map((f) => (
+              <li key={f.label} className={styles.row}>
+                <span className={styles.rowName}>{f.label}{f.kind === 'held' ? <small>held — waiting on {f.who}</small> : null}</span>
+                {f.kind === 'held' && f.days !== null ? <StateChip meaning="clock">waiting · {f.days} days</StateChip> : <span />}
+                {/* A held first is neither "Never" nor a date: its chip says why it has not happened. */}
+                <span className={f.kind === 'happened' ? styles.amount : styles.never}>{f.kind === 'happened' ? fmtDay(f.on) : f.kind === 'never' ? 'Never' : ''}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+export function TheMonth({ model, activity, readAt, failures, hrefFor }: Props) {
   const M = model.month
   const p = model.phase
   const inProgress = p.kind === 'in_progress'
@@ -248,15 +332,15 @@ export function TheMonth({ model, readAt, failures, hrefFor }: Props) {
       <section className={styles.sums} aria-label="The company's sums">
         <Block label="Recurring" line={s.composition && ever ? <><i className={styles.keyWeb} />Web {eur(s.composition.web)} · <i className={styles.keyAuto} />Automations {s.composition.automation ? eur(s.composition.automation) : 'none'}</> : 'No contract ever recorded'}>
           {s.recurringCents === null ? <span className={styles.none}>Not shown — a read failed</span>
-            : ever ? <Money cents={s.recurringCents} per="/ month" /> : <span className={styles.none}>None recorded</span>}
+            : ever ? <CountUp cents={s.recurringCents} per="/ month" /> : <span className={styles.none}>None recorded</span>}
         </Block>
         <Block label={`One-off${inProgress ? ' so far' : ''}`} line="Never added to recurring">
           {s.oneOffCents === null ? <span className={styles.none}>Not shown — a read failed</span>
-            : s.oneOffCents ? <Money cents={s.oneOffCents} /> : <span className={styles.none}>None recorded</span>}
+            : s.oneOffCents ? <CountUp cents={s.oneOffCents} /> : <span className={styles.none}>None recorded</span>}
         </Block>
         <Block label={`Costs${inProgress ? ' so far' : ''}`} line="Excludes usage — not measured yet">
           {s.costCents === null ? <span className={styles.none}>Not shown — a read failed</span>
-            : allCosts.length ? <Money cents={s.costCents} /> : <span className={styles.none}>None recorded</span>}
+            : allCosts.length ? <CountUp cents={s.costCents} /> : <span className={styles.none}>None recorded</span>}
         </Block>
         <Block label="Recurring − costs" line={<LeavesLine leaves={s.net} web={false} />}>
           <LeavesFigure leaves={s.net} month={M} />
@@ -277,12 +361,13 @@ export function TheMonth({ model, readAt, failures, hrefFor }: Props) {
             {model.company.costs === null ? <Failed thing="the company's costs" messages={msgs} /> : <CostRows lines={model.company.costs} />}
           </Block>
         </section>
-        {/* Not boxed: two things this page does not have yet, said plainly. */}
+        {/* Not boxed: the one thing this page does not have yet, said plainly. */}
         <dl className={styles.pending}>
           <div><dt>Invoices to check</dt><dd>Not built — WhatsApp and model usage are not measured yet.</dd></div>
-          <div><dt>What the system did · Firsts</dt><dd>Not built — the next checkpoint.</dd></div>
         </dl>
       </div>
+
+      {activity ? <ActivityPanels activity={activity} month={M} /> : null}
 
       <details className={styles.absent}>
         <summary>What this page does not do</summary>

@@ -630,6 +630,7 @@ governs every animation:
 |---|---|
 | **Clocks tick** (the minute advances in place) | **Only while the data is live.** When a re-read fails, or three are missed (§1.12), **the clocks stop and the rendered-at stamp goes loud** (S8). A clock ticking over stale data is a relative time drifting from the truth — the escalation it measures may already be cleared. Ticking *is* the liveness signal: moving means live, still means stale |
 | **A changed number rolls** — digits roll individually | *This changed since the last read*, instead of a silent re-render |
+| **A figure counts up after a save** (The Month) — about 500 ms, easing out, from the figure it replaced to the new one | *Your save changed this.* 🔒 **Only on a change that follows a save, never on a page load** (a fresh load starts at the final value). 🔒 **The exact final value is in the accessible text from the first frame**; only the visible digits move, and they are hidden from screen readers. Off under `prefers-reduced-motion`: the new value simply appears. Added 22 Sep 2026 (operator) |
 | **A new row fades in** with a brief glow; **a cleared row collapses out**; rows move with layout animation when a clock re-sorts them | what happened between two reads |
 | **A tier crossing animates once** — the clock's track fill passes a notch (§2.1) | the moment a lead became late |
 | **A group opens and closes** with a spring height of about 220 ms | continuity between collapsed and open |
