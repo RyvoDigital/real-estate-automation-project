@@ -84,7 +84,7 @@ const READ_CRED_ALSO_ALLOWED = ['cockpit/tests/probe-reconcile.ts']
  * different reasons. A single shared loosening would be the moment "at most one"
  * started drifting towards "some".
  */
-const SEND_CRED_ALSO_ALLOWED: Record<string, 'injects-fetch' | 'no-route-to-a-sender'> = {
+const SEND_CRED_ALSO_ALLOWED: Record<string, 'injects-fetch' | 'no-route-to-a-sender' | 'signs-inbound-only'> = {
   // Builds requests to assert their shape. Safe because every construction
   // injects fetch, so a real credential in the environment changes nothing.
   'cockpit/tests/twilio-adapter.test.ts': 'injects-fetch',
@@ -92,6 +92,13 @@ const SEND_CRED_ALSO_ALLOWED: Record<string, 'injects-fetch' | 'no-route-to-a-se
   // run lists. Safe because it imports campaign-plan and nothing else — there
   // is no adapter, dispatcher or permit within its reach.
   'cockpit/tests/probe-campaign.ts': 'no-route-to-a-sender',
+  // The deploy gate and the deploy tool's signed probe (21 Sep 2026) use the
+  // auth token to SIGN an inbound request exactly as Twilio signs one, so the
+  // gate copy's VerifySignature accepts it. Safe because signing is HMAC over
+  // our own request to our own webhook: neither file reaches Twilio's API or
+  // imports its SDK, and each must visibly produce X-Twilio-Signature.
+  'tests/gate_run.py': 'signs-inbound-only',
+  'infra/scripts/n8n_api_deploy.py': 'signs-inbound-only',
 }
 
 /**
@@ -220,6 +227,14 @@ test('every file exempted for the sending credential carries its own compensatio
       assert.equal(injected, constructions,
         `${exempt} builds the adapter ${constructions} time(s) and injects fetch ${injected} time(s) — ` +
         'an un-injected construction could reach Twilio with a real credential')
+    }
+
+    if (how === 'signs-inbound-only') {
+      assert.ok(/X-Twilio-Signature/.test(f!.text), `${exempt} claims 'signs-inbound-only' and never produces a signature`)
+      for (const forbidden of [/api\.twilio\.com/, /messaging\.twilio\.com/, /\bimport\s+twilio\b/, /from\s+twilio\b/, /twilioAdapter/, /send\/dispatch/]) {
+        assert.equal(forbidden.test(f!.text), false,
+          `${exempt} claims 'signs-inbound-only' and references ${forbidden}`)
+      }
     }
 
     if (how === 'no-route-to-a-sender') {

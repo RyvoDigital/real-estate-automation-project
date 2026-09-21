@@ -543,6 +543,18 @@
       },
       "last_proved": "2026-09-21",
       "proved_by": "Manuel Vale"
+    },
+    {
+      "id": "0051-health-runs-n8n-api-key-exp",
+      "what": "health_runs gains n8n_api_key_exp (timestamptz, nullable), written by healthcheck.sh from the n8n deploy key's own JWT exp claim, for the Expiries screen (brief §2.3, Ryvo's own). WHY: deploys go through n8n's public API with N8N_API_KEY since 21 Sep 2026, and a lapsed key blocks every deploy. Until 0051 is applied, healthcheck.sh's POST is refused (400, unknown column) and it retries without the field, so nothing breaks and only the date is lost.",
+      "how": "Apply db/migrations/0051_health_runs_n8n_api_key_exp.sql in the SQL editor, then run db/tests/0051_health_runs_n8n_api_key_exp.test.sql WHOLE. It ends in a SELECT with one row per case. Expect 1-4 PASS at once; case 5 PASS once the health check has run after 0051 (within 10 minutes). Before 0051 all five are FAIL.",
+      "watches": [
+        "db/migrations/0051_health_runs_n8n_api_key_exp.sql",
+        "db/tests/0051_health_runs_n8n_api_key_exp.test.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
     }
   ]
 }

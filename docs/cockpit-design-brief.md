@@ -1841,6 +1841,17 @@ the cost of building, and never billed against a client.
 If a web client ever buys an automation, a shared billing party links the two
 rows when it first happens — never a merged table.
 
+### After a save, the page is already current 🔒
+*Added 21 Sep 2026, operator.* After a contract, a payment or a cost is saved,
+**the page updates at once, with no manual reload.** Every sum, state and panel
+that the new row touches is re-read from the database: the halves, the year,
+Firsts, and outstanding setup. A save that succeeded while the page still showed
+the old figures would read as a save that failed, or would invite a second
+entry of the same payment. The re-read is of the database, never a local
+patch of the old numbers, so what the page shows after a save is what anyone
+reloading would see. If the save fails, the page says so in place and keeps
+the form's contents. Nothing is lost, and nothing is shown as saved.
+
 ### Reads — named columns, from the view, and never three dead ones 🔒
 Added 21 September 2026, after `0050`.
 
