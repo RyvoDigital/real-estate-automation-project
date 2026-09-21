@@ -507,9 +507,11 @@
       "watches": [
         "db/migrations/0012_consent_events.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0012_consent_events.sql": "07cc761102c6061730c8549456be531077181121f2c18e63a16ad9e5b31a092b"
+      },
+      "last_proved": "2026-09-21",
+      "proved_by": "Manuel Vale"
     }
   ]
 }

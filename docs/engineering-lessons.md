@@ -4466,3 +4466,59 @@ being visible.
 
 > **The checks written to find stale records are themselves the records most
 > likely to go missing, because nothing audits the auditor's completeness.**
+
+
+## 1w. A shadowing refusal tells you nothing about what is behind it
+
+**21 September 2026.** `consent_events` has a statement-level trigger refusing
+TRUNCATE. It had never been exercised, and a plain attempt could not reach it:
+
+```
+ERROR 0A000: cannot truncate a table referenced in a foreign key constraint
+DETAIL:  Table "sends" references "consent_events".
+```
+
+The engine refuses first. From that I concluded — and wrote into the proof file
+— that **the ledger was protected by a foreign key belonging to another
+feature**, and that dropping `sends` would silently remove its protection.
+
+**That was wrong.** With the constraint dropped inside a rolled-back
+transaction, the truncate reached the trigger and the trigger fired:
+
+```
+ERROR P0001: consent_events is append-only: TRUNCATE refused.
+CONTEXT: PL/pgSQL function consent_events_append_only() line 3 at RAISE
+```
+
+The foreign key was never the protection. It was the **first refusal reached**,
+standing in front of a guard that works.
+
+### The rule
+
+> **A refusal that shadows another tells you nothing about the one behind it.**
+> It is equally consistent with a working guard and an absent one.
+
+And the pull is always toward the pessimistic reading, because **a guard you
+have never seen fire and a guard that is not there produce identical
+evidence** (§1n). That symmetry is why "I could not reach it" must be recorded
+as **unknown** rather than as **unprotected** — the second is a finding, and
+findings get acted on.
+
+### Where else it applies
+
+| shadow | what was behind it |
+|---|---|
+| `0044` guard 1 (`received_on` absent) | guard 2, the destructive one — reachable only by reconstructing the column |
+| the FK from `sends` | a working truncate trigger, reachable by dropping the constraint in a transaction |
+| a `permission denied` from a revoke | the trigger behind it — which is why `0045`'s case 1 says to **read which error it is** |
+
+In each case the cheap refusal arrives first and looks like the expensive one
+doing its job. The only way through is to **remove the shadow and look** — in a
+transaction, with the blast radius enumerated first.
+
+### And the honest version of the original claim
+
+*"The ledger is protected by a foreign key"* should have been *"I could not
+determine what protects the ledger, because something else refuses first."*
+One is a false statement about the system. The other is a true statement about
+the evidence, and it is the one that gets the test written.

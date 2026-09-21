@@ -175,12 +175,29 @@ end $$;
 --   ERROR 0A000: cannot truncate a table referenced in a foreign key constraint
 --   DETAIL: Table "sends" references "consent_events".
 --
--- That refusal comes from the ENGINE, before any trigger runs. So today the
--- ledger is protected from truncation by a FOREIGN KEY FROM `sends` —
--- incidentally, as a side effect of a relationship that exists for another
--- reason entirely. If `sends` were ever dropped, that protection would go with
--- it, and nobody would notice, because the guard meant to be doing the job has
--- never been seen to do it.
+-- That refusal comes from the ENGINE, before any trigger runs.
+--
+-- 🔴 AND THE CONCLUSION DRAWN FROM IT WAS WRONG. This file previously said the
+-- ledger was "protected from truncation by a foreign key, incidentally", and
+-- that dropping `sends` would remove its protection.
+--
+-- 🔒 IT WOULD NOT. Case 8 was run on 21 September 2026 and the trigger fired:
+--
+--   ERROR P0001: consent_events is append-only: TRUNCATE refused.
+--   CONTEXT: PL/pgSQL function consent_events_append_only() line 3 at RAISE
+--
+-- The foreign key was never the protection. It was the FIRST REFUSAL REACHED,
+-- standing in front of a guard that works.
+--
+-- The distinction matters and it is worth stating as its own rule:
+--
+--   **A SHADOWING REFUSAL TELLS YOU NOTHING ABOUT WHAT IS BEHIND IT.** It is
+--   equally consistent with a working guard and an absent one, and the
+--   temptation is to infer the absent one — because a guard you have never
+--   seen fire and a guard that is not there produce identical evidence.
+--
+-- The honest reading of the original error was "unknown", not "unprotected".
+-- What made it knowable was removing the shadow and looking.
 --
 -- 🔒 SAME SHAPE AS 0044's GUARD 1 SHADOWING GUARD 2, arriving from the engine
 -- rather than from a migration: a cheap refusal standing in front of the one
