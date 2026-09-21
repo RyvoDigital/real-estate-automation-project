@@ -512,6 +512,21 @@
       },
       "last_proved": "2026-09-21",
       "proved_by": "Manuel Vale"
+    },
+    {
+      "id": "0049-money-foreign-keys-restrict",
+      "what": "Every foreign key from a money table to its parent becomes ON DELETE RESTRICT: client_contracts → clients and → web_clients, payments → clients and → web_clients, cost_checks → costs (all five were CASCADE), and client_contracts.supersedes_id (was NO ACTION). RULE: nothing that records money or a signed contract can disappear because its parent was deleted. WHY: a single `delete from clients` removed the client's contract and every payment it made, with no error. Neither guard already in place stopped it: 0046's revoke of DELETE does not reach a cascade, because PostgreSQL runs a referential action with the referencing table's owner's rights (documented behaviour, not witnessed here), and the database has NO delete trigger on client_contracts. Its only trigger there is client_contracts_freeze_trg, BEFORE UPDATE, which is not in this repository. The 19 non-money keys into clients deliberately still CASCADE: the runbook's test-client cleanup relies on them. THE PART EASY TO GET WRONG: a key made one step too strict, or the wrong key moved, makes every parent undeletable while every refusal case still passes. Case 2 is the check that catches it.",
+      "how": "🔴 THE TEST FILE DOES NOT APPLY 0049. 0049 ends in COMMIT, so applying it inside a test case would apply it for real and make the fixtures permanent. BEFORE applying: paste CASE 0 and CASE 3 of db/tests/0049_money_foreign_keys_restrict.test.sql. Case 0 must say 'CASE 0 — THE DEFECT, SEEN'. Case 3 must REFUSE and name exactly the six keys, no others: already seen through the read-only MCP connection on 21 Sep 2026, 45 keys in the database, 45 expected, the six money keys the only difference. THEN apply 0049 by hand, the whole file, and expect its two NOTICEs. THEN paste cases 1, 2, 3 and the final block. Expect six 'Refused by <constraint>' NOTICEs and 'CASE 1: all six keys refuse', then 🔴 'CASE 2 — THE RESTING STATE HOLDS' (the case not to skip), then 'CASE 3: all 45 foreign keys are as expected', then 'No 0049 fixture survived.' Every expected refusal is caught and checked inside the database, so a correct run produces NO ERROR AT ALL. Any ERROR means stop and read it; the SQL editor abandons the rest of the script at the first one. 🔴 AS RUN, 21 Sep 2026: the Supabase SQL editor does NOT display RAISE NOTICE, so none of the expected NOTICEs were visible, and the pass rested on 'no error' alone. That is sound for this file because every failure raises, but it is the silence-looks-like-success shape. Before blessing, confirmed independently through the read-only MCP connection: 45 of 45 keys as expected, the six money keys RESTRICT and validated, 19 of 21 keys into clients still CASCADE (the other two are the money keys), and no fixture row in any of the six tables. Proofs written after this one end in a SELECT that returns a visible verdict row per case (CLAUDE.md).",
+      "watches": [
+        "db/migrations/0049_money_foreign_keys_restrict.sql",
+        "db/tests/0049_money_foreign_keys_restrict.test.sql"
+      ],
+      "hashes": {
+        "db/migrations/0049_money_foreign_keys_restrict.sql": "46c6a9ff4f0dad9c9f4b910c411f957131266bbff1affe63fc5e788cc4af76a1",
+        "db/tests/0049_money_foreign_keys_restrict.test.sql": "abcf991a07a25f5506d6712f3e8485950d267585375ccc769d602306659830eb"
+      },
+      "last_proved": "2026-09-21",
+      "proved_by": "Manuel Vale"
     }
   ]
 }
