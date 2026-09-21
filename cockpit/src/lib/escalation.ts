@@ -20,8 +20,13 @@
 
 export type EscalationClass = 'system' | 'high_value' | 'person'
 
-/** The system set, matching SYSTEM_REASONS in the workflow exactly. */
-const SYSTEM = /^(claude_failed|bad_reply_twice|booking_failed|booking_retired|no_availability|media_unprocessable)/
+/**
+ * The system set. It USED to be written here and claimed to match the
+ * workflow "exactly"; it did not (booking_retired). It now comes from the one
+ * list, src/system_reasons.js, mirrored in ./system-reasons.ts under a test
+ * that fails if they diverge.
+ */
+import { SYSTEM } from './system-reasons'
 
 export type Escalated = {
   at: string | null

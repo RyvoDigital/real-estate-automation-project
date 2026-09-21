@@ -42,6 +42,8 @@ const UNMARKED = {
   'src/booking_claim.js': ['ParseClaude', 'ParseGuardRetry', 'AssertInvariants', 'AssertDelivery'],
   'src/time_guard.js': ['ParseClaude', 'ParseGuardRetry', 'AssertInvariants', 'AssertDelivery'],
   'src/invariants.js': ['AssertInvariants', 'AssertDelivery'],
+  'src/parse_reply.js': ['ParseClaude', 'ParseGuardRetry'],
+  'src/system_reasons.js': ['PrepRunEscalated'],
   'src/language.js': ['BuildClaudeRequest', 'ParseClaude', 'ParseGuardRetry', 'DecideEscalation',
                       'AfterBooking', 'MediaReply', 'CatchInternal'],
 };

@@ -1,0 +1,359 @@
+{
+ "_readme": [
+  "Every real model reply captured on 21 Sep 2026, word for word. A regression corpus:",
+  "a new broken-reply marker must stay at zero false positives on every entry with garbled=false,",
+  "and must flag every entry with garbled=true. Captured output, never edited."
+ ],
+ "replies": [
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "That time isn't available, but I can offer Thursday 10 September at 11:00, or Tuesday 8 September at 10:00, or Wednesday 9 September at 15:00, all Lisbon time. Would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "That time isn't available, but I do have Thursday 10 September at 11:00 Lisbon time, or Tuesday 8 September at 10:00 and Wednesday 9 September at 15:00. Would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "That specific time isn't available, but I do have Thursday 10 September at 11:00 Lisbon time, or Tuesday 8 September at 10:00 or Wednesday 9 September at 15:00. Would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "That time isn't available, but I can offer Tuesday 8 September at 10:00, Wednesday 9 September at 15:00, or Thursday 10 September at 11:00, all Lisbon time. Would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "That time isn't available, unfortunately. I can offer Tuesday 8 September at 10:00, Wednesday 9 September at 15:00 or Thursday 10 September at 11:00, all Lisbon time. Would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "That time isn't available, but I can offer Tuesday 8 September at 10:00, Wednesday 9 September at 15:00 or Thursday 10 September at 11:00, all Lisbon time. Would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "That time isn't available, unfortunately. I can offer Tuesday 8 September at 10:00, Wednesday 9 September at 15:00 or Thursday 10 September at 11:00, all Lisbon time. Would any of those work?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "17:00 isn't available, I'm afraid. I can offer Tuesday 8 September at 10:00, Wednesday 9 September at 15:00, or Thursday 10 September at 11:00 (Lisbon time) - would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "That slot isn't available, but I can offer Wednesday 9 September at 15:00 Lisbon time instead, along with Tuesday 8 September at 10:00 or Thursday 10 September at 11:00. Would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "That slot isn't available, but I can offer Tuesday 8 September at 10:00, Wednesday 9 September at 15:00, or Thursday 10 September at 11:00 (Lisbon time). Would any of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "That slot isn't available, but I can offer Wednesday 9 September at 15:00 Lisbon time instead, or Tuesday 8 September at 10:00 / Thursday 10 September at 11:00 if either suits better. Which would you like?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "Essa hora não está disponível, mas tenho quinta-feira, 10 de setembro, às 11:00 (hora de Lisboa), ou terça-feira dia 8 às 10:00 e quarta-feira dia 9 às 15:00. Alguma destas serve?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "Essa hora não está disponível, mas posso propor quinta-feira, 10 de setembro, às 11:00, ou então terça-feira, 8 de setembro, às 10:00, ou quarta-feira, 9 de setembro, às 15:00 (hora de Lisboa). Alguma destas funciona para si?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "Essa hora não está disponível, mas posso propor quinta-feira, 10 de setembro, às 11:00 (hora de Lisboa), ou terça-feira às 10:00 e quarta-feira às 15:00. Alguma dessas funciona para si?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "Essa hora em concreto não está disponível. Posso propor terça-feira, 8 de setembro, às 10:00, quarta-feira, 9 de setembro, às 15:00 ou quinta-feira, 10 de setembro, às 11:00 (hora de Lisboa). Alguma destas funciona para si?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "Esse horário não está disponível. Temos terça-feira, 8 de setembro, às 10:00, quarta-feira, 9 de setembro, às 15:00, ou quinta-feira, 10 de setembro, às 11:00, hora de Lisboa. Alguma destas lhe convém?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "Esse horário não está disponível, infelizmente. Posso oferecer terça-feira, 8 de setembro, às 10:00, quarta-feira, 9 de setembro, às 15:00 ou quinta-feira, 10 de setembro, às 11:00 (hora de Lisboa). Alguma dessas funciona para si?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "Esse horário não está disponível, mas posso propor terça-feira, 8 de setembro, às 10:00, quarta-feira, 9 de setembro, às 15:00 ou quinta-feira, 10 de setembro, às 11:00 (hora de Lisboa). Qual destes prefere?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "Esse horário não está disponível, mas posso oferecer terça-feira, 8 de setembro, às 10:00, quarta-feira, 9 de setembro, às 15:00 ou quinta-feira, 10 de setembro, às 11:00 (hora de Lisboa). Alguma destas lhe convém?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "Nesse horário não tenho disponibilidade, infelizmente. Posso propor terça-feira, 8 de setembro, às 10:00, quarta-feira, 9 de setembro, às 15:00 ou quinta-feira, 10 de setembro, às 11:00 (hora de Lisboa). Alguma destas funciona para si?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "Essa hora não está disponível, mas tenho aberta quarta-feira, 9 de setembro, às 15:00 (hora de Lisboa), ou então terça às 10:00 ou quinta às 11:00. Alguma destas serve?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "Essa hora não está disponível, mas tenho quarta-feira, 9 de setembro, às 15:00 (hora de Lisboa), além de terça-feira dia 8 às 10:00 e quinta-feira dia 10 às 11:00. Alguma dessas serve?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "Ese horario no está disponible, pero sí tengo el jueves 10 de septiembre a las 11:00 (hora de Lisboa), o si prefiere, el martes 8 de septiembre a las 10:00 o el miércoles 9 de septiembre a las 15:00. ¿Le viene bien alguno de estos?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "Ese horario no está disponible, pero sí tengo jueves 10 de septiembre a las 11:00 (hora de Lisboa), martes 8 de septiembre a las 10:00 o miércoles 9 de septiembre a las 15:00. ¿Le viene bien alguno de estos?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "ueero elosesa hora concreo, ualdebo confentar que el actualmente no tenemos ninguna cita agendada. Puedo confirmar directamente el jueves 10 de septiembre a las 11:00, hora de Lisbo,, si le viene bien.dígame para me confirma y quedaría, y con gusto lo dejo registado.ado con si me lo confirma.",
+   "garbled": true
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "Ese horario no está disponible, pero sí tengo el jueves 10 de septiembre a las 11:00, el martes 8 de septiembre a las 10:00 o el miércoles 9 de septiembre a las 15:00 (hora de Lisboa). ¿Le viene bien alguno de estos?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "A las 17:00 no tenemos disponibilidad por el momento; los horarios que puedo ofrecerle son el martes 8 de septiembre a las 10:00, el miércoles 9 de septiembre a las 15:00 o el jueves 10 de septiembre a las 11:00 (hora de Lisboa). ¿Le viene bien alguno de estos?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "A las 17:00 no tengo esa franja disponible, pero sí puedo ofrecerle el martes 8 de septiembre a las 10:00, el miércoles 9 de septiembre a las 15:00 o el jueves 10 de septiembre a las 11:00, hora de Lisboa. ¿Le viene bien alguna de estas?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "Lamento, ese horario no está disponible. Puedo ofrecerle el martes 8 de septiembre a las 10:00, el miércoles 9 de septiembre a las 15:00 o el jueves 10 de septiembre a las 11:00 (hora de Lisboa). ¿Le viene bien alguno de esos?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "Esa hora no la tengo disponible por ahora, pero puedo ofrecerle el martes 8 de septiembre a las 10:00, el miércoles 9 de septiembre a las 15:00 o el jueves 10 de septiembre a las 11:00 (hora de Lisboa). ¿Le viene bien alguna de esas?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "Ese horario no está disponible, pero sí tengo el miércoles 9 de septiembre a las 15:00 (hora de Lisboa), o si prefiere, el martes 8 de septiembre a las 10:00 o el jueves 10 de septiembre a las 11:00. ¿Le viene bien alguno de estos?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "Ese horario en concreto no está disponible, pero sí tengo el miércoles 9 de septiembre a las 15:00 (hora de Lisboa). ¿Le viene bien esa hora, o prefiere el martes 8 a las 10:00 o el jueves 10 a las 11:00?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "El miércoles a las 12:30 no está entre los horarios disponibles, pero sí tengo el miércoles 9 de septiembre a las 15:00 (hora de Lisboa). ¿Le viene bien esa hora, o prefiere el martes 8 a las 10:00 o el jueves 10 a las 11:00?",
+   "garbled": false
+  },
+  {
+   "source": "unoffered-time measurement, real prompt",
+   "reply": "Ese horario en concreto no está disponible, pero sí tenemos el miércoles 9 de septiembre a las 15:00 (hora de Lisboa). ¿Le viene bien esa hora, o prefiere el martes 8 a las 10:00 o el jueves 10 a las 11:00?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 re-run, live build",
+   "reply": "Just to confirm, Tuesday 8 September is available at 10:00 Lisbon time, not 15:00 - Wednesday 9 September has a 15:00 slot instead. Would either of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 re-run, live build",
+   "reply": "Just to confirm - Tuesday's available slot is at 10:00 Lisbon time, not 15:00 (that's Wednesday's slot). Would Tuesday 8 September at 10:00 or Wednesday 9 September at 15:00 Lisbon time work better for you?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 re-run, live build",
+   "reply": "Just to confirm, Tuesday the 8th is available at 10:00 Lisbon time (not 15:00) - would that work, or would Wednesday the 9th at 15:00 suit better?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 re-run, live build",
+   "reply": "Just to clarify, Tuesday 8 September is at 10:00 Lisbon time, while 15:00 is available on Wednesday 9 September. Would either of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 re-run, live build",
+   "reply": "Just to clarify, Tuesday we have 10:00 Lisbon time available, while 15:00 is on Wednesday instead. Would either of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 re-run, live build",
+   "reply": "Perfeito, quinta-feira 10 de setembro às 11:00 (hora de Lisboa) para uma primeira reunião com o nosso colega. Pode confirmar-me esse horário?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 re-run, live build",
+   "reply": "Perfeito! Fico a confirmar então a quinta-feira, 10 de setembro às 11:00 (hora de Lisboa) para uma primeira reunião com o nosso colega - pode confirmar para eu garantir esse horário?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 re-run, live build",
+   "reply": "Great choice! Just to confirm, that's Thursday 10 September 2026 at 11:00 Lisbon time for a first meeting with our colleague - shall I lock that in?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 re-run, live build",
+   "reply": "Perfeito! Fico então com a quinta-feira, 10 de setembro às 11:00, horário de Lisboa - pode confirmar para eu deixar reservado?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 re-run, live build",
+   "reply": "Perfeito! Fico então com quinta-feira, 10 de setembro às 11:00 (hora de Lisboa) - pode confirmar-me só para eu deixar isto certo?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 re-run, live build",
+   "reply": "Essa combinação não está disponível, mas tenho estes horários: terça-feira dia 8 de setembro às 10:00, quarta-feira dia 9 às 15:00, ou quinta-feira dia 10 às 11:00 (hora de Lisboa). Algum destes funciona para si?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 re-run, live build",
+   "reply": "Na terça só tenho disponível as 10:00 (hora de Lisboa). Se preferir às 15:00, essa disponibilidade é na quarta-feira, dia 9 de setembro. Qual delas prefere?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 re-run, live build",
+   "reply": "Na verdade, a terça-feira que temos disponível é às 10:00 (hora de Lisboa). Também temos quarta-feira dia 9 de setembro às 15:00 ou quinta-feira dia 10 às 11:00. Alguma destas funciona para si?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 re-run, live build",
+   "reply": "Na verdade, terça-feira temos disponibilidade às 10:00 e quarta-feira às 15:00 (hora de Lisboa). Prefere uma dessas opções?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 re-run, live build",
+   "reply": "Na verdade, terça-feira temos disponibilidade às 10:00 (hora de Lisboa). Já quarta-feira temos às 15:00 ou quinta-feira às 11:00. Alguma destas fica melhor para si?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 re-run, live build",
+   "reply": "Perfecto, el jueves 10 de septiembre a las 11:00 (hora de Lisboa). ¿Puedes confirmarme que ese horario te sirve para dejarlo agendado?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 re-run, live build",
+   "reply": "Perfecto, entonces sería el jueves 10 de septiembre de 2026 a las 11:00 hora de Lisboa. ¿Me confirmas esa hora para dejarlo agendado?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 re-run, live build",
+   "reply": "Perfecto, el jueves 10 de septiembre de 2026 a las 11:00 (hora de Lisboa) para una primera reunión con nuestro colega. ¿Confirmas esa hora?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 re-run, live build",
+   "reply": "Perfecto, entonces quedamos el jueves 10 de septiembre de 2026 a las 11:00 (hora de Lisboa) para una primera reunión con nuestro colega. ¿Me confirmas que ese horario te va bien?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 re-run, live build",
+   "reply": "¡Perfecto! Entonces propongo el jueves 10 de septiembre de 2026 a las 11:00 (hora de Lisboa) para una primera reunión con nuestro colega. ¿Me confirmas que te viene bien esa hora?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 drifting message with the language note",
+   "reply": "Great choice! To confirm, that's Thursday 10 September 2026 at 11:00 Lisbon time for a first meeting with our colleague. Shall I lock that in for you?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 drifting message with the language note",
+   "reply": "Great choice — that's Thursday 10 September 2026 at 11:00 Lisbon time for a first meeting with our colleague. Can you confirm that works for you?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 drifting message with the language note",
+   "reply": "Great, Thursday 10 September at 11:00 Lisbon time for a first meeting with our colleague - shall I confirm that for you?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 drifting message with the language note",
+   "reply": "Great choice — that would be Thursday, 10 September 2026 at 11:00 Lisbon time for a first meeting with our colleague. Shall I go ahead and confirm that for you?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 drifting message with the language note",
+   "reply": "Great, let's pencil in Thursday 10 September 2026 at 11:00 Lisbon time. Can you confirm that works for you?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 drifting message with the language note",
+   "reply": "Great, Thursday 10 September at 11:00 Lisbon time for a first meeting with our colleague — shall I lock that in for you?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 drifting message with the language note",
+   "reply": "Great, Thursday 10 September at 10:00 Lisbon time it is — can you confirm that works for you?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 drifting message with the language note",
+   "reply": "Great choice! Just to confirm, that would be Thursday, 10 September 2026 at 11:00 Lisbon time for a first meeting with our colleague. Shall I lock that in?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 drifting message with the language note",
+   "reply": "Great — Thursday 10 September 2026 at 11:00 Lisbon time for a first meeting with our colleague. Can you confirm that works for you?",
+   "garbled": false
+  },
+  {
+   "source": "suite 7 drifting message with the language note",
+   "reply": "Great, Thursday 10 September 2026 at 11:00 Lisbon time it is — can you confirm that works for you?",
+   "garbled": false
+  },
+  {
+   "source": "live, 21 Sep (phone or execution record)",
+   "reply": "Great, João! We have two slots that morning - Thursday 24 September 2026 at 09:00 Lisbon time or Thursday 24 September 2026 at 10:00 Lisbon time. Which one works best for you?",
+   "garbled": false
+  },
+  {
+   "source": "live, 21 Sep (phone or execution record)",
+   "reply": "11:00 isn't available, but I do have Thursday 24 September 2026 at 09:00 Lisbon time or 10:00 Lisbon time - would either of those work for you, João?",
+   "garbled": false
+  },
+  {
+   "source": "live, 21 Sep (phone or execution record)",
+   "reply": "11:00 isn't available, but I can offer Thursday 24 September 2026 at 09:00 Lisbon time or Thursday 24 September 2026 at 10:00 Lisbon time - which one suits you?",
+   "garbled": false
+  },
+  {
+   "source": "live, 21 Sep (phone or execution record)",
+   "reply": "Thursday morning we have two options: 09:00 or 10:00 Lisbon time. Which one would you like to confirm, João?",
+   "garbled": false
+  },
+  {
+   "source": "live, 21 Sep (phone or execution record)",
+   "reply": "11:00 isn't available I'm afraid, João - Thursday morning we only have 09:00 or 10:00 Lisbon time. Would either of those work for you?",
+   "garbled": false
+  },
+  {
+   "source": "live, 21 Sep (phone or execution record)",
+   "reply": "Happy to help, João! Thursday morning we have 09:00 or 10:00 Lisbon time available - which one suits you best?",
+   "garbled": false
+  }
+ ]
+}

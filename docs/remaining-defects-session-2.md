@@ -428,10 +428,22 @@ retry, so they are handled". **That was wrong.** An empty reply is `bad_json`,
 the retry runs only for `bad_reply`, and so an empty reply escalates at once.
 It happened live the same afternoon (next entry).
 
-**Not fixed.** A cheap check: the share of the reply's words that are real
-words in the detected language, or a spelling-noise ratio. Worth building only
-once a second occurrence shows it is not a one-off, so this entry is where a
-second sighting gets recorded.
+**Fixed (built 21 Sep, not yet deployed)** in `src/parse_reply.js`
+`replyLooksBroken()`, with two markers: doubled punctuation, and a full stop
+glued to a lowercase word (web addresses and domains excepted). Measured on
+every real reply captured on 21 Sep (`tests/fixtures/real_replies_2026-09-21.json`):
+0 of 69 good replies flagged, and the garbled one flagged by either marker on
+its own. A caught reply is `bad_reply`, so it gets the one guard retry.
+
+**🔒 The content drift, and why the fix is here rather than in the claim
+guard.** The garbled text also drifted into a PROMISE: "Puedo confirmar
+directamente… y con gusto lo dejo registado" means "I can confirm it directly…
+and I'll gladly leave it registered". Nothing was booked. It passed the claim
+guard, because the words are misspelled ("registado" for "registrado") and the
+guard matches spelled patterns. **The claim guard stays as it is:** teaching it
+misspellings would be chasing noise. A reply this corrupt must not be read for
+meaning at all, so the broken-reply check, which runs first, is the fix: the
+reply is discarded before any guard reads it.
 
 ## NEW (21 Sep) — Invariant 1 fired a false alarm on a correct decline. Fix built, not deployed
 
