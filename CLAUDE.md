@@ -41,6 +41,13 @@ The Supabase MCP server reads the one database there is, which is production.
 - **The connection is for reading schema, grants and diagnostics.** Migrations
   are always written as files in `db/migrations` for Manuel to run by hand in
   the Supabase SQL editor. Never apply one yourself.
+- **Every proof ends in a visible verdict.** The Supabase SQL editor does not
+  display `RAISE NOTICE` (found running 0049's proof on 21 September), so a
+  run that shows nothing looks exactly like a pass. Every proof file ends with
+  a final `SELECT` that returns one row per case: the case, `PASS` or `FAIL`,
+  and the reason. NOTICEs can stay as detail, but the verdict must be
+  something the editor shows. A missing row is a failure too, so name every
+  case in the final SELECT, not only those that ran.
 - **Never edit the `supabase` entry in `~/.claude.json`**, and never remove
   `read_only`, `project_ref` or `features` from its URL.
 
