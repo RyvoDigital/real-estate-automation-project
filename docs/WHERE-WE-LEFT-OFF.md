@@ -101,9 +101,12 @@ tripped us up. **Sections are newest first.**
 2. **The gate copy and the sink are still published.** The operator unpublishes
    them in the n8n UI: Workflows, then the dropdown by **Publish**, then
    **Unpublish** (or the card's ⋯ menu).
-3. **Deploys without a restart** (operator, 21 Sep): test n8n's REST API route on
-   the gate copy only. Until it is proven, deploys run at the next available
-   minute. One failed health check does not alert.
+3. ✅ **Deploys without a restart: PROVEN on the gate copy** (21 Sep, 21:00 UTC), and
+   now the standard route. `infra/scripts/n8n_api_deploy.py` PUTs through n8n's API
+   and rolls back by itself on any failure (CLAUDE.md; runbook, "The standard
+   deploy"). `N8N_API_KEY` is in the server `.env` and expires 2027-09-20 22:00 UTC.
+   It has not been used on production yet: the first production use is the next
+   deploy.
 4. The Month.
 
 # 000. HANDOVER — 21 September 2026, evening. READ THIS FIRST

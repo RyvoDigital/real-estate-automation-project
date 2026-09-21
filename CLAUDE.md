@@ -70,6 +70,35 @@ escalated the lead on the next try. The model returns an empty reply about
 once in 13 to 18 unoffered-time requests, and a single run cannot see a
 failure that rare. Twenty runs of the whole conversation can.
 
+## The standard deploy: n8n's API, no restart
+
+After the gate passes and Manuel says go, deploy **at once, with no slot and no
+restart**, on the server:
+
+```
+python3 infra/scripts/n8n_api_deploy.py deploy --id <id> --file <build.json> [--production]
+python3 infra/scripts/n8n_api_deploy.py verify --id <id> --file <build.json> --path <webhook path>
+```
+
+- `deploy` PUTs the workflow through n8n's public API. That republishes it
+  inside the running instance and keeps the webhook row.
+- **Any non-200 is rolled back at once**, by re-activating the version that was
+  active before. Exit code 2 means the deploy failed and was rolled back; 3 means
+  the rollback failed too.
+- `verify` runs the four checks: activeVersionId set; exactly one webhook row;
+  403 on an unsigned POST; the served version equals the file in EVERY field of
+  every node, and in the connections.
+- **The rollback target** is the previous production version's `versionId`
+  (`activate --id <id> --version <versionId>`). It needs no file.
+- Then the phone checks. `--signed-probe` is for the gate copy only: on
+  production it would send a real message.
+
+Why (21 Sep 2026): `import:workflow` deletes the webhook row, so the CLI route
+needed a restart and a slot between health checks. Proven on the gate copy: PUT
+with no restart; both failure modes (a conflict gives 500 on every request, a
+registration failure gives 404) rolled back in under a second. **The fallback**
+is the old route: import, publish, restart (runbook).
+
 ## Before changing anything
 
 - `docs/engineering-lessons.md` — ways of thinking that outlived the component

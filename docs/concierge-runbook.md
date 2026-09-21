@@ -2434,7 +2434,63 @@ Worth doing as step zero rather than discovering at step five, because the
 symptom is a message that simply never arrives — indistinguishable, from the
 operator's side, from a deploy that broke the reply path.
 
-### Deploying a workflow from the CLI: import, **publish**, restart
+### The standard deploy: n8n's public API, no restart (2026-09-21)
+
+**Use this. The CLI route below is the fallback.**
+
+```bash
+cd /opt/ryvo-automation-platform
+python3 infra/scripts/n8n_api_deploy.py state    --id ryvoInboundConc01        # note activeVersionId = the rollback target
+python3 infra/scripts/n8n_api_deploy.py deploy   --id ryvoInboundConc01 --file <build.json> --production
+python3 infra/scripts/n8n_api_deploy.py verify   --id ryvoInboundConc01 --file <build.json> --path twilio-inbound
+# rollback, if a phone check fails:
+python3 infra/scripts/n8n_api_deploy.py activate --id ryvoInboundConc01 --version <previous versionId> --production
+```
+
+**Needs:** `N8N_API_KEY` in the server `.env`, added by the operator.
+- Created in n8n under Settings → n8n API.
+- **Expires 2027-09-20 22:00 UTC**, read from the key's own `exp` claim.
+- It is a full-owner key: the community edition has no scopes.
+- The tool sends it only as a header, never in argv or a URL.
+- No n8n setting needed changing: the public API is on, and publication is
+  synchronous (`useWorkflowPublicationService=false`).
+- ⚠️ The API is reached through Caddy at `https://n8n.ryvodigital.com/api/v1`, so
+  it is **public, and protected only by the key**. The container port is not
+  published to the host.
+
+**What PUT does** (n8n 2.28.3, `workflow.service.js`):
+- On a published workflow it saves a new version and republishes it inside the
+  running instance (`publishIfActive`, then `activateWorkflow`, then
+  `activeWorkflowManager.add`).
+- The old registration is removed immediately before the new one is added. The
+  gap is milliseconds, and the webhook row survives.
+
+**Measured on the gate copy, 21 Sep 2026, container never restarted:**
+
+| step | result |
+|---|---|
+| PUT a different build (10 nodes differ) | HTTP 200 in 1.3 s; row kept; served nodes = file in every field; a signed request ran the new code |
+| PUT with a webhook-path conflict | **HTTP 409, and activeVersionId had already moved** to the rejected version while the old registration stayed in memory: **500 on every request**, row still present |
+| PUT with an invalid cron trigger | HTTP 400; n8n deregistered it: `active=false`, `activeVersionId=NULL`, no row, **404** |
+| `activate` the previous versionId, from either broken state | HTTP 200; row back, 403, served = previous file, signed request ran it |
+| the tool's automatic rollback, both failures again | back to the previous version within the same second; exit code 2 |
+
+So **neither failure leaves the old version serving**, which is why `deploy`
+rolls back by itself on any non-200.
+
+🔴 **`execution_entity.workflowVersionId` records the workflow's current DRAFT
+id, not the version that ran.** After a rejected PUT and a rollback it named the
+rejected draft, while all 38 Code nodes that ran were the active version's. Prove
+what ran from the execution's snapshot (`execution_data.workflowData`), as
+`verify --signed-probe` does.
+
+### Deploying a workflow from the CLI: import, **publish**, restart (FALLBACK)
+
+🔴 **`import:workflow` DELETES the workflow's `webhook_entity` row, and `publish`
+does not recreate it** (21 Sep 2026). The endpoint then lives only on n8n's
+in-memory webhook cache: TTL one hour, not refreshed on a hit. **So this route
+always ends with a restart**, stated to the operator first. Run it at the next
+available minute. One failed health check does not alert.
 
 **`import:workflow` + `active=true` is not enough on n8n 2.28.** A workflow must
 also be **published**:
