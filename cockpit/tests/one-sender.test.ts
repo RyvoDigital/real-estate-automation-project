@@ -98,6 +98,7 @@ const SEND_CRED_ALSO_ALLOWED: Record<string, 'injects-fetch' | 'no-route-to-a-se
   // our own request to our own webhook: neither file reaches Twilio's API or
   // imports its SDK, and each must visibly produce X-Twilio-Signature.
   'tests/gate_run.py': 'signs-inbound-only',
+  'tests/gate_booking.py': 'signs-inbound-only',
   'infra/scripts/n8n_api_deploy.py': 'signs-inbound-only',
 }
 
