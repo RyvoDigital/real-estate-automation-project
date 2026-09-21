@@ -53,6 +53,21 @@ path that has no `/c/` counterpart is a bug, and the route test asserts it.
 `/health` · `/onboarding` · `/login` · `/auth/callback` · `/auth/signout` ·
 `/api/*`. None is about one client.
 
+**New at the operator level: designed, no route today (added 21 Sep 2026).**
+**`/ops/expiries`**, Expiries (brief §1.2, §2.3). It is the cross-client home of
+`recheckClearances()` and of **Ryvo's own expiries**: the n8n deploy key, the
+domain, the certidão permanente, the procuração, and the payment cards (§2.3,
+"Ryvo's own").
+- It was missing from this map, and so from the screen count in §7, because §2.2
+  lists only the client-level slice, `/c/<client>/expiries`. The ops screen is a
+  different surface, not a copy: it holds the operator's own obligations
+  (brief §1.1), which no client slice shows.
+- Build stage **C5**, with the compliance screens.
+- The other `/ops/*` routes in brief §1.2 (infrastructure, waiting, compliance,
+  proofs, onboarding, templates) are not reconciled here: §5.4 and §7 already
+  record that this map and the brief disagree about `/health` and
+  `/onboarding`.
+
 > 🔴 **"Stays" is about the URL, not about the screen.** `/onboarding` has NOT
 > been rebuilt: red brand gradient, the old `Queue / Leads / Report` sidebar,
 > the pre-§0.5 palette, and none of the frame work. It is **BUILT AND

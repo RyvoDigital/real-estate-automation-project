@@ -905,7 +905,32 @@ reasons that are each a defect avoided:
    the thing it surfaces. Not counted in `checked`; does not stop a clearance
    being `stillGood`.
 4. **Other expiries** — template approvals, obligation discharges, sender
-   quality, Layer 4's calendar items.
+   quality, Layer 4's calendar items, and **Ryvo's own** (below).
+
+### Ryvo's own expiries (added 21 Sep 2026, operator)
+**On `/ops/expiries` only. They are the operator's obligations, never shown in a
+client's slice.** Each row states an expiry date and **warns at 30 days**, amber
+by the batch's colour rule. Past the date, it is red.
+
+| item | the date comes from | entry |
+|---|---|---|
+| **The n8n deploy key** | its own JWT `exp` claim, read by `healthcheck.sh` on the server and published as `health_runs.n8n_api_key_exp` (migration 0051). Today: **2027-09-20 22:00 UTC** | automatic |
+| **ryvodigital.com** | the registry, over RDAP (`rdap.verisign.com`), read on the server. Today: **2027-03-18**, registrar GoDaddy. The registry date says when the name lapses. Whether it renews depends on the card below | automatic |
+| **The certidão permanente** | the "válida até" on the certidão (its access-code subscription). Entered by hand: the code is sensitive and is not stored | manual |
+| **The procuração** | the document itself. 🔒 If it states no validity, the row says **"no expiry stated"**, in words. **Never a blank and never a dash**: a blank is indistinguishable from "not entered", and §2.3's rule already makes an unknown date grey, never "no expiry" | manual |
+| **Payment cards** | the card. 🔒 **Stored as brand, last four and expiry month/year ONLY, never a full number.** **One line per card**, listing the services charged to it (Hetzner, Vercel, Supabase, Twilio, Anthropic, Resend, GoDaddy…), in the way §2.3 keys a licence by its registration and never by the property. A card behind eight services is one line, and when it lapses, all eight stop | manual |
+
+- **The deploy key also alerts by email at ≤ 7 days** (`healthcheck.sh`, the
+  ordinary failure path), because a lapsed key blocks every deploy. The screen
+  row is the 30-day notice; the email is the one that cannot be missed.
+  - Shown working on 21 Sep with a test threshold: the email arrived in the
+    inbox.
+- The manual rows need a small table: label, kind, expiry, source, entered by,
+  last checked. **The migration is written when the screen is built (C5), not
+  before.**
+- 🔒 **An automatic row whose source has not been read is grey with its age**
+  ("RDAP last read 3 days ago"), the same as §2.3's stale-sweep rule. It is
+  never shown as a clean date.
 
 ### States
 
