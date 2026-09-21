@@ -131,6 +131,29 @@ console.log('\ninvariant 2 -- a booking confirmed in the text has an event behin
     chk('PASS: the ' + lang + ' retired note is not a confirmation -> holds', !violated(r, '2') && !violated(r, '1'));
   }
   chk('PASS: an offer with a question mark is not a confirmation', !violated(run({ textSent: 'Fica então para terça às 15:00?', row: { qualification: { proposed_slots: OFFER } } }), '2'));
+
+  // 2026-09-22: the booking gate. Lead B chose a slot lead A had just taken; the
+  // workflow declined it at the intent and the model apologised with alternatives.
+  // The old rule counted a NAMED slot as a confirmation, and fired critical on
+  // both of these (gate exec 5096 and 5134). Word for word, in the turn's context.
+  const W09 = { startUtc: '2026-09-23T08:00:00.000Z', endUtc: '2026-09-23T09:00:00.000Z', local: '2026-09-23T09:00:00.000+01:00', zone: 'Europe/Lisbon' };
+  const W13 = { startUtc: '2026-09-23T12:00:00.000Z', endUtc: '2026-09-23T13:00:00.000Z', local: '2026-09-23T13:00:00.000+01:00', zone: 'Europe/Lisbon' };
+  const declined = (text, slot) => run({ textSent: text, bookingIntent: 'taken', bookingSlot: slot, bookingResult: 'not_attempted', bookedEventId: null });
+  chk('PASS (gate exec 5096): "that slot was just taken. We still have ... Thursday 24 September at 09:00" -> holds',
+      !violated(declined('So sorry, João — that slot was just taken. We still have Wednesday 23 September at 10:00, Wednesday 23 September at 11:00, or Thursday 24 September at 09:00, Lisbon time — would any of those suit you?', W09), '2'));
+  chk('PASS (gate exec 5134): "esse horário das 13:00 acabou de ficar indisponível" -> holds',
+      !violated(declined('Peço desculpa, João, mas esse horário das 13:00 acabou de ficar indisponível. Ainda temos quarta-feira, 23 de setembro às 14:00, quarta-feira, 23 de setembro às 15:00, ou quinta-feira, 24 de setembro às 09:00, horário de Lisboa. Qual destes prefere?', W13), '2'));
+  // The dangerous direction, and the reason the declined turn is NOT skipped: a
+  // "you're booked" on it, or on any turn with no event, fires in every language.
+  for (const [lang, text] of [
+    ['en', "You're booked for Thursday at 09:00, see you then."],
+    ['pt', 'Ficou marcada a sua reunião para quinta-feira às 09:00.'],
+    ['es', 'Queda confirmada su cita para el jueves a las 09:00.'],
+  ]) {
+    chk(`BROKEN (${lang}): "you're booked for Thursday 09:00", no event -> violated`, violated(run({ textSent: text }), '2'));
+    chk(`BROKEN (${lang}): the same claim on a DECLINED turn -> violated`, violated(declined(text, W09), '2'));
+    chk(`BROKEN (${lang}): the same claim under a failed create -> violated`, violated(run({ textSent: text, bookingSlot: W09, bookingResult: 'failed', bookedEventId: null }), '2'));
+  }
 }
 
 console.log('\ninvariant 3 -- a booking on the row has an event behind it');

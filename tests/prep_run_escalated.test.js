@@ -90,5 +90,20 @@ console.log('\nmissing evidence is not a delivery');
       r.status === 'error' && r.error_type === 'handoff_send_failed', `status=${r.status}`);
 }
 
+console.log('\na lost race is not a system failure; a failed calendar still is (22 Sep 2026)');
+{
+  // The booking gate, 21 Sep: four in four races wrote the loser's run as an
+  // error, with system_failure:true, although the calendar had done its job.
+  const race = runNode({ handoffOk: true, reasons: ['booking_lost_race:slot_taken_since_offer'] });
+  chk('a lost race (the re-check) -> not an error, not a system failure',
+      race.status !== 'error' && race.payload.system_failure === false, `status=${race.status} system_failure=${race.payload.system_failure}`);
+  const r409 = runNode({ handoffOk: true, reasons: ['booking_lost_race:another lead confirmed this slot first (409)'] });
+  chk('a lost race (Google\'s 409) -> not an error', r409.status !== 'error' && r409.payload.system_failure === false, `status=${r409.status}`);
+  for (const reason of ['booking_failed:failed:create_http_500:backend error', 'booking_failed:recheck_failed:freebusy_http_503', 'booking_failed:conflict_burned_id:the identifier for this slot belongs to a deleted event']) {
+    const r = runNode({ handoffOk: true, reasons: [reason] });
+    chk(`a failed calendar is still an error: ${reason.split(':')[1]}`, r.status === 'error' && r.payload.system_failure === true, `status=${r.status}`);
+  }
+}
+
 console.log(`\n  ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

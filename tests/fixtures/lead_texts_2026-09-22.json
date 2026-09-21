@@ -1,0 +1,2737 @@
+{
+ "_readme": [
+  "Every lead-facing text captured by 22 Sep 2026, word for word, de-duplicated: the model reply AfterBooking decided on and the handoff note, for every execution of ryvoInboundConc01 and its gate copy (7-21 Sep), every outbound message row since 15 Sep, and the two 21 Sep fixtures.",
+  "claim=true: the text asserts a confirmed booking (src/booking_claim.js must return a phrase). claim=false: it does not (must return null). Offers, declines and apologies naming a slot are claim=false: invariant 2 is about the claim, not the slot.",
+  "Labels come from each run's booking result, and every disagreement between that and the detector was read and judged by hand on 22 Sep; the judgement is in \"why\". Test personas only (João, John). Captured output, never edited."
+ ],
+ "texts": [
+  {
+   "source": "exec:nc01:916",
+   "claim": false,
+   "text": "Ola! Obrigada por partilhar - um T3 em Cascais ate 800 mil e uma otima procura. Um colega vai confirmar o que ha disponivel nesse perfil, mas entretanto diga-me: tem um prazo em mente para a compra e ja tem financiamento aprovado ou e compra a pronto?"
+  },
+  {
+   "source": "exec-handoff:916",
+   "claim": false,
+   "text": "Um colega da nossa equipa vai continuar a conversa consigo e entra em contacto em breve."
+  },
+  {
+   "source": "exec:nc01:918",
+   "claim": false,
+   "text": "Ola! Que bom saber do seu interesse num T3 em Cascais ate 800 mil euros. Um colega vai confirmar o que ha disponivel dentro desse perfil - entretanto, pode dizer-me qual e o seu horizonte temporal para a compra?"
+  },
+  {
+   "source": "exec:nc01:922",
+   "claim": false,
+   "text": "Obrigada pela informacao. Vou registar esse detalhe e um colega da nossa equipa confirma consigo tudo o que for relevante sobre esta referencia.",
+   "why": "held-booking turn, the reply does not state it"
+  },
+  {
+   "source": "exec:nc01:927",
+   "claim": false,
+   "text": "Ola! Fico feliz em ajudar. Um colega vai confirmar o que temos disponivel atualmente para T3 em Cascais ate 800 mil. Entretanto, pode dizer-me qual e o seu horizonte temporal para a compra e se ja tem financiamento aprovado?"
+  },
+  {
+   "source": "exec:nc01:961",
+   "claim": false,
+   "text": "Ola! Que bom saber do seu interesse num T3 em Cascais ate 900 mil euros. Um colega nosso vai confirmar o que ha disponivel nessa faixa - entretanto, ja tem um prazo em mente para a compra, ou e mais para investimento ou para viver?"
+  },
+  {
+   "source": "exec:nc01:962",
+   "claim": false,
+   "text": "Claro! Como ainda nao falamos de um imovel especifico, posso agendar uma primeira reuniao com o nosso colega para conhecer melhor o que procura. Temos disponibilidade na sexta-feira, dia 11 de setembro de 2026, as 11:00 ou as 12:00 (hora de Lisboa) - qual prefere?"
+  },
+  {
+   "source": "exec:nc01:963",
+   "claim": true,
+   "text": "Ficou combinado! A sua primeira reuniao com o nosso colega esta marcada para sexta-feira, dia 11 de setembro de 2026, as 11:00 (hora de Lisboa). Ate la!",
+   "why": "the confirmation sent on a turn that created the event"
+  },
+  {
+   "source": "exec:nc01:964",
+   "claim": false,
+   "text": "Boa tarde! Com todo o gosto agendamos uma visita ao A-1042. Temos disponibilidade quinta-feira dia 10 de setembro de 2026 as 11:00, sexta-feira dia 11 de setembro as 12:00, ou sabado dia 12 de setembro as 13:00, hora de Lisboa. Qual prefere?"
+  },
+  {
+   "source": "exec:nc01:965",
+   "claim": true,
+   "text": "Ótimo! A sua visita ao A-1042 está confirmada para sexta-feira, dia 11 de setembro de 2026, às 12:00, hora de Lisboa. Se precisar de alterar algo, avise-nos com antecedência.",
+   "why": "the confirmation sent on a turn that created the event"
+  },
+  {
+   "source": "exec:nc01:970",
+   "claim": false,
+   "text": "Boa tarde! Posso reservar uma visita para conhecer o imóvel A-1042 - temos disponibilidade quinta-feira, dia 10 de setembro de 2026, às 11:00 (hora de Lisboa), sexta-feira dia 11 às 09:00, ou sábado dia 12 às 13:00. Qual prefere? Entretanto, um colega vai confirmar se este imóvel específico ainda está disponível antes da visita."
+  },
+  {
+   "source": "exec:nc01:971",
+   "claim": true,
+   "text": "Perfeito, fica agendada a sua visita para sexta-feira, dia 11 de setembro de 2026, às 09:00 (hora de Lisboa), para conhecer o imóvel A-1042. Um colega irá confirmar a disponibilidade deste imóvel antes do encontro.",
+   "why": "a claim with no event behind it: a phantom (12/14 Sep, suite 7) or a draft discarded for a handoff"
+  },
+  {
+   "source": "exec:nc01:972",
+   "claim": false,
+   "text": "Boa tarde! Fico contente com o seu interesse no A-1042. Posso já reservar um horário para uma visita, mas um colega vai confirmar antes se o imóvel continua disponível. Temos quinta 10 de setembro às 11:00, sexta 11 de setembro às 09:00 ou sábado 12 de setembro às 13:00 (hora de Lisboa) - qual prefere?"
+  },
+  {
+   "source": "exec:nc01:973",
+   "claim": true,
+   "text": "Perfeito! Fica confirmada a visita para quinta-feira, dia 10 de setembro de 2026, às 11:00 (hora de Lisboa). Um colega vai confirmar consigo os detalhes do imóvel A-1042 antes do encontro.",
+   "why": "the confirmation sent on a turn that created the event"
+  },
+  {
+   "source": "exec:nc01:977",
+   "claim": false,
+   "text": "Ola! Que bom, um T3 em Cascais ate 800 mil e um perfil que conseguimos acompanhar bem. Ja tem um prazo em mente para a compra e sabe se seria para habitacao propria ou investimento?"
+  },
+  {
+   "source": "exec:nc01:990",
+   "claim": false,
+   "text": "Ola! Fico feliz em ajudar. Ainda nao temos um imovel especifico definido, por isso o que posso agendar e uma primeira conversa com um dos nossos colegas para perceber melhor o que procura - temos sexta-feira, 11 de setembro, as 09:00 ou as 10:00 (hora de Lisboa). Algum destes horarios funciona para si, e qual e o seu orcamento aproximado para o T3 em Cascais?"
+  },
+  {
+   "source": "exec:nc01:994",
+   "claim": false,
+   "text": "Boa tarde! Fico contente em ajudar na sua procura em Estoril. Pode dizer-me qual o orçamento que tem em mente e se já tem um prazo definido para a compra?"
+  },
+  {
+   "source": "exec:nc01:997",
+   "claim": false,
+   "text": "Boa tarde! Ótimo, ficamos a saber que procura em Estoril. Pode dizer-me qual o orçamento previsto e se já tem prazo em mente para a compra?"
+  },
+  {
+   "source": "exec:nc01:1003",
+   "claim": false,
+   "text": "Ola! Obrigada por partilhar - vou pedir a um colega para confirmar o que temos disponivel dentro desse perfil em Cascais. Entretanto, posso marcar uma primeira conversa com o nosso colega: temos sexta-feira, 11 de setembro de 2026, as 09:00 ou as 10:00 (hora de Lisboa). Qual prefere?"
+  },
+  {
+   "source": "exec:nc01:1004",
+   "claim": false,
+   "text": "Claro! Para sexta-feira, 11 de setembro de 2026, tenho as 09:00 ou as 10:00, hora de Lisboa. Qual delas fica melhor para si?"
+  },
+  {
+   "source": "exec:nc01:1005",
+   "claim": false,
+   "text": "Perfeito, entao sexta-feira, 11 de setembro de 2026, as 10:00 (hora de Lisboa) para uma primeira conversa com o nosso colega. Vou confirmar consigo assim que estiver tudo tratado!"
+  },
+  {
+   "source": "exec:nc01:1007",
+   "claim": true,
+   "text": "Confirmado! Fica marcada a nossa primeira conversa para sexta-feira, 11 de setembro de 2026, as 10:00 (hora de Lisboa). Ate la!",
+   "why": "a claim with no event behind it: a phantom (12/14 Sep, suite 7) or a draft discarded for a handoff"
+  },
+  {
+   "source": "exec:nc01:1008",
+   "claim": false,
+   "text": "Ola! Fico feliz em ajudar. Um colega ira confirmar as opcoes disponiveis nesse intervalo. Para o dia 16 de setembro tenho estes horarios: quarta-feira, 16 de setembro de 2026 as 09:00 ou as 10:00, horario de Lisboa. Qual prefere?"
+  },
+  {
+   "source": "exec:nc01:1009",
+   "claim": true,
+   "text": "Perfeito! Fica confirmada a nossa primeira reuniao com um colega para quarta-feira, 16 de setembro de 2026, as 09:00 (horario de Lisboa). Ate ja!",
+   "why": "the confirmation sent on a turn that created the event"
+  },
+  {
+   "source": "exec:nc01:1428",
+   "claim": false,
+   "text": "I can't confirm availability myself, but a colleague will check on that villa for you. In the meantime, could you tell me your budget range and timeline for this purchase?",
+   "why": "held-booking turn, the reply does not state it"
+  },
+  {
+   "source": "exec-handoff:1428",
+   "claim": false,
+   "text": "A member of our team will take over from here and will be in touch with you shortly."
+  },
+  {
+   "source": "exec:nc01:1430",
+   "claim": false,
+   "text": "Thank you, that's very helpful! A colleague will confirm what's currently available in Cascais within that range, and will follow up with you soon. In the meantime, is this purchase for your own residence or as an investment?",
+   "why": "held-booking turn, the reply does not state it"
+  },
+  {
+   "source": "exec:nc01:1431",
+   "claim": false,
+   "text": "That's wonderful, relocating with the family to the coast sounds exciting! A colleague will confirm which four-bedroom properties near the coast in Cascais or Estoril are currently available and reach out to you soon. Do you already have financing arranged, or would that be something to look into?",
+   "why": "held-booking turn, the reply does not state it"
+  },
+  {
+   "source": "exec:nc01:1432",
+   "claim": false,
+   "text": "That's great to hear, having pre-approval already in place will make things much smoother. Thank you for sharing all these details, a colleague will follow up with you soon to discuss suitable options in Cascais or Estoril.",
+   "why": "held-booking turn, the reply does not state it"
+  },
+  {
+   "source": "exec:nc01:1433",
+   "claim": false,
+   "text": "Thank you, João! I've noted everything down, and a colleague will be in touch soon to help find the right home for you and your family.",
+   "why": "held-booking turn, the reply does not state it"
+  },
+  {
+   "source": "exec:nc01:1434",
+   "claim": false,
+   "text": "Bom dia João! Não tenho acesso direto à disponibilidade, mas um colega vai confirmar consigo o estado do imóvel. Entretanto, quer que trate de agendar uma visita?",
+   "why": "held-booking turn, the reply does not state it"
+  },
+  {
+   "source": "exec:nc01:1436",
+   "claim": false,
+   "text": "Essa é uma questão que fica melhor com o nosso colega, que trata das negociações de preço diretamente consigo. Vou já sinalizar isso para que possa entrar em contacto brevemente.",
+   "why": "held-booking turn, the reply does not state it"
+  },
+  {
+   "source": "exec:nc01:1438",
+   "claim": false,
+   "text": "Hi João, I still can't confirm availability myself, but a colleague will check on that villa and get back to you. Would you like me to set up a first meeting with one of our agents to discuss it in the meantime?"
+  },
+  {
+   "source": "exec:nc01:1442",
+   "claim": false,
+   "text": "Claro, João. Vou pedir a um colega da nossa equipa para lhe dar seguimento pessoalmente o mais breve possível."
+  },
+  {
+   "source": "exec:nc01:1445",
+   "claim": false,
+   "text": "Um colega da nossa equipa vai entrar em contacto consigo em breve para tratar de tudo pessoalmente."
+  },
+  {
+   "source": "exec:nc01:1447",
+   "claim": false,
+   "text": "Claro! Trabalhamos principalmente em Cascais, Estoril e Lisboa. Entretanto, um colega da nossa equipa vai entrar em contacto consigo em breve para falar diretamente."
+  },
+  {
+   "source": "exec:nc01:1454",
+   "claim": false,
+   "text": "Trabalhamos principalmente em Cascais, Estoril e Lisboa. Há alguma dessas zonas que lhe interesse mais em particular?"
+  },
+  {
+   "source": "exec:nc01:1455",
+   "claim": false,
+   "text": "O próximo passo pode ser marcarmos uma primeira conversa com um dos nossos colegas para perceber melhor o que procura. Quer que veja horários disponíveis para essa reunião?"
+  },
+  {
+   "source": "exec:nc01:1456",
+   "claim": false,
+   "text": "Isso já é uma questão de negociação de valores, por isso vou pedir a um colega para falar consigo sobre isso diretamente. Entretanto, posso ajudar a marcar uma primeira conversa com um agente?"
+  },
+  {
+   "source": "exec:nc01:1457",
+   "claim": false,
+   "text": "Pode ficar por aqui mesmo, sem problema! Se preferir, podemos também agendar uma primeira conversa com um dos nossos colegas. Quer que veja horários disponíveis?"
+  },
+  {
+   "source": "exec:nc01:1458",
+   "claim": false,
+   "text": "Peço desculpa pela demora e pela frustração, entendo perfeitamente. Vou sinalizar já a um colega para lhe responder o mais depressa possível."
+  },
+  {
+   "source": "exec:nc01:1523",
+   "claim": false,
+   "text": "Claro! Temos disponibilidade na segunda-feira, dia 14 de setembro de 2026, às 09:00 (hora de Lisboa), na terça-feira, dia 15 de setembro de 2026, às 09:00, ou na quarta-feira, dia 16 de setembro de 2026, às 09:00. Qual destes horários lhe fica melhor?"
+  },
+  {
+   "source": "exec:nc01:1524",
+   "claim": true,
+   "text": "Ficou confirmado! A sua primeira reunião com um dos nossos colegas está marcada para terça-feira, dia 15 de setembro de 2026, às 09:00 (hora de Lisboa). Até lá!",
+   "why": "the confirmation sent on a turn that created the event"
+  },
+  {
+   "source": "exec:nc01:1526",
+   "claim": false,
+   "text": "Peço desculpa pela confusão - esse horário de terça-feira, dia 15 de setembro de 2026, às 09:00, afinal já não está disponível na nossa agenda. Um colega vai entrar em contacto consigo para tratar disto. Se preferir, posso já sugerir outro horário, como segunda-feira dia 14 ou quarta-feira dia 16, ambos às 09:00 (hora de Lisboa)."
+  },
+  {
+   "source": "exec:nc01:1529",
+   "claim": true,
+   "text": "Já tem uma reunião marcada para terça-feira, dia 15 de setembro de 2026, às 09:00 (hora de Lisboa). Deseja marcar outra reunião ou alterar essa data?",
+   "why": "a claim with no event behind it: a phantom (12/14 Sep, suite 7) or a draft discarded for a handoff"
+  },
+  {
+   "source": "exec:nc01:1532",
+   "claim": false,
+   "text": "Só para confirmar, essa reunião de terça-feira já não consta da nossa agenda, por isso vamos marcar de novo. Temos disponibilidade na segunda-feira, dia 14 de setembro de 2026, às 09:00 (hora de Lisboa), na terça-feira, dia 15 de setembro de 2026, às 09:00, ou na quarta-feira, dia 16 de setembro de 2026, às 09:00. Qual prefere?"
+  },
+  {
+   "source": "exec:nc01:1533",
+   "claim": true,
+   "text": "Ficou confirmado! A sua primeira reunião com um dos nossos colegas está marcada para segunda-feira, dia 14 de setembro de 2026, às 09:00 (hora de Lisboa). Até lá!",
+   "why": "the confirmation sent on a turn that created the event"
+  },
+  {
+   "source": "exec:nc01:1534",
+   "claim": false,
+   "text": "Verifiquei aqui e essa reunião afinal já não consta da nossa agenda neste momento. Peço desculpa pelo transtorno - um colega da nossa equipa vai entrar em contacto consigo em breve para tratar disto pessoalmente."
+  },
+  {
+   "source": "exec-handoff:1534",
+   "claim": false,
+   "text": "A marcação que tínhamos para segunda-feira, 14 de setembro às 09:00 (hora de Lisbon) já não está na nossa agenda. Peço desculpa pelo incómodo. Um colega da equipa vai entrar em contacto consigo em breve para combinar uma nova hora."
+  },
+  {
+   "source": "exec:nc01:1536",
+   "claim": true,
+   "text": "Ficou confirmado! A sua primeira reunião com um dos nossos colegas está marcada para quarta-feira, dia 16 de setembro de 2026, às 09:00 (hora de Lisboa). Até lá!",
+   "why": "the confirmation sent on a turn that created the event"
+  },
+  {
+   "source": "exec:nc01:1543",
+   "claim": false,
+   "text": "Peço desculpa, mas na verdade essa reunião de segunda-feira, dia 14 de setembro, não está confirmada na nossa agenda neste momento. Um colega vai entrar em contacto consigo em breve para tratar disso. Quer que eu tente marcar novamente para um dos outros horários disponíveis?"
+  },
+  {
+   "source": "exec-handoff:1543",
+   "claim": false,
+   "text": "A marcação que tínhamos para segunda-feira, 14 de setembro às 09:00 (hora de Lisboa) já não está na nossa agenda. Peço desculpa pelo incómodo. Um colega da equipa vai entrar em contacto consigo em breve para combinar uma nova hora."
+  },
+  {
+   "source": "exec:nc01:1546",
+   "claim": false,
+   "text": "Peço desculpa, mas essa marcação ainda não está confirmada do nosso lado - de momento não consta nenhuma reunião agendada na nossa agenda. Um colega da equipa vai entrar em contacto consigo em breve para confirmar um horário."
+  },
+  {
+   "source": "exec-handoff:1546",
+   "claim": false,
+   "text": "A marcação que tínhamos para terça-feira, 15 de setembro às 09:00 (hora de Lisboa) já não está na nossa agenda. Peço desculpa pelo incómodo. Um colega da equipa vai entrar em contacto consigo em breve para combinar uma nova hora."
+  },
+  {
+   "source": "exec:nc01:1549",
+   "claim": false,
+   "text": "Obrigado a si, até quarta-feira!",
+   "why": "held-booking turn, the reply does not state it"
+  },
+  {
+   "source": "exec:nc01:1630",
+   "claim": false,
+   "text": "Peço desculpa, mas ao verificar aqui, essa marcação de quarta-feira, dia 16 de setembro às 09:00, já não consta na nossa agenda. Um colega da equipa vai entrar em contacto consigo em breve para combinar uma nova hora."
+  },
+  {
+   "source": "exec-handoff:1630",
+   "claim": false,
+   "text": "A marcação que tínhamos para quarta-feira, 16 de setembro às 09:00 (hora de Lisboa) já não está na nossa agenda. Peço desculpa pelo incómodo. Um colega da equipa vai entrar em contacto consigo em breve para combinar uma nova hora."
+  },
+  {
+   "source": "exec:nc01:1631",
+   "claim": false,
+   "text": "Compreendo perfeitamente, agradeço por avisar. Se mudar de ideias no futuro, estamos à disposição. Tenha um ótimo dia!"
+  },
+  {
+   "source": "exec:nc01:1632",
+   "claim": false,
+   "text": "Que bom saber! Claro que posso ajudar. Pode dizer-me qual o orçamento aproximado que tem em mente e para quando pretende encontrar a casa em Cascais?"
+  },
+  {
+   "source": "exec:nc01:1641",
+   "claim": false,
+   "text": "O próximo passo é agendar uma primeira conversa com um dos nossos colegas, que vai confirmar consigo os detalhes e o que está disponível para o seu perfil. Quer que lhe proponha alguns horários?"
+  },
+  {
+   "source": "exec:nc01:1642",
+   "claim": false,
+   "text": "Prazer, João! Fico com o seu nome registado. Quer que lhe proponha alguns horários para essa primeira conversa com o nosso colega?"
+  },
+  {
+   "source": "exec:nc01:1643",
+   "claim": false,
+   "text": "Combinado, João! Quer que lhe proponha alguns horários para essa primeira conversa com o nosso colega?"
+  },
+  {
+   "source": "exec:nc01:1644",
+   "claim": false,
+   "text": "Entendido, João! Registei o seu orçamento máximo em 1.100.000€. Quer que lhe proponha alguns horários para essa primeira conversa com o nosso colega?"
+  },
+  {
+   "source": "exec:nc01:1645",
+   "claim": false,
+   "text": "Perfeito, fico registado que podem chegar até 1.400.000€ se a oportunidade valer a pena. Quer que lhe proponha alguns horários para essa primeira conversa com o nosso colega?"
+  },
+  {
+   "source": "exec:nc01:1646",
+   "claim": false,
+   "text": "Compreendo perfeitamente, João. Se mudar de ideias, estamos por cá para ajudar. Tenha um ótimo dia!"
+  },
+  {
+   "source": "exec:nc01:1647",
+   "claim": false,
+   "text": "Claro, João! Fico contente em continuar a ajudar. Quer que lhe proponha alguns horários para essa primeira conversa com o nosso colega?"
+  },
+  {
+   "source": "exec:nc01:1683",
+   "claim": false,
+   "text": "Great, John! Here are the times we currently have available: Monday 14 September 2026 at 09:00 Lisbon time, Tuesday 15 September 2026 at 09:00 Lisbon time, or Wednesday 16 September 2026 at 09:00 Lisbon time. Would any of these work for you?"
+  },
+  {
+   "source": "exec:nc01:1684",
+   "claim": false,
+   "text": "No problem at all, John, take your time. Just let me know whenever you're ready and I'll get it arranged."
+  },
+  {
+   "source": "exec:nc01:1685",
+   "claim": false,
+   "text": "Got it, John — I've updated your maximum budget to €1,000,000. Whenever you're ready to book that first meeting, just let me know."
+  },
+  {
+   "source": "exec:nc01:1686",
+   "claim": false,
+   "text": "Noted, John — up to €1,300,000 if the right property comes along. Whenever you're ready to book that first meeting, just let me know."
+  },
+  {
+   "source": "exec:nc01:1687",
+   "claim": false,
+   "text": "Great, John! Here are the times we currently have available: Monday 14 September 2026 at 09:00 Lisbon time, Tuesday 15 September 2026 at 09:00 Lisbon time, or Wednesday 16 September 2026 at 09:00 Lisbon time. Which one works best for you?"
+  },
+  {
+   "source": "exec:nc01:1688",
+   "claim": false,
+   "text": "De nada, João! Fico à disposição para quando quiser escolher um dos horários. Tenha um ótimo dia!"
+  },
+  {
+   "source": "exec:nc01:1691",
+   "claim": false,
+   "text": "Happy to help, John! Just to clarify, this would be a first meeting with our colleague, since we haven't yet named a specific property. Here are the available times: Monday 14 September 2026 at 09:00 Lisbon time, Tuesday 15 September 2026 at 09:00 Lisbon time, or Wednesday 16 September 2026 at 09:00 Lisbon time. Which one suits you best?"
+  },
+  {
+   "source": "exec:nc01:1692",
+   "claim": false,
+   "text": "No problem at all, John! Whenever you're ready to confirm, just let me know and I'll get it arranged."
+  },
+  {
+   "source": "exec:nc01:1693",
+   "claim": false,
+   "text": "Claro, João! Está registado como João Ferreira. Se quiser corrigir ou complementar, é só me dizer."
+  },
+  {
+   "source": "exec:nc01:1695",
+   "claim": false,
+   "text": "¡Claro, João! Aquí tienes los horarios disponibles: lunes 14 de septiembre de 2026 a las 09:00 hora de Lisboa, martes 15 de septiembre de 2026 a las 09:00 hora de Lisboa, o miércoles 16 de septiembre de 2026 a las 09:00 hora de Lisboa. ¿Cuál te viene mejor?"
+  },
+  {
+   "source": "exec-handoff:1695",
+   "claim": false,
+   "text": "Un compañero de nuestro equipo continuará la conversación y se pondrá en contacto con usted en breve."
+  },
+  {
+   "source": "exec:nc01:1696",
+   "claim": false,
+   "text": "No worries, John! The next step is simply choosing one of these times: Monday 14 September 2026 at 09:00 Lisbon time, Tuesday 15 September 2026 at 09:00 Lisbon time, or Wednesday 16 September 2026 at 09:00 Lisbon time. Once you confirm, we'll get your first meeting with our colleague set up."
+  },
+  {
+   "source": "exec:nc01:1701",
+   "claim": false,
+   "text": "Hi João! Just bring any documents related to your financing pre-approval and a general sense of what you're looking for — our colleague will guide you through everything else. Anything specific you'd like to prepare beforehand?",
+   "why": "created turn whose reply never stated the booking (12 Sep, the booking_stated defect): not a claim"
+  },
+  {
+   "source": "exec:nc01:1702",
+   "claim": true,
+   "text": "John, I actually see you already have a first meeting booked with our colleague for Monday 14 September 2026 at 09:00 Lisbon time. If you'd like to move it to Tuesday instead, I'll have a colleague help with that change.",
+   "why": "restates the held booking"
+  },
+  {
+   "source": "exec:nc01:1705",
+   "claim": false,
+   "text": "Olá João! Como posso ajudar? Se quiser, ainda temos horários disponíveis para a nossa primeira reunião, incluindo terça-feira, 15 de setembro de 2026, às 09:00 (hora de Lisboa)."
+  },
+  {
+   "source": "exec:nc01:1707",
+   "claim": false,
+   "text": "Hi João! It would help to bring any documents related to your financing pre-approval, plus a clear idea of what you're looking for — our colleague will guide you through everything else at the meeting."
+  },
+  {
+   "source": "exec:nc01:1708",
+   "claim": false,
+   "text": "Yes, João! Tuesday 15 September 2026 has two options: 09:00 or 10:00 Lisbon time. Which works better for you?"
+  },
+  {
+   "source": "exec:nc01:1709",
+   "claim": true,
+   "text": "Perfect, João! You're all set for your first meeting with our colleague on Tuesday, 15 September 2026 at 09:00 Lisbon time. Looking forward to it!",
+   "why": "the confirmation sent on a turn that created the event"
+  },
+  {
+   "source": "exec:nc01:1710",
+   "claim": true,
+   "text": "Yes, João! Wednesday 16 September 2026 has slots at 09:00 or 10:00 Lisbon time as well. Your meeting is still set for Tuesday 15 September at 09:00, unless you'd like to change it.",
+   "why": "restates the held booking"
+  },
+  {
+   "source": "exec:nc01:1940",
+   "claim": false,
+   "text": "Hi João! I don't have access to listing details myself, but a colleague will confirm what's currently available. In the meantime, is this in Cascais and around the same budget you mentioned before, or has something changed?"
+  },
+  {
+   "source": "exec-handoff:1940",
+   "claim": false,
+   "text": "The appointment we had booked for Tuesday 15 September at 09:00 (Lisbon time) is no longer in our diary. I am sorry for the inconvenience. A member of our team will be in touch with you shortly to arrange a new time."
+  },
+  {
+   "source": "exec:nc01:1943",
+   "claim": false,
+   "text": "Thanks for reaching out! I don't have direct access to listings, so a colleague will confirm what's currently available. In the meantime, could you tell me which area you're interested in and your budget range?"
+  },
+  {
+   "source": "exec:nc01:1944",
+   "claim": false,
+   "text": "Great, Cascais or Estoril around €1.5M is very helpful to know. Are you looking to buy for yourself to live in, or more as an investment, and what's your timeline for making a move?"
+  },
+  {
+   "source": "exec:nc01:1945",
+   "claim": false,
+   "text": "Wonderful, thanks for sharing that! I'd love to set up a first meeting with our colleague so we can go over your search in more detail — would any of these work for you: Tuesday, 15 September at 15:00, Wednesday, 16 September at 09:00, or Thursday, 17 September at 09:00, all Lisbon time?"
+  },
+  {
+   "source": "exec:nc01:1946",
+   "claim": false,
+   "text": "That's really helpful to know — school proximity can make a big difference in choosing the right area. I'll make sure this is passed along so we can factor it into finding the right fit for your family."
+  },
+  {
+   "source": "exec:nc01:1947",
+   "claim": true,
+   "text": "Perfect, I'll get that first meeting set for Tuesday, 15 September at 15:00 Lisbon time with our colleague, and they'll be in touch to confirm.",
+   "why": "a claim with no event behind it: a phantom (12/14 Sep, suite 7) or a draft discarded for a handoff"
+  },
+  {
+   "source": "exec:nc01:1954",
+   "claim": false,
+   "text": "Thanks for reaching out! I don't have access to listing availability myself, so I'll have a colleague confirm the current status for you. In the meantime, could you tell me which area you're interested in and your rough budget?"
+  },
+  {
+   "source": "exec:nc01:1955",
+   "claim": false,
+   "text": "Great, Cascais and Estoril are both areas we know well, and €1.5M is helpful to know. Do you have a timeline in mind for when you'd like to move, and is this for living in yourself or as an investment?"
+  },
+  {
+   "source": "exec:nc01:1956",
+   "claim": false,
+   "text": "That's great to know, thank you! Would you like to set up a first meeting with one of our colleagues to discuss options in more detail?"
+  },
+  {
+   "source": "exec:nc01:1957",
+   "claim": false,
+   "text": "Wonderful! We have the following times available for a first meeting with our colleague, Lisbon time: Tuesday, September 15, 2026 at 16:00, Wednesday, September 16, 2026 at 09:00, or Thursday, September 17, 2026 at 09:00. Which works best for you?"
+  },
+  {
+   "source": "exec:nc01:1958",
+   "claim": false,
+   "text": "That's really helpful context, thank you - school access is definitely worth factoring into the search. Do you have a preference for international or Portuguese schools, or a particular area near good schools?"
+  },
+  {
+   "source": "exec:nc01:1959",
+   "claim": true,
+   "text": "Perfect, you're all set! Your first meeting with our colleague is confirmed for Tuesday, 15 September 2026 at 16:00 Lisbon time. Looking forward to it!",
+   "why": "the confirmation sent on a turn that created the event"
+  },
+  {
+   "source": "exec:nc01:1963",
+   "claim": false,
+   "text": "Thanks for reaching out! I don't have access to live listing details myself, but a colleague will confirm current availability for you. In the meantime, could you tell me which area you're most interested in - Cascais, Estoril or Lisbon?"
+  },
+  {
+   "source": "exec:nc01:1964",
+   "claim": false,
+   "text": "That's great context, thank you! With Cascais or Estoril, a €1.5M budget, 4 bedrooms, pre-approval in hand and a 6-month move window, you're well positioned - a colleague will follow up with options that fit as they confirm availability."
+  },
+  {
+   "source": "exec:nc01:1965",
+   "claim": false,
+   "text": "A colleague from our team will review current listings that match your budget and area and reach out with the ones worth seeing - photos, pricing, details, that kind of thing. If you'd like, I can also set up a first meeting with our colleague to go through everything in person."
+  },
+  {
+   "source": "exec:nc01:1966",
+   "claim": false,
+   "text": "Wonderful! I can offer these times for a first meeting with our colleague, all Lisbon time: Tuesday 15 September at 17:00, Wednesday 16 September at 09:00, or Thursday 17 September at 09:00. Which works best for you?"
+  },
+  {
+   "source": "exec:nc01:1967",
+   "claim": false,
+   "text": "That's really important to factor in, and definitely worth discussing with our colleague - Cascais and Estoril both have well-regarded schools. Would you like to go ahead and pick one of those meeting times: Tuesday 15 September at 17:00, Wednesday 16 September at 09:00, or Thursday 17 September at 09:00, all Lisbon time?"
+  },
+  {
+   "source": "exec:nc01:1968",
+   "claim": true,
+   "text": "Perfect, you're booked for a first meeting with our colleague on Wednesday, 16 September 2026 at 09:00 Lisbon time. Looking forward to it!",
+   "why": "the confirmation sent on a turn that created the event"
+  },
+  {
+   "source": "exec:nc01:1974",
+   "claim": false,
+   "text": "Thanks for reaching out! I don't have access to live listing details myself, but a colleague can confirm what's currently available. In the meantime, could you tell me a bit about what you're looking for - which area, and roughly what budget range?"
+  },
+  {
+   "source": "exec:nc01:1975",
+   "claim": false,
+   "text": "That's great, thank you for sharing all that. With everything in place, I'd suggest a first meeting with our colleague to go over options in Cascais and Estoril - would Tuesday 15 September at 17:00, Wednesday 16 September at 09:00, or Thursday 17 September at 09:00 (all Lisbon time) work for you?"
+  },
+  {
+   "source": "exec:nc01:1976",
+   "claim": false,
+   "text": "That's really helpful context - schools nearby can make a big difference, and our colleague can factor that into the areas suggested. Is there a particular school or area you'd like to be close to?"
+  },
+  {
+   "source": "exec:nc01:1977",
+   "claim": true,
+   "text": "Wonderful, you're booked for Wednesday 16 September 2026 at 09:00 Lisbon time - a first meeting with one of our agents. Looking forward to it!",
+   "why": "the confirmation sent on a turn that created the event"
+  },
+  {
+   "source": "exec:nc01:1984",
+   "claim": false,
+   "text": "I don't have visibility into current listings myself, but a colleague can confirm what's available in Cascais closer to your meeting on Wednesday 16 September at 09:00 Lisbon time. Is there anything specific about the area you'd like them to know beforehand?",
+   "why": "held-booking turn, the reply does not state it"
+  },
+  {
+   "source": "exec:nc01:1985",
+   "claim": false,
+   "text": "That's a great question for our colleague to discuss directly, as I'm not able to get into pricing or negotiation. They'll be able to go over that with you at your meeting on Wednesday.",
+   "why": "held-booking turn, the reply does not state it"
+  },
+  {
+   "source": "exec:nc01:2177",
+   "claim": false,
+   "text": "Cobrimos principalmente Cascais, Estoril e Lisboa. Está a pensar em alguma dessas zonas em particular, ou tem outra em mente?"
+  },
+  {
+   "source": "exec:nc01:2178",
+   "claim": false,
+   "text": "O nosso atendimento é normalmente em horário comercial, mas o meu colega pode confirmar-lhe todos os detalhes. Entretanto, já tem alguma zona ou orçamento em mente para o ajudarmos melhor?"
+  },
+  {
+   "source": "exec:nc01:2180",
+   "claim": false,
+   "text": "Como referi, cobrimos principalmente Cascais, Estoril e Lisboa. Tem alguma dessas zonas em mente para a sua procura?"
+  },
+  {
+   "source": "exec:nc01:2181",
+   "claim": false,
+   "text": "De nada! Fico à disposição, e assim que tiver mais alguma informação sobre a zona ou orçamento, é só dizer."
+  },
+  {
+   "source": "exec:nc01:2500",
+   "claim": false,
+   "text": "Bom dia! Em que posso ajudar hoje?"
+  },
+  {
+   "source": "exec:nc01:2501",
+   "claim": false,
+   "text": "Que bom! Para o T3 em Cascais, já tem uma ideia de orçamento e prazo em mente para essa procura?"
+  },
+  {
+   "source": "exec:nc01:2504",
+   "claim": false,
+   "text": "Não tenho acesso aos preços das propriedades disponíveis, mas o meu colega poderá confirmar-lhe isso. Só para percebermos melhor, tem já um orçamento em mente para o T3 em Cascais?"
+  },
+  {
+   "source": "exec:nc01:2506",
+   "claim": false,
+   "text": "O Manuel vai já confirmar consigo os detalhes de preço. Entretanto, tem algum orçamento aproximado em mente para o T3 em Cascais?"
+  },
+  {
+   "source": "exec:nc01:2513",
+   "claim": false,
+   "text": "Não tenho essa informação em detalhe, mas o Manuel poderá confirmar-lhe o prazo de entrega assim que houver uma opção concreta. Já tem uma ideia de quando gostaria de concretizar a compra?"
+  },
+  {
+   "source": "exec:nc01:3161",
+   "claim": false,
+   "text": "Olá João! Sim, continuamos a trabalhar em Cascais, Estoril e Lisboa. Já que estamos a falar, tem alguma ideia de orçamento ou prazo para o T3 que procura?"
+  },
+  {
+   "source": "exec:nc01:4512",
+   "claim": false,
+   "text": "Claro, João, compreendo. Vou pedir a um colega para lhe dar continuidade pessoalmente o mais brevemente possível."
+  },
+  {
+   "source": "exec:nc01:4519",
+   "claim": false,
+   "text": "Claro, João, vou já pedir a um colega para falar consigo."
+  },
+  {
+   "source": "exec:nc01:4528",
+   "claim": false,
+   "text": "Great, João! We have two slots that morning - Thursday 24 September 2026 at 09:00 Lisbon time or Thursday 24 September 2026 at 10:00 Lisbon time. Which one works best for you?"
+  },
+  {
+   "source": "exec:nc01:4557",
+   "claim": false,
+   "text": "Thursday morning we have two options: 09:00 or 10:00 Lisbon time. Which one would you like to confirm, João?"
+  },
+  {
+   "source": "exec:nc01:4559",
+   "claim": false,
+   "text": "11:00 isn't available I'm afraid, João - Thursday morning we only have 09:00 or 10:00 Lisbon time. Would either of those work for you?"
+  },
+  {
+   "source": "exec:nc01:4560",
+   "claim": false,
+   "text": "Of course, João - I'll make sure a colleague follows up with you shortly to help with this."
+  },
+  {
+   "source": "exec:nc01:4568",
+   "claim": false,
+   "text": "Happy to help, João! Thursday morning we have 09:00 or 10:00 Lisbon time available - which one suits you best?"
+  },
+  {
+   "source": "exec:GATE:4625",
+   "claim": false,
+   "text": "Great choice, João! Just to confirm, that's Thursday 24 September 2026 at 09:00 Lisbon time for a first meeting with our colleague - shall I lock that in?"
+  },
+  {
+   "source": "exec:GATE:4627",
+   "claim": false,
+   "text": "11:00 isn't available I'm afraid, João - the closest options are Thursday 24 September 2026 at 09:00 or 10:00 Lisbon time, or Wednesday 23 September 2026 at 09:00 Lisbon time. Would any of these work for you?"
+  },
+  {
+   "source": "exec:GATE:4633",
+   "claim": false,
+   "text": "Great! We have two Thursday morning options: 09:00 or 10:00 Lisbon time. Which one works best for you, João?"
+  },
+  {
+   "source": "exec:GATE:4640",
+   "claim": false,
+   "text": "Great, just to confirm: Thursday 24 September 2026 at 09:00 Lisbon time for a first meeting with our colleague. Does that work for you, João?"
+  },
+  {
+   "source": "exec:GATE:4644",
+   "claim": false,
+   "text": "Thursday morning we have 09:00 or 10:00 Lisbon time available, but 11:00 isn't one of the open slots. Would either of those work for you, João?"
+  },
+  {
+   "source": "exec:GATE:4657",
+   "claim": false,
+   "text": "Great choice, João! Just to confirm — shall I lock in Thursday, 24 September 2026 at 09:00 Lisbon time for your first meeting with our colleague?"
+  },
+  {
+   "source": "exec:GATE:4660",
+   "claim": false,
+   "text": "That slot isn't available, but I can offer Thursday 24 September at 09:00 or 10:00 Lisbon time - which works better for you, João?"
+  },
+  {
+   "source": "exec:GATE:4666",
+   "claim": false,
+   "text": "Great choice, João! We have two slots Thursday 24 September 2026 morning: 09:00 or 10:00 Lisbon time. Which one works best for you?"
+  },
+  {
+   "source": "exec:GATE:4669",
+   "claim": false,
+   "text": "Thursday at 11:00 isn't available, but I can offer Thursday 24 September 2026 at 09:00 or 10:00 Lisbon time - would either of those work for you, João?"
+  },
+  {
+   "source": "exec:GATE:4696",
+   "claim": false,
+   "text": "11:00 isn't available on Thursday, João, but I can offer 09:00 or 10:00 Lisbon time that day - would either of those work for you?"
+  },
+  {
+   "source": "exec:GATE:4698",
+   "claim": false,
+   "text": "Of course, João - I'll have a colleague reach out to you directly to help with this."
+  },
+  {
+   "source": "exec:GATE:4701",
+   "claim": false,
+   "text": "Great! On Thursday 24 September we have two morning options: 09:00 or 10:00 Lisbon time. Which works better for you, João?"
+  },
+  {
+   "source": "exec:GATE:4703",
+   "claim": false,
+   "text": "11:00 isn't available, João, but I can offer Thursday 24 September at 09:00 or 10:00 Lisbon time, or Wednesday 23 September at 09:00 Lisbon time. Which of these suits you best?"
+  },
+  {
+   "source": "exec:GATE:4705",
+   "claim": false,
+   "text": "Of course, João — I'll have a colleague reach out to you personally to help with this. Thank you for your patience!"
+  },
+  {
+   "source": "exec:GATE:4708",
+   "claim": false,
+   "text": "Great choice, João! Just to confirm - Thursday 24 September 2026 at 09:00 Lisbon time for a first meeting with our colleague. Does that work for you?"
+  },
+  {
+   "source": "exec:GATE:4710",
+   "claim": false,
+   "text": "11:00 isn't available, unfortunately. On Thursday 24 September 2026 I can offer 09:00 or 10:00 Lisbon time, or Wednesday 23 September 2026 at 09:00 Lisbon time - would any of those suit you?"
+  },
+  {
+   "source": "exec:GATE:4713",
+   "claim": false,
+   "text": "Of course, João - I'll have a colleague reach out to you directly to help with this. They'll be in touch soon!"
+  },
+  {
+   "source": "exec:GATE:4716",
+   "claim": false,
+   "text": "Great choice — I'll note Thursday 24 September 2026 at 09:00 Lisbon time for your first meeting with our colleague. Can you confirm that works for you?"
+  },
+  {
+   "source": "exec:GATE:4718",
+   "claim": false,
+   "text": "11:00 isn't available, João — for Thursday I can offer 09:00 or 10:00 Lisbon time, or Wednesday 23 September at 09:00 Lisbon time. Which works best for you?"
+  },
+  {
+   "source": "exec:GATE:4720",
+   "claim": false,
+   "text": "Of course, João — I'll have a colleague reach out to you directly to help with this. They'll get in touch shortly."
+  },
+  {
+   "source": "exec:GATE:4723",
+   "claim": false,
+   "text": "Great choice, João! Just to confirm, that's Thursday 24 September 2026 at 09:00 Lisbon time for a first meeting with our colleague - does that work for you?"
+  },
+  {
+   "source": "exec:GATE:4725",
+   "claim": false,
+   "text": "11:00 isn't available, João - the options I have are Thursday 24 September 2026 at 09:00, Thursday 24 September 2026 at 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time. Would any of those work for you?"
+  },
+  {
+   "source": "exec:GATE:4732",
+   "claim": false,
+   "text": "11:00 isn't available, but I can offer Thursday 24 September 2026 at 09:00 or 10:00 Lisbon time, or Wednesday 23 September 2026 at 09:00 Lisbon time. Which of these works best for you, João?"
+  },
+  {
+   "source": "exec:GATE:4734",
+   "claim": false,
+   "text": "Of course, João — I'll have a colleague reach out to you directly to sort this out."
+  },
+  {
+   "source": "exec:GATE:4737",
+   "claim": false,
+   "text": "Great choice, João! Just to confirm — Thursday 24 September 2026 at 09:00 Lisbon time for a first meeting with our colleague. Does that work for you?"
+  },
+  {
+   "source": "exec:GATE:4739",
+   "claim": false,
+   "text": "11:00 isn't available, João, but I can offer Thursday 24 September 2026 at 09:00 or 10:00 Lisbon time, or Wednesday 23 September 2026 at 09:00 Lisbon time. Would any of those work for you?"
+  },
+  {
+   "source": "exec:GATE:4741",
+   "claim": false,
+   "text": "Of course, João — I'll have a colleague reach out to you directly to help with this. Thank you for your patience!"
+  },
+  {
+   "source": "exec:GATE:4744",
+   "claim": false,
+   "text": "Great choice, João! Just to confirm, that would be Thursday, 24 September 2026 at 09:00 Lisbon time for a first meeting with our colleague. Shall I confirm that for you?"
+  },
+  {
+   "source": "exec:GATE:4746",
+   "claim": false,
+   "text": "11:00 isn't available I'm afraid, João. For Thursday the options are 09:00 or 10:00 Lisbon time - would either of those work?"
+  },
+  {
+   "source": "exec:GATE:4748",
+   "claim": false,
+   "text": "Of course, João, I'll have a colleague reach out to you directly. In the meantime, know that Thursday 09:00 or 10:00 Lisbon time are still open if you'd like to go ahead with one of those."
+  },
+  {
+   "source": "exec:GATE:4751",
+   "claim": false,
+   "text": "Great, João! We have Thursday 24 September 2026 at 09:00 Lisbon time or 10:00 Lisbon time available - which one works best for you?"
+  },
+  {
+   "source": "exec:GATE:4753",
+   "claim": false,
+   "text": "11:00 isn't available, João, but I can offer 09:00 or 10:00 Lisbon time on Thursday 24 September 2026 - would either of those work?"
+  },
+  {
+   "source": "exec:GATE:4755",
+   "claim": false,
+   "text": "Of course, João - I'll have a colleague reach out to you directly to help with this. 🤖 Sofia, ZZ GATE's virtual assistant."
+  },
+  {
+   "source": "exec:GATE:4758",
+   "claim": false,
+   "text": "Great! We have two options Thursday morning: 09:00 or 10:00 Lisbon time. Which one works best for you, João?"
+  },
+  {
+   "source": "exec:GATE:4760",
+   "claim": false,
+   "text": "11:00 isn't available, but I can offer Thursday 24 September at 09:00 or 10:00 Lisbon time. Which one works best for you, João?"
+  },
+  {
+   "source": "exec:GATE:4762",
+   "claim": false,
+   "text": "Of course, João - I'll have a colleague reach out to you directly to help with this. Thanks for your patience!"
+  },
+  {
+   "source": "exec:GATE:4765",
+   "claim": false,
+   "text": "Great! On Thursday 24 September we have two morning slots available: 09:00 or 10:00 Lisbon time. Which one works best for you, João?"
+  },
+  {
+   "source": "exec:GATE:4767",
+   "claim": false,
+   "text": "11:00 isn't available, João, but I can offer Thursday 24 September at 09:00 or 10:00 Lisbon time, or Wednesday 23 September at 09:00 Lisbon time. Would any of those work?"
+  },
+  {
+   "source": "exec:GATE:4772",
+   "claim": false,
+   "text": "Great, João - just to confirm, that's Thursday 24 September 2026 at 09:00 Lisbon time for a first meeting with our colleague. Does that work for you?"
+  },
+  {
+   "source": "exec:GATE:4774",
+   "claim": false,
+   "text": "11:00 isn't one of the times we have available, João. The options I can offer are Thursday 24 September 2026 at 09:00, Thursday 24 September 2026 at 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time - would any of those work?"
+  },
+  {
+   "source": "exec:GATE:4779",
+   "claim": false,
+   "text": "Great, just to confirm: Thursday 24 September 2026 at 09:00 Lisbon time for a first meeting with our colleague - does that work for you, João?"
+  },
+  {
+   "source": "exec:GATE:4781",
+   "claim": false,
+   "text": "11:00 isn't available, João, but I can offer Thursday 24 September 2026 at 09:00, Thursday 24 September 2026 at 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time. Which of these works best for you?"
+  },
+  {
+   "source": "exec:GATE:4788",
+   "claim": false,
+   "text": "Great! For Thursday 24 September we have two morning slots - 09:00 or 10:00 Lisbon time. Which one works best for you, João?"
+  },
+  {
+   "source": "exec:GATE:4790",
+   "claim": false,
+   "text": "11:00 isn't available, João - for Thursday we only have 09:00 or 10:00 Lisbon time. Would either of those work for you?"
+  },
+  {
+   "source": "exec:GATE:4795",
+   "claim": false,
+   "text": "Great choice, João! We have two Thursday morning slots available: 09:00 or 10:00 Lisbon time. Which one works best for you?"
+  },
+  {
+   "source": "exec:GATE:4797",
+   "claim": false,
+   "text": "11:00 isn't available, João, but I can offer Thursday 24 September at 09:00 or 10:00 Lisbon time, or Wednesday 23 September at 09:00 Lisbon time. Which one works best for you?"
+  },
+  {
+   "source": "exec:GATE:4799",
+   "claim": false,
+   "text": "Of course, João — I'll connect you with a colleague who can assist you personally."
+  },
+  {
+   "source": "exec:GATE:4802",
+   "claim": false,
+   "text": "Great, let's pencil in Thursday 24 September 2026 at 09:00 Lisbon time - can you confirm that works for you?"
+  },
+  {
+   "source": "exec:GATE:4804",
+   "claim": false,
+   "text": "11:00 isn't available, but I can offer Thursday 24 September 2026 at 09:00 or 10:00 Lisbon time, or Wednesday 23 September 2026 at 09:00 Lisbon time - would any of those work for you, João?"
+  },
+  {
+   "source": "exec:GATE:4809",
+   "claim": false,
+   "text": "Great choice, João! Just to confirm: Thursday 24 September 2026 at 09:00 Lisbon time, for a first meeting with our colleague. Shall I lock that in?"
+  },
+  {
+   "source": "exec:GATE:4811",
+   "claim": false,
+   "text": "11:00 isn't available, João, but I do have Thursday 24 September 2026 at 09:00 or 10:00 Lisbon time, or Wednesday 23 September 2026 at 09:00 Lisbon time. Would any of those work for you?"
+  },
+  {
+   "source": "exec:GATE:4813",
+   "claim": false,
+   "text": "Of course, João — I'll have a colleague reach out to you directly to help with this. In the meantime, would any of Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00 Lisbon time, still work for you?"
+  },
+  {
+   "source": "exec:GATE:4816",
+   "claim": false,
+   "text": "Great! We have two Thursday morning slots - 09:00 or 10:00 Lisbon time. Which one works better for you, João?"
+  },
+  {
+   "source": "exec:GATE:4818",
+   "claim": false,
+   "text": "11:00 isn't available, João, but I can offer Thursday 24 September at 09:00 or 10:00 Lisbon time. Which one works for you?"
+  },
+  {
+   "source": "exec:GATE:4820",
+   "claim": false,
+   "text": "Of course, João - I'll have a colleague reach out to you personally to sort this out."
+  },
+  {
+   "source": "exec:GATE:4823",
+   "claim": false,
+   "text": "Great! We have two options Thursday morning - 09:00 or 10:00 Lisbon time. Which one works best for you, João?"
+  },
+  {
+   "source": "exec:GATE:4825",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE's virtual assistant, here. We don't have an 11:00 slot, João - Thursday 24 September is available at 09:00 or 10:00 Lisbon time. Would either of those work for you?"
+  },
+  {
+   "source": "exec:GATE:4827",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE's virtual assistant. Of course, João - I'll have a colleague reach out to you directly to help with this."
+  },
+  {
+   "source": "exec:GATE:4830",
+   "claim": false,
+   "text": "Great! We have Thursday 24 September at 09:00 or 10:00 Lisbon time in the morning - which one works best for you, João?"
+  },
+  {
+   "source": "exec:GATE:4832",
+   "claim": false,
+   "text": "11:00 isn't available, but I can offer Thursday 24 September at 09:00 or 10:00 Lisbon time - would either of those work for you?"
+  },
+  {
+   "source": "exec:GATE:4846",
+   "claim": false,
+   "text": "Great, just to confirm - Thursday 24 September 2026 at 09:00 Lisbon time for a first meeting with our colleague. Does that work for you, João?"
+  },
+  {
+   "source": "exec:GATE:4848",
+   "claim": false,
+   "text": "11:00 isn't available on Thursday, but I can offer 09:00 or 10:00 Lisbon time that day, or Wednesday 23 September at 09:00 Lisbon time. Which works best for you, João?"
+  },
+  {
+   "source": "exec:GATE:4850",
+   "claim": false,
+   "text": "Of course, João - I'll get a colleague to reach out to you directly. In the meantime, would you like me to hold one of the times I mentioned for you?"
+  },
+  {
+   "source": "exec:GATE:4853",
+   "claim": false,
+   "text": "Great choice, João! Just to confirm, would you prefer Thursday 24 September at 09:00 or 10:00 Lisbon time?"
+  },
+  {
+   "source": "exec:GATE:4855",
+   "claim": false,
+   "text": "11:00 isn't available, João, but I can offer Thursday 24 September at 09:00 or 10:00 Lisbon time — which works better for you?"
+  },
+  {
+   "source": "exec:GATE:4857",
+   "claim": false,
+   "text": "Of course, João, I'll get a colleague to reach out to you directly to help with the booking."
+  },
+  {
+   "source": "exec:GATE:4860",
+   "claim": false,
+   "text": "Great! We have two Thursday morning slots: 09:00 or 10:00 Lisbon time. Which one works best for you, João?"
+  },
+  {
+   "source": "exec:GATE:4862",
+   "claim": false,
+   "text": "11:00 isn't available, but I do have Thursday at 09:00 or 10:00 Lisbon time, or Wednesday at 09:00 Lisbon time. Would any of those work for you, João?"
+  },
+  {
+   "source": "exec:GATE:4868",
+   "claim": false,
+   "text": "Great, João! We have Thursday 24 September at 09:00 Lisbon time or 10:00 Lisbon time - which works best for you?"
+  },
+  {
+   "source": "exec:GATE:4870",
+   "claim": false,
+   "text": "11:00 isn't available, João - the closest options we have are Thursday 24 September at 09:00 Lisbon time or 10:00 Lisbon time. Would either of those work?"
+  },
+  {
+   "source": "exec:GATE:4872",
+   "claim": false,
+   "text": "Of course, João - I'll have a colleague reach out to you directly to help with this. Thank you for your patience!"
+  },
+  {
+   "source": "exec:GATE:4875",
+   "claim": false,
+   "text": "Great choice, João - just to confirm, that's Thursday 24 September 2026 at 09:00 Lisbon time for a first meeting with our colleague. Could you confirm that works for you?"
+  },
+  {
+   "source": "exec:GATE:4877",
+   "claim": false,
+   "text": "11:00 isn't available, João, but I do have Thursday 24 September 2026 at 09:00 or 10:00 Lisbon time, or Wednesday 23 September 2026 at 09:00. Would any of those work for you?"
+  },
+  {
+   "source": "exec:GATE:4879",
+   "claim": false,
+   "text": "Of course, João - I'll get a colleague to reach out to you directly to help with this."
+  },
+  {
+   "source": "exec:GATE:4882",
+   "claim": false,
+   "text": "Great, João! We have Thursday 24 September at 09:00 Lisbon time or 10:00 Lisbon time - which one works better for you?"
+  },
+  {
+   "source": "exec:GATE:4884",
+   "claim": false,
+   "text": "11:00 isn't available on Thursday, João - the options I have are 09:00 or 10:00 Lisbon time that day, or Wednesday 23 September at 09:00. Would any of those work for you?"
+  },
+  {
+   "source": "exec:GATE:4889",
+   "claim": false,
+   "text": "Great! On Thursday 24 September we have 09:00 or 10:00 Lisbon time available - which one works best for you, João?"
+  },
+  {
+   "source": "exec:GATE:4891",
+   "claim": false,
+   "text": "11:00 isn't available, but I can offer Thursday 24 September at 09:00 or 10:00 Lisbon time, or Wednesday 23 September at 09:00 Lisbon time. Would any of those work for you?"
+  },
+  {
+   "source": "exec:GATE:4896",
+   "claim": false,
+   "text": "Great! We have Thursday 24 September at either 09:00 or 10:00 Lisbon time - which one works better for you, João?"
+  },
+  {
+   "source": "exec:GATE:4898",
+   "claim": false,
+   "text": "11:00 isn't available, João, but I can offer Thursday 24 September at 09:00 or 10:00 Lisbon time - would either of those work for you?"
+  },
+  {
+   "source": "exec:GATE:4900",
+   "claim": false,
+   "text": "Of course, João - I'll have a colleague reach out to help you personally with the booking."
+  },
+  {
+   "source": "exec:GATE:4905",
+   "claim": false,
+   "text": "11:00 isn't available, João, but I can offer either 09:00 or 10:00 Lisbon time on Thursday 24 September - would one of those work for you?"
+  },
+  {
+   "source": "exec:GATE:4912",
+   "claim": false,
+   "text": "11:00 isn't available, João - the closest options I have are Thursday 24 September 2026 at 09:00 or 10:00 Lisbon time, or Wednesday 23 September 2026 at 09:00 Lisbon time. Would any of those work?"
+  },
+  {
+   "source": "exec:GATE:4917",
+   "claim": false,
+   "text": "Great! On Thursday 24 September we have two morning slots - 09:00 or 10:00 Lisbon time. Which one works best for you, João?"
+  },
+  {
+   "source": "exec:GATE:4919",
+   "claim": false,
+   "text": "11:00 isn't available I'm afraid, João. For Thursday 24 September we have 09:00 or 10:00 Lisbon time, or Wednesday 23 September at 09:00 Lisbon time - would any of those suit you?"
+  },
+  {
+   "source": "exec:GATE:4926",
+   "claim": false,
+   "text": "11:00 isn't one of the times I have available, João. I can offer Thursday 24 September 2026 at 09:00, Thursday 24 September 2026 at 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time - would any of those work?"
+  },
+  {
+   "source": "exec:GATE:4938",
+   "claim": false,
+   "text": "Great choice, João! Just to confirm: Thursday 24 September 2026 at 09:00 Lisbon time for a first meeting with our colleague. Can you confirm that works for you?"
+  },
+  {
+   "source": "exec:GATE:4940",
+   "claim": false,
+   "text": "11:00 isn't available, João — the options I have are Thursday 24 September 2026 at 09:00 or 10:00 Lisbon time, or Wednesday 23 September 2026 at 09:00 Lisbon time. Would any of those work for you?"
+  },
+  {
+   "source": "exec:GATE:4944",
+   "claim": false,
+   "text": "Of course, João, I'll get a colleague to reach out to you directly."
+  },
+  {
+   "source": "exec:GATE:4947",
+   "claim": false,
+   "text": "Great, João! Just to confirm - shall I lock in Thursday 24 September 2026 at 09:00 Lisbon time for your first meeting with our colleague?"
+  },
+  {
+   "source": "exec:GATE:4949",
+   "claim": false,
+   "text": "11:00 isn't available I'm afraid, João. We currently have Thursday 24 September at 09:00 or 10:00, or Wednesday 23 September at 09:00, all Lisbon time - would any of those work for you?"
+  },
+  {
+   "source": "exec:GATE:4951",
+   "claim": false,
+   "text": "Of course, João - I'll flag this so a colleague can reach out to you directly and help with the booking."
+  },
+  {
+   "source": "exec:GATE:4954",
+   "claim": false,
+   "text": "Great choice, João! Just to confirm: Thursday, September 24, 2026 at 09:00 Lisbon time for a first meeting with our colleague. Shall I lock that in?"
+  },
+  {
+   "source": "exec:GATE:4956",
+   "claim": false,
+   "text": "11:00 isn't available, João - on Thursday I can offer 09:00 or 10:00 Lisbon time, or Wednesday at 09:00 Lisbon time. Which works best for you?"
+  },
+  {
+   "source": "exec:GATE:4961",
+   "claim": false,
+   "text": "Great, Thursday 24 September 2026 at 09:00 Lisbon time - can you confirm that works for you?"
+  },
+  {
+   "source": "exec:GATE:4963",
+   "claim": false,
+   "text": "11:00 isn't available, but I do have Thursday 24 September 2026 at 09:00 or 10:00 Lisbon time, or Wednesday 23 September 2026 at 09:00 Lisbon time. Would any of those work for you, João?"
+  },
+  {
+   "source": "exec:GATE:4968",
+   "claim": false,
+   "text": "Great! On Thursday 24 September we have two morning options - 09:00 or 10:00 Lisbon time. Which works better for you, João?"
+  },
+  {
+   "source": "exec:GATE:4970",
+   "claim": false,
+   "text": "11:00 isn't available I'm afraid, João. On Thursday 24 September we have 09:00 or 10:00 Lisbon time - would either of those work?"
+  },
+  {
+   "source": "exec:GATE:4972",
+   "claim": false,
+   "text": "Of course, João - I'll have a colleague reach out to you directly to help with this. They'll take it from here."
+  },
+  {
+   "source": "exec:GATE:4975",
+   "claim": false,
+   "text": "Great, Thursday 24 September 2026 at 09:00 Lisbon time it is - can you just confirm that works for you?"
+  },
+  {
+   "source": "exec:GATE:4977",
+   "claim": false,
+   "text": "11:00 isn't available, but I can offer Thursday 24 September 2026 at 09:00 or 10:00 Lisbon time, or Wednesday 23 September 2026 at 09:00 Lisbon time - which works best for you, João?"
+  },
+  {
+   "source": "exec:GATE:4979",
+   "claim": false,
+   "text": "Of course, João - I'll have a colleague reach out to you directly to help further."
+  },
+  {
+   "source": "exec:GATE:4982",
+   "claim": false,
+   "text": "Great! We have two Thursday morning slots: 09:00 or 10:00 Lisbon time, 24 September 2026. Which one works best for you, João?"
+  },
+  {
+   "source": "exec:GATE:4986",
+   "claim": false,
+   "text": "Of course, João - I'll have a colleague reach out to you directly to sort this out."
+  },
+  {
+   "source": "exec:nc01:5001",
+   "claim": false,
+   "text": "Happy to help, João! On Thursday morning we have 09:00 or 10:00 Lisbon time - which one would you like?"
+  },
+  {
+   "source": "exec:nc01:5002",
+   "claim": false,
+   "text": "11:00 isn't one of our available slots, João - Thursday morning we only have 09:00 or 10:00 Lisbon time. Which of those would you like?"
+  },
+  {
+   "source": "exec:nc01:5003",
+   "claim": false,
+   "text": "Of course, João - I'll have a colleague reach out to you directly."
+  },
+  {
+   "source": "exec:GATE:5012",
+   "claim": false,
+   "text": "Hi there! I'm Sofia from Ryvo Test Client. Are you looking to buy, sell, or rent a property with us?"
+  },
+  {
+   "source": "exec:GATE:5019",
+   "claim": false,
+   "text": "Hi there! Welcome to Ryvo Test Client. Are you looking to buy, sell, or rent a property with us?"
+  },
+  {
+   "source": "exec:GATE:5022",
+   "claim": false,
+   "text": "Hi there! I'm Sofia from Ryvo. Are you looking to buy, sell, or rent a property with us?"
+  },
+  {
+   "source": "exec:GATE:5025",
+   "claim": false,
+   "text": "Hello! I'm happy to help you with your property search in Cascais, Estoril or Lisbon. Are you looking to buy, sell, or rent?"
+  },
+  {
+   "source": "exec:GATE:5030",
+   "claim": false,
+   "text": "Hi there! I'm Sofia, an assistant with Ryvo Test Client. Are you looking to buy, sell, or rent a property in the Cascais, Estoril or Lisbon area?"
+  },
+  {
+   "source": "exec:GATE:5033",
+   "claim": false,
+   "text": "Hi there! I'm Sofia, happy to help. Are you looking to buy, sell, or rent a property?"
+  },
+  {
+   "source": "exec:GATE:5044",
+   "claim": false,
+   "text": "Hi there! I'm glad you reached out. Are you looking to buy, sell, or rent a property, and do you have an area in mind?"
+  },
+  {
+   "source": "exec:GATE:5053",
+   "claim": false,
+   "text": "Hi there! Welcome to Ryvo Test Client. Are you looking to buy, sell, or rent in the Cascais, Estoril or Lisbon area?"
+  },
+  {
+   "source": "exec:GATE:5088",
+   "claim": false,
+   "text": "Hello! Lovely to hear from you. Are you looking to buy, sell, or rent a property with us?"
+  },
+  {
+   "source": "exec:GATE:5090",
+   "claim": false,
+   "text": "We haven't pinned down a specific property yet, so a colleague will confirm what's available for you in Cascais - but I'd love to set up a first meeting with our colleague to go over your search. Would Wednesday 23 September, Thursday 24 September, or Friday 25 September, all at 09:00 Lisbon time, work for you?"
+  },
+  {
+   "source": "exec:GATE:5092",
+   "claim": false,
+   "text": "We haven't pinned down a specific property yet, so let's start with a first meeting with our colleague, who can then confirm what's available. We have Wednesday 23 September at 09:00, Thursday 24 September at 09:00, or Friday 25 September at 09:00, Lisbon time - does any of those work for you, João?"
+  },
+  {
+   "source": "exec:GATE:5094",
+   "claim": true,
+   "text": "You're all set, João - your first meeting with our colleague is confirmed for Wednesday 23 September 2026 at 09:00 Lisbon time. Looking forward to it!",
+   "why": "the confirmation sent on a turn that created the event"
+  },
+  {
+   "source": "exec:GATE:5096",
+   "claim": false,
+   "text": "So sorry, João — that slot was just taken. We still have Wednesday 23 September at 10:00, Wednesday 23 September at 11:00, or Thursday 24 September at 09:00, Lisbon time — would any of those suit you?"
+  },
+  {
+   "source": "exec:GATE:5101",
+   "claim": false,
+   "text": "Ainda não temos uma propriedade específica definida, por isso o que posso agendar é uma primeira reunião com o nosso colega para perceber melhor o que procura. Esta semana não tenho disponibilidade, mas tenho estes horários: quarta-feira, 23 de setembro de 2026 às 10:00, quinta-feira, 24 de setembro de 2026 às 09:00, ou sexta-feira, 25 de setembro de 2026 às 09:00, horário de Lisboa. Qual prefere?"
+  },
+  {
+   "source": "exec:GATE:5103",
+   "claim": false,
+   "text": "Ainda não temos um imóvel específico definido, por isso o próximo passo seria uma primeira reunião com o nosso colega para entender melhor o que procura. Para esta semana não tenho horários disponíveis, mas posso propor: quarta-feira, 23 de setembro às 10:00, quinta-feira, 24 de setembro às 09:00, ou sexta-feira, 25 de setembro às 09:00, hora de Lisboa. Qual destes lhe fica melhor?"
+  },
+  {
+   "source": "exec:GATE:5105",
+   "claim": true,
+   "text": "Ótimo, João! Fica confirmada a sua primeira reunião com o nosso colega para quarta-feira, 23 de setembro de 2026, às 10:00, horário de Lisboa. Até lá!",
+   "why": "the confirmation sent on a turn that created the event"
+  },
+  {
+   "source": "exec:GATE:5107",
+   "claim": false,
+   "text": "Peço desculpa, João, mas esse horário acabou de ficar indisponível. Ainda tenho livre quarta-feira, 23 de setembro às 11:00, quarta-feira, 23 de setembro às 12:00, ou quinta-feira, 24 de setembro às 09:00, hora de Lisboa. Qual destes prefere?"
+  },
+  {
+   "source": "exec:GATE:5110",
+   "claim": false,
+   "text": "João, todavía no tenemos un inmueble concreto identificado, así que lo que puedo ofrecerte es una primera reunión con nuestro colega para avanzar en la búsqueda. Tenemos disponibilidad el miércoles 23 de septiembre de 2026 a las 11:00, el jueves 24 de septiembre a las 09:00 o el viernes 25 de septiembre a las 09:00, hora de Lisboa. ¿Cuál te viene mejor?"
+  },
+  {
+   "source": "exec:GATE:5112",
+   "claim": false,
+   "text": "Aún no tenemos una propiedad específica seleccionada, así que lo que puedo ofrecerte es una primera reunión con nuestro colega para ver opciones en Cascais. Tenemos disponibilidad el miércoles 23 de septiembre a las 11:00 (hora de Lisboa), el jueves 24 a las 09:00 o el viernes 25 a las 09:00. ¿Cuál te viene mejor?"
+  },
+  {
+   "source": "exec:GATE:5114",
+   "claim": true,
+   "text": "¡Perfecto, João! Queda confirmada tu primera reunión con nuestro colega para el miércoles 23 de septiembre de 2026 a las 11:00, hora de Lisboa. ¡Nos vemos pronto!",
+   "why": "the confirmation sent on a turn that created the event"
+  },
+  {
+   "source": "exec:GATE:5116",
+   "claim": false,
+   "text": "¡Uy, lo siento mucho! Ese horario acaba de reservarse hace unos instantes. Puedo ofrecerte el miércoles 23 de septiembre a las 12:00, el miércoles 23 a las 13:00, o el jueves 24 de septiembre a las 09:00, todo hora de Lisboa. ¿Cuál te viene bien?"
+  },
+  {
+   "source": "exec:GATE:5119",
+   "claim": false,
+   "text": "Since we haven't pinned down a specific property yet, what I can set up is a first meeting with our colleague to go over options together. We have Wednesday 23 September at 12:00, Thursday 24 September at 09:00, or Friday 25 September at 09:00, all Lisbon time - would any of these work for you, João?"
+  },
+  {
+   "source": "exec:GATE:5121",
+   "claim": false,
+   "text": "Since we haven't pinned down a specific property yet, what I can set up is a first meeting with our colleague to go over options in Cascais - would Wednesday 23 September at 12:00, Thursday 24 September at 09:00, or Friday 25 September at 09:00 Lisbon time work for you, João?"
+  },
+  {
+   "source": "exec:GATE:5123",
+   "claim": true,
+   "text": "You're all set, João - your first meeting with our colleague is confirmed for Wednesday, 23 September 2026 at 12:00 Lisbon time. Looking forward to it!",
+   "why": "the confirmation sent on a turn that created the event"
+  },
+  {
+   "source": "exec:GATE:5125",
+   "claim": false,
+   "text": "I'm sorry, João, that exact slot just went - but I can still get you set up. We have Wednesday 23 September at 13:00, Wednesday 23 September at 14:00, or Thursday 24 September at 09:00, all Lisbon time. Would any of those work?"
+  },
+  {
+   "source": "exec:GATE:5128",
+   "claim": false,
+   "text": "Claro, João! Ainda não temos um imóvel específico definido, por isso seria uma primeira reunião com o nosso colega para perceber melhor o que procura. Tenho disponibilidade na quarta-feira dia 23 de setembro às 13:00, quinta-feira dia 24 às 09:00 ou sexta-feira dia 25 às 09:00, horário de Lisboa - qual prefere?"
+  },
+  {
+   "source": "exec:GATE:5130",
+   "claim": false,
+   "text": "Claro, João! Ainda não temos uma propriedade específica definida, por isso o próximo passo seria uma primeira reunião com o nosso colega para perceber melhor o que procura. Temos disponibilidade quarta-feira, 23 de setembro às 13:00, quinta-feira, 24 de setembro às 09:00, ou sexta-feira, 25 de setembro às 09:00, horário de Lisboa. Qual prefere?"
+  },
+  {
+   "source": "exec:GATE:5132",
+   "claim": true,
+   "text": "Ficou confirmado, João: a nossa primeira reunião com o colega fica marcada para quarta-feira, dia 23 de setembro de 2026, às 13:00, horário de Lisboa. Até lá!",
+   "why": "the confirmation sent on a turn that created the event"
+  },
+  {
+   "source": "exec:GATE:5134",
+   "claim": false,
+   "text": "Peço desculpa, João, mas esse horário das 13:00 acabou de ficar indisponível. Ainda temos quarta-feira, 23 de setembro às 14:00, quarta-feira, 23 de setembro às 15:00, ou quinta-feira, 24 de setembro às 09:00, horário de Lisboa. Qual destes prefere?"
+  },
+  {
+   "source": "exec:GATE:5138",
+   "claim": false,
+   "text": "Con gusto, João. Sería una primera reunión con nuestro colega para conocer mejor lo que buscas: tenemos disponible el miércoles 23 de septiembre a las 14:00, el jueves 24 a las 09:00 o el viernes 25 a las 09:00, hora de Lisboa. ¿Cuál te viene mejor?"
+  },
+  {
+   "source": "exec:GATE:5140",
+   "claim": false,
+   "text": "Con gusto, João. Sería una primera reunión con nuestro colega para conocer mejor lo que buscas: tenemos disponibilidad el miércoles 23 de septiembre a las 14:00, el jueves 24 de septiembre a las 09:00, o el viernes 25 de septiembre a las 09:00, hora de Lisboa. ¿Cuál te viene mejor?"
+  },
+  {
+   "source": "exec:GATE:5142",
+   "claim": true,
+   "text": "¡Perfecto, João! Queda confirmada tu primera reunión con nuestro colega para el miércoles 23 de septiembre de 2026 a las 14:00, hora de Lisboa. ¡Nos vemos entonces!",
+   "why": "the confirmation sent on a turn that created the event"
+  },
+  {
+   "source": "exec:GATE:5144",
+   "claim": false,
+   "text": "Lo siento, João, esa hora ya no está disponible. Puedo ofrecerte el miércoles 23 de septiembre a las 15:00, el miércoles 23 de septiembre a las 16:00, o el jueves 24 de septiembre a las 09:00, hora de Lisboa. ¿Cuál de estas te viene bien?"
+  },
+  {
+   "source": "exec:GATE:5149",
+   "claim": false,
+   "text": "We don't have a specific property lined up yet, so this would be a first meeting with our colleague to go through what fits your search in Cascais. I have availability on Wednesday 23 September at 15:00, Thursday 24 September at 09:00, or Friday 25 September at 09:00, all Lisbon time — would any of these work for you, João?"
+  },
+  {
+   "source": "exec:GATE:5151",
+   "claim": false,
+   "text": "There's no specific property lined up yet, so let's start with a first meeting with our colleague to go over what fits your search - I don't have anything available this week, but I can offer Wednesday 23 September at 15:00, Thursday 24 September at 09:00, or Friday 25 September at 09:00, Lisbon time. Would any of those work for you, João?"
+  },
+  {
+   "source": "exec:GATE:5153",
+   "claim": true,
+   "text": "You're all set, João — your first meeting with our colleague is booked for Wednesday, 23 September 2026 at 15:00 Lisbon time. Looking forward to it!",
+   "why": "the confirmation sent on a turn that created the event"
+  },
+  {
+   "source": "exec:GATE:5155",
+   "claim": false,
+   "text": "I'm sorry João, that exact time isn't available - the times I have are Wednesday 23 September at 16:00, Wednesday 23 September at 17:00, or Thursday 24 September at 09:00, Lisbon time. Would any of those suit you?"
+  },
+  {
+   "source": "exec:GATE:5158",
+   "claim": false,
+   "text": "Ainda não temos uma propriedade específica identificada, por isso o primeiro passo seria uma reunião inicial com o nosso colega, que também irá confirmar o que está disponível. Temos disponibilidade na quarta-feira, dia 23 de setembro às 16:00, quinta-feira dia 24 de setembro às 09:00, ou sexta-feira dia 25 de setembro às 09:00, horário de Lisboa. Qual destes horários prefere?"
+  },
+  {
+   "source": "exec:GATE:5160",
+   "claim": false,
+   "text": "Ainda não temos nenhum imóvel específico identificado, por isso o primeiro passo seria uma reunião inicial com o nosso colega para perceber melhor o que procura. Esta semana não tenho disponibilidade, mas posso propor: quarta-feira, 23 de setembro de 2026, às 16:00 (hora de Lisboa), quinta-feira, 24 de setembro de 2026, às 09:00, ou sexta-feira, 25 de setembro de 2026, às 09:00. Qual destas horas lhe fica melhor?"
+  },
+  {
+   "source": "exec:GATE:5162",
+   "claim": true,
+   "text": "Ótimo, João! Fica confirmada a nossa primeira reunião com o colega para quarta-feira, dia 23 de setembro de 2026, às 16:00 (horário de Lisboa). Até lá!",
+   "why": "the confirmation sent on a turn that created the event"
+  },
+  {
+   "source": "exec:GATE:5164",
+   "claim": false,
+   "text": "Peço desculpa, João, mas esse horário acabou de ser reservado por outra pessoa. Ainda tenho disponíveis: quarta-feira, 23 de setembro de 2026, às 17:00 ou às 18:00, ou quinta-feira, 24 de setembro de 2026, às 09:00 (hora de Lisboa). Qual destas prefere?"
+  },
+  {
+   "source": "exec:GATE:5167",
+   "claim": false,
+   "text": "Por ahora sería una primera reunión con nuestro colega para conocer mejor lo que buscas, ya que aún no hay una propiedad concreta seleccionada. Tengo disponibilidad el miércoles 23 de septiembre a las 17:00, el jueves 24 a las 09:00 o el viernes 25 a las 09:00, hora de Lisboa, ¿te viene bien alguno?"
+  },
+  {
+   "source": "exec:GATE:5169",
+   "claim": false,
+   "text": "Con gusto, João. No tenemos aún una propiedad específica seleccionada, así que lo que puedo ofrecerte es una primera reunión con nuestro colega para conocer mejor lo que buscas y ver qué opciones encajan. Tengo disponibilidad el miércoles 23 de septiembre a las 17:00, el jueves 24 a las 09:00 o el viernes 25 a las 09:00, hora de Lisboa. ¿Cuál te viene mejor?"
+  },
+  {
+   "source": "exec:GATE:5171",
+   "claim": true,
+   "text": "¡Perfecto, João! Queda confirmada tu primera reunión con nuestro colega para el miércoles 23 de septiembre de 2026 a las 17:00, hora de Lisboa. ¡Nos vemos entonces!",
+   "why": "the confirmation sent on a turn that created the event"
+  },
+  {
+   "source": "exec:GATE:5173",
+   "claim": false,
+   "text": "Disculpa, João, ese horario acaba de quedar reservado hace unos minutos. Todavía tengo disponibles el miércoles 23 de septiembre a las 18:00, el jueves 24 a las 09:00 o el viernes 25 a las 09:00, hora de Lisboa. ¿Cuál de estos te viene bien?"
+  },
+  {
+   "source": "exec:GATE:5176",
+   "claim": false,
+   "text": "Happy to set up a first meeting with our colleague so we can go through everything in person, João — would Wednesday 23 September at 18:00, Thursday 24 September at 09:00, or Friday 25 September at 09:00 Lisbon time work for you?"
+  },
+  {
+   "source": "exec:GATE:5178",
+   "claim": false,
+   "text": "We haven't pinned down a specific property yet, so what I can set up is a first meeting with our colleague to go over things - a colleague will confirm any specific listings separately. For this week, the earliest options I have are Wednesday 23 September at 18:00 or Thursday 24 September at 09:00, both Lisbon time - would either work for you?"
+  },
+  {
+   "source": "exec:GATE:5180",
+   "claim": true,
+   "text": "Great choice, João! You're all set for a first meeting with our colleague on Wednesday, 23 September 2026 at 18:00 Lisbon time. Looking forward to it!",
+   "why": "the confirmation sent on a turn that created the event"
+  },
+  {
+   "source": "exec:GATE:5182",
+   "claim": false,
+   "text": "I'm sorry, but Wednesday 23 September is fully booked - it just went. I do have Thursday 24 September at 09:00 or Friday 25 September at 09:00, both Lisbon time - would either of those work for you?"
+  },
+  {
+   "source": "exec:GATE:5185",
+   "claim": false,
+   "text": "We haven't pinned down a specific property yet, so let's set up a first meeting with our colleague to go through options - would Thursday 24 September, Friday 25 September, or Saturday 26 September at 09:00 Lisbon time work for you?"
+  },
+  {
+   "source": "exec:GATE:5187",
+   "claim": false,
+   "text": "We'd love to set up a first meeting with our colleague, João - there isn't a specific property lined up yet, so this would be more of an introductory chat. We have Thursday 24 September at 09:00, Friday 25 September at 09:00, or Saturday 26 September at 09:00, all Lisbon time - would any of these work for you?"
+  },
+  {
+   "source": "exec:GATE:5190",
+   "claim": true,
+   "text": "Perfect, João - you're all set for Thursday 24 September 2026 at 09:00 Lisbon time for a first meeting with our colleague. We'll take it from there and go through everything with you then!",
+   "why": "the confirmation sent on a turn that created the event"
+  },
+  {
+   "source": "exec:GATE:5191",
+   "claim": true,
+   "text": "Wonderful, João - you're all set for a first meeting with our colleague on Thursday, 24 September 2026 at 09:00 Lisbon time. Looking forward to it!",
+   "why": "a claim with no event behind it: a phantom (12/14 Sep, suite 7) or a draft discarded for a handoff"
+  },
+  {
+   "source": "exec-handoff:5191",
+   "claim": false,
+   "text": "I'm sorry — that time was taken just as we were confirming it. A member of our team will be in touch to arrange another one with you."
+  },
+  {
+   "source": "exec:GATE:5196",
+   "claim": false,
+   "text": "Claro, João! Ainda não há um imóvel específico definido, mas posso agendar uma primeira reunião com o nosso colega para conversarem sobre as suas preferências em Cascais. Temos disponibilidade quinta-feira, dia 24 de setembro às 10:00, sexta-feira dia 25 às 09:00, ou sábado dia 26 às 09:00, horário de Lisboa. Qual prefere?"
+  },
+  {
+   "source": "exec:GATE:5198",
+   "claim": false,
+   "text": "Claro, João! Ainda não temos nenhum imóvel específico definido, por isso posso marcar uma primeira reunião com o nosso colega para conversarem sobre as opções em Cascais. Temos disponibilidade quinta-feira, 24 de setembro às 10:00, sexta-feira, 25 de setembro às 09:00, ou sábado, 26 de setembro às 09:00, horário de Lisboa. Qual prefere?"
+  },
+  {
+   "source": "exec:GATE:5200",
+   "claim": true,
+   "text": "Ótimo, João! A sua primeira reunião com o nosso colega está confirmada para quinta-feira, dia 24 de setembro de 2026, às 10:00, horário de Lisboa. Até lá!",
+   "why": "a claim with no event behind it: a phantom (12/14 Sep, suite 7) or a draft discarded for a handoff"
+  },
+  {
+   "source": "exec-handoff:5200",
+   "claim": false,
+   "text": "Peço desculpa — esse horário ficou ocupado mesmo enquanto o confirmávamos. Um colega da equipa entra em contacto consigo para combinar outro."
+  },
+  {
+   "source": "exec:GATE:5201",
+   "claim": true,
+   "text": "Ficou confirmado, João! A sua primeira reunião com o nosso colega está marcada para quinta-feira, 24 de setembro de 2026, às 10:00, horário de Lisboa. Até lá!",
+   "why": "the confirmation sent on a turn that created the event"
+  },
+  {
+   "source": "exec:GATE:5206",
+   "claim": false,
+   "text": "¡Claro, João! Podemos organizar una primera reunión con nuestro colega para conversar sobre lo que buscas. Tenemos disponibilidad el jueves 24 de septiembre a las 11:00, el viernes 25 de septiembre a las 09:00 o el sábado 26 de septiembre a las 09:00, hora de Lisboa. ¿Cuál te viene mejor?"
+  },
+  {
+   "source": "exec:GATE:5208",
+   "claim": false,
+   "text": "Por ahora no tengo una propiedad concreta que mostrar, João, pero puedo ayudarte a coordinar una primera reunión con nuestro colega para avanzar. Tenemos disponibilidad el jueves 24 de septiembre a las 11:00, el viernes 25 de septiembre a las 09:00 o el sábado 26 de septiembre a las 09:00, hora de Lisboa. ¿Cuál te viene mejor?"
+  },
+  {
+   "source": "exec:GATE:5210",
+   "claim": true,
+   "text": "¡Perfecto, João! Confirmado: primera reunión con nuestro colega el jueves 24 de septiembre de 2026 a las 11:00, hora de Lisboa. ¡Nos vemos entonces!",
+   "why": "the confirmation sent on a turn that created the event"
+  },
+  {
+   "source": "exec:GATE:5211",
+   "claim": true,
+   "text": "¡Perfecto, João! Queda confirmada tu primera reunión con nuestro colega para el jueves 24 de septiembre de 2026 a las 11:00, hora de Lisboa. ¡Nos vemos entonces!",
+   "why": "a claim with no event behind it: a phantom (12/14 Sep, suite 7) or a draft discarded for a handoff"
+  },
+  {
+   "source": "exec-handoff:5211",
+   "claim": false,
+   "text": "Lo siento — esa hora se ocupó justo mientras la confirmábamos. Un compañero del equipo se pondrá en contacto para acordar otra con usted."
+  },
+  {
+   "source": "exec:GATE:5216",
+   "claim": false,
+   "text": "There's no specific property lined up yet, so let's start with a first meeting with our colleague, who can then confirm what's available. We have Thursday 24 September at 12:00, Friday 25 September at 09:00, or Saturday 26 September at 09:00, all Lisbon time - which works best for you, João?"
+  },
+  {
+   "source": "exec:GATE:5218",
+   "claim": false,
+   "text": "We haven't pinned down a specific property yet, so this would be a first meeting with our colleague to go over options together. I have Thursday 24 September at 12:00, Friday 25 September at 09:00, or Saturday 26 September at 09:00, all Lisbon time - would any of those work for you, João?"
+  },
+  {
+   "source": "exec:GATE:5220",
+   "claim": true,
+   "text": "Great news, João - your first meeting with our colleague is confirmed for Thursday, 24 September 2026 at 12:00 Lisbon time. Looking forward to it!",
+   "why": "a claim with no event behind it: a phantom (12/14 Sep, suite 7) or a draft discarded for a handoff"
+  },
+  {
+   "source": "exec:GATE:5221",
+   "claim": true,
+   "text": "🤖 Sofia, ZZ GATE's virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat, you're booked in for a first meeting with our colleague on Thursday, 24 September 2026 at 12:00 Lisbon time, João. Looking forward to it!",
+   "why": "the confirmation sent on a turn that created the event"
+  },
+  {
+   "source": "msg:prod:ai",
+   "claim": false,
+   "text": "🤖 Sofia, assistente virtual da Ryvo Test Client. Esta conversa é respondida por inteligência artificial, não por uma pessoa.\n\nBom dia! Em que posso ajudar hoje?"
+  },
+  {
+   "source": "msg:prod:ai",
+   "claim": false,
+   "text": "🤖 Sofia, assistente virtual da Ryvo Test Client. Esta conversa é respondida por inteligência artificial, não por uma pessoa.\n\nO Manuel vai já confirmar consigo os detalhes de preço. Entretanto, tem algum orçamento aproximado em mente para o T3 em Cascais?"
+  },
+  {
+   "source": "msg:prod:ai",
+   "claim": false,
+   "text": "🤖 Sofia, assistente virtual da Ryvo Test Client. Esta conversa é respondida por inteligência artificial, não por uma pessoa.\n\nNão tenho essa informação em detalhe, mas o Manuel poderá confirmar-lhe o prazo de entrega assim que houver uma opção concreta. Já tem uma ideia de quando gostaria de concretizar a compra?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat choice, João! Just to confirm, that's Thursday 24 September 2026 at 09:00 Lisbon time for a first meeting with our colleague - shall I lock that in?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat! On Thursday 24 September we have two morning options: 09:00 or 10:00 Lisbon time. Which works better for you, João?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat choice, João! Just to confirm - Thursday 24 September 2026 at 09:00 Lisbon time for a first meeting with our colleague. Does that work for you?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat choice — I'll note Thursday 24 September 2026 at 09:00 Lisbon time for your first meeting with our colleague. Can you confirm that works for you?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat choice, João! Just to confirm, that's Thursday 24 September 2026 at 09:00 Lisbon time for a first meeting with our colleague - does that work for you?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat, just to confirm: Thursday 24 September 2026 at 09:00 Lisbon time for a first meeting with our colleague. Does that work for you, João?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat choice, João! Just to confirm — Thursday 24 September 2026 at 09:00 Lisbon time for a first meeting with our colleague. Does that work for you?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat choice, João! Just to confirm, that would be Thursday, 24 September 2026 at 09:00 Lisbon time for a first meeting with our colleague. Shall I confirm that for you?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat, João! We have Thursday 24 September 2026 at 09:00 Lisbon time or 10:00 Lisbon time available - which one works best for you?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat! We have two options Thursday morning: 09:00 or 10:00 Lisbon time. Which one works best for you, João?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat! On Thursday 24 September we have two morning slots available: 09:00 or 10:00 Lisbon time. Which one works best for you, João?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat, João - just to confirm, that's Thursday 24 September 2026 at 09:00 Lisbon time for a first meeting with our colleague. Does that work for you?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat, just to confirm: Thursday 24 September 2026 at 09:00 Lisbon time for a first meeting with our colleague - does that work for you, João?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat! For Thursday 24 September we have two morning slots - 09:00 or 10:00 Lisbon time. Which one works best for you, João?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat choice, João! We have two Thursday morning slots available: 09:00 or 10:00 Lisbon time. Which one works best for you?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat, let's pencil in Thursday 24 September 2026 at 09:00 Lisbon time - can you confirm that works for you?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat choice, João! Just to confirm: Thursday 24 September 2026 at 09:00 Lisbon time, for a first meeting with our colleague. Shall I lock that in?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat! We have two Thursday morning slots - 09:00 or 10:00 Lisbon time. Which one works better for you, João?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat! We have two options Thursday morning - 09:00 or 10:00 Lisbon time. Which one works best for you, João?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat! We have Thursday 24 September at 09:00 or 10:00 Lisbon time in the morning - which one works best for you, João?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat, just to confirm - Thursday 24 September 2026 at 09:00 Lisbon time for a first meeting with our colleague. Does that work for you, João?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat choice, João! Just to confirm, would you prefer Thursday 24 September at 09:00 or 10:00 Lisbon time?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat! We have two Thursday morning slots: 09:00 or 10:00 Lisbon time. Which one works best for you, João?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat, João! We have Thursday 24 September at 09:00 Lisbon time or 10:00 Lisbon time - which works best for you?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat choice, João - just to confirm, that's Thursday 24 September 2026 at 09:00 Lisbon time for a first meeting with our colleague. Could you confirm that works for you?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat, João! We have Thursday 24 September at 09:00 Lisbon time or 10:00 Lisbon time - which one works better for you?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat! On Thursday 24 September we have 09:00 or 10:00 Lisbon time available - which one works best for you, João?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat! We have Thursday 24 September at either 09:00 or 10:00 Lisbon time - which one works better for you, João?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat! On Thursday 24 September we have two morning slots - 09:00 or 10:00 Lisbon time. Which one works best for you, João?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat choice, João! Just to confirm: Thursday 24 September 2026 at 09:00 Lisbon time for a first meeting with our colleague. Can you confirm that works for you?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat, João! Just to confirm - shall I lock in Thursday 24 September 2026 at 09:00 Lisbon time for your first meeting with our colleague?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat choice, João! Just to confirm: Thursday, September 24, 2026 at 09:00 Lisbon time for a first meeting with our colleague. Shall I lock that in?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat, Thursday 24 September 2026 at 09:00 Lisbon time - can you confirm that works for you?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat! On Thursday 24 September we have two morning options - 09:00 or 10:00 Lisbon time. Which works better for you, João?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat, Thursday 24 September 2026 at 09:00 Lisbon time it is - can you just confirm that works for you?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat! We have two Thursday morning slots: 09:00 or 10:00 Lisbon time, 24 September 2026. Which one works best for you, João?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nHi there! I'm Sofia from Ryvo Test Client. Are you looking to buy, sell, or rent a property with us?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nHi there! Welcome to Ryvo Test Client. Are you looking to buy, sell, or rent a property with us?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nHi there! I'm Sofia from Ryvo. Are you looking to buy, sell, or rent a property with us?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nHello! I'm happy to help you with your property search in Cascais, Estoril or Lisbon. Are you looking to buy, sell, or rent?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nHi there! I'm Sofia, an assistant with Ryvo Test Client. Are you looking to buy, sell, or rent a property in the Cascais, Estoril or Lisbon area?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nHi there! I'm Sofia, happy to help. Are you looking to buy, sell, or rent a property?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nHi there! I'm glad you reached out. Are you looking to buy, sell, or rent a property, and do you have an area in mind?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nHi there! Welcome to Ryvo Test Client. Are you looking to buy, sell, or rent in the Cascais, Estoril or Lisbon area?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nHello! Lovely to hear from you. Are you looking to buy, sell, or rent a property with us?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nWe haven't pinned down a specific property yet, so a colleague will confirm what's available for you in Cascais - but I'd love to set up a first meeting with our colleague to go over your search. Would Wednesday 23 September, Thursday 24 September, or Friday 25 September, all at 09:00 Lisbon time, work for you?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nWe haven't pinned down a specific property yet, so let's start with a first meeting with our colleague, who can then confirm what's available. We have Wednesday 23 September at 09:00, Thursday 24 September at 09:00, or Friday 25 September at 09:00, Lisbon time - does any of those work for you, João?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, assistente virtual da ZZ GATE. Esta conversa é respondida por inteligência artificial, não por uma pessoa.\n\nAinda não temos uma propriedade específica definida, por isso o que posso agendar é uma primeira reunião com o nosso colega para perceber melhor o que procura. Esta semana não tenho disponibilidade, mas tenho estes horários: quarta-feira, 23 de setembro de 2026 às 10:00, quinta-feira, 24 de setembro de 2026 às 09:00, ou sexta-feira, 25 de setembro de 2026 às 09:00, horário de Lisboa. Qual prefere?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, assistente virtual da ZZ GATE. Esta conversa é respondida por inteligência artificial, não por uma pessoa.\n\nAinda não temos um imóvel específico definido, por isso o próximo passo seria uma primeira reunião com o nosso colega para entender melhor o que procura. Para esta semana não tenho horários disponíveis, mas posso propor: quarta-feira, 23 de setembro às 10:00, quinta-feira, 24 de setembro às 09:00, ou sexta-feira, 25 de setembro às 09:00, hora de Lisboa. Qual destes lhe fica melhor?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, asistente virtual de ZZ GATE. Esta conversación la responde una inteligencia artificial, no una persona.\n\nJoão, todavía no tenemos un inmueble concreto identificado, así que lo que puedo ofrecerte es una primera reunión con nuestro colega para avanzar en la búsqueda. Tenemos disponibilidad el miércoles 23 de septiembre de 2026 a las 11:00, el jueves 24 de septiembre a las 09:00 o el viernes 25 de septiembre a las 09:00, hora de Lisboa. ¿Cuál te viene mejor?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, asistente virtual de ZZ GATE. Esta conversación la responde una inteligencia artificial, no una persona.\n\nAún no tenemos una propiedad específica seleccionada, así que lo que puedo ofrecerte es una primera reunión con nuestro colega para ver opciones en Cascais. Tenemos disponibilidad el miércoles 23 de septiembre a las 11:00 (hora de Lisboa), el jueves 24 a las 09:00 o el viernes 25 a las 09:00. ¿Cuál te viene mejor?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nSince we haven't pinned down a specific property yet, what I can set up is a first meeting with our colleague to go over options together. We have Wednesday 23 September at 12:00, Thursday 24 September at 09:00, or Friday 25 September at 09:00, all Lisbon time - would any of these work for you, João?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nSince we haven't pinned down a specific property yet, what I can set up is a first meeting with our colleague to go over options in Cascais - would Wednesday 23 September at 12:00, Thursday 24 September at 09:00, or Friday 25 September at 09:00 Lisbon time work for you, João?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, assistente virtual da ZZ GATE. Esta conversa é respondida por inteligência artificial, não por uma pessoa.\n\nClaro, João! Ainda não temos um imóvel específico definido, por isso seria uma primeira reunião com o nosso colega para perceber melhor o que procura. Tenho disponibilidade na quarta-feira dia 23 de setembro às 13:00, quinta-feira dia 24 às 09:00 ou sexta-feira dia 25 às 09:00, horário de Lisboa - qual prefere?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, assistente virtual da ZZ GATE. Esta conversa é respondida por inteligência artificial, não por uma pessoa.\n\nClaro, João! Ainda não temos uma propriedade específica definida, por isso o próximo passo seria uma primeira reunião com o nosso colega para perceber melhor o que procura. Temos disponibilidade quarta-feira, 23 de setembro às 13:00, quinta-feira, 24 de setembro às 09:00, ou sexta-feira, 25 de setembro às 09:00, horário de Lisboa. Qual prefere?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, asistente virtual de ZZ GATE. Esta conversación la responde una inteligencia artificial, no una persona.\n\nCon gusto, João. Sería una primera reunión con nuestro colega para conocer mejor lo que buscas: tenemos disponible el miércoles 23 de septiembre a las 14:00, el jueves 24 a las 09:00 o el viernes 25 a las 09:00, hora de Lisboa. ¿Cuál te viene mejor?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, asistente virtual de ZZ GATE. Esta conversación la responde una inteligencia artificial, no una persona.\n\nCon gusto, João. Sería una primera reunión con nuestro colega para conocer mejor lo que buscas: tenemos disponibilidad el miércoles 23 de septiembre a las 14:00, el jueves 24 de septiembre a las 09:00, o el viernes 25 de septiembre a las 09:00, hora de Lisboa. ¿Cuál te viene mejor?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nWe don't have a specific property lined up yet, so this would be a first meeting with our colleague to go through what fits your search in Cascais. I have availability on Wednesday 23 September at 15:00, Thursday 24 September at 09:00, or Friday 25 September at 09:00, all Lisbon time — would any of these work for you, João?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nThere's no specific property lined up yet, so let's start with a first meeting with our colleague to go over what fits your search - I don't have anything available this week, but I can offer Wednesday 23 September at 15:00, Thursday 24 September at 09:00, or Friday 25 September at 09:00, Lisbon time. Would any of those work for you, João?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, assistente virtual da ZZ GATE. Esta conversa é respondida por inteligência artificial, não por uma pessoa.\n\nAinda não temos uma propriedade específica identificada, por isso o primeiro passo seria uma reunião inicial com o nosso colega, que também irá confirmar o que está disponível. Temos disponibilidade na quarta-feira, dia 23 de setembro às 16:00, quinta-feira dia 24 de setembro às 09:00, ou sexta-feira dia 25 de setembro às 09:00, horário de Lisboa. Qual destes horários prefere?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, assistente virtual da ZZ GATE. Esta conversa é respondida por inteligência artificial, não por uma pessoa.\n\nAinda não temos nenhum imóvel específico identificado, por isso o primeiro passo seria uma reunião inicial com o nosso colega para perceber melhor o que procura. Esta semana não tenho disponibilidade, mas posso propor: quarta-feira, 23 de setembro de 2026, às 16:00 (hora de Lisboa), quinta-feira, 24 de setembro de 2026, às 09:00, ou sexta-feira, 25 de setembro de 2026, às 09:00. Qual destas horas lhe fica melhor?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, asistente virtual de ZZ GATE. Esta conversación la responde una inteligencia artificial, no una persona.\n\nPor ahora sería una primera reunión con nuestro colega para conocer mejor lo que buscas, ya que aún no hay una propiedad concreta seleccionada. Tengo disponibilidad el miércoles 23 de septiembre a las 17:00, el jueves 24 a las 09:00 o el viernes 25 a las 09:00, hora de Lisboa, ¿te viene bien alguno?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, asistente virtual de ZZ GATE. Esta conversación la responde una inteligencia artificial, no una persona.\n\nCon gusto, João. No tenemos aún una propiedad específica seleccionada, así que lo que puedo ofrecerte es una primera reunión con nuestro colega para conocer mejor lo que buscas y ver qué opciones encajan. Tengo disponibilidad el miércoles 23 de septiembre a las 17:00, el jueves 24 a las 09:00 o el viernes 25 a las 09:00, hora de Lisboa. ¿Cuál te viene mejor?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nHappy to set up a first meeting with our colleague so we can go through everything in person, João — would Wednesday 23 September at 18:00, Thursday 24 September at 09:00, or Friday 25 September at 09:00 Lisbon time work for you?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nWe haven't pinned down a specific property yet, so what I can set up is a first meeting with our colleague to go over things - a colleague will confirm any specific listings separately. For this week, the earliest options I have are Wednesday 23 September at 18:00 or Thursday 24 September at 09:00, both Lisbon time - would either work for you?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nWe haven't pinned down a specific property yet, so let's set up a first meeting with our colleague to go through options - would Thursday 24 September, Friday 25 September, or Saturday 26 September at 09:00 Lisbon time work for you?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nWe'd love to set up a first meeting with our colleague, João - there isn't a specific property lined up yet, so this would be more of an introductory chat. We have Thursday 24 September at 09:00, Friday 25 September at 09:00, or Saturday 26 September at 09:00, all Lisbon time - would any of these work for you?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, assistente virtual da ZZ GATE. Esta conversa é respondida por inteligência artificial, não por uma pessoa.\n\nClaro, João! Ainda não há um imóvel específico definido, mas posso agendar uma primeira reunião com o nosso colega para conversarem sobre as suas preferências em Cascais. Temos disponibilidade quinta-feira, dia 24 de setembro às 10:00, sexta-feira dia 25 às 09:00, ou sábado dia 26 às 09:00, horário de Lisboa. Qual prefere?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, assistente virtual da ZZ GATE. Esta conversa é respondida por inteligência artificial, não por uma pessoa.\n\nClaro, João! Ainda não temos nenhum imóvel específico definido, por isso posso marcar uma primeira reunião com o nosso colega para conversarem sobre as opções em Cascais. Temos disponibilidade quinta-feira, 24 de setembro às 10:00, sexta-feira, 25 de setembro às 09:00, ou sábado, 26 de setembro às 09:00, horário de Lisboa. Qual prefere?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, asistente virtual de ZZ GATE. Esta conversación la responde una inteligencia artificial, no una persona.\n\n¡Claro, João! Podemos organizar una primera reunión con nuestro colega para conversar sobre lo que buscas. Tenemos disponibilidad el jueves 24 de septiembre a las 11:00, el viernes 25 de septiembre a las 09:00 o el sábado 26 de septiembre a las 09:00, hora de Lisboa. ¿Cuál te viene mejor?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, asistente virtual de ZZ GATE. Esta conversación la responde una inteligencia artificial, no una persona.\n\nPor ahora no tengo una propiedad concreta que mostrar, João, pero puedo ayudarte a coordinar una primera reunión con nuestro colega para avanzar. Tenemos disponibilidad el jueves 24 de septiembre a las 11:00, el viernes 25 de septiembre a las 09:00 o el sábado 26 de septiembre a las 09:00, hora de Lisboa. ¿Cuál te viene mejor?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nThere's no specific property lined up yet, so let's start with a first meeting with our colleague, who can then confirm what's available. We have Thursday 24 September at 12:00, Friday 25 September at 09:00, or Saturday 26 September at 09:00, all Lisbon time - which works best for you, João?"
+  },
+  {
+   "source": "msg:gate:ai",
+   "claim": false,
+   "text": "🤖 Sofia, ZZ GATE’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nWe haven't pinned down a specific property yet, so this would be a first meeting with our colleague to go over options together. I have Thursday 24 September at 12:00, Friday 25 September at 09:00, or Saturday 26 September at 09:00, all Lisbon time - would any of those work for you, João?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "That time isn't available, but I can offer Thursday 10 September at 11:00, or Tuesday 8 September at 10:00, or Wednesday 9 September at 15:00, all Lisbon time. Would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "That time isn't available, but I do have Thursday 10 September at 11:00 Lisbon time, or Tuesday 8 September at 10:00 and Wednesday 9 September at 15:00. Would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "That specific time isn't available, but I do have Thursday 10 September at 11:00 Lisbon time, or Tuesday 8 September at 10:00 or Wednesday 9 September at 15:00. Would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "That time isn't available, but I can offer Tuesday 8 September at 10:00, Wednesday 9 September at 15:00, or Thursday 10 September at 11:00, all Lisbon time. Would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "That time isn't available, unfortunately. I can offer Tuesday 8 September at 10:00, Wednesday 9 September at 15:00 or Thursday 10 September at 11:00, all Lisbon time. Would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "That time isn't available, but I can offer Tuesday 8 September at 10:00, Wednesday 9 September at 15:00 or Thursday 10 September at 11:00, all Lisbon time. Would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "That time isn't available, unfortunately. I can offer Tuesday 8 September at 10:00, Wednesday 9 September at 15:00 or Thursday 10 September at 11:00, all Lisbon time. Would any of those work?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "17:00 isn't available, I'm afraid. I can offer Tuesday 8 September at 10:00, Wednesday 9 September at 15:00, or Thursday 10 September at 11:00 (Lisbon time) - would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "That slot isn't available, but I can offer Wednesday 9 September at 15:00 Lisbon time instead, along with Tuesday 8 September at 10:00 or Thursday 10 September at 11:00. Would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "That slot isn't available, but I can offer Tuesday 8 September at 10:00, Wednesday 9 September at 15:00, or Thursday 10 September at 11:00 (Lisbon time). Would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "That slot isn't available, but I can offer Wednesday 9 September at 15:00 Lisbon time instead, or Tuesday 8 September at 10:00 / Thursday 10 September at 11:00 if either suits better. Which would you like?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Essa hora não está disponível, mas tenho quinta-feira, 10 de setembro, às 11:00 (hora de Lisboa), ou terça-feira dia 8 às 10:00 e quarta-feira dia 9 às 15:00. Alguma destas serve?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Essa hora não está disponível, mas posso propor quinta-feira, 10 de setembro, às 11:00, ou então terça-feira, 8 de setembro, às 10:00, ou quarta-feira, 9 de setembro, às 15:00 (hora de Lisboa). Alguma destas funciona para si?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Essa hora não está disponível, mas posso propor quinta-feira, 10 de setembro, às 11:00 (hora de Lisboa), ou terça-feira às 10:00 e quarta-feira às 15:00. Alguma dessas funciona para si?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Essa hora em concreto não está disponível. Posso propor terça-feira, 8 de setembro, às 10:00, quarta-feira, 9 de setembro, às 15:00 ou quinta-feira, 10 de setembro, às 11:00 (hora de Lisboa). Alguma destas funciona para si?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esse horário não está disponível. Temos terça-feira, 8 de setembro, às 10:00, quarta-feira, 9 de setembro, às 15:00, ou quinta-feira, 10 de setembro, às 11:00, hora de Lisboa. Alguma destas lhe convém?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esse horário não está disponível, infelizmente. Posso oferecer terça-feira, 8 de setembro, às 10:00, quarta-feira, 9 de setembro, às 15:00 ou quinta-feira, 10 de setembro, às 11:00 (hora de Lisboa). Alguma dessas funciona para si?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esse horário não está disponível, mas posso propor terça-feira, 8 de setembro, às 10:00, quarta-feira, 9 de setembro, às 15:00 ou quinta-feira, 10 de setembro, às 11:00 (hora de Lisboa). Qual destes prefere?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esse horário não está disponível, mas posso oferecer terça-feira, 8 de setembro, às 10:00, quarta-feira, 9 de setembro, às 15:00 ou quinta-feira, 10 de setembro, às 11:00 (hora de Lisboa). Alguma destas lhe convém?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Nesse horário não tenho disponibilidade, infelizmente. Posso propor terça-feira, 8 de setembro, às 10:00, quarta-feira, 9 de setembro, às 15:00 ou quinta-feira, 10 de setembro, às 11:00 (hora de Lisboa). Alguma destas funciona para si?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Essa hora não está disponível, mas tenho aberta quarta-feira, 9 de setembro, às 15:00 (hora de Lisboa), ou então terça às 10:00 ou quinta às 11:00. Alguma destas serve?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Essa hora não está disponível, mas tenho quarta-feira, 9 de setembro, às 15:00 (hora de Lisboa), além de terça-feira dia 8 às 10:00 e quinta-feira dia 10 às 11:00. Alguma dessas serve?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Ese horario no está disponible, pero sí tengo el jueves 10 de septiembre a las 11:00 (hora de Lisboa), o si prefiere, el martes 8 de septiembre a las 10:00 o el miércoles 9 de septiembre a las 15:00. ¿Le viene bien alguno de estos?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Ese horario no está disponible, pero sí tengo jueves 10 de septiembre a las 11:00 (hora de Lisboa), martes 8 de septiembre a las 10:00 o miércoles 9 de septiembre a las 15:00. ¿Le viene bien alguno de estos?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "ueero elosesa hora concreo, ualdebo confentar que el actualmente no tenemos ninguna cita agendada. Puedo confirmar directamente el jueves 10 de septiembre a las 11:00, hora de Lisbo,, si le viene bien.dígame para me confirma y quedaría, y con gusto lo dejo registado.ado con si me lo confirma."
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Ese horario no está disponible, pero sí tengo el jueves 10 de septiembre a las 11:00, el martes 8 de septiembre a las 10:00 o el miércoles 9 de septiembre a las 15:00 (hora de Lisboa). ¿Le viene bien alguno de estos?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "A las 17:00 no tenemos disponibilidad por el momento; los horarios que puedo ofrecerle son el martes 8 de septiembre a las 10:00, el miércoles 9 de septiembre a las 15:00 o el jueves 10 de septiembre a las 11:00 (hora de Lisboa). ¿Le viene bien alguno de estos?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "A las 17:00 no tengo esa franja disponible, pero sí puedo ofrecerle el martes 8 de septiembre a las 10:00, el miércoles 9 de septiembre a las 15:00 o el jueves 10 de septiembre a las 11:00, hora de Lisboa. ¿Le viene bien alguna de estas?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Lamento, ese horario no está disponible. Puedo ofrecerle el martes 8 de septiembre a las 10:00, el miércoles 9 de septiembre a las 15:00 o el jueves 10 de septiembre a las 11:00 (hora de Lisboa). ¿Le viene bien alguno de esos?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esa hora no la tengo disponible por ahora, pero puedo ofrecerle el martes 8 de septiembre a las 10:00, el miércoles 9 de septiembre a las 15:00 o el jueves 10 de septiembre a las 11:00 (hora de Lisboa). ¿Le viene bien alguna de esas?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Ese horario no está disponible, pero sí tengo el miércoles 9 de septiembre a las 15:00 (hora de Lisboa), o si prefiere, el martes 8 de septiembre a las 10:00 o el jueves 10 de septiembre a las 11:00. ¿Le viene bien alguno de estos?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Ese horario en concreto no está disponible, pero sí tengo el miércoles 9 de septiembre a las 15:00 (hora de Lisboa). ¿Le viene bien esa hora, o prefiere el martes 8 a las 10:00 o el jueves 10 a las 11:00?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "El miércoles a las 12:30 no está entre los horarios disponibles, pero sí tengo el miércoles 9 de septiembre a las 15:00 (hora de Lisboa). ¿Le viene bien esa hora, o prefiere el martes 8 a las 10:00 o el jueves 10 a las 11:00?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Ese horario en concreto no está disponible, pero sí tenemos el miércoles 9 de septiembre a las 15:00 (hora de Lisboa). ¿Le viene bien esa hora, o prefiere el martes 8 a las 10:00 o el jueves 10 a las 11:00?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Just to confirm, Tuesday 8 September is available at 10:00 Lisbon time, not 15:00 - Wednesday 9 September has a 15:00 slot instead. Would either of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Just to confirm - Tuesday's available slot is at 10:00 Lisbon time, not 15:00 (that's Wednesday's slot). Would Tuesday 8 September at 10:00 or Wednesday 9 September at 15:00 Lisbon time work better for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Just to confirm, Tuesday the 8th is available at 10:00 Lisbon time (not 15:00) - would that work, or would Wednesday the 9th at 15:00 suit better?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Just to clarify, Tuesday 8 September is at 10:00 Lisbon time, while 15:00 is available on Wednesday 9 September. Would either of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Just to clarify, Tuesday we have 10:00 Lisbon time available, while 15:00 is on Wednesday instead. Would either of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Perfeito, quinta-feira 10 de setembro às 11:00 (hora de Lisboa) para uma primeira reunião com o nosso colega. Pode confirmar-me esse horário?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Perfeito! Fico a confirmar então a quinta-feira, 10 de setembro às 11:00 (hora de Lisboa) para uma primeira reunião com o nosso colega - pode confirmar para eu garantir esse horário?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Great choice! Just to confirm, that's Thursday 10 September 2026 at 11:00 Lisbon time for a first meeting with our colleague - shall I lock that in?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Perfeito! Fico então com a quinta-feira, 10 de setembro às 11:00, horário de Lisboa - pode confirmar para eu deixar reservado?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Perfeito! Fico então com quinta-feira, 10 de setembro às 11:00 (hora de Lisboa) - pode confirmar-me só para eu deixar isto certo?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Essa combinação não está disponível, mas tenho estes horários: terça-feira dia 8 de setembro às 10:00, quarta-feira dia 9 às 15:00, ou quinta-feira dia 10 às 11:00 (hora de Lisboa). Algum destes funciona para si?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Na terça só tenho disponível as 10:00 (hora de Lisboa). Se preferir às 15:00, essa disponibilidade é na quarta-feira, dia 9 de setembro. Qual delas prefere?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Na verdade, a terça-feira que temos disponível é às 10:00 (hora de Lisboa). Também temos quarta-feira dia 9 de setembro às 15:00 ou quinta-feira dia 10 às 11:00. Alguma destas funciona para si?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Na verdade, terça-feira temos disponibilidade às 10:00 e quarta-feira às 15:00 (hora de Lisboa). Prefere uma dessas opções?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Na verdade, terça-feira temos disponibilidade às 10:00 (hora de Lisboa). Já quarta-feira temos às 15:00 ou quinta-feira às 11:00. Alguma destas fica melhor para si?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Perfecto, el jueves 10 de septiembre a las 11:00 (hora de Lisboa). ¿Puedes confirmarme que ese horario te sirve para dejarlo agendado?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Perfecto, entonces sería el jueves 10 de septiembre de 2026 a las 11:00 hora de Lisboa. ¿Me confirmas esa hora para dejarlo agendado?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Perfecto, el jueves 10 de septiembre de 2026 a las 11:00 (hora de Lisboa) para una primera reunión con nuestro colega. ¿Confirmas esa hora?"
+  },
+  {
+   "source": "fixture",
+   "claim": true,
+   "text": "Perfecto, entonces quedamos el jueves 10 de septiembre de 2026 a las 11:00 (hora de Lisboa) para una primera reunión con nuestro colega. ¿Me confirmas que ese horario te va bien?",
+   "why": "a claim with no event behind it: a phantom (12/14 Sep, suite 7) or a draft discarded for a handoff"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "¡Perfecto! Entonces propongo el jueves 10 de septiembre de 2026 a las 11:00 (hora de Lisboa) para una primera reunión con nuestro colega. ¿Me confirmas que te viene bien esa hora?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Great choice! To confirm, that's Thursday 10 September 2026 at 11:00 Lisbon time for a first meeting with our colleague. Shall I lock that in for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Great choice — that's Thursday 10 September 2026 at 11:00 Lisbon time for a first meeting with our colleague. Can you confirm that works for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Great, Thursday 10 September at 11:00 Lisbon time for a first meeting with our colleague - shall I confirm that for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Great choice — that would be Thursday, 10 September 2026 at 11:00 Lisbon time for a first meeting with our colleague. Shall I go ahead and confirm that for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Great, let's pencil in Thursday 10 September 2026 at 11:00 Lisbon time. Can you confirm that works for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Great, Thursday 10 September at 11:00 Lisbon time for a first meeting with our colleague — shall I lock that in for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Great, Thursday 10 September at 10:00 Lisbon time it is — can you confirm that works for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Great choice! Just to confirm, that would be Thursday, 10 September 2026 at 11:00 Lisbon time for a first meeting with our colleague. Shall I lock that in?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Great — Thursday 10 September 2026 at 11:00 Lisbon time for a first meeting with our colleague. Can you confirm that works for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Great, Thursday 10 September 2026 at 11:00 Lisbon time it is — can you confirm that works for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "11:00 isn't available, but I do have Thursday 24 September 2026 at 09:00 Lisbon time or 10:00 Lisbon time - would either of those work for you, João?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "11:00 isn't available, but I can offer Thursday 24 September 2026 at 09:00 Lisbon time or Thursday 24 September 2026 at 10:00 Lisbon time - which one suits you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "We actually have Thursday 24 September at 09:00 or 10:00 Lisbon time available, but not 11:00 - would either of those work for you, João?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "We have Thursday 24 September at 09:00 or 10:00 Lisbon time, but not 11:00 - would either of those work for you, João?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Thursday morning we have 09:00 or 10:00 Lisbon time, but not 11:00 - would either of those work for you, João?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Sorry, 11:00 isn't available on our current slots. I can offer Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time — do any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "11:30 isn't one of the times I have available, but I can offer Thursday 24 September at 09:00 or 10:00, or Wednesday 23 September at 09:00, all Lisbon time. Would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "12:00 isn't available, I'm afraid. I can offer Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time - would any of those work?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "16:00 isn't available, but I can offer Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time. Would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "I don't have an 11:00 slot available, but I can offer Thursday 24 September at 09:00 or 10:00, or Wednesday 23 September at 09:00, all Lisbon time. Would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "That time isn't available, but I can offer Thursday 24 September 2026 at 09:00 or 10:00 Lisbon time, or Wednesday 23 September 2026 at 09:00 Lisbon time. Would any of those work?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "11:00 isn't available, I'm afraid - the options I have are Thursday 24 September at 09:00 or 10:00, or Wednesday 23 September at 09:00, all Lisbon time. Would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "11:30 isn't one of the times I have available, I'm afraid. I can offer Thursday 24 September at 09:00 or 10:00, or Wednesday 23 September at 09:00, all Lisbon time - would any of those work?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "I only have Thursday 24 September at 09:00 or 10:00, or Wednesday 23 September at 09:00, all Lisbon time - 12:00 isn't available. Would one of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "16:00 isn't one of the available slots I have. I can offer Thursday 24 September at 09:00 or 10:00, or Wednesday 23 September at 09:00, all Lisbon time - would any of these work?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "11:00 isn't one of the times I have available, I'm afraid. I can offer Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time. Would any of those work?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "13:30 isn't available I'm afraid, but I can offer Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time. Would any of those work?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "11:00 isn't available, unfortunately. I can offer Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time - do any of these work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "11:30 isn't available, but I can offer Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time. Would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "12:00 isn't available, but I can offer Thursday 24 September 2026 at 09:00 or 10:00 Lisbon time, or Wednesday 23 September 2026 at 09:00 Lisbon time. Would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "16:00 isn't available, I'm afraid. For Thursday I can offer 09:00 or 10:00 Lisbon time, or Wednesday 23 September 2026 at 09:00 Lisbon time - would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "I don't have an 11:00 slot, but I do have Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time. Would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Unfortunately 13:30 isn't available - the times I have are Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time. Would any of those work?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "11:00 isn't available, but I do have Thursday 24 September 2026 at 09:00 or 10:00 Lisbon time, or Wednesday 23 September 2026 at 09:00 Lisbon time. Would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "That time isn't available, but I can offer Thursday 24 September 2026 at 09:00 or 10:00 Lisbon time, or Wednesday 23 September 2026 at 09:00 Lisbon time. Would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "12:00 isn't available, I'm afraid. I can offer Thursday 24 September 2026 at 09:00 or 10:00 Lisbon time, or Wednesday 23 September 2026 at 09:00 Lisbon time - would any of those work?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "16:00 isn't available, I'm afraid. The only slots I have are Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time. Would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "I don't have 11:00 available, but I can offer Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time. Would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Unfortunately 13:30 isn't available - the options I have are Thursday 24 September at 09:00 or 10:00, or Wednesday 23 September at 09:00, all Lisbon time. Would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "That time isn't available, but I can offer Thursday 24 September at 09:00 or 10:00, or Wednesday 23 September at 09:00, all Lisbon time. Would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "12:00 isn't available, I'm afraid. I can offer Thursday 24 September 2026 at 09:00 or 10:00 Lisbon time, or Wednesday 23 September 2026 at 09:00 Lisbon time - would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "16:00 isn't available, I'm afraid, but I can offer Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time. Would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "I don't have an 11:00 slot available, but I can offer Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time. Would any of those work for you?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "That time isn't available, but I can offer Thursday 24 September 2026 at 09:00 or 10:00, or Wednesday 23 September 2026 at 09:00, all Lisbon time - would any of those work?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Às 11:00 não tenho disponibilidade, mas posso oferecer quinta-feira, 24 de setembro, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma dessas serve?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esse horário não está disponível, infelizmente. Só posso oferecer quinta-feira, 24 de setembro, às 09:00 ou 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Qual destes prefere?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Às 12:00 não tenho disponibilidade para oferecer. Posso propor quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma destas funciona para si?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Às 16:00 não tenho disponibilidade, mas posso oferecer quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Qual delas prefere?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Essa hora ainda não está disponível, mas posso oferecer quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma destas serve?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Nesse dia só tenho disponíveis os horários de manhã: quinta-feira 24 de setembro às 09:00 ou às 10:00, ou quarta-feira 23 de setembro às 09:00, hora de Lisboa. Prefere algum destes?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Não tenho essa hora disponível, mas posso oferecer quinta-feira, 24 de setembro, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma dessas serve?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esse horário não está disponível. Tenho quinta-feira, 24 de setembro às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro às 09:00, hora de Lisboa. Alguma destas serve?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esse horário não está disponível, mas posso oferecer quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Qual destas prefere?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Às 16:00 não tenho disponibilidade, infelizmente. Posso oferecer quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma dessas funciona para si?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Às 11:00 não tenho disponibilidade, infelizmente. Posso oferecer quinta-feira, 24 de setembro às 09:00 ou 10:00, ou quarta-feira, 23 de setembro às 09:00, hora de Lisboa. Alguma destas serve?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esse horário não está disponível. Posso oferecer quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Qual destes prefere?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Às 11:00 não tenho disponibilidade, mas posso oferecer quinta-feira, 24 de setembro, às 09:00 ou 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma dessas serve?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Nesse dia só tenho disponibilidade às 09:00 ou às 10:00 (hora de Lisboa) para quinta-feira, 24 de setembro, ou às 09:00 na quarta-feira, 23 de setembro. Alguma destas horas funciona para si?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esse horário não está disponível. Tenho quinta-feira, 24 de setembro, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Qual destas prefere?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Às 16:00 não tenho disponibilidade, mas posso oferecer quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma dessas serve?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Essa hora não está disponível, mas posso oferecer quinta-feira, 24 de setembro, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma dessas serve?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Nesse dia só tenho disponibilidade às 09:00 ou 10:00 (quinta, 24 de setembro), ou quarta, 23 de setembro, às 09:00, hora de Lisboa. Alguma dessas funciona para si?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Às 11:00 não tenho disponível, mas posso oferecer quinta-feira, 24 de setembro, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma dessas horas serve?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esse horário não está disponível, mas posso oferecer quinta-feira, 24 de setembro, às 09:00 ou 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Qual desses prefere?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esse horário não está disponível, mas posso propor quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Qual destes lhe convém?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Às 16:00 não tenho disponibilidade, infelizmente. Posso oferecer quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Qual destas prefere?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Infelizmente não tenho esse horário disponível. Posso oferecer quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma destas serve?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Nesse horário não tenho disponibilidade, mas posso oferecer quinta-feira, 24 de setembro, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma dessas funciona para si?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esse horário não está disponível, mas posso oferecer quinta-feira, 24 de setembro, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Qual destes prefere?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esse horário não está disponível, mas tenho quinta-feira, 24 de setembro, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Qual destes prefere?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Às 12:00 não tenho disponibilidade, mas posso propor quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma destas funciona para si?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Às 16:00 não tenho disponibilidade, infelizmente. Posso oferecer quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Qual destas lhe convém?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Essa hora não está disponível, mas posso oferecer quinta-feira, 24 de setembro de 2026, às 09:00 ou às 10:00, ou quarta-feira, 23 de setembro, às 09:00, hora de Lisboa. Alguma dessas serve?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Nesse dia só tenho disponibilidade às 09:00 ou 10:00, hora de Lisboa - às 13:30 não tenho esse horário disponível. Prefere um desses dois?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "A las 11:00 no tengo disponibilidad, pero puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Cuál de estos le viene mejor?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "A las 11:30 no tengo disponibilidad, pero puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de esas?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esa hora no está disponible, pero puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de esas?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esa hora no está disponible, pero puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de estas?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esa hora no la tengo disponible, pero sí puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, hora de Lisboa. ¿Le sirve alguna de esas?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "A las 13:30 no tengo disponibilidad para ofrecerle, solo puedo confirmar el jueves 24 de septiembre a las 09:00 o 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de esas opciones?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "A las 11:00 no tengo disponibilidad, pero puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de esas horas?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esa hora no está disponible, pero sí tengo el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le sirve alguna de estas?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Ese horario no está disponible por ahora, pero puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Alguno de estos le funciona?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "A las 16:00 no tengo disponibilidad para ofrecerle en este momento. Los horarios que puedo confirmar son el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguno de estos?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esa hora en concreto no está disponible, pero sí tengo jueves 24 de septiembre a las 09:00 o a las 10:00, o miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de esas?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esa hora no está entre las disponibles ahora mismo. Puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de estas?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esa hora no está disponible, pero sí puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Alguna de esas le viene bien?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "A las 11:30 no tengo disponibilidad, solo puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguno de esos horarios?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "A las 12:00 no tengo disponibilidad, lo siento. Los horarios que puedo ofrecerle son jueves 24 de septiembre a las 09:00 o 10:00, o miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguno de estos?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "A las 16:00 no tengo disponibilidad para ofrecerle; los horarios que tengo son el jueves 24 de septiembre a las 09:00 o 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguno de esos?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "A las 11:00 no tengo disponibilidad, pero puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de estas?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Por ahora solo tengo disponibles el jueves 24 de septiembre a las 09:00 o 10:00, y el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguno de esos horarios?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esa hora no está disponible, pero sí tengo el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de esas?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esa hora no está disponible, pero sí tengo el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguno de esos?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esa hora no está disponible por el momento, pero sí tengo el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de esas?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esa hora no está disponible, pero sí tengo el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Alguna de estas le viene bien?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "A las 11:00 no tengo esa franja disponible, pero sí puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de estas?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "A esa hora no tengo disponibilidad en este momento; los horarios que puedo ofrecerle son jueves 24 de septiembre a las 09:00 o a las 10:00, o miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguno de estos?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esa hora no está disponible, pero puedo ofrecerle el jueves 24 de septiembre de 2026 a las 09:00 o a las 10:00 (hora de Lisboa). ¿Le viene bien alguna de esas?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esa hora no está disponible, pero sí tengo el jueves 24 de septiembre a las 09:00 o 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de estas?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esa hora no está disponible, pero puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le sirve alguna de estas?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "A las 16:00 no tengo disponibilidad, solo puedo ofrecerle el jueves 24 de septiembre a las 09:00 o 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguno de esos horarios?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "A las 11:00 no tengo disponibilidad, pero puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de estas opciones?"
+  },
+  {
+   "source": "fixture",
+   "claim": false,
+   "text": "Esa hora no está entre las disponibles por ahora, pero puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de estas?"
+  }
+ ]
+}

@@ -164,14 +164,18 @@ function checkInvariants(ctx) {
 
   // --- 2: a booking confirmed in the text has an event behind it ------------
   {
+    // What it is named for, and only that: the text CLAIMS a confirmed booking
+    // (src/booking_claim.js, the one list of confirmation language) and no event
+    // is behind it. A slot merely named -- an offer, a decline, an apology --
+    // is not a claim. Until 22 Sep a named slot counted, via replyStatesSlot,
+    // and the booking gate caught it flagging "that slot was just taken. We
+    // still have ... Thursday ... 09:00" as a confirmation, critical, twice in
+    // ten runs. The declined turn is still checked, and in full: a false
+    // "you're booked" on it is exactly the case this invariant exists for.
     const claim = bookingClaim(text);
-    // The slot matched this turn, whether or not the create then succeeded:
-    // a reply stating it under a failed create is the worst output there is.
-    const statesNew = !!(ctx.bookingSlot && replyStatesSlot(text, ctx.bookingSlot));
-    const statesHeld = held && replyStatesSlot(text, ctx.existingBooking);
-    const confirms = !!claim || statesNew || statesHeld;
+    const confirms = !!claim;
     out.checked.push('2');
-    out.detail['2'] = { confirms, claim, states_new_slot: statesNew, states_held_booking: statesHeld,
+    out.detail['2'] = { confirms, claim,
                         event_this_turn: bookedThisTurn, held_verified: heldVerified, booking_check: ctx.bookingCheck || 'none' };
     if (confirms && !bookedThisTurn && !heldVerified) {
       if (heldUnreadable) out.unverified.push('2'); else out.violated.push('2');

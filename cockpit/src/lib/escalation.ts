@@ -9,6 +9,7 @@
  *   claude_failed:<errorType>        bad_reply_twice
  *   booking_failed:<result>[:<err>]  no_availability:<slotError|window_full>
  *   booking_retired:<cancelled|missing>
+ *   booking_lost_race:<slot_taken_since_offer|another lead confirmed this slot first (409)>
  *   media_unprocessable:<kind>       high_value:<budget>>=<threshold>
  *   needs_human[:<free text from the model>]
  *
@@ -114,6 +115,10 @@ export function humanise(reason: string): string {
       return tail === 'conflict_burned_id'
         ? 'Booking failed — calendar id burned'
         : `Booking failed${tail ? ` — ${tail.replace(/_/g, ' ')}` : ''}`
+    case 'booking_lost_race':
+      // Another lead confirmed the same slot at the same moment. The lead HAS
+      // been told, in their language, that the time went as it was confirmed.
+      return 'Slot taken by another lead at the same moment — lead told, needs a new time'
     case 'booking_retired':
       // The lead HAS been told, by a fixed note, before this reached the queue.
       return tail === 'cancelled'

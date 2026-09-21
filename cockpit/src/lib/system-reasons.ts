@@ -8,7 +8,8 @@
  * tests/system-reasons.test.ts reads src/system_reasons.js and fails if the two
  * differ. Change the source first, then this.
  *
- * A retired booking is not a system failure (21 Sep 2026): see the source.
+ * A retired booking is not a system failure (21 Sep 2026), and neither is a lost
+ * race, booking_lost_race (22 Sep 2026): see the source.
  */
 export const SYSTEM_REASON_HEADS = ['claude_failed', 'bad_reply_twice', 'booking_failed', 'no_availability', 'media_unprocessable'] as const
 

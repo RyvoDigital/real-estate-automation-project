@@ -110,5 +110,48 @@ claims('en, U+2019: "we’re on for"', 'So we’re on for Tuesday at 15:00.');
 claims('en, U+02BC: "weʼre all set for"', 'Brilliant, weʼre all set for Thursday.');
 chk('en, U+2019: "I’m looking forward to it" is still not a booking', bookingClaim('I’m looking forward to hearing which time suits you.') === null);
 
+console.log('\n2026-09-22: the model\'s own confirmations (invariant 2 reads this list and nothing else)');
+// CAPTURED OUTPUT, word for word: the six real confirmations that matched no
+// pattern before 22 Sep. Invariant 2 fires on a claim with no event behind it, so
+// a confirmation shape this list cannot see is a phantom booking it cannot see.
+claims('pt: "Fica confirmada a sua primeira reunião" (gate exec 5105)', 'Ótimo, João! Fica confirmada a sua primeira reunião com o nosso colega para quarta-feira, 23 de setembro de 2026, às 10:00, horário de Lisboa. Até lá!');
+claims('pt: "Fica confirmada a nossa primeira reunião" (gate exec 5162)', 'Ótimo, João! Fica confirmada a nossa primeira reunião com o colega para quarta-feira, dia 23 de setembro de 2026, às 16:00 (horário de Lisboa). Até lá!');
+claims('en: "You\'re all set for a first meeting" (gate exec 5180)', 'Great choice, João! You\'re all set for a first meeting with our colleague on Wednesday, 23 September 2026 at 18:00 Lisbon time. Looking forward to it!');
+claims('en: "you\'re all set for Thursday" (gate exec 5190)', 'Perfect, João - you\'re all set for Thursday 24 September 2026 at 09:00 Lisbon time for a first meeting with our colleague. We\'ll take it from there and go through everything with you then!');
+claims('es: "Confirmado: primera reunión" (gate exec 5210)', '¡Perfecto, João! Confirmado: primera reunión con nuestro colega el jueves 24 de septiembre de 2026 a las 11:00, hora de Lisboa. ¡Nos vemos entonces!');
+claims('en: "you\'re booked in for", behind the disclosure banner (gate exec 5221)', '🤖 Sofia, ZZ GATE\'s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat, you\'re booked in for a first meeting with our colleague on Thursday, 24 September 2026 at 12:00 Lisbon time, João.');
+// Constructed: the invariant's own cases, "you're booked for Thursday 09:00" in each language.
+claims('en: you\'re booked for Thursday 09:00', "You're booked for Thursday at 09:00.");
+claims('pt: ficou marcada para quinta às 09:00', 'Ficou marcada a sua reunião para quinta-feira às 09:00.');
+claims('pt: Ficou confirmado!', 'Ficou confirmado! Quinta-feira às 09:00.');
+claims('es: queda confirmada su cita', 'Queda confirmada su cita para el jueves a las 09:00.');
+claims('es: Confirmado!', '¡Confirmado! El jueves a las 09:00.');
+// CAPTURED OUTPUT, the false alarms: every one names a slot and claims nothing.
+passes('en: the booking gate\'s apology (gate exec 5096, fired invariant 2 on 21 Sep)', 'So sorry, João — that slot was just taken. We still have Wednesday 23 September at 10:00, Wednesday 23 September at 11:00, or Thursday 24 September at 09:00, Lisbon time — would any of those suit you?');
+passes('pt: the booking gate\'s apology (gate exec 5134, fired invariant 2 on 21 Sep)', 'Peço desculpa, João, mas esse horário das 13:00 acabou de ficar indisponível. Ainda temos quarta-feira, 23 de setembro às 14:00, quarta-feira, 23 de setembro às 15:00, ou quinta-feira, 24 de setembro às 09:00, horário de Lisboa. Qual destes prefere?');
+passes('en: the race note', "I'm sorry — that time was taken just as we were confirming it. A member of our team will be in touch to arrange another one with you.");
+passes('pt: the race note', 'Peço desculpa — esse horário ficou ocupado mesmo enquanto o confirmávamos. Um colega da equipa entra em contacto consigo para combinar outro.');
+passes('es: the race note', 'Lo siento — esa hora se ocupó justo mientras la confirmábamos. Un compañero del equipo se pondrá en contacto para acordar otra con usted.');
+passes('pt: a bare "Combinado," opens an offer (exec 1643)', 'Combinado, João! Quer que lhe proponha alguns horários para essa primeira conversa com o nosso colega?');
+passes('en: a promise that waits on the lead (exec 1684)', "No problem at all, John, take your time. Just let me know whenever you're ready and I'll get it arranged.");
+passes('en: a promise that waits on the lead (exec 1692)', "No problem at all, John! Whenever you're ready to confirm, just let me know and I'll get it arranged.");
+claims('en: a condition that is NOT the lead\'s still claims', "Once our colleague sees it, you're all set for Thursday at 09:00.");
+passes('pt: "ainda não ficou confirmado" is a negation', 'Ainda não ficou confirmado, João.');
+passes('en: "you\'re set to receive" is not a booking', "You're set to receive a call from our colleague about the listing.");
+
+console.log('\nEVERY lead-facing text captured by 22 Sep (tests/fixtures/lead_texts_2026-09-22.json)');
+// 536 texts: 36 claims (25 confirmations, 2 restated held bookings, 9 phantoms or
+// discarded drafts) and 500 that claim nothing. Invariant 2's false-alarm and miss
+// counts are these two numbers.
+{
+  const fx = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'lead_texts_2026-09-22.json'), 'utf8')).texts;
+  const misses = fx.filter(t => t.claim && bookingClaim(t.text) === null);
+  const alarms = fx.filter(t => !t.claim && bookingClaim(t.text) !== null);
+  chk(`all ${fx.length} texts, ${fx.filter(t => t.claim).length} claims: 0 misses`, fx.length === 536 && misses.length === 0,
+      misses.map(t => t.source + ': ' + t.text.slice(0, 70)).join(' | '));
+  chk(`and 0 false alarms on the ${fx.filter(t => !t.claim).length} that claim nothing`, alarms.length === 0,
+      alarms.map(t => t.source + ' [' + bookingClaim(t.text) + ']: ' + t.text.slice(0, 70)).join(' | '));
+}
+
 console.log(`\n  ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

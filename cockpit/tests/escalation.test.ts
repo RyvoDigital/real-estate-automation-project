@@ -88,6 +88,12 @@ test('the three classes are distinct — item 16', () => {
   // not a system failure. It was 'system' here and 'success' in the run row.
   assert.equal(classOf('booking_retired:cancelled'), 'person')
   assert.equal(classOf('booking_retired:missing'), 'person')
+  // 22 Sep 2026: a lost race is the calendar working, and a person offers a new
+  // time. A calendar or API that actually failed is still a system failure.
+  assert.equal(classOf('booking_lost_race:slot_taken_since_offer'), 'person')
+  assert.equal(classOf('booking_lost_race:another lead confirmed this slot first (409)'), 'person')
+  assert.equal(classOf('booking_failed:failed:create_http_500:backend error'), 'system')
+  assert.equal(classOf('booking_failed:recheck_failed:freebusy_http_503'), 'system')
 
   // The distinction that matters: a €3.2M lead the AI handled perfectly
   // must not be classed with an outage.

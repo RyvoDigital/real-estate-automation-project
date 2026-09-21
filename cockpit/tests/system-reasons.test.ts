@@ -23,6 +23,14 @@ test('the cockpit list is exactly the source list, in order', () => {
 test('the cockpit regex is built from that list', () => {
   for (const h of heads) assert.ok(SYSTEM.test(h + ':x'), h)
   assert.equal(SYSTEM.test('booking_retired:cancelled'), false)
+  assert.equal(SYSTEM.test('booking_lost_race:slot_taken_since_offer'), false)
+})
+
+test('the workflow writes a lost race as booking_lost_race, which is not a system failure', () => {
+  const w = JSON.parse(readFileSync(join(REPO, 'workflows', 'ryvoInboundConc01.json'), 'utf8'))
+  const code = w.nodes.find((n: { name: string }) => n.name === 'AfterBooking').parameters.jsCode as string
+  assert.ok(code.includes("'booking_lost_race:'"), 'AfterBooking does not write booking_lost_race')
+  assert.equal(SYSTEM.test('booking_lost_race:x'), false)
 })
 
 test('the workflow embeds the source verbatim in PrepRunEscalated', () => {

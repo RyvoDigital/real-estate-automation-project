@@ -99,7 +99,43 @@ const BOOKING_CLAIMS = [
   { rx: /\bqueda (?:entonces |ya )?(?:reservad|agendad|programad|confirmad|apuntad)[ao]s? (?:el |la |para |su |tu )/, label: 'queda reservado el' },
   { rx: /\bi(?:'m| am) (?:booking|scheduling|putting|pencil+ing|locking|setting) you (?:in |down |up )?(?:for|on|with)\b/, label: "I'm booking you in for" },
   { rx: /\bi(?:'m| am) (?:booking|scheduling|arranging|setting up|reserving|locking in) (?:that|this|it|the|your|a)\b/, label: "I'm booking that" },
+  // --- 2026-09-22, the confirmation itself --------------------------------------
+  // Invariant 2 now reads THIS list and nothing else (src/invariants.js): a reply
+  // violates it when it claims a confirmed booking and no event exists. Until
+  // 22 Sep it also fired when a reply merely NAMED the slot, and the booking gate
+  // proved that wrong twice in ten runs: "that slot was just taken. We still have
+  // Wednesday ... 10:00 ... or Thursday 24 September at 09:00" and "esse horario
+  // das 13:00 acabou de ficar indisponivel" -- apologies, flagged critical.
+  // So the list must recognise the model's OWN confirmations, not only its
+  // phantom ones. Six of the 26 real confirmations captured by 22 Sep matched
+  // nothing above; these are their shapes, each needing the affirmative form.
+  // "you're all set for", "you're booked in for", "you are now confirmed for"
+  { rx: /\byou(?:'re| are) (?:now |all )?(?:all set|set|booked(?: in)?|confirmed|scheduled|down)\b(?! to\b)(?:,| for| on| with|!|\.|$)/, label: "you're all set for" },
+  // "your first meeting with our colleague is confirmed for", "the viewing has been booked for"
+  { rx: /\b(?:meeting|viewing|appointment|call|visit)\b[^.!?\n]{0,60}?\b(?:is|has been|was) (?:now |all |already )?(?:booked|confirmed|scheduled|set)(?: in)? (?:for|on)\b/, label: 'your meeting ... is confirmed for' },
+  // pt: "Fica confirmada a sua primeira reuniao", "ficou marcada a visita"
+  { rx: /\b(?:fica|ficou|esta) (?:entao |assim |ja )?(?:confirmad|marcad|agendad)[ao]s? (?:a |o )?(?:sua |nossa |tua |vossa )?(?:primeira )?(?:reuniao|visita|marcacao|conversa|encontro)\b/, label: 'fica confirmada a sua reuniao' },
+  // pt/es/en: the one-word sentence -- "Ficou confirmado!", "Ficou combinado, Joao:",
+  // "Confirmado: primera reunion ...", "Confirmed!". Only at the START of a sentence
+  // and followed by punctuation, so "ainda nao ficou confirmado" never matches.
+  // A BARE "Combinado," is not here: it means "agreed", and the model opens offers
+  // with it ("Combinado, Joao! Quer que lhe proponha alguns horarios?", exec 1643).
+  { rx: /^[^a-z0-9]*(?:ja )?(?:ficou|fica|esta|queda|quedo) (?:tudo )?(?:confirmad[oa]|combinad[oa]|marcad[oa]|agendad[oa])\s*(?:[!:.,]|$)/, label: 'Ficou confirmado!' },
+  { rx: /^[^a-z0-9]*(?:confirmad[oa]|confirmed)\s*(?:[!:]|$)/, label: 'Confirmado!' },
+  // es: "Queda confirmada tu primera reunion", "quedo agendada su cita"
+  { rx: /\b(?:queda|quedo|esta) (?:entonces |ya )?(?:confirmad|agendad|reservad|programad)[ao]s? (?:tu |su |la |el )?(?:primera )?(?:reunion|cita|visita)\b/, label: 'queda confirmada tu reunion' },
 ];
+
+// A promise that waits on the LEAD is not a claim, for the same reason a question
+// is not: "Whenever you're ready to confirm, just let me know and I'll get it
+// arranged" (exec 1684 and 1692, 12 Sep) commits to nothing yet. Only the lead's
+// own decision counts as the condition -- "once our colleague confirms, you're
+// all set" is still a claim, because nothing the lead does is awaited.
+const CLAIM_CONDITIONAL_RX = new RegExp([
+  "\\b(?:whenever|once|as soon as|if|when) you(?:'re| are)? (?:ready|decide|confirm|choose|pick|let me know|want|would like|'d like)",
+  '\\b(?:assim que|quando|se|logo que) (?:me )?(?:confirmar|decidir|escolher|quiser|estiver pront|disser)',
+  '\\b(?:cuando|en cuanto|si) (?:me )?(?:confirme|decida|elija|quiera|este list|diga)',
+].join('|'));
 
 // bookingClaim(reply) -> the offending phrase (label), or null.
 function bookingClaim(reply) {
@@ -111,6 +147,7 @@ function bookingClaim(reply) {
     const s = sentence.trim();
     if (!s || s.endsWith('?')) continue;
     const t = deaccentClaim(s);
+    if (CLAIM_CONDITIONAL_RX.test(t)) continue;
     for (const c of BOOKING_CLAIMS) {
       const m = t.match(c.rx);
       if (m) return m[0];
