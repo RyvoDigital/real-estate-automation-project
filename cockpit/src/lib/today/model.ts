@@ -55,7 +55,7 @@ export type TodayInputs = {
 }
 
 /** One open gate, as group 5 draws it: what waits, who holds it, since when, who can end it. */
-export type WaitingGate = { id: string; what: string; whoHolds: string; since: string | null; answerable: 'the agency' | 'outside' }
+export type WaitingGate = { id: string; what: string; whoHolds: string; since: string | null; answerable: 'the agency' | 'outside'; expected?: { on: string; what: string } | null; thenHeldBy?: string | null }
 
 export type GroupState = 'rows' | 'resting' | 'readFailed'
 
@@ -215,7 +215,7 @@ function group5(w: WaitingGate[], now: Date): TodayGroup {
   const head = w[0]
   const byWho = [
     { label: 'the agency can end', n: w.filter((g) => g.answerable === 'the agency').length },
-    { label: 'outside', n: w.filter((g) => g.answerable === 'outside').length },
+    { label: 'the agency cannot end', n: w.filter((g) => g.answerable === 'outside').length },
   ].filter((d) => d.n)
   const days = head.since ? Math.floor((now.getTime() - Date.parse(`${head.since}T00:00:00Z`)) / 86_400_000) : null
   return { ...base, state: 'rows', distribution: byWho,

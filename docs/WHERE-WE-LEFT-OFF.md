@@ -601,7 +601,15 @@ recorded as **blocked**, not failing; the suite tells you the day
 `lib/rehearsal.ts` exists.
 
 **Invoicing provider is Keyinvoice** (operator, 19 Sep). The tracked record is
-brief §2.10. The commercial reference is gitignored on purpose (commercial
+brief §2.10.
+
+**The legal entity is settled** (operator, 22 Sep: settled 16 Sep). The company
+is PEDRO SEIXAS VALE - CONSULTORIA, LDA, and it invoices through Keyinvoice. The
+`legal_entity` gate is closed in `gates.ts` with that date. Its one entry is now
+our own work, so it lives here rather than in the ledger:
+- confirm whether the Keyinvoice API can list documents by date. If it cannot,
+  the monthly SAF-T file is the fallback and the import is the work;
+- re-read who the services contract names as its party: it is this company. The commercial reference is gitignored on purpose (commercial
 terms stay off the server that pulls this repo), so its copy of the decision
 exists only on the operator's disk.
 

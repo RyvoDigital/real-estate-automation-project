@@ -127,9 +127,36 @@ test('every entry names a gate that exists, and every gate has something waiting
   }
   // A gate with nothing behind it is either finished work nobody deleted or a
   // gate nobody needed — both worth noticing.
+  // An OPENED gate with nothing behind it is a closed record, kept for its date.
   const used = new Set(BLOCKED.map((b) => b.gate))
-  const idle = GATES.filter((g) => !used.has(g.id)).map((g) => g.id)
+  const idle = GATES.filter((g) => !g.open && !used.has(g.id)).map((g) => g.id)
   assert.deepEqual(idle, [], `gates with nothing waiting on them: ${idle.join(', ')}`)
+})
+
+test('🔴 an opened gate says when it opened; a date on a shut gate says where it came from', () => {
+  for (const g of GATES.filter((x) => x.open)) {
+    assert.match(g.openedOn ?? '', /^\d{4}-\d{2}-\d{2}$/, `${g.id} is open with no openedOn: closed when, by whose word?`)
+  }
+  for (const g of GATES.filter((x) => !x.open && x.since)) {
+    assert.ok((g.sinceSource ?? '').length > 10, `${g.id} has a since with no source: on group 5 a guess reads as a fact`)
+  }
+})
+
+test('the corrections of 22 Sep 2026 hold (operator)', () => {
+  const by = (id: GateId) => GATES.find((g) => g.id === id)!
+  assert.equal(by('legal_entity').open, true)
+  assert.equal(by('legal_entity').openedOn, '2026-09-16')
+  // Meta: ours until submitted, then Meta's. Recorded as one gate whose holder moves.
+  assert.match(by('meta_verified').whoHolds, /^Ryvo, until it is submitted/)
+  assert.match(by('meta_verified').thenHeldBy ?? '', /^Meta/)
+  assert.equal(by('meta_verified').expected?.on, '2026-09-28')
+  assert.equal(by('adene_credentials').since, '2026-09-18')
+  const p = by('procuracao')
+  assert.equal(p.whoHolds, 'José and Margarida')
+  assert.equal(p.since, '2026-09-16')
+  assert.equal(p.expected?.on, '2026-09-24')
+  // It blocks Meta's submission and signing any real agency: both recorded as work behind it.
+  assert.deepEqual(BLOCKED.filter((b) => b.gate === 'procuracao').map((b) => b.id).sort(), ['agency-signing', 'meta-submission'])
 })
 
 test('ids are unique, so deleting one entry cannot silently delete another', () => {
@@ -146,7 +173,7 @@ test('🔴 what holds an automation is asked of the ledger, never assembled twic
    *
    * The absences are deliberate and are asserted as such. An entry with no
    * `holds` is saying "this is not about one automation" — the Enquadramento
-   * is a legal reading, invoicing is ours, rehearsal-not-null is a migration.
+   * is a legal reading, rehearsal-not-null is a migration.
    * Left unasserted, a forgotten `holds` and a considered absence would look
    * identical, which is the S3-versus-S1 confusion in a different costume.
    */
@@ -157,7 +184,9 @@ test('🔴 what holds an automation is asked of the ledger, never assembled twic
     'listing_launch',
     'reputation_loop',
   ]
-  const NOT_ONE_AUTOMATION = ['enquadramento', 'month-revenue', 'rehearsal-not-null', 'invoicing', 'setup-instalments']
+  // 'invoicing' left with legal_entity (opened 16 Sep). The procuração's two are acts of the business,
+  // not of one automation: what Meta's verification holds is recorded under meta_verified.
+  const NOT_ONE_AUTOMATION = ['enquadramento', 'month-revenue', 'rehearsal-not-null', 'setup-instalments', 'meta-submission', 'agency-signing']
 
   for (const b of BLOCKED) {
     if (b.holds === undefined) {

@@ -59,6 +59,7 @@ export type GateId =
   | 'first_close'
   | 'calibration_afternoon'
   | 'legal_entity'
+  | 'procuracao'
 
 export type Gate = {
   id: GateId
@@ -86,6 +87,22 @@ export type Gate = {
   /** When we started waiting, where that is known. */
   since?: string
   /**
+   * Where `since` comes from: the operator's word, a commit, a document. A
+   * date with no source is a guess, and a guess on group 5 reads as a fact.
+   */
+  sinceSource?: string
+  /** A date the holder has given for their act, where one has been given. Not a promise: it is shown as "expected". */
+  expected?: { on: string; what: string }
+  /**
+   * 🔴 WHO HOLDS IT NEXT, where the holder changes part-way. A gate we must
+   * act on first and somebody else second (Meta verification: we submit, Meta
+   * verifies) is recorded as ONE gate whose holder moves, so it is not closed
+   * at submission by mistake. Change `whoHolds` to this on the day it passes.
+   */
+  thenHeldBy?: string
+  /** 🔴 Required once `open` is true: the day it opened. gates.test.ts enforces it. */
+  openedOn?: string
+  /**
    * 🔴 FLIP THIS. The suite then fails, listing everything below that was
    * waiting on it, with what each needs doing.
    */
@@ -96,10 +113,17 @@ export const GATES: Gate[] = [
   {
     id: 'meta_verified',
     what: "Meta's business verification for the WhatsApp Business account",
-    whoHolds: 'Meta',
+    // 🔴 CORRECTED 22 Sep 2026 (operator). Until it is submitted the holder is
+    // Ryvo, not Meta: nothing has been sent for Meta to verify. What stands in
+    // front of submission is the procuração (its own gate, below). On the day
+    // it is submitted, whoHolds becomes `thenHeldBy`.
+    whoHolds: 'Ryvo, until it is submitted (the procuração comes first)',
+    thenHeldBy: 'Meta',
+    expected: { on: '2026-09-28', what: 'submission planned' },
     evidence:
       'the WhatsApp Manager shows the business as verified; it checks the certidão permanente, the NIPC and proof of address for the legal entity',
     since: '2026-09-03',
+    sinceSource: 'the ledger as first written (c6666b7, 20 Sep 2026)',
     answerable: 'outside',
     open: false,
   },
@@ -110,6 +134,7 @@ export const GATES: Gate[] = [
     evidence:
       'advertising_policy and jurisdiction_policy rows for PT carry both confirmed_at and confirmed_by — the two columns are inert until both are set',
     since: '2026-08-24',
+    sinceSource: 'the ledger as first written (c6666b7, 20 Sep 2026)',
     answerable: 'outside',
     open: false,
   },
@@ -126,6 +151,8 @@ export const GATES: Gate[] = [
     what: "access to ADENE's register, so an energy certificate can be looked up rather than typed",
     whoHolds: 'ADENE',
     evidence: 'credentials in hand and a first successful lookup; registration was submitted',
+    since: '2026-09-18',
+    sinceSource: 'the operator, 22 Sep 2026: the webservice registration was submitted on 18 Sep',
     answerable: 'outside',
     open: false,
   },
@@ -158,6 +185,22 @@ export const GATES: Gate[] = [
     what: 'which legal entity invoices, which decides the invoicing software and the VAT treatment',
     whoHolds: 'the operator and an accountant',
     evidence: 'the entity is registered and named in the operations reference',
+    answerable: 'outside',
+    // ✅ OPENED (operator, 22 Sep 2026): settled on 16 Sep. The company is
+    // PEDRO SEIXAS VALE - CONSULTORIA, LDA, and it invoices through Keyinvoice.
+    // Its one entry (invoicing) was our own work once the entity was known,
+    // so it moved to docs/WHERE-WE-LEFT-OFF.md rather than staying here.
+    open: true,
+    openedOn: '2026-09-16',
+  },
+  {
+    id: 'procuracao',
+    what: 'the procuração, signed and authenticated',
+    whoHolds: 'José and Margarida',
+    evidence: 'the signed procuração, authenticated, is in hand; the operations reference records the date',
+    since: '2026-09-16',
+    sinceSource: 'the operator, 22 Sep 2026',
+    expected: { on: '2026-09-24', what: 'signing and authentication expected' },
     answerable: 'outside',
     open: false,
   },
@@ -405,15 +448,27 @@ export const BLOCKED: Blocked[] = [
   },
 
   // ── the legal entity ─────────────────────────────────────────────────────
+
+  // ── the procuração ───────────────────────────────────────────────────────
   {
-    id: 'invoicing',
-    what: 'no invoice can be issued or read, so The Month can only ever show what was contracted',
-    where: 'docs/ryvo-operations-and-commercial-reference.md; Keyinvoice is chosen and unverified',
-    gate: 'legal_entity',
+    id: 'meta-submission',
+    what: 'Meta business verification cannot be submitted: the documents are the company’s and the procuração is what lets them be used',
+    where: 'the WhatsApp Manager; the meta_verified gate above',
+    gate: 'procuracao',
     onOpen:
-      'confirm whether the Keyinvoice API can list documents by date; if it cannot, the monthly SAF-T file is the fallback and the import is the work',
+      'submit Meta business verification (certidão permanente, NIPC, proof of address) — planned Mon 28 Sep 2026 — and on that day change meta_verified’s whoHolds to its thenHeldBy',
     thenReRead:
-      "whether the entity decision changes who the contract is with. The contract names a party, and a different entity is a different contract rather than a different letterhead",
+      'what the procuração actually authorises, word for word. If it does not cover acting before Meta, submission waits on a different gate, and that gate must be added here first',
+  },
+  {
+    id: 'agency-signing',
+    what: 'no real agency can sign: the contract’s party is the company, and nobody may sign for it yet',
+    where: 'the services contract; /onboarding, whose rehearsal question stays "rehearsal" until then',
+    gate: 'procuracao',
+    onOpen:
+      'sign the first real agency on the company’s behalf under the procuração, then take it on through /onboarding with rehearsal = false',
+    thenReRead:
+      'whether the procuração names who may sign contracts, or only who may deal with Meta. They are different powers, and the first contract is the wrong place to discover which one it gives',
   },
 ]
 
@@ -442,11 +497,11 @@ export function gatesHoldingAutomation(key: AutomationKey): { gate: Gate; entrie
  * is stated, never sorted in as if it were a date. The order lives here, with
  * the ledger, so the Today model keeps its rule of never ordering anything.
  */
-export type OpenGate = { id: GateId; what: string; whoHolds: string; answerable: Gate['answerable']; since: string | null }
+export type OpenGate = { id: GateId; what: string; whoHolds: string; answerable: Gate['answerable']; since: string | null; expected: Gate['expected'] | null; thenHeldBy: string | null }
 
 export function openGatesOldestFirst(): OpenGate[] {
   return GATES.map((g, i) => ({ g, i }))
     .filter(({ g }) => !g.open)
     .sort((a, b) => (a.g.since && b.g.since ? a.g.since.localeCompare(b.g.since) || a.i - b.i : a.g.since ? -1 : b.g.since ? 1 : a.i - b.i))
-    .map(({ g }) => ({ id: g.id, what: g.what, whoHolds: g.whoHolds, answerable: g.answerable, since: g.since ?? null }))
+    .map(({ g }) => ({ id: g.id, what: g.what, whoHolds: g.whoHolds, answerable: g.answerable, since: g.since ?? null, expected: g.expected ?? null, thenHeldBy: g.thenHeldBy ?? null }))
 }

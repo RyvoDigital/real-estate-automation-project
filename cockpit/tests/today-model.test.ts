@@ -16,7 +16,7 @@ const ex = (over: Partial<ExpiriesInputs> = {}) => buildExpiries({ deployKey: { 
 const sg = (over: Partial<StillGood> = {}): StillGood => ({ documents: [], registrations: [], exempt: 0, warnWithinDays: 30, staleAfterDays: 90, at: NOW.toISOString(), notAnswered: [], ...over })
 const doc = (id: string, daysLeft: number, standing: 'past' | 'soon' | 'good') => ({ listingId: id, reference: `A-${id}`, requirementId: 'pt_energy_certificate', certificateNumber: null, validUntil: new Date(now + daysLeft * 86400000).toISOString().slice(0, 10), daysLeft, standing })
 const reg = (n: string, standing: 'not_valid' | 'never_checked' | 'stale' | 'good', days: number | null = null) => ({ requirementId: 'pt_ami_licence', number: n, country: 'PT', region: null, status: 'valid' as never, checkedAt: null, daysSinceChecked: days, standing })
-const gate = (id: string, since: string | null, answerable: 'the agency' | 'outside' = 'outside'): OpenGate => ({ id: id as OpenGate['id'], what: `the ${id} gate`, whoHolds: `holder of ${id}`, since, answerable })
+const gate = (id: string, since: string | null, answerable: 'the agency' | 'outside' = 'outside'): OpenGate => ({ id: id as OpenGate['id'], what: `the ${id} gate`, whoHolds: `holder of ${id}`, since, answerable, expected: null, thenHeldBy: null })
 const ago = (min: number) => new Date(now - min * 60000).toISOString()
 const q = (id: string, minutes: number, over: Partial<TodayQueueRow> = {}): TodayQueueRow => ({
   id, name: `Lead ${id}`, clientId: 'c1', clientName: 'Marbella Sur', at: ago(minutes), minutes,
@@ -129,7 +129,7 @@ test('🔴 group 5 is the plain list: read-only, oldest first, who holds it, whe
   assert.equal(g.state, 'rows')
   assert.equal(g.count, '3 waiting · all 3 read · the ledger, uncapped')
   assert.match(g.preview, /^Longest: the old gate · holder of old · since 24 Aug 2026 \(\d+ days\)$/)
-  assert.deepEqual(g.distribution, [{ label: 'the agency can end', n: 1 }, { label: 'outside', n: 2 }])
+  assert.deepEqual(g.distribution, [{ label: 'the agency can end', n: 1 }, { label: 'the agency cannot end', n: 2 }])
   assert.deepEqual(m.waiting.map((x) => x.id), ['old', 'newer', 'undated'], 'the ledger order, untouched')
   assert.doesNotMatch(g.preview, /nothing holds these|not designed/)
 })

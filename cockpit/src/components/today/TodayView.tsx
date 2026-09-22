@@ -139,8 +139,9 @@ function GateRow({ w, now }: { w: WaitingGate; now: number }) {
       <span className={styles.rowMain}>
         <span className={styles.rowTitle}>{w.what}</span>
         <span className={styles.rowLine}>
-          <span>held by {w.whoHolds}</span>
-          <StateChip meaning="grey">{w.answerable === 'the agency' ? 'the agency can end it' : 'nobody here can end it'}</StateChip>
+          <span>held by {w.whoHolds}{w.thenHeldBy ? `, then ${w.thenHeldBy}` : ''}</span>
+          {w.expected && <span>· {w.expected.what} {day(w.expected.on)}</span>}
+          <StateChip meaning="grey">{/* gates.ts `answerable`: whether the AGENCY can end it, not whether we can */}{w.answerable === 'the agency' ? 'the agency can end it' : 'the agency cannot end it'}</StateChip>
         </span>
       </span>
       <span className={styles.aside}>
