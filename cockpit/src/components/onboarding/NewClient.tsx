@@ -10,11 +10,12 @@ import styles from './onboarding.module.css'
 
 /*
  * Taking on a new client: the form, rebuilt 22 Sep 2026 in The Month's
- * direction (checkpoint 2). One page of four groups rather than a five-step
+ * direction (checkpoint 2), on its own route (/onboarding/new) since 22 Sep: three
+ * sections on a two-column grid rather than a five-step
  * wizard; the rules are unchanged and live in lib/onboarding.ts (validate) and
  * lib/onboarding-create.ts (the write, one transaction since 0053).
  *
- *   🔴 "Is this a real agency?" is asked first, required, with NOTHING
+ *   🔴 "Is this a real agency?" is asked in the first section, full width, required, with NOTHING
  *      pre-selected (0037/0038): a pre-selected radio collects a click, not a
  *      decision.
  *   🔒 The starting values are the old form's, for the reasons written there:
@@ -77,16 +78,12 @@ export function NewClient() {
   const verdict = probe ? probeVerdict(probe) : null
 
   return (
-    <section className={styles.panel} aria-label="Take on a new client">
-      <div className={styles.panelHead}>
-        <h2>Take on a new client</h2>
-        <span>nothing is written until you create it</span>
-      </div>
-
-      <div className={styles.form}>
-        <span className={styles.label}>The agency</span>
+    <div className={styles.sections}>
+      <section className={styles.panel} aria-label="The agency">
+        <h2 className={styles.sectionTitle}>The agency</h2>
         <div className={styles.grid}>
-          {field('agencyName', 'Agency name', { placeholder: 'Marbella Sur', wide: true })}
+          {field('agencyName', 'Agency name', { placeholder: 'Marbella Sur' })}
+          {field('whatsappNumber', 'WhatsApp number', { placeholder: '+34600123456', hint: 'inbound routes by it' })}
           <fieldset className={`${styles.choices} ${styles.wide}`}>
             <legend>Is this a real agency?</legend>
             {REHEARSAL_OPTIONS.map((o) => (
@@ -98,72 +95,69 @@ export function NewClient() {
             ))}
             {errFor('rehearsal') ? <span className={styles.err} role="alert">{errFor('rehearsal')}</span> : null}
           </fieldset>
-          {field('whatsappNumber', 'WhatsApp number', { placeholder: '+34600123456', hint: 'inbound routes by it' })}
           {field('timezone', 'Timezone', { placeholder: 'Europe/Madrid' })}
           {field('locale', 'Locale', { placeholder: 'es-ES' })}
           {field('defaultLanguage', 'Default language', { placeholder: 'es', hint: 'pt, en or es' })}
-          {field('areas', 'Areas served', { placeholder: 'Marbella, Estepona', wide: true })}
+          {field('areas', 'Areas served', { placeholder: 'Marbella, Estepona' })}
         </div>
+      </section>
 
-        <span className={styles.label}>How it speaks</span>
+      <section className={styles.panel} aria-label="How it speaks and hands over">
+        <h2 className={styles.sectionTitle}>How it speaks and hands over</h2>
         <div className={styles.grid}>
-          {field('agentName', 'Assistant name', { placeholder: 'Lucía', hint: 'a label for the assistant; it routes nothing to anyone' })}
-          <span />
-          {field('handoffPt', 'Handoff note, Português', { wide: true, area: true })}
-          {field('handoffEn', 'Handoff note, English', { wide: true, area: true })}
-          {field('handoffEs', 'Handoff note, Español', { wide: true, area: true })}
-          <p className={`${styles.note} ${styles.wide}`}>What a lead is sent when the assistant has failed, which is exactly when it cannot be written for you. One for every language this client can be spoken to in.</p>
+          {field('agentName', 'Assistant name', { placeholder: 'Lucía', hint: 'a label; it routes nothing' })}
+          {field('escalateTo', 'Escalate to', { placeholder: '+34600123456', hint: 'a WhatsApp number' })}
+          {field('handoffPt', 'Handoff note, Português', { area: true })}
+          {field('handoffEn', 'Handoff note, English', { area: true })}
+          {field('handoffEs', 'Handoff note, Español', { area: true })}
+          {field('highValueThresholdEur', 'High-value threshold', { hint: '€', numeric: true })}
+          <p className={`${styles.note} ${styles.wide}`}>A handoff note is what a lead is sent when the assistant has failed, which is exactly when it cannot be written for you: one for every language this client can be spoken to in. A lead above the threshold is handed over even when the assistant is working perfectly; that is a good escalation, not a fault.</p>
         </div>
+      </section>
 
-        <span className={styles.label}>Bookings</span>
+      <section className={styles.panel} aria-label="The calendar">
+        <h2 className={styles.sectionTitle}>The calendar</h2>
         <div className={styles.grid}>
-          {field('calendarId', 'Google calendar id', { placeholder: 'viewings@agency.com', wide: true })}
-          <div className={`${styles.actions} ${styles.wide}`}>
+          {field('calendarId', 'Google calendar id', { placeholder: 'viewings@agency.com' })}
+          <div className={styles.checkCell}>
             <button type="button" className={styles.ghost}
               onClick={() => { if (!draft.calendarId.trim()) { touch('calendarId'); return } startCheck(async () => setProbe(await validateCalendar(draft.calendarId, draft.timezone))) }}>
               {checking ? 'Asking Google…' : 'Check this calendar'}
             </button>
-            {probe && !checking ? (
-              <span className={styles.outcome} role="status">
-                {verdict === 'confirmed' ? <><StateChip meaning="through">confirmed</StateChip> Free/busy answered with this calendar and no errors: {probe.busyCount} busy interval(s) this week.</>
-                  : verdict === 'calendar_wrong' ? <><StateChip meaning="red">not this calendar</StateChip> Google answered about it and did not confirm it ({probe.error}). Check the id, and that it is shared with the booking account.</>
-                  : <><StateChip meaning="grey">the check could not run</StateChip> {probe.error ?? 'no reason given'}. This says nothing about the calendar itself.</>}
-              </span>
-            ) : null}
           </div>
+          {probe && !checking ? (
+            <span className={`${styles.outcome} ${styles.wide}`} role="status">
+              {verdict === 'confirmed' ? <><StateChip meaning="through">confirmed</StateChip> Free/busy answered with this calendar and no errors: {probe.busyCount} busy interval(s) this week.</>
+                : verdict === 'calendar_wrong' ? <><StateChip meaning="red">not this calendar</StateChip> Google answered about it and did not confirm it ({probe.error}). Check the id, and that it is shared with the booking account.</>
+                : <><StateChip meaning="grey">the check could not run</StateChip> {probe.error ?? 'no reason given'}. This says nothing about the calendar itself.</>}
+            </span>
+          ) : null}
           {field('workingHours', 'Working hours')}
           {field('bookingWindowDays', 'Booking window', { hint: 'days', numeric: true })}
           {field('minHoursNotice', 'Minimum notice', { hint: 'hours', numeric: true })}
           {field('viewingDurationMinutes', 'Meeting length', { hint: 'minutes', numeric: true })}
         </div>
+      </section>
 
-        <span className={styles.label}>Handing over</span>
-        <div className={styles.grid}>
-          {field('escalateTo', 'Escalate to', { placeholder: '+34600123456', hint: 'a WhatsApp number' })}
-          {field('highValueThresholdEur', 'High-value threshold', { hint: '€', numeric: true })}
-          <p className={`${styles.note} ${styles.wide}`}>A lead above the threshold is handed over even when the assistant is working perfectly. That is a good escalation, not a fault.</p>
-        </div>
-
-        <div className={styles.actions}>
-          <button type="button" className={styles.submit}
-            onClick={() => {
-              setAttempted(true)
-              if (errors.length) { setOutcome({ ok: false, message: `${errors.length} field(s) need fixing.` }); return }
-              startCreate(async () => {
-                const r = await createClient(draft)
-                if (r.ok) { setOutcome({ ok: true, message: r.message, clientId: r.clientId }); setDraft(EMPTY); setTouched({}); setAttempted(false); setProbe(null) }
-                else { setServerErrors(r.errors); setOutcome({ ok: false, message: r.message }) }
-              })
-            }}>
-            {creating ? 'Creating…' : 'Create the client'}
-          </button>
-          {outcome && !creating ? (
-            outcome.ok
-              ? <span className={styles.outcome} role="status"><StateChip meaning="through">created</StateChip> {outcome.message} <a className={styles.out} href={`/onboarding?client=${outcome.clientId}`}>Open its checklist</a></span>
-              : <span className={styles.outcome} role="status"><StateChip meaning="red">not created</StateChip> {outcome.message}</span>
-          ) : null}
-        </div>
+      <div className={styles.actions}>
+        <button type="button" className={styles.submit}
+          onClick={() => {
+            setAttempted(true)
+            if (errors.length) { setOutcome({ ok: false, message: `${errors.length} field(s) need fixing.` }); return }
+            startCreate(async () => {
+              const r = await createClient(draft)
+              if (r.ok) { setOutcome({ ok: true, message: r.message, clientId: r.clientId }); setDraft(EMPTY); setTouched({}); setAttempted(false); setProbe(null) }
+              else { setServerErrors(r.errors); setOutcome({ ok: false, message: r.message }) }
+            })
+          }}>
+          {creating ? 'Creating…' : 'Create the client'}
+        </button>
+        {outcome && !creating ? (
+          outcome.ok
+            ? <span className={styles.outcome} role="status"><StateChip meaning="through">created</StateChip> {outcome.message} <a className={styles.out} href={`/onboarding?client=${outcome.clientId}`}>Open its checklist</a></span>
+            : <span className={styles.outcome} role="status"><StateChip meaning="red">not created</StateChip> {outcome.message}</span>
+        ) : null}
       </div>
-    </section>
+    </div>
   )
 }

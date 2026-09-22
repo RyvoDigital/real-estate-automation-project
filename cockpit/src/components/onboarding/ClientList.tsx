@@ -17,10 +17,10 @@ export function ClientList({ items, failure }: { items: ListItem[] | null; failu
     <section className={styles.panel} aria-label="Clients">
       <div className={styles.panelHead}>
         <h2>Clients</h2>
-        <span>where each one’s onboarding stands</span>
+        <span>where each one’s onboarding stands · open one for its checklist</span>
       </div>
       {failure ? <p className={styles.empty}><StateChip meaning="red">not read</StateChip> {failure}</p>
-        : !items || items.length === 0 ? <p className={styles.empty}>No clients yet. The first one is created here.</p>
+        : !items || items.length === 0 ? <p className={styles.empty}>No clients yet. Take on the first one with the button above.</p>
         : (
           <ul className={styles.rows}>
             {items.map((c) => {
@@ -31,8 +31,9 @@ export function ClientList({ items, failure }: { items: ListItem[] | null; failu
                   <a className={styles.row} href={`/onboarding?client=${c.id}`}>
                     <span className={styles.rowName}>
                       {c.name}
-                      <small>{c.rehearsal ? 'rehearsal · ' : ''}created {c.createdOn}</small>
+                      {c.rehearsal ? <small>rehearsal</small> : null}
                     </span>
+                    <span className={styles.rowMeta}>created {c.createdOn}</span>
                     {/* Both counts, always: an unknown step hidden behind "2 outstanding" would
                         understate what is left (found in the real render, 22 Sep 2026). */}
                     {c.checklist.onboarded ? <StateChip meaning="through">onboarded</StateChip>

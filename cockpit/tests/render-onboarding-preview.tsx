@@ -78,13 +78,26 @@ function one(name: string, title: string, i: ChecklistInputs, recordable = true,
 function index(name: string, title: string, sample: boolean, items: ListItem[] | null, failure: string | null) {
   const body = renderToStaticMarkup(
     <div className="page">
-      <div className="top"><h1 className="title">Onboarding</h1></div>
-      <p className="lede">A client is onboarded when <b>every</b> step is done, including the two conversations only the agency can have. Until then nothing may be sent to anybody, and this screen says what is left.</p>
-      <div className="cols"><ClientList items={items} failure={failure} /><NewClient /></div>
+      <div className="top"><h1 className="title">Onboarding</h1><a className="primary" href="#">Take on a new client</a></div>
+      <p className="lede">A client is onboarded when <b>every</b> step is done, including the two conversations only the agency can have. Until then nothing may be sent to anybody, and each client’s checklist says what is left.</p>
+      <ClientList items={items} failure={failure} />
     </div>,
   )
   writeFileSync(join(OUT, `${name}.html`), page(title, sample, body))
   console.log(`${name}: ${items?.length ?? 'no'} client(s)`)
+}
+
+function newClient() {
+  const body = renderToStaticMarkup(
+    <div className="page">
+      <a className="back" href="#">← All clients</a>
+      <div className="top"><h1 className="title">Take on a new client</h1></div>
+      <p className="lede">Nothing is written until you create it, and then the client and its Concierge are created together or not at all. Its checklist opens next.</p>
+      <NewClient />
+    </div>,
+  )
+  writeFileSync(join(OUT, 'new.html'), page('/onboarding/new, empty', true, body))
+  console.log('new: the form')
 }
 
 async function main() {
@@ -98,7 +111,8 @@ async function main() {
     { id: 'c-b', name: 'Casa Atlântica', rehearsal: false, createdOn: '2026-08-04', checklist: checklistFor(inputs({ client: { id: B, name: 'Casa Atlântica', rehearsal: false, createdOn: '2026-08-04' }, records: [TOLD, { ...ROUTING, detail: { ...ROUTING.detail, existing_client_id: 'c-demo' } }], declaredOn: '2026-08-10', calibratedOn: '2026-08-12' })) },
     { id: 'c-demo', name: 'Estúdio Demonstração', rehearsal: true, createdOn: '2026-07-29', checklist: checklistFor(inputs({ client: { id: 'c-demo', name: 'Estúdio Demonstração', rehearsal: true, createdOn: '2026-07-29' }, records: [TOLD] })) },
   ]
-  index('index', 'the list, and the form to take on a new client', true, sampleItems, null)
+  index('index', 'the list', true, sampleItems, null)
+  newClient()
   one('created', 'a client just created (S6)', inputs({}), true, true)
   one('conversations', 'routing and disclosure recorded; the agency’s two conversations outstanding', inputs({ records: [ROUTING, TOLD] }))
   one('onboarded', 'every step done', inputs({ records: [ROUTING, TOLD], declaredOn: '2026-09-23', calibratedOn: '2026-09-24' }))

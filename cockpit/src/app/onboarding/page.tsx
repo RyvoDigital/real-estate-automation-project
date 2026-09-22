@@ -5,7 +5,6 @@ import { StateChip } from '@/components/state-chip'
 import { readOnboardingIndex, readOnboardingOne } from '@/lib/onboarding-read'
 import { Checklist } from '@/components/onboarding/Checklist'
 import { ClientList } from '@/components/onboarding/ClientList'
-import { NewClient } from '@/components/onboarding/NewClient'
 import { lisbonToday } from '@/lib/month/model'
 import styles from '@/components/onboarding/onboarding.module.css'
 
@@ -61,12 +60,10 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
       <div className={styles.page}>
         <div className={styles.top}>
           <h1 className={styles.title}>Onboarding</h1>
+          <a className={styles.primary} href="/onboarding/new">Take on a new client</a>
         </div>
-        <p className={styles.lede}>A client is onboarded when <b>every</b> step is done, including the two conversations only the agency can have. Until then nothing may be sent to anybody, and this screen says what is left.</p>
-        <div className={styles.cols}>
-          <ClientList items={items} failure={index.failure} />
-          <NewClient />
-        </div>
+        <p className={styles.lede}>A client is onboarded when <b>every</b> step is done, including the two conversations only the agency can have. Until then nothing may be sent to anybody, and each client’s checklist says what is left.</p>
+        <ClientList items={items} failure={index.failure} />
       </div>
     </Frame>
   )
