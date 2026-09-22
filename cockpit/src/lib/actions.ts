@@ -1,5 +1,6 @@
 'use server'
 
+import { createClientCore, type CreateResult } from '@/lib/onboarding-create'
 import { revalidatePath } from 'next/cache'
 import { requireOperator } from '@/lib/auth'
 import { admin } from '@/lib/supabase/admin'
@@ -226,8 +227,7 @@ async function clearEscalation(
 
 // ------------------------------------------------------------- onboarding
 
-import { toConfig, validate, type ClientDraft, type FieldError } from '@/lib/onboarding'
-import { parseRehearsal, rehearsalToColumn, REHEARSAL_UNANSWERED } from '@/lib/rehearsal'
+import { type ClientDraft } from '@/lib/onboarding'
 
 export type CalendarProbe = { ok: boolean; error: string | null; busyCount: number | null }
 
@@ -278,16 +278,16 @@ export async function validateCalendar(
   }
 }
 
-export type CreateResult =
-  | { ok: true; clientId: string; message: string }
-  | { ok: false; errors: FieldError[]; message: string }
+export type { CreateResult } from '@/lib/onboarding-create'
 
 /**
- * Create the client and its automation config.
+ * Create the client and its automation config: the thin server action.
  *
- * Replaces hand-written SQL, which is how the `--env-file` invariant was
- * lost: a ritual typed correctly once and never written down. Everything the
- * Concierge reads comes from here.
+ * The WRITE PATH is lib/onboarding-create.ts (createClientCore), with every
+ * dependency injected and every path tested with fakes
+ * (tests/onboarding-create.test.ts). This wrapper only supplies the real ones:
+ * the operator check, the calendar probe, the service-role database, and the
+ * revalidation. Nothing is decided here.
  *
  * The calendar is re-probed server-side at save. The form probes too, for
  * feedback, but a value can change between the probe and the submit and the
@@ -295,160 +295,46 @@ export type CreateResult =
  */
 export async function createClient(draft: ClientDraft): Promise<CreateResult> {
   await requireOperator()
-
-  const errors = validate(draft)
-  if (errors.length) {
-    return { ok: false, errors, message: `${errors.length} field(s) need fixing.` }
-  }
-
-  const probe = await validateCalendar(draft.calendarId, draft.timezone)
-  if (!probe.ok) {
-    return {
-      ok: false,
-      errors: [
-        {
-          field: 'calendarId',
-          message:
-            `Free/busy did not confirm this calendar (${probe.error}). Saving it would ` +
-            `make every slot in the window look available.`,
-        },
-      ],
-      message: 'The calendar could not be confirmed, so nothing was saved.',
-    }
-  }
-
   const db = admin()
-
-  // The Concierge resolves a client by `whatsapp_number=eq.<To>&limit=1`, with
-  // no ORDER BY. Two clients on one number means a real client's inbound leads
-  // get answered with someone else's config, and which one wins can change
-  // between messages. Nothing in the schema prevents it (see migration 0007,
-  // which adds the unique index that actually arbitrates); this check exists so
-  // the mistake cannot be made from the form in the meantime.
-  const wa = draft.whatsappNumber.replace(/[\s()-]/g, '')
-  const { data: clash } = await db
-    .from('clients')
-    .select('id, name')
-    .eq('whatsapp_number', wa)
-    .maybeSingle()
-
-  if (clash) {
-    return {
-      ok: false,
-      errors: [
-        {
-          field: 'whatsappNumber',
-          message:
-            `${clash.name} already uses this number. The Concierge routes inbound ` +
-            `messages by it and picks one client arbitrarily, so sharing it would ` +
-            `send that client's leads to this one.`,
-        },
-      ],
-      message: 'That WhatsApp number is already in use, so nothing was saved.',
-    }
-  }
-
-  /*
-   * 🔴 The answer is re-parsed HERE rather than trusted from validation.
-   *
-   * `validate()` already refuses an unanswered draft, so this can only be null
-   * if something reached the insert without passing it. Throwing on that is the
-   * point: the alternative is `?? false`, which would record "a real agency"
-   * for a draft nobody classified — the exact fallback `0037` removes from the
-   * database, reinstated one layer up. See src/lib/rehearsal.ts.
-   */
-  const answer = parseRehearsal(draft.rehearsal)
-  if (answer === null) {
-    return { ok: false, errors: [{ field: 'rehearsal', message: REHEARSAL_UNANSWERED }], message: REHEARSAL_UNANSWERED }
-  }
-
-  const { data: client, error: clientErr } = await db
-    .from('clients')
-    .insert({
-      name: draft.agencyName.trim(),
-      agency_name: draft.agencyName.trim(),
-      whatsapp_number: wa,
-      timezone: draft.timezone.trim(),
-      locale: draft.locale.trim(),
-      status: 'active',
-      rehearsal: rehearsalToColumn(answer),
-    })
-    .select('id')
-    .single()
-
-  if (clientErr || !client) {
-    return { ok: false, errors: [], message: `Could not create the client: ${clientErr?.message}` }
-  }
-
-  const { data: automation } = await db
-    .from('automations')
-    .select('id')
-    .eq('key', 'inbound_concierge')
-    .maybeSingle()
-
-  if (!automation) {
-    return {
-      ok: false,
-      errors: [],
-      message:
-        'The client row was created, but the inbound_concierge automation is missing from ' +
-        'the catalogue, so no config was written. Fix that before going live.',
-    }
-  }
-
-  const { error: caErr } = await db.from('client_automations').insert({
-    client_id: client.id,
-    automation_id: automation.id,
-    enabled: true,
-    config: toConfig(draft),
-    // `health` is NOT written. It was the column's own default written back at
-    // it, and 0036 drops the column: nothing has ever set it to anything else,
-    // so the per-client health rollup is DERIVED from automation_runs and the
-    // anomaly events instead (improvements §4.7, cockpit-design-brief.md §3.6).
-    // This line goes BEFORE the migration; the reverse order breaks client
-    // creation, because PostgREST rejects an insert naming a dropped column.
+  return createClientCore(draft, {
+    probeCalendar: (id, tz) => validateCalendar(id, tz),
+    async findClientByNumber(wa) {
+      const { data, error } = await db.from('clients').select('id, name').eq('whatsapp_number', wa).maybeSingle()
+      if (error) throw new Error(`the duplicate-number check could not read clients: ${error.message}`)
+      return data ? { id: data.id as string, name: data.name as string } : null
+    },
+    async insertClient(row) {
+      const { data, error } = await db.from('clients').insert(row).select('id').single()
+      return { id: (data?.id as string | undefined) ?? null, error: error ? { code: error.code, message: error.message } : null }
+    },
+    async findAutomationId(key) {
+      const { data } = await db.from('automations').select('id').eq('key', key).maybeSingle()
+      return (data?.id as string | undefined) ?? null
+    },
+    async insertConfig(row) {
+      // `health` is NOT written: 0036 drops the column, and the per-client health
+      // rollup is derived from automation_runs and the anomaly events instead.
+      const { error } = await db.from('client_automations').insert(row)
+      return { error: error ? { code: error.code, message: error.message } : null }
+    },
+    async readConfig(clientId) {
+      const { data } = await db.from('client_automations').select('config').eq('client_id', clientId).maybeSingle()
+      return data ? { config: data.config } : null
+    },
+    async deleteClient(clientId) {
+      const { error } = await db.from('clients').delete().eq('id', clientId)
+      return { error: error ? { code: error.code, message: error.message } : null }
+    },
+    async clientExists(clientId) {
+      const { data } = await db.from('clients').select('id').eq('id', clientId).maybeSingle()
+      return Boolean(data)
+    },
+    async insertEvent(row) {
+      const { error } = await db.from('events').insert(row)
+      return { error: error ? { code: error.code, message: error.message } : null }
+    },
+    revalidate: (path) => revalidatePath(path),
   })
-
-  if (caErr) {
-    return {
-      ok: false,
-      errors: [],
-      message: `The client was created but its config was not: ${caErr.message}`,
-    }
-  }
-
-  // Read it back. A green insert is not evidence the row exists — rule 14,
-  // and #6 twice over.
-  const { data: check } = await db
-    .from('client_automations')
-    .select('id, config')
-    .eq('client_id', client.id)
-    .maybeSingle()
-
-  if (!check?.config) {
-    return {
-      ok: false,
-      errors: [],
-      message: 'The config row did not read back after insert. Check client_automations.',
-    }
-  }
-
-  await db.from('events').insert({
-    client_id: client.id,
-    type: 'client.created',
-    severity: 'info',
-    summary: `${draft.agencyName.trim()} onboarded from the cockpit`,
-    data: { source: 'cockpit', calendar_busy_intervals: probe.busyCount },
-  })
-
-  revalidatePath('/leads')
-  revalidatePath('/onboarding')
-
-  return {
-    ok: true,
-    clientId: client.id as string,
-    message: `${draft.agencyName.trim()} created, with a calendar that answered free/busy.`,
-  }
 }
 
 // -------------------------------------------------------- draft assistant

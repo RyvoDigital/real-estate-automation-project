@@ -76,7 +76,11 @@ test('🔴 an unanswered draft is REFUSED, and the message says why it matters',
 // ── where the default would come back ───────────────────────────────────────
 
 const ONBOARDING = readFileSync(join(import.meta.dirname, '..', 'src', 'components', 'Onboarding.tsx'), 'utf-8')
-const ACTIONS = readFileSync(join(import.meta.dirname, '..', 'src', 'lib', 'actions.ts'), 'utf-8')
+// 22 Sep 2026: the insert moved into the tested write core (lib/onboarding-create.ts);
+// lib/actions.ts's createClient only supplies its dependencies. So the column rule is
+// read where the insert now lives, and the action is checked to delegate to it.
+const ACTIONS = readFileSync(join(import.meta.dirname, '..', 'src', 'lib', 'onboarding-create.ts'), 'utf-8')
+const SERVER_ACTION = readFileSync(join(import.meta.dirname, '..', 'src', 'lib', 'actions.ts'), 'utf-8')
 
 test('🔴 NOTHING IS PRE-SELECTED — the empty draft leaves the question open', () => {
   /*
@@ -110,6 +114,11 @@ test('the control: the pre-selection detector can see a pre-selection', () => {
   const assignment = empty![1].match(/rehearsal:\s*('[^']*'|"[^"]*")/)
   assert.ok(assignment)
   assert.doesNotMatch(assignment[1], /^['"]['"]$/, 'the detector cannot see a pre-selected value')
+})
+
+test('the server action creates clients ONLY through the tested core', () => {
+  assert.match(SERVER_ACTION, /return createClientCore\(draft, \{/)
+  assert.doesNotMatch(SERVER_ACTION, /rehearsal:/, 'actions.ts writes the rehearsal column itself again')
 })
 
 test("🔴 the insert writes the column, and never with a fallback", () => {
