@@ -1,8 +1,8 @@
 # Where we left off
 
-**Last updated:** 2026-09-22, 11:25 UTC: `a7b7786` deployed (served `40fc6d76`), gated and phone-checked; the cockpit (`75b0975`) with it. Next: the /onboarding rebuild.
-**Where the work is:** the COCKPIT REDESIGN, stage C — building it. §0 below is
-the current state.
+**Last updated:** 2026-09-22, 19:50 UTC: the COCKPIT REDESIGN IS COMPLETE — cockpit `375472e` live; n8n Concierge unchanged at `a7b7786` (served `40fc6d76`). Next: nothing is mid-build; §0000000 says what is owed.
+**Where the work is:** the COCKPIT REDESIGN is COMPLETE (22 Sep 2026 evening).
+§0000000 is the current state; §0 below is the stage-C record that led to it.
 
 🔴 **"Built to its gate" was true about the GATE and not about the AUTOMATION,
 and that sentence stood at the top of this file for weeks.** Four automations
@@ -34,6 +34,73 @@ This file is the running state-of-play for whoever (human or agent) picks the
 project up next. The durable *design* lives in the handoff and design documents
 under `docs/`; this file records what is actually deployed right now and what
 tripped us up. **Sections are newest first.**
+
+---
+
+# 0000000. 22 September 2026, evening: THE COCKPIT REDESIGN IS COMPLETE. READ THIS FIRST
+
+§000000 below is still true about **n8n** (`a7b7786`, served `40fc6d76`, rollback
+unchanged). Its cockpit commit is superseded by this section.
+
+## Production, right now
+- **Cockpit: `375472e`**, READY, cloned 18:42:47 UTC. `375472e` is an EMPTY
+  commit on top of `aefaa0f`: Vercel gives a deployment only the environment
+  variables that existed when it was built, and `BETTERSTACK_API_TOKEN` was
+  saved after `aefaa0f` was built.
+- **n8n Concierge: unchanged today.** Nothing in this evening's work touches it.
+- **The server:** `healthcheck.sh` at `7f164c9`, cron every 10 minutes, now
+  reading the domain's registry expiry over RDAP.
+
+## What went live today, after the midday deploy
+
+| | |
+|---|---|
+| `/ops/expiries` | BUILT AND REACHABLE. Ryvo's own expiries (0058), the domain, and every client's clearances re-checked. Check / renew-or-correct / retire per obligation, each form minting its own id; retiring is asked twice and the server refuses an unconfirmed one |
+| `/ops/infrastructure` | BUILT AND REACHABLE. This was `/health`, rebuilt on the Frame, in the operator nav. `/health` is now a redirect. Better Stack's one line is live and reads "Better Stack is watching 2 monitors, all up" (confirmed 19:46:53 UTC) |
+| Per-lead hand-back | BUILT AND REACHABLE on `/c/<client>/escalations`, wired to the existing `handBackToAI`. Asked twice, naming the lead; still no bulk hand-back |
+| "Copy as text" | BUILT AND REACHABLE on `/c/<client>/report`, mounted only where there is a deliverable — a held week still has no control at all |
+| `/segmentation`, `/calibrate`, the listing screens, Today | all rebuilt earlier today; refusals said in the agency's language |
+
+🔴 **Two false sentences were being rendered and are now corrected.**
+1. Today said the screen does not track clearances "because there is no
+   clearances table" — false since 0039 was applied and the publication gate
+   began recording them.
+2. Five surfaces said "Twelve checks" while `healthcheck.sh` published
+   **thirteen** (the n8n key check, added 21 Sep). The count is now read from
+   `passed[] + failed[]`, and a test refuses a hardcoded count anywhere under
+   `src`. `probe-health.ts` asserted `expected === 12` and would have caught it,
+   had it been run.
+
+## Migrations: 0055, 0056, 0057, 0058 are ALL APPLIED AND BLESSED
+Manuel ran each by hand; each proof returned 15/15 PASS. `db/tests/proofs.json`
+records them. The schema as observed is in `docs/deployed-schema-observed.md`,
+re-read from the live database this evening.
+
+## Open, and nothing is half-built
+- **The three standing test alarms** (see §"The three alarms" below) — the suite
+  is 1068 pass / 3 fail, and those three fail identically on a clean checkout.
+  They are ledgers, not regressions.
+- **Better Stack says 2 monitors; the runbook records 3** (the n8n heartbeat,
+  the cockpit `/api/health`, and `n8n.ryvodigital.com/healthz`). Either one was
+  removed or the token's scope hides it. Worth one look, not urgent.
+- **`/ops/expiries` has no rows yet.** Ryvo's certidão, procuração and payment
+  cards have to be entered by hand, once. Until they are, the screen shows only
+  the deploy key and the domain and says so.
+- **The waiting room, the compliance watch, the proof book** (`/ops/waiting`,
+  `/ops/compliance`, `/ops/proofs`) are NOT BUILT. They are designed in the
+  brief and were never in stage C.
+
+## The three alarms
+1. **`0046-money-tables-grants` and `0047-listing-matches-belt` have never been
+   run.** Both proofs are written, in the verdict shape, and neither has been
+   pasted into the SQL editor. The test that names them is doing its job: a
+   proof nobody has run is an alarm, whatever its hashes say.
+2. **`0045-uncorrected-view-read-only` is stale**: its migration file changed
+   after the proof last ran (21 Sep). It needs re-running, not rewriting.
+3. **Two automation-02 entry points are unwired**: `planCampaign`
+   (`send/campaign-plan.ts`) and `reconcilePending` (`send/reconcile.ts`).
+   The second is the sweep that finds sends the provider accepted and we lost
+   track of, so its being unwired is the failure it exists to catch.
 
 ---
 

@@ -296,3 +296,95 @@ intent. The difference is recorded in `0045`'s own header and here.
    there and says the web side is not recorded, rather than waiting for it.
 5. **Every table holds 0 rows.** Every schema change proposed against them is
    therefore free today and a data question tomorrow.
+
+---
+
+# 🔁 Re-read 22 September 2026 — the operator's own tables
+
+**Read from the live database through the Supabase MCP connection** (`pg_catalog`
+and `has_table_privilege`, which is the reading that wins when the two disagree).
+This section covers what 0055–0058 added, which is everything the cockpit
+redesign needed and nothing The Month uses.
+
+⚠️ **`information_schema.role_table_grants` returned NOTHING for these tables.**
+It shows only the grants the reading role can see, so an empty result reads
+exactly like "no grants" — the trap 0046's proof was rewritten to avoid. The
+privileges below come from `has_table_privilege` over an explicit role list.
+
+## `ryvo_obligations` — 0 rows — append-only (0058)
+
+Ryvo's own expiries: the certidão, the procuração, the payment cards. One row
+per ACT on an obligation; the chain is `obligation_id`; a later act supersedes
+the head.
+
+| column | type | notes |
+|---|---|---|
+| `id` | uuid | 🔒 primary key, minted when the FORM IS DRAWN: the same form sent twice is 23505 |
+| `obligation_id` | uuid not null | the chain; equals `id` on the first row |
+| `supersedes_id` | uuid | null only on `entered`; unique where not null, so a chain cannot fork |
+| `act` | text not null | entered / corrected / checked / renewed / retired |
+| `kind` | text not null | certidao / procuracao / payment_card |
+| `label` | text not null | non-blank |
+| `expires_on` | date | required for a certidão; for a procuração, this OR `no_expiry_stated` |
+| `no_expiry_stated` | boolean not null default false | only a procuração may set it |
+| `card_brand`, `card_last_four`, `card_exp_month`, `card_exp_year` | text, text, int, int | cards only; last four is exactly four digits |
+| `services` | text[] | what is charged to the card; at least one |
+| `source` | text not null | always `manual` |
+| `note` | text | |
+| `recorded_by` | text not null | the operator's email, from the session |
+| `recorded_at` | timestamptz not null default now() | |
+
+🔴 **No column can hold a card number**, and `no_card_number_anywhere` refuses a
+run of 13+ digits (spaces and dashes removed, not written as a phone) in the
+label, the note, the services or the brand. A pasted number is refused, not
+stored.
+
+**`ryvo_obligations_current`** is a view (`security_invoker`), 17 columns: the
+head of every chain that is not retired.
+
+## `calibration_records` — 0 rows — append-only (0056)
+
+| column | type |
+|---|---|
+| `id` | uuid not null |
+| `client_id` | uuid not null |
+| `answered_by` | text not null |
+| `recorded_by` | text not null |
+| `recorded_at` | timestamptz not null default now() |
+| `answers` | jsonb not null |
+| `thresholds` | jsonb not null |
+
+Written only through `record_calibration()`. The latest row is in force.
+
+## `health_runs` — 🔁 two columns since this file was written
+
+`n8n_api_key_exp timestamptz` (0051) and **`domain_expires_on date` (0058)**, the
+registry's expiry for ryvodigital.com, read over RDAP by `healthcheck.sh` every
+ten minutes. Null when a run could not read it: `/ops/infrastructure` and
+`/ops/expiries` show the last run that DID, with its age, never a stale date as
+a clean one. First non-null value observed 22 Sep 2026 16:40:04 UTC: 2027-03-18.
+
+Full column list as observed: `id, ran_at, ok, passed[], failed[], duration_ms,
+host, created_at, n8n_api_key_exp, domain_expires_on`.
+
+🔴 **`passed[] + failed[]` is thirteen checks**, not twelve. Five cockpit
+surfaces and one probe said "twelve" in words; the count is now read from the
+row (22 Sep 2026).
+
+## The privileges, from `has_table_privilege`
+
+| relation | service_role | anon | authenticated |
+|---|---|---|---|
+| `ryvo_obligations` | SELECT, INSERT | — | — |
+| `ryvo_obligations_current` | SELECT | — | — |
+| `calibration_records` | SELECT, INSERT | — | — |
+
+No role holds UPDATE or DELETE on any of them: the belt beside the append-only
+triggers, which are the guarantee. RLS is on for both tables.
+
+## Also added, not re-read column by column
+
+`listing_facts` (17 columns) and `listing_matches` (22, with `supersedes_id`) —
+0057's listing acts; `onboarding_records` (8, with `supersedes_id`) — 0054.
+Their shapes are in their migrations and their proofs; they are named here so
+the next reader knows this file does not describe them.
