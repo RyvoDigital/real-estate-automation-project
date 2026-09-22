@@ -1,10 +1,10 @@
 -- Proof for 0054. Run in the Supabase SQL editor WHOLE, after applying 0054.
 -- Every case writes inside a block that raises ZZ054 to undo it, so nothing it
--- writes survives (case 11 checks). The verdict lives in a temp table, which the
+-- writes survives (case 12 checks). The verdict lives in a temp table, which the
 -- undo does not touch.
 --
 -- Expected AFTER 0054: every row PASS.
--- Expected BEFORE 0054: 1-10 FAIL (no table), 11 PASS.
+-- Expected BEFORE 0054: 1-11 FAIL (no table), 12 PASS.
 
 drop table if exists pg_temp.v0054;
 create temp table v0054 (n int primary key, verdict text not null, reason text not null);
@@ -233,7 +233,48 @@ begin
   insert into v0054 values (10, v, why);
 end $$;
 
--- ══ CASE 11 — no fixture survived ══════════════════════════════════════════
+-- ══ 🔴 CASE 11 — ONE correction per record (the 0050 lesson), chains allowed ═
+-- Two corrections of the same record would leave BOTH uncorrected, and a client
+-- with two "current" disclosure records. The second is refused by the partial
+-- unique index; a correction of the correction is still a correction.
+do $$
+declare v text := 'FAIL'; why text := 'did not reach a verdict'; r1 uuid; r2 uuid; r4 uuid;
+        refused boolean := false; idx text; chained boolean := false; shown uuid[];
+begin
+  begin
+    perform pg_temp.f0054_fixtures();
+    insert into public.onboarding_records (client_id, step, happened_on, recorded_by, detail)
+    values ('00000000-0000-0000-0000-000000054001', 'ai_disclosure_told', '2026-09-20', 'proof 0054', '{"told":"owner"}') returning id into r1;
+    insert into public.onboarding_records (client_id, step, happened_on, recorded_by, detail, supersedes_id)
+    values ('00000000-0000-0000-0000-000000054001', 'ai_disclosure_told', '2026-09-21', 'proof 0054', '{"told":"owner, first correction"}', r1) returning id into r2;
+    begin
+      insert into public.onboarding_records (client_id, step, happened_on, recorded_by, detail, supersedes_id)
+      values ('00000000-0000-0000-0000-000000054001', 'ai_disclosure_told', '2026-09-21', 'proof 0054', '{"told":"owner, second correction of the SAME record"}', r1);
+    exception when unique_violation then
+      refused := true;
+      get stacked diagnostics idx = constraint_name;
+    end;
+    begin
+      insert into public.onboarding_records (client_id, step, happened_on, recorded_by, detail, supersedes_id)
+      values ('00000000-0000-0000-0000-000000054001', 'ai_disclosure_told', '2026-09-22', 'proof 0054', '{"told":"owner, correction of the correction"}', r2) returning id into r4;
+      chained := true;
+    exception when others then chained := false;
+    end;
+    select array_agg(id) into shown from public.onboarding_records_current where client_id = '00000000-0000-0000-0000-000000054001';
+    if refused and idx = 'onboarding_records_one_correction_each' and chained and shown = array[r4] then
+      v := 'PASS'; why := 'a second correction of the same record is refused (23505, onboarding_records_one_correction_each); a chain is permitted; the view shows one record';
+    else
+      v := 'FAIL'; why := format('second correction refused=%s (by %s); chain permitted=%s; view shows %s (expected only %s)', refused, coalesce(idx, 'nothing'), chained, shown, r4);
+    end if;
+    raise exception using errcode = 'ZZ054', message = 'undo';
+  exception
+    when sqlstate 'ZZ054' then null;
+    when others then v := 'FAIL'; why := 'the case itself errored: ' || sqlerrm;
+  end;
+  insert into v0054 values (11, v, why);
+end $$;
+
+-- ══ CASE 12 — no fixture survived ══════════════════════════════════════════
 do $$
 declare n int;
 begin
@@ -241,11 +282,11 @@ begin
   if to_regclass('public.onboarding_records') is not null then
     execute 'select $1 + count(*) from public.onboarding_records where recorded_by = ''proof 0054''' into n using n;
   end if;
-  insert into v0054 values (11, case when n = 0 then 'PASS' else 'FAIL' end,
+  insert into v0054 values (12, case when n = 0 then 'PASS' else 'FAIL' end,
     case when n = 0 then 'no 0054 fixture row exists'
          else n || ' fixture row(s) SURVIVED in production; tell Manuel before touching them' end);
 exception when others then
-  insert into v0054 values (11, 'FAIL', 'the case itself errored: ' || sqlerrm);
+  insert into v0054 values (12, 'FAIL', 'the case itself errored: ' || sqlerrm);
 end $$;
 
 -- ══ THE VERDICT — the only output that matters ════════════════════════════
@@ -264,7 +305,8 @@ select c.n as "case", c.what,
     (8,  'append-only: UPDATE and DELETE refused',                      'FAIL'),
     (9,  'a correction supersedes; the view shows only it',             'FAIL'),
     (10, 'RESTRICT: a client with a record cannot be deleted',          'FAIL'),
-    (11, 'no fixture survived',                                         'PASS')
+    (11, '🔴 one correction per record; a chain is permitted',          'FAIL'),
+    (12, 'no fixture survived',                                         'PASS')
   ) as c(n, what, before_0054)
   left join v0054 r using (n)
  order by c.n;

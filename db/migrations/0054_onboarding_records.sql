@@ -30,8 +30,9 @@
 --     step's evidence must contain;
 --   * APPEND-ONLY, exactly as 0050 left client_contracts: a correction is a NEW
 --     row whose supersedes_id names the one it replaces (same client, same step),
---     never an edit. The trigger refuses UPDATE, DELETE and TRUNCATE; the grants
---     leave service_role SELECT and INSERT only;
+--     never an edit, and each record is corrected at most once
+--     (onboarding_records_one_correction_each). The trigger refuses UPDATE, DELETE
+--     and TRUNCATE; the grants leave service_role SELECT and INSERT only;
 --   * client_id RESTRICT, as 0049 made every foreign key that records a fact
 --     about a client: deleting a client never deletes what was proved about it;
 --   * onboarding_records_current: the rows no other row supersedes. The cockpit
@@ -76,6 +77,16 @@ create table public.onboarding_records (
 );
 
 create index onboarding_records_client_step on public.onboarding_records (client_id, step);
+
+-- 🔒 ONE CORRECTION PER RECORD (the 0050 lesson; client_contracts_one_correction_each).
+-- Without this, two corrections could both supersede the same record, neither
+-- would be superseded, and BOTH would appear in onboarding_records_current: a
+-- client with two "current" disclosure records. A correction of a correction (a
+-- chain) is still allowed: each row is superseded at most once. It is also the
+-- index the view's `not exists (… where supersedes_id = r.id)` needs.
+create unique index onboarding_records_one_correction_each
+  on public.onboarding_records (supersedes_id)
+  where supersedes_id is not null;
 
 comment on table public.onboarding_records is
   'What onboarding proved or did, with the day it happened (0054). Append-only: a correction '
@@ -179,6 +190,13 @@ begin
      or has_table_privilege('anon', 'public.onboarding_records', 'SELECT')
      or has_table_privilege('authenticated', 'public.onboarding_records', 'SELECT') then
     raise exception 'REFUSING: a write verb or an anon/authenticated read survives on onboarding_records.';
+  end if;
+  if not exists (
+    select 1 from pg_index i join pg_class c on c.oid = i.indexrelid
+     where c.relname = 'onboarding_records_one_correction_each'
+       and i.indrelid = 'public.onboarding_records'::regclass
+       and i.indisunique and i.indpred is not null) then
+    raise exception 'REFUSING: onboarding_records_one_correction_each is missing, not unique, or not partial.';
   end if;
   select reloptions into opts from pg_class where oid = 'public.onboarding_records_current'::regclass;
   if opts is null or not ('security_invoker=true' = any (opts)) then
