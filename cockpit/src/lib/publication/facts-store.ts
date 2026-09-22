@@ -114,51 +114,8 @@ export async function agencyFacts(clientId: string): Promise<AgencyFact[]> {
   }))
 }
 
-/**
- * Record an exemption against ONE requirement.
- *
- * Which requirement is the caller's to decide, from the policy row — and
- * whether that requirement is exemptible at all is the jurisdiction's answer,
- * not this function's. That is the whole point of the move: the old column
- * presumed exemption was a property of the PROPERTY.
- *
- * `valid_until` is deliberately left null, which 0030's `fact_values_are_dated`
- * permits only because an exemption is present. An exemption has no expiry
- * because it has no certificate to expire.
- */
-export async function recordExemption(input: {
-  clientId: string
-  listingId: string
-  requirementId: string
-  exemption: { declared_by: string; basis: string; at: string; recorded_by: string }
-}): Promise<void> {
-  const existing = await admin()
-    .from('listing_facts')
-    .select('id')
-    .eq('listing_id', input.listingId)
-    .eq('requirement_id', input.requirementId)
-    .maybeSingle()
-
-  const row = {
-    client_id: input.clientId,
-    listing_id: input.listingId,
-    requirement_id: input.requirementId,
-    values: {},
-    exemption: input.exemption,
-    registration_status: 'not_required',
-    source: 'typed' as const,
-    updated_at: new Date().toISOString(),
-  }
-
-  // Update by id, insert otherwise. Never an upsert: `listing_facts_current` is
-  // a plain unique index today, but the caller reading first and deciding keeps
-  // this path free of ON CONFLICT entirely — 42P10 is the defect from 0003/0004
-  // and the cheapest way not to meet it again is not to emit the clause.
-  const { error } = existing.data?.id
-    ? await admin().from('listing_facts').update(row).eq('id', existing.data.id)
-    : await admin().from('listing_facts').insert(row)
-  if (error) throw new Error(`exemption write failed: ${error.message}`)
-}
+// recordExemption was removed 22 Sep 2026: an exemption is written only by record_exemption (0057),
+// the act, the current value and the event in one transaction (lib/publication/exemption-core.ts).
 
 /** Does this listing already hold a rating for this requirement? */
 export function alreadyRated(facts: PropertyFact[], requirementId: string): boolean {
