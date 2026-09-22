@@ -30,6 +30,11 @@
  *      server's, never the form's.
  *   🔒 THE AGENCY DECLARES, WE RECORD (unchanged, see declare.ts): declared_by
  *      is their person, evidence.recorded_by is the signed-in operator.
+ *   🔒 ONCE, WHATEVER THE RESUBMISSION (checkpoint 2, migration 0055). The form
+ *      is drawn with a declaration id; every row carries it in
+ *      consent_events.declaration_id. The same form submitted again is refused
+ *      by the unique index as ONE statement, and reported as "already
+ *      recorded": not a failure, and not a second act. A new form is a new id.
  */
 
 import type { Segment } from '@/lib/segmentation/declare-types'
@@ -47,6 +52,8 @@ export type DeclareInput = {
   basis?: string | null
   /** 🔒 Required: whether the honest answer was "I do not know". Never assumed. */
   uncertainty: boolean
+  /** 🔒 The act's id, minted when the form was DRAWN (never here): the same form resubmitted carries the same one. */
+  declarationId: string
   /**
    * Set when this was one action over many contacts. Recorded rather than
    * hidden: a bulk declaration is legitimate AND is a different kind of
@@ -56,8 +63,13 @@ export type DeclareInput = {
 }
 
 export type DeclareResult =
-  | { ok: true; written: number; declarationId: string }
+  | { ok: true; written: number; declarationId: string; alreadyRecorded: false }
+  /** the same form again: nothing written, and nothing wrong */
+  | { ok: true; written: 0; declarationId: string; alreadyRecorded: true }
   | { ok: false; reason: string }
+
+/** 0055's index. tests/segmentation-declare-core.test.ts reads the migration to hold this name to it. */
+export const ONE_DECLARATION_INDEX = 'consent_events_one_row_per_declaration_and_contact'
 
 /** One consent_events row, as this core writes it. */
 export type DeclarationRow = {
@@ -70,22 +82,23 @@ export type DeclarationRow = {
   source: 'agency_attestation'
   wording: string | null
   declared_by: string
+  /** 0055: every row of one act carries the same id; the index refuses the act twice */
+  declaration_id: string
   evidence: {
     recorded_by: string
     declared_as_group: { id: string; label: string; size: number } | null
     uncertainty: boolean
-    /** Every row of one act carries the same id, so the act can be read back as one. */
-    declaration_id: string
   }
   note: string
 }
 
 export type DeclareDeps = {
   /** 🔒 INSERT ONLY, all rows in one statement: every row lands, or none does. */
-  insertAll(rows: DeclarationRow[]): Promise<{ error: string | null }>
+  insertAll(rows: DeclarationRow[]): Promise<{ error: { code: string | null; message: string } | null }>
   now(): Date
-  newId(): string
 }
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const SEGMENTS: readonly Segment[] = ['A', 'B', 'C', 'D']
 
@@ -107,6 +120,9 @@ export function validateDeclaration(input: DeclareInput): string | null {
     // E is the consequence of an objection and comes from the CONTACT. An
     // agency that could assign it could also remove it.
     return `"${input.segment}" is not something an agency may declare.`
+  }
+  if (!UUID.test(input.declarationId ?? '')) {
+    return 'This form has no declaration id, so a resubmission could not be told from a new answer. Nothing was recorded: reload the screen.'
   }
   if (typeof input.uncertainty !== 'boolean') {
     return 'Whether the person was sure has to be answered, not assumed. Nothing is recorded without it.'
@@ -133,7 +149,7 @@ export function validateDeclaration(input: DeclareInput): string | null {
 }
 
 /** The rows one declaration writes. Pure: the clock and the id come in. */
-export function buildRows(input: DeclareInput, now: Date, declarationId: string): DeclarationRow[] {
+export function buildRows(input: DeclareInput, now: Date): DeclarationRow[] {
   const at = now.toISOString()
   return input.contacts.map((c) => ({
     client_id: input.clientId,
@@ -149,11 +165,11 @@ export function buildRows(input: DeclareInput, now: Date, declarationId: string)
     // Their words, kept verbatim. The wording is the evidence (§5.2).
     wording: input.basis?.trim() || null,
     declared_by: input.declaredBy.trim(),
+    declaration_id: input.declarationId,
     evidence: {
       recorded_by: input.recordedBy,
       declared_as_group: input.group ?? null,
       uncertainty: input.uncertainty,
-      declaration_id: declarationId,
     },
     note: input.group
       ? `Declarado em grupo: ${input.group.label} (${input.group.size} contactos).`
@@ -165,13 +181,17 @@ export function buildRows(input: DeclareInput, now: Date, declarationId: string)
 export async function declareSegment(input: DeclareInput, deps: DeclareDeps): Promise<DeclareResult> {
   const problem = validateDeclaration(input)
   if (problem) return { ok: false, reason: problem }
-  const declarationId = deps.newId()
-  const rows = buildRows(input, deps.now(), declarationId)
+  const rows = buildRows(input, deps.now())
   const { error } = await deps.insertAll(rows)
-  if (error) {
-    return { ok: false, reason: `The database refused the declaration, and nothing was recorded: ${error}` }
+  const declarationId = input.declarationId
+  if (error && error.code === '23505' && error.message.includes(ONE_DECLARATION_INDEX)) {
+    // The same form, again: the first submit is the record. Nothing new was written.
+    return { ok: true, written: 0, declarationId, alreadyRecorded: true }
   }
-  return { ok: true, written: rows.length, declarationId }
+  if (error) {
+    return { ok: false, reason: `The database refused the declaration, and nothing was recorded: ${error.message}` }
+  }
+  return { ok: true, written: rows.length, declarationId, alreadyRecorded: false }
 }
 
 // ── from the form to an input: the server's reading, never the browser's ─────
@@ -184,12 +204,10 @@ export type DeclarationForm = {
   segment: string | null
   declaredBy: string | null
   basis: string | null
-  /**
-   * The screen's checkbox (checkpoint 1 keeps the screen as it is): 'on' when
-   * ticked, null when not. ⚠️ So an untouched box records "sure" — the one
-   * default left, and checkpoint 2 replaces it with a yes/no nobody pre-selects.
-   */
+  /** 🔒 The explicit answer, 'sure' or 'unsure', from two radios nobody pre-selects. Anything else is unanswered. */
   uncertainty: string | null
+  /** minted when the form was drawn */
+  declarationId: string | null
   /** the contact ids the form was drawn with */
   contacts: string[]
   /** the contact ids the person took out */
@@ -200,6 +218,8 @@ export type DeclarationForm = {
 export type ServerGroup = { id: string; label: string; contactIds: string[] }
 export type ServerContact = { id: string; phone: string }
 
+export const UNANSWERED_SURE =
+  'Whether the person is sure of this answer was not answered. Nothing is recorded without it, and none is assumed.'
 export const UNCHOSEN =
   'No origin was chosen. Nothing is recorded without an answer, and none is assumed.'
 export const NONE_LEFT = 'Every contact in the group was taken out, so there is nothing to declare. Nothing was recorded.'
@@ -216,6 +236,7 @@ export function resolveDeclaration(
   if (segment === null || !(SEGMENTS as readonly string[]).includes(segment)) {
     return { ok: false, reason: segment ? `"${segment}" is not something an agency may declare.` : UNCHOSEN }
   }
+  if (form.uncertainty !== 'sure' && form.uncertainty !== 'unsure') return { ok: false, reason: UNANSWERED_SURE }
   const group = server.groups.find((g) => g.id === form.groupId)
   if (!group) return { ok: false, reason: 'That group is no longer on this screen. Nothing was recorded: reload it.' }
 
@@ -241,7 +262,8 @@ export function resolveDeclaration(
       declaredBy: (form.declaredBy ?? '').trim(),
       recordedBy,
       basis: form.basis?.trim() || null,
-      uncertainty: form.uncertainty === 'on',
+      uncertainty: form.uncertainty === 'unsure',
+      declarationId: form.declarationId ?? '',
       group: { id: group.id, label: group.label, size: chosen.length },
     },
   }

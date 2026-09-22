@@ -10,22 +10,32 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   declareSegment, resolveDeclaration, buildRows, validateDeclaration, GROUP_CHANGED, UNCHOSEN, NONE_LEFT,
+  UNANSWERED_SURE, ONE_DECLARATION_INDEX,
   type DeclarationForm, type DeclarationRow, type DeclareDeps, type DeclareInput, type ServerGroup,
 } from '../src/lib/segmentation/declare-core'
 
-/** A store with the real one's shape: one call, all rows or none, insert only. */
+const DECL = '11111111-2222-4333-8444-555555555555'
+const DECL2 = '11111111-2222-4333-8444-666666666666'
+
+/**
+ * A store with the real one's shape: one call, all rows or none, insert only,
+ * and 0055's index: a (declaration_id, phone) already present refuses the WHOLE
+ * statement with 23505 naming the index, as Postgres does.
+ */
 function store(opts: { failWith?: string } = {}) {
   const rows: DeclarationRow[] = []
   const calls: number[] = []
   const deps: DeclareDeps = {
     insertAll: async (batch) => {
       calls.push(batch.length)
-      if (opts.failWith) return { error: opts.failWith } // a single statement: nothing lands
+      if (opts.failWith) return { error: { code: '23514', message: opts.failWith } } // a single statement: nothing lands
+      if (batch.some((b) => rows.some((r) => r.declaration_id === b.declaration_id && r.phone_e164 === b.phone_e164))) {
+        return { error: { code: '23505', message: `duplicate key value violates unique constraint "${ONE_DECLARATION_INDEX}"` } }
+      }
       rows.push(...batch)
       return { error: null }
     },
     now: () => new Date('2026-09-22T10:00:00Z'),
-    newId: () => 'decl-1',
   }
   return { rows, calls, deps }
 }
@@ -34,7 +44,7 @@ const phone = (i: number) => `+3519${String(10000000 + i)}`
 const input = (over: Partial<DeclareInput> = {}): DeclareInput => ({
   clientId: 'c1', contacts: [{ phone: phone(1), leadId: 'l1' }, { phone: phone(2), leadId: 'l2' }],
   segment: 'C', declaredBy: 'Ana Ferreira', recordedBy: 'manuel@ryvodigital.com', basis: null, uncertainty: false,
-  group: { id: 'g1', label: 'Importação de 3 Set', size: 2 }, ...over,
+  declarationId: DECL, group: { id: 'g1', label: 'Importação de 3 Set', size: 2 }, ...over,
 })
 
 // ── the write ────────────────────────────────────────────────────────────────
@@ -42,7 +52,7 @@ const input = (over: Partial<DeclareInput> = {}): DeclareInput => ({
 test('🔒 a declaration is ONE insert of every row: kind declared, their person apart from ours', async () => {
   const s = store()
   const r = await declareSegment(input(), s.deps)
-  assert.deepEqual(r, { ok: true, written: 2, declarationId: 'decl-1' })
+  assert.deepEqual(r, { ok: true, written: 2, declarationId: DECL, alreadyRecorded: false })
   assert.deepEqual(s.calls, [2])
   for (const row of s.rows) {
     assert.equal(row.kind, 'declared')
@@ -50,7 +60,7 @@ test('🔒 a declaration is ONE insert of every row: kind declared, their person
     assert.equal(row.segment, 'C')
     assert.equal(row.declared_by, 'Ana Ferreira')
     assert.equal(row.evidence.recorded_by, 'manuel@ryvodigital.com')
-    assert.equal(row.evidence.declaration_id, 'decl-1', 'every row of one act carries the same id')
+    assert.equal(row.declaration_id, DECL, 'every row of one act carries the id the form was drawn with')
     assert.equal(row.occurred_at, '2026-09-22T10:00:00.000Z')
   }
 })
@@ -80,7 +90,7 @@ test('🔒 a refusal writes nothing and never reaches the store', async () => {
 
 test('🔒 "were they sure?" is required: an unanswered one is refused, never read as sure', () => {
   assert.match(validateDeclaration(input({ uncertainty: undefined as unknown as boolean }))!, /has to be answered, not assumed/)
-  assert.equal(buildRows(input({ uncertainty: true }), new Date(), 'x')[0].evidence.uncertainty, true)
+  assert.equal(buildRows(input({ uncertainty: true }), new Date())[0].evidence.uncertainty, true)
 })
 
 test('the declarer and the recorder stay two people (unchanged rule, now in the core)', () => {
@@ -92,8 +102,8 @@ test('the declarer and the recorder stay two people (unchanged rule, now in the 
 const GROUP: ServerGroup = { id: 'g1', label: 'Importação de 3 Set', contactIds: ['l1', 'l2', 'l3'] }
 const SERVER = { groups: [GROUP], contacts: [1, 2, 3].map((i) => ({ id: `l${i}`, phone: phone(i) })) }
 const form = (over: Partial<DeclarationForm> = {}): DeclarationForm => ({
-  clientId: 'c1', groupId: 'g1', segment: 'A', declaredBy: 'Ana Ferreira', basis: null, uncertainty: null,
-  contacts: ['l1', 'l2', 'l3'], excluded: [], ...over,
+  clientId: 'c1', groupId: 'g1', segment: 'A', declaredBy: 'Ana Ferreira', basis: null, uncertainty: 'sure',
+  declarationId: DECL, contacts: ['l1', 'l2', 'l3'], excluded: [], ...over,
 })
 
 test('🔴 NEVER DEFAULTED: no origin, an empty one or anything but A–D is refused, never a fallback', () => {
@@ -144,11 +154,58 @@ test('exclusions come out; the label and the size are the server\'s; the recorde
   assert.equal(resolveDeclaration(form({ groupId: 'nope' }), SERVER, 'm').ok, false)
 })
 
-test('the checkbox as it stands: ticked is unsure; untouched records sure (the default checkpoint 2 removes)', () => {
-  const on = resolveDeclaration(form({ uncertainty: 'on' }), SERVER, 'm') as { input: DeclareInput }
-  const off = resolveDeclaration(form({ uncertainty: null }), SERVER, 'm') as { input: DeclareInput }
-  assert.equal(on.input.uncertainty, true)
-  assert.equal(off.input.uncertainty, false)
+test('🔴 "were they sure?" is an explicit answer: sure, unsure, or refused — an untouched question is never "sure"', () => {
+  const sure = resolveDeclaration(form({ uncertainty: 'sure' }), SERVER, 'm') as { input: DeclareInput }
+  const unsure = resolveDeclaration(form({ uncertainty: 'unsure' }), SERVER, 'm') as { input: DeclareInput }
+  assert.equal(sure.input.uncertainty, false)
+  assert.equal(unsure.input.uncertainty, true)
+  for (const uncertainty of [null, '', 'on', 'yes', 'Sure']) {
+    assert.deepEqual(resolveDeclaration(form({ uncertainty }), SERVER, 'm'), { ok: false, reason: UNANSWERED_SURE }, `${JSON.stringify(uncertainty)} was read as an answer`)
+  }
+})
+
+// ── once, whatever the resubmission (0055) ───────────────────────────────────
+
+test('🔴 the same form submitted again is "already recorded": nothing written, not a failure, not a second act', async () => {
+  const s = store()
+  const first = await declareSegment(input(), s.deps)
+  const again = await declareSegment(input(), s.deps)
+  assert.deepEqual(first, { ok: true, written: 2, declarationId: DECL, alreadyRecorded: false })
+  assert.deepEqual(again, { ok: true, written: 0, declarationId: DECL, alreadyRecorded: true })
+  assert.equal(s.rows.length, 2, 'one act on record')
+})
+
+test('🔴 a new form is a new id, and a new act', async () => {
+  const s = store()
+  await declareSegment(input(), s.deps)
+  const second = await declareSegment(input({ declarationId: DECL2, segment: 'D' }), s.deps)
+  assert.equal(second.ok && !second.alreadyRecorded, true)
+  assert.equal(s.rows.length, 4)
+})
+
+test('another unique violation is a failure, never mistaken for "already recorded"', async () => {
+  const deps: DeclareDeps = {
+    insertAll: async () => ({ error: { code: '23505', message: 'duplicate key value violates unique constraint "some_other_index"' } }),
+    now: () => new Date(),
+  }
+  const r = await declareSegment(input(), deps)
+  assert.equal(r.ok, false)
+})
+
+test('🔒 no declaration id, or a malformed one, is refused before the store', async () => {
+  for (const declarationId of ['', 'decl-1', undefined as unknown as string]) {
+    const s = store()
+    const r = await declareSegment(input({ declarationId }), s.deps)
+    assert.equal(r.ok, false)
+    assert.deepEqual(s.calls, [])
+  }
+  assert.equal((resolveDeclaration(form({ declarationId: null }), SERVER, 'm') as { input: DeclareInput }).input.declarationId, '',
+    'a form without one reaches the core as empty, and the core refuses it')
+})
+
+test('the index the core recognises is the one 0055 creates', () => {
+  const mig = readFileSync(join(import.meta.dirname, '..', '..', 'db', 'migrations', '0055_declaration_idempotency.sql'), 'utf8')
+  assert.match(mig, new RegExp(`create unique index ${ONE_DECLARATION_INDEX}\\b`))
 })
 
 // ── append-only, across the whole cockpit ───────────────────────────────────
@@ -184,5 +241,5 @@ test('🔒 the core cannot write any other way: its store has one verb, and it i
   // The TYPE, read from the source: a fake's keys would only test the fake.
   const block = src.match(/export type DeclareDeps = \{([\s\S]*?)\n\}/)?.[1] ?? ''
   const members = [...block.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/^\s*(\w+)\s*\(/gm)].map((m) => m[1]).sort()
-  assert.deepEqual(members, ['insertAll', 'newId', 'now'])
+  assert.deepEqual(members, ['insertAll', 'now'])
 })

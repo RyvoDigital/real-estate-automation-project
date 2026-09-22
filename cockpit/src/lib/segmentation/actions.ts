@@ -48,6 +48,7 @@ export async function declareGroupAction(formData: FormData): Promise<void> {
       declaredBy: text('declaredBy'),
       basis: text('basis'),
       uncertainty: text('uncertainty'),
+      declarationId: text('declarationId'),
       contacts: formData.getAll('contact').map(String),
       excluded: formData.getAll('exclude').map(String),
     },
@@ -59,5 +60,7 @@ export async function declareGroupAction(formData: FormData): Promise<void> {
   const result = await declareSegment(resolved.input)
   if (!result.ok) redirect(`/segmentation/${clientId}?erro=${encodeURIComponent(result.reason)}`)
   revalidatePath(`/segmentation/${clientId}`)
+  // The same form again is not an error: the first submit is the record (0055).
+  if (result.alreadyRecorded) redirect(`/segmentation/${clientId}?jaGuardado=1`)
   redirect(`/segmentation/${clientId}?guardado=${result.written}`)
 }

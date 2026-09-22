@@ -1,6 +1,5 @@
 import 'server-only'
 
-import { randomUUID } from 'node:crypto'
 import { admin } from '@/lib/supabase/admin'
 import {
   declareSegment as declareWith,
@@ -40,10 +39,9 @@ const deps: DeclareDeps = {
   // 🔒 ONE request, ONE INSERT statement (PostgREST bulk insert): all rows or none.
   insertAll: async (rows) => {
     const { error } = await admin().from('consent_events').insert(rows)
-    return { error: error ? error.message : null }
+    return { error: error ? { code: error.code ?? null, message: error.message } : null }
   },
   now: () => new Date(),
-  newId: () => randomUUID(),
 }
 
 export function declareSegment(input: DeclareInput): Promise<DeclareResult> {

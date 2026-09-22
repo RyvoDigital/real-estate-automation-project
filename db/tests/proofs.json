@@ -603,6 +603,15 @@
       },
       "last_proved": "2026-09-22",
       "proved_by": "Manuel Vale"
+    },
+    {
+      "id": "0055-declaration-idempotency",
+      "what": "consent_events.declaration_id: one /segmentation declaration act, minted when the form is drawn and carried by every row of it. UNIQUE (declaration_id, phone_e164) partial (consent_events_one_row_per_declaration_and_contact) makes a resubmission of the same form a clean 23505 that the cockpit reports as 'already recorded', never a second act; the INSERT is one statement, so a resubmission is refused whole. CHECKs: an id only on kind 'declared' (declaration_id_only_on_declarations); a screen declaration (source agency_attestation) must carry one (screen_declarations_carry_their_id); a close's party (close_report) needs none. Append-only untouched. WHY: /segmentation checkpoint 2, idempotency (operator, 22 Sep 2026).",
+      "how": "Apply db/migrations/0055_declaration_idempotency.sql, then run db/tests/0055_declaration_idempotency.test.sql WHOLE: ten verdict rows, every row PASS. Then push /segmentation checkpoints 1 and 2 at once: between the migration and the push the live screen's declarations are refused (cleanly) for want of an id. Dry-run 22 Sep 2026 on a scratch PGlite with consent_events as production has it (constraints and triggers read from production, read-only): before 0055, 1-7 and 9 FAIL, 8 and 10 PASS; after, 10/10 PASS, no fixture left. Sabotage there: the index made non-unique (cases 1, 3, 5 red; with the postcondition kept, 0055 refuses itself); the carry CHECK removed (case 6 red); the carry CHECK widened to every declared row (case 8 red: a close's party refused); the only-on-declarations CHECK removed (case 7 red). One fix found there: the declare helper is plpgsql, because a sql function checks its columns when created and the before-run stopped at it.",
+      "watches": [
+        "db/migrations/0055_declaration_idempotency.sql",
+        "db/tests/0055_declaration_idempotency.test.sql"
+      ]
     }
   ]
 }

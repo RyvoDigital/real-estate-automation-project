@@ -90,8 +90,6 @@ const LEGACY: Record<string, { count: number; until: string }> = {
   'app/listings/page.tsx': { count: 9, until: 'C5' },
   'app/review/[clientId]/page.tsx': { count: 6, until: 'C6' },
   'app/review/page.tsx': { count: 3, until: 'C6' },
-  'app/segmentation/[clientId]/page.tsx': { count: 7, until: 'C5' },
-  'app/segmentation/page.tsx': { count: 2, until: 'C5' },
   'app/silence/[clientId]/page.tsx': { count: 6, until: 'C6' },
   'app/silence/page.tsx': { count: 3, until: 'C6' },
   'components/Queue.tsx': { count: 1, until: 'C3 — the escalations rebuild' },

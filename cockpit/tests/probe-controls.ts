@@ -149,8 +149,15 @@ async function main() {
 
   // ---- the segmentation screen's radios ----------------------------------
   try {
+    // Since checkpoint 2 (22 Sep 2026) the radios appear once a group is opened
+    // (`?grupo=`), in a fieldset held by the form's own state, not a GET form.
     await goto(c, `/segmentation/${clientId}`)
-    const group = 'form:has(input[name="origem"])'
+    const { result: href } = await c.send('Runtime.evaluate', {
+      expression: 'document.querySelector(\'a[href*="grupo="]\')?.getAttribute("href") ?? null',
+      returnByValue: true,
+    })
+    if (href.value) await goto(c, href.value as string)
+    const group = 'fieldset:has(input[name="origem"])'
     const first = 'input[name="origem"]'
     const second = 'input[name="origem"] ~ *, input[name="origem"]'
 

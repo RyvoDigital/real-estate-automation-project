@@ -90,7 +90,8 @@ test('NO GROUP ARRIVES WITH A PRE-SELECTED PROPOSAL', () => {
 
 const d = (over: Partial<DeclareInput> = {}): DeclareInput => ({
   clientId: 'client', contacts: [{ phone: '+351912345678' }], segment: 'A',
-  declaredBy: 'Ana Ferreira', recordedBy: 'Manuel Vale', uncertainty: false, ...over,
+  declaredBy: 'Ana Ferreira', recordedBy: 'Manuel Vale', uncertainty: false,
+  declarationId: '11111111-2222-4333-8444-555555555555', ...over,
 })
 
 test('a declaration without the agency person is refused, before the database refuses it', () => {
@@ -304,35 +305,46 @@ test('segment D leads with what survives, because the bias must point TOWARDS it
 test('THE PAGE NEVER PRE-SELECTS A SEGMENT', () => {
   // The most consequential line on the screen, and the easiest to add by
   // accident: `defaultChecked` on the first radio would look like a convenience
-  // and would collect a click carrying the weight of a declaration.
-  // Read as CODE, not as prose: the first version tripped on its own comment
-  // explaining why pre-selection is forbidden. A check that fires on the words
-  // describing it is measuring the wrong artefact (§6b).
-  const page = codeOnly(readFileSync(
-    new URL('../src/app/segmentation/[clientId]/page.tsx', import.meta.url), 'utf8'))
-  assert.equal(/defaultChecked|defaultValue=\{?['"][ABCD]/.test(page), false,
-    'the page pre-selects a segment — the system proposes, the agency confirms')
-  // The origin radios are the thing that must not be pre-ticked. The hidden
-  // `segment` field carries the already-made choice into step 2 and is not a
-  // selection; asserting on it would have made this guard vacuous the moment
-  // the radios were renamed, which is exactly what happened.
-  assert.match(page, /type="radio" name="origem"/)
-  assert.match(page, /type="hidden" name="segment" value=\{segment\}/)
+  // and would collect a click carrying the weight of a declaration. Since
+  // checkpoint 2 (22 Sep 2026) the radios live in DeclareFlow.tsx, controlled by
+  // the form's own state, which starts EMPTY.
+  const flow = codeOnly(readFileSync(new URL('../src/components/segmentation/DeclareFlow.tsx', import.meta.url), 'utf8'))
+  assert.equal(/defaultChecked|defaultValue=\{?['"][ABCD]/.test(flow), false,
+    'the form pre-selects a segment — the system proposes, the agency confirms')
+  assert.match(flow, /type="radio" name="origem"/)
+  assert.match(flow, /useState<Segment \| null>\(null\)/, 'the chosen origin must start as no answer')
+  assert.match(flow, /type="hidden" name="segment" value=\{segment\}/)
+  // And "were they sure?" is two radios with no default either.
+  const sure = flow.split('\n').filter((l) => /name="uncertainty"/.test(l))
+  assert.equal(sure.length, 2, 'the certainty question must be exactly two radios')
+  for (const l of sure) assert.equal(/checked/i.test(l), false, `a certainty answer is pre-selected: ${l.trim()}`)
 })
 
-test('and an origin that no agency may declare cannot be smuggled through the URL', () => {
-  // Step 2 is now reached by `?origem=`, so the query string reaches a field
-  // that ends up in a consent record. E is the consequence of an objection and
-  // comes from the CONTACT — an agency that could assign it could also remove
-  // it — so the page must not open step 2 for it at all, and declare.ts must
-  // refuse it even if it did.
-  const page = codeOnly(readFileSync(
-    new URL('../src/app/segmentation/[clientId]/page.tsx', import.meta.url), 'utf8'))
-  assert.match(page,
-    /origem === 'A' \|\| origem === 'B' \|\| origem === 'C' \|\| origem === 'D'[\s\S]{0,40}: null/,
-    'the page must whitelist the four declarable origins rather than trust the query string')
-  // declare.ts refusing E is already covered above; what is new here is that the
-  // query string now reaches that field at all.
+test('🔴 THE URL CARRIES THE GROUP, NEVER THE ANSWER', () => {
+  // Until checkpoint 2 step 1 was a GET form carrying `?origem=`, so a bookmarked
+  // or shared link opened step 2 with an origin nobody chose in that session
+  // (operator, 22 Sep 2026). The answer now lives in the form's own state.
+  const page = codeOnly((readFileSync(new URL('../src/app/segmentation/[clientId]/page.tsx', import.meta.url), 'utf8') + readFileSync(new URL('../src/components/segmentation/SegmentationView.tsx', import.meta.url), 'utf8')))
+  const flow = codeOnly(readFileSync(new URL('../src/components/segmentation/DeclareFlow.tsx', import.meta.url), 'utf8'))
+  assert.equal(/origem/.test(page), false, 'the page reads or writes the origin in the URL')
+  assert.equal(/[?&]origem=|searchParams|useSearchParams|router\.push/.test(flow), false, 'the form puts the origin in the URL')
+  assert.equal(/method="get"/i.test(flow + page), false, 'a GET form would put every answer in the URL')
+  assert.match(page, /\?grupo=\$\{encodeURIComponent\(g\.id\)\}/, 'a link reopens the group, and only that')
+})
+
+test('🔴 THE DECLARATION ID IS MINTED PER DRAWN FORM, AND TRAVELS WITH IT (0055)', () => {
+  // One id for every form would make every new declaration look like a
+  // resubmission, and 0055 would drop it as "already recorded": a genuine answer
+  // silently lost. So the id is minted in the render, per form, and posted with it.
+  const page = codeOnly((readFileSync(new URL('../src/app/segmentation/[clientId]/page.tsx', import.meta.url), 'utf8') + readFileSync(new URL('../src/components/segmentation/SegmentationView.tsx', import.meta.url), 'utf8')))
+  const flow = codeOnly(readFileSync(new URL('../src/components/segmentation/DeclareFlow.tsx', import.meta.url), 'utf8'))
+  assert.match(page, /declarationId=\{randomUUID\(\)\}/, 'the id must be minted where the form is drawn')
+  const beforeRender = page.slice(0, page.indexOf('export function SegmentationView'))
+  assert.equal(/randomUUID\(\)/.test(beforeRender), false, 'an id minted at module level is shared by every form')
+  assert.match(flow, /type="hidden" name="declarationId" value=\{declarationId\}/, 'the form must post the id it was drawn with')
+  const actions = readFileSync(new URL('../src/lib/segmentation/actions.ts', import.meta.url), 'utf8')
+  assert.match(actions, /declarationId: text\('declarationId'\)/, 'the action must read the posted id, never mint its own')
+  assert.equal(/randomUUID/.test(actions), false, 'an id minted at submit makes every resubmission a new act')
 })
 
 test('the page takes the RECORDER from the session, never from the form', () => {
@@ -354,15 +366,16 @@ test('a failed declaration is SHOWN, never swallowed', () => {
   // visibly happens, and everyone in the room assumes it was recorded.
   const actions = readFileSync(new URL('../src/lib/segmentation/actions.ts', import.meta.url), 'utf8')
   assert.match(actions, /erro=\$\{encodeURIComponent\(result\.reason\)\}/)
-  const page = readFileSync(
-    new URL('../src/app/segmentation/[clientId]/page.tsx', import.meta.url), 'utf8')
+  const page = (readFileSync(
+    new URL('../src/app/segmentation/[clientId]/page.tsx', import.meta.url), 'utf8') + readFileSync(
+    new URL('../src/components/segmentation/SegmentationView.tsx', import.meta.url), 'utf8'))
   assert.match(page, /role="alert"/)
 })
 
 test('the page is standalone: no cockpit Shell in front of a client', () => {
   // §3.17 says not to build into the old frame. And a nav bar listing other
   // clients' leads and queues is not a thing to show somebody across a table.
-  for (const f of ['../src/app/segmentation/[clientId]/page.tsx', '../src/app/segmentation/page.tsx']) {
+  for (const f of ['../src/app/segmentation/[clientId]/page.tsx', '../src/app/segmentation/page.tsx', '../src/components/segmentation/SegmentationView.tsx', '../src/components/segmentation/DeclareFlow.tsx']) {
     const src = readFileSync(new URL(f, import.meta.url), 'utf8')
     assert.equal(/<Shell/.test(src), false, `${f} renders the cockpit Shell`)
   }
@@ -382,8 +395,9 @@ test('THE PAGE CONTAINS NO PROSE AT ALL: every word comes from copy.ts', () => {
   // And it caught a real leak on its first run: four Portuguese strings written
   // straight into the JSX, which would have bypassed the vocabulary guard
   // entirely without anybody meaning to.
-  const page = codeOnly(readFileSync(
-    new URL('../src/app/segmentation/[clientId]/page.tsx', import.meta.url), 'utf8'))
+  const page = codeOnly((readFileSync(
+    new URL('../src/app/segmentation/[clientId]/page.tsx', import.meta.url), 'utf8') + readFileSync(
+    new URL('../src/components/segmentation/SegmentationView.tsx', import.meta.url), 'utf8')))
   // Newlines excluded, or the quotes pair across the whole file and one
   // "literal" spans three hundred lines of code.
   // TWO places prose can hide, and the first version only looked in one.
@@ -562,13 +576,19 @@ test('and every origin says what it means for the file it came from', () => {
 
 // --- the four structural faults, each with its own guard ----------------------
 
+// The page reads; SegmentationView draws (checkpoint 2). Guards on "the page" read both.
 const PAGE = codeOnly(readFileSync(
-  new URL('../src/app/segmentation/[clientId]/page.tsx', import.meta.url), 'utf8'))
+  new URL('../src/app/segmentation/[clientId]/page.tsx', import.meta.url), 'utf8') + readFileSync(
+  new URL('../src/components/segmentation/SegmentationView.tsx', import.meta.url), 'utf8'))
+// Since checkpoint 2 the two steps are DeclareFlow.tsx; the page reads and composes.
+const FLOW = codeOnly(readFileSync(
+  new URL('../src/components/segmentation/DeclareFlow.tsx', import.meta.url), 'utf8'))
+const CSS = readFileSync(new URL('../src/components/segmentation/segmentation.module.css', import.meta.url), 'utf8')
 
 test('1. the origin step asks nothing about evidence', () => {
   // The ordering fault, made structural: whatever else Step1 renders, it cannot
   // reach the evidence copy at all.
-  const step1 = PAGE.slice(PAGE.indexOf('function Step1'), PAGE.indexOf('function Step2'))
+  const step1 = FLOW.slice(FLOW.indexOf('function Step1'), FLOW.indexOf('function Step2'))
   assert.ok(step1.length > 200, 'Step1 not found — this guard would pass vacuously')
   for (const term of ['CLAIM_QUESTION', 'scopeFor', 'claimHeading', 'name="basis"']) {
     assert.equal(step1.includes(term), false, `the origin question renders ${term}, which belongs after it`)
@@ -576,11 +596,11 @@ test('1. the origin step asks nothing about evidence', () => {
 })
 
 test('2. each origin option is its own block, not a line in a paragraph', () => {
-  const step1 = PAGE.slice(PAGE.indexOf('function Step1'), PAGE.indexOf('function Step2'))
-  assert.match(step1, /style=\{optionCard\}/, 'the four options need visible separation to be heard read aloud')
+  const step1 = FLOW.slice(FLOW.indexOf('function Step1'), FLOW.indexOf('function Step2'))
+  assert.match(step1, /className=\{styles\.option\}/, 'the four options need visible separation to be heard read aloud')
   assert.equal(/<br \/>/.test(step1), false,
     'a <br> between a label and its consequence puts the consequence nearer the NEXT option')
-  assert.match(PAGE, /const optionCard = \{[^}]*border:/, 'optionCard must actually draw a boundary')
+  assert.match(CSS, /\.option \{[^}]*border:/, '.option must actually draw a boundary')
 })
 
 const view = (segment: 'A' | 'B' | 'C' | 'D', rows: ContactRow[] = [c({ hasClaim: true })]) =>
@@ -616,7 +636,7 @@ test('3c. a group whose file claimed nothing gets no admission at all', () => {
 })
 
 test('3. the detail field appears only with the answer that needs it', () => {
-  const step2 = PAGE.slice(PAGE.indexOf('function Step2'))
+  const step2 = FLOW.slice(FLOW.indexOf('function Step2'))
   assert.match(step2, /view\.ask\.kind === 'basis' \? \(/, 'the basis field must be behind the scoping decision')
   const stray = step2.slice(0, step2.indexOf("view.ask.kind === 'basis'"))
   assert.equal(stray.includes('name="basis"'), false, 'a detail field renders before anything asks for it')
@@ -676,19 +696,25 @@ test('and the check is not vacuous: it fails the exact pair that shipped', () =>
 test('THE PAGE PINS NO BACKGROUND OF ITS OWN', () => {
   // A background set by hand is a background with no foreground attached — the
   // half-specified contract that caused this. Every surface comes in a pair or
-  // it does not come at all.
-  const offences = PAGE.split('\n').filter((l) => /background:/.test(l))
+  // it does not come at all: in the page, in the form, and in the stylesheet.
+  const offences = [...PAGE.split('\n'), ...FLOW.split('\n')].filter((l) => /background:/.test(l))
   assert.deepEqual(offences, [], `a background with no foreground beside it:\n${offences.join('\n')}`)
-  assert.match(PAGE, /\.\.\.SURFACE\.note/, 'and the claim panel must use one')
+  assert.match(FLOW, /\.\.\.SURFACE\.note/, 'and the claim panel must use one')
   assert.match(PAGE, /\.\.\.SURFACE\.error/, 'the error box especially: an unreadable error looks like no error')
+  assert.match(PAGE, /<main[^>]*style=\{\{ \.\.\.SURFACE\.page \}\}/, 'the page itself takes the page surface')
+  // The stylesheet carries no colour at all: its hairlines are mixed from the text they sit on.
+  const backgrounds = [...CSS.matchAll(/background:\s*([^;]+);/g)].map((m) => m[1].trim())
+  assert.deepEqual(backgrounds.filter((b) => b !== 'none' && b !== 'var(--tint)'), [], 'the stylesheet sets a background of its own')
+  assert.equal(/#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(|oklch\(/i.test(CSS), false, 'the stylesheet carries a literal colour')
 })
 
-test('the uncertainty box sits with the answer it qualifies', () => {
+test('the uncertainty question sits with the answer it qualifies', () => {
   // Below the name field it read as uncertainty about the NAME — a different
   // claim, and not one anybody was making.
-  const step2 = PAGE.slice(PAGE.indexOf('function Step2'))
+  const step2 = FLOW.slice(FLOW.indexOf('function Step2'))
+  assert.ok(step2.indexOf('name="uncertainty"') > 0, 'no certainty question — this guard would pass vacuously')
   assert.ok(step2.indexOf('name="uncertainty"') < step2.indexOf('name="declaredBy"'),
-    'the checkbox follows the name field, so it qualifies the wrong thing')
+    'the certainty question follows the name field, so it qualifies the wrong thing')
 })
 
 test('A SURFACE ALSO DECLARES WHAT THE BROWSER PAINTS ON IT', () => {
@@ -712,25 +738,27 @@ test('A SURFACE ALSO DECLARES WHAT THE BROWSER PAINTS ON IT', () => {
 
 test('and the form controls are pinned rather than inherited', () => {
   // The name field was dark grey on white from the same cause. Every text input
-  // now takes the page surface, so it is covered by the contrast check above
+  // takes the page surface, so it is covered by the contrast check above
   // instead of by whatever the environment supplies.
-  const inputs = PAGE.split('\n').filter((l) => /<input name=/.test(l))
+  const inputs = FLOW.split('\n').filter((l) => /<input name=/.test(l))
   assert.ok(inputs.length >= 2, 'no text inputs found — this guard would pass vacuously')
   for (const l of inputs) {
     assert.match(l, /style=\{field\}/, `an input takes its colours from the user agent: ${l.trim()}`)
   }
-  assert.match(PAGE, /const field = \{\s*\.\.\.SURFACE\.page/)
+  assert.match(FLOW, /const field = \{\s*\.\.\.SURFACE\.page/)
 })
 
 test('THE ESCAPE HATCH IS NOT THE QUIETEST THING ON THE SCREEN', () => {
   // "Mudar a resposta" is what the agency needs the moment they realise they
-  // answered wrong. It was rendering as the faintest element on the page.
-  // The ENCLOSING element, not a fixed window: a 600-character lookbehind
-  // reached back into the previous paragraph and read its style instead.
-  const at = PAGE.indexOf('UI.changeAnswer')
-  const hatch = PAGE.slice(PAGE.lastIndexOf('<p style=', at), at)
+  // answered wrong. It was rendering as the faintest element on the page. Since
+  // checkpoint 2 it is a button in the form (the answer is the form's state):
+  // read the ENCLOSING element's style, never a fixed window.
+  const at = FLOW.indexOf('UI.changeAnswer')
+  const hatch = FLOW.slice(FLOW.lastIndexOf('<button', at), at)
+  assert.ok(hatch.length > 0, 'the escape hatch is not a button in the form — this guard would pass vacuously')
   assert.equal(/\.\.\.muted|color: SURFACE\.page\.muted/.test(hatch), false,
     'the way back from a wrong answer is rendered in the secondary text colour')
+  assert.match(hatch, /color: SURFACE\.page\.color/, 'the way back takes the surface\'s own text colour')
   const size = hatch.match(/fontSize: (\d+)/)
   assert.ok(size && Number(size[1]) >= 16, `the escape hatch renders at ${size?.[1]}px, below body size`)
 })

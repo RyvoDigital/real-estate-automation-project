@@ -256,6 +256,16 @@ export const UI = {
   otherGroups: 'Os outros grupos ficam para a seguir',
   backToAll: 'Ver todos os grupos',
   nothingMoreNeeded: 'Não é preciso mais nada sobre estes contactos.',
+  // Checkpoint 2 (22 Sep 2026). The certainty is asked, never assumed: two
+  // answers, neither pre-selected. `unsure` above is the second of them.
+  sureLegend: 'Tem a certeza desta resposta?',
+  sure: 'Sim, tenho a certeza',
+  chooseFirst: 'Escolha uma das respostas para continuar.',
+  // The same form sent twice (a lost connection, a second click). The first is
+  // the record; this says so, and that nothing was written again.
+  alreadySaved: 'Esta resposta já estava guardada. Não se gravou nada de novo.',
+  answerGroup: 'Responder',
+  groupsLeft: (n: number) => plural(n, 'grupo por responder', 'grupos por responder'),
 } as const
 
 /**
