@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildExpiries, NOT_TRACKED, type ExpiriesInputs } from '../src/lib/expiries/model'
+import { buildExpiries, NOT_TRACKED, TRACKED, type ExpiriesInputs, type ObligationCurrent } from '../src/lib/expiries/model'
+import type { Recheck } from '../src/lib/publication/recheck'
 import type { StillGood } from '../src/lib/publication/still-good'
 
 /* The one expiries module: Today's groups 3 and 4 now, /ops/expiries in C5. */
@@ -66,9 +67,94 @@ test('🔒 the three lists never merge: a registration is never in "about to", a
   assert.ok(e.toConfirm.every((x) => x.kind === 'registration'))
 })
 
-test('🔒 it says it is partial: what is tracked, and that clearances are not', () => {
+test('🔒 it says it is partial: what is tracked, and what is not yet', () => {
   const e = buildExpiries(inputs())
-  assert.ok(e.tracked.includes('the n8n deploy key'))
-  assert.ok(e.notTracked.some((s) => /clearances/.test(s)))
+  for (const t of ['the n8n deploy key', 'the domain', 'the clearances the publication gate recorded']) assert.ok(e.tracked.includes(t), t)
+  assert.ok(e.notTracked.some((s) => /template approvals/.test(s)))
   assert.deepEqual(e.notTracked, NOT_TRACKED)
+})
+
+test('🔴 the false sentence stays gone: nothing says there is no clearances table (0039 is applied, the gate writes one)', () => {
+  // Today printed "clearances (there is no clearances table, and nothing writes one)" until 22 Sep 2026.
+  assert.ok(![...TRACKED, ...NOT_TRACKED].some((s) => /no clearances table|nothing writes one/.test(s)))
+  assert.ok(!NOT_TRACKED.some((s) => /clearance/.test(s)), 'clearances are tracked now, so they are not in "not yet"')
+})
+
+// ── Ryvo's own and the clearances (/ops/expiries checkpoint 2, 22 Sep 2026) ──
+
+const obl = (over: Partial<ObligationCurrent>): ObligationCurrent => ({
+  id: 'o1', obligation_id: 'o1', act: 'entered', kind: 'certidao', label: 'Certidão permanente', expires_on: '2027-03-01', no_expiry_stated: false,
+  card_brand: null, card_last_four: null, card_exp_month: null, card_exp_year: null, services: null, note: null,
+  recorded_by: 'manuelvale@ryvodigital.com', recorded_at: '2026-09-20T10:00:00Z', ...over,
+})
+const recheck = (over: Partial<Recheck> = {}): Recheck => ({ lapsed: [], expiringSoon: [], toConfirm: [], stillGood: 0, checked: 0, warnWithinDays: 30, staleAfterDays: 90, notCheckedFor: [], ...over })
+
+test('🔒 Ryvo\'s own table holds EVERY one of Ryvo\'s items, good ones too; the lists only the due ones', () => {
+  const e = buildExpiries(inputs({ domain: { expiresOn: '2027-03-18', readAt: '2026-09-22T11:50:00Z' }, obligations: [obl({})] }))
+  assert.deepEqual(e.ryvoOwn.map((x) => x.kind).sort(), ['certidao', 'deploy_key', 'domain'])
+  assert.ok(e.ryvoOwn.every((x) => x.standing === 'good'))
+  assert.equal(e.aboutTo.length + e.runOut.length, 0, 'nothing due, so nothing in the lists')
+})
+
+test('🔒 the domain: fresh is a date; stale is UNKNOWN with its age; never read says so; a failed read is a failure', () => {
+  const fresh = buildExpiries(inputs({ domain: { expiresOn: '2026-10-10', readAt: '2026-09-22T11:50:00Z' } }))
+  assert.equal(fresh.aboutTo.find((x) => x.kind === 'domain')?.days, 18)
+  const stale = buildExpiries(inputs({ domain: { expiresOn: '2027-03-18', readAt: '2026-09-21T09:00:00Z' } }))
+  const d = stale.aboutTo.find((x) => x.kind === 'domain')!
+  assert.equal(d.standing, 'unknown')
+  assert.match(d.note ?? '', /last read 27 hours ago, so this date is not asserted/)
+  assert.match(buildExpiries(inputs({ domain: 'never' })).ryvoOwn.find((x) => x.kind === 'domain')?.note ?? '', /No health run has read the registry/)
+  assert.match(buildExpiries(inputs({ domain: null })).failures.join(' '), /domain’s expiry could not be read/)
+})
+
+test('🔴 THE PROCURAÇÃO WITH NO EXPIRY STATED is said in words, in Ryvo\'s table, and never in a list as a date', () => {
+  const e = buildExpiries(inputs({ obligations: [obl({ id: 'p', obligation_id: 'p', kind: 'procuracao', label: 'Procuração', expires_on: null, no_expiry_stated: true })] }))
+  const p = e.ryvoOwn.find((x) => x.kind === 'procuracao')!
+  assert.deepEqual([p.standing, p.date, p.days], ['no_expiry', null, null])
+  assert.equal(p.note, 'The document states no expiry.')
+  assert.ok(![...e.runOut, ...e.aboutTo, ...e.toConfirm].some((x) => x.kind === 'procuracao'))
+})
+
+test('🔴 a card lapses on the LAST DAY of its month, and its line names every service behind it', () => {
+  const e = buildExpiries(inputs({ obligations: [obl({ id: 'c', obligation_id: 'c', kind: 'payment_card', label: 'Cartão da empresa', expires_on: null,
+    card_brand: 'Visa', card_last_four: '4242', card_exp_month: 10, card_exp_year: 2026, services: ['Hetzner', 'Vercel', 'Supabase'] })] }))
+  const c = e.ryvoOwn.find((x) => x.kind === 'payment_card')!
+  assert.equal(c.date, '2026-10-31')
+  assert.equal(c.days, 39, 'thirty-nine days to the 31st of October')
+  assert.match(c.note ?? '', /Visa ····4242, expires 10\/2026\. Charged to: Hetzner, Vercel, Supabase\./)
+  assert.doesNotMatch(JSON.stringify(e), /\d{13,}/, 'nothing card-number shaped anywhere in the model')
+})
+
+test('a certidão past its date has run out, and names itself', () => {
+  const e = buildExpiries(inputs({ obligations: [obl({ expires_on: '2026-09-01' })] }))
+  assert.equal(e.runOut[0].kind, 'certidao')
+  assert.equal(e.runOut[0].days, -21)
+})
+
+test('🔴 CLEARANCES: a lapse carries EVERY cause; an expiring one is "about to"; what could not be checked is SAID', () => {
+  const r = recheck({
+    checked: 5, stillGood: 3, notCheckedFor: ['registration_revoked'],
+    lapsed: [{ clearanceId: 'k1', listingId: 'l1', reference: 'MS-114', causes: ['certificate_expired', 'requirement_arrived'], requirementIds: [], since: '2026-09-10', daysAgo: 12, noticeSentAt: null }],
+    expiringSoon: [{ clearanceId: 'k2', listingId: 'l2', reference: 'MS-120', expiresOn: '2026-10-01', daysLeft: 9 }],
+  })
+  const e = buildExpiries(inputs({ clearances: [{ id: 'c1', name: 'Marbella Sur', recheck: r }] }))
+  const lapsed = e.runOut.find((x) => x.kind === 'clearance')!
+  assert.deepEqual(lapsed.causes, ['certificate_expired', 'requirement_arrived'], 'all of them, never the first found')
+  assert.equal(lapsed.days, -12)
+  assert.match(lapsed.note ?? '', /has not been told/)
+  assert.equal(e.aboutTo.find((x) => x.kind === 'clearance')?.days, 9)
+  assert.deepEqual(e.notCheckedFor, [{ client: 'Marbella Sur', causes: ['registration_revoked'] }])
+  assert.deepEqual([e.checked.clearances, e.checked.stillGoodClearances], [5, 3])
+})
+
+test('🔒 a revocation with no known date is "we do not know when", never zero days', () => {
+  const r = recheck({ checked: 1, lapsed: [{ clearanceId: 'k', listingId: 'l', reference: null, causes: ['registration_revoked'], requirementIds: [], since: null, daysAgo: null, noticeSentAt: null }] })
+  const x = buildExpiries(inputs({ clearances: [{ id: 'c', name: 'M', recheck: r }] })).runOut[0]
+  assert.deepEqual([x.date, x.days], [null, null])
+})
+
+test('a failed clearances read, or one client\'s, is a named failure, never an empty list', () => {
+  assert.match(buildExpiries(inputs({ clearances: null })).failures.join(' '), /clearances could not be read/)
+  assert.match(buildExpiries(inputs({ clearances: [{ id: 'c', name: 'Casa Atlântica', recheck: null }] })).failures.join(' '), /Casa Atlântica: the clearances could not be re-checked/)
+  assert.match(buildExpiries(inputs({ obligations: null })).failures.join(' '), /Ryvo’s own obligations could not be read/)
 })

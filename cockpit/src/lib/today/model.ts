@@ -34,6 +34,7 @@ import { tierFor, TIER_WORD, humanise, detectOutage, type Tier } from '@/lib/esc
 import { whyEmpty } from '@/lib/why-empty'
 import type { AnomalyGroup } from '@/lib/anomaly'
 import type { Expiries, ExpiryItem } from '@/lib/expiries/model'
+import { countedParts } from '@/lib/expiries/model'
 
 /** The fields of a queue row the model reads (lib/data.ts QueueRow). */
 export type TodayQueueRow = {
@@ -152,12 +153,9 @@ const whose = (x: ExpiryItem) => (x.owner.kind === 'ryvo' ? 'Ryvo' : x.owner.nam
 const lisbonDay = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/Lisbon' })
 
 function checkedText(e: Expiries): string {
-  const parts = [
-    e.checked.deployKeys ? 'the deploy key' : null,
-    `${e.checked.documents} document${e.checked.documents === 1 ? '' : 's'}`,
-    `${e.checked.registrations} registration${e.checked.registrations === 1 ? '' : 's'}`,
-  ].filter(Boolean)
-  return `checked ${parts.join(', ')} across ${e.checked.clients} client${e.checked.clients === 1 ? '' : 's'}`
+  // 🔒 From TRACKED_KINDS, the same list partialLine names: the count and the
+  // partial line say the same set, or a test fails (22 Sep 2026).
+  return `checked ${countedParts(e.checked).join(', ')} across ${e.checked.clients} client${e.checked.clients === 1 ? '' : 's'}`
 }
 
 function partialLine(e: Expiries): string {

@@ -45,6 +45,8 @@ export type ObligationForm = {
   cardLastFour: string | null
   cardExpMonth: string | null
   cardExpYear: string | null
+  /** 🔒 a retirement's second step: 'yes', from a box nobody ticks in advance */
+  confirm: string | null
   /** one service per line, or comma-separated */
   services: string | null
   note: string | null
@@ -111,7 +113,18 @@ export function buildObligation(form: ObligationForm, recordedBy: string): { ok:
     card_brand: null as string | null, card_last_four: null as string | null, card_exp_month: null as number | null, card_exp_year: null as number | null,
     services: null as string[] | null,
   }
-  if (act === 'retired') return { ok: true, row: base }
+  /*
+   * 🔒 RETIRING IS CONFIRMED, and it is the only act that is (22 Sep 2026).
+   * Every other act is a new row that a later row can supersede, so a mistaken
+   * check or renewal is corrected by recording the truth. A retirement takes
+   * the obligation out of the list and no later act can continue that chain:
+   * the way back is to enter it again as a NEW obligation. So it is asked
+   * twice, and the second answer is enforced HERE, not only in the markup.
+   */
+  if (act === 'retired') {
+    if (form.confirm !== 'yes') return { ok: false, refusal: { key: 'retireUnconfirmed' } }
+    return { ok: true, row: base }
+  }
 
   const date = (form.expiresOn ?? '').trim()
   if (date && !isRealDate(date)) return { ok: false, refusal: { key: 'badDate' } }

@@ -26,7 +26,7 @@ export async function recordObligationAction(formData: FormData): Promise<void> 
     actId: text('actId'), obligationId: text('obligationId'), supersedesId: text('supersedesId'),
     act: text('act'), kind: text('kind'), label: text('label'), expiresOn: text('expiresOn'),
     noExpiryStated: text('noExpiryStated'), cardBrand: text('cardBrand'), cardLastFour: text('cardLastFour'),
-    cardExpMonth: text('cardExpMonth'), cardExpYear: text('cardExpYear'), services: text('services'), note: text('note'),
+    cardExpMonth: text('cardExpMonth'), cardExpYear: text('cardExpYear'), services: text('services'), note: text('note'), confirm: text('confirm'),
   }, who.email, deps)
 
   // The KEY travels, never a sentence, and never anything the operator typed.

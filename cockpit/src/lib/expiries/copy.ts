@@ -20,6 +20,7 @@ const OBLIGATION_REFUSALS_EN = {
   cardExpiry: 'The card needs its expiry month (1 to 12) and year. Nothing was recorded.',
   cardNoServices: 'Name the services charged to this card: when it lapses, all of them stop. Nothing was recorded.',
   cardHasDate: 'A card expires by its month and year, not by a date. Nothing was recorded.',
+  retireUnconfirmed: 'Retiring was not confirmed, so nothing was retired. Open Retire again and tick the confirmation: a retirement is the one act that cannot be undone by a later record.',
   justChanged: 'Someone else just changed this obligation, while this form was open. Nothing new was recorded: reload the screen.',
   dbRefused: 'The database refused this, and nothing was recorded (code {code}).',
   unknown: 'This could not be saved, and nothing was recorded.',

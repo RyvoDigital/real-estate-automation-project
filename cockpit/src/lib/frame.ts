@@ -217,13 +217,15 @@ export function frameSide(
     up: null,
     showsCounts: true,
     items: [
-      // All four operator screens exist. They are on the OLD visual direction
+      // All five operator screens exist. They are on the OLD visual direction
       // (see docs/cockpit-route-map.md §2.3), which is a different fact from
       // not being built.
       { slug: 'today', label: 'Today', href: '/today', built: true },
       { slug: 'month', label: 'The Month', href: '/', built: true },
       { slug: 'health', label: 'Health', href: '/health', built: true },
       { slug: 'onboarding', label: 'Onboarding', href: '/onboarding', built: true },
+      // /ops/expiries (brief §2.3, C5): the cross-client expiries and Ryvo's own. Added 22 Sep 2026.
+      { slug: 'expiries', label: 'Expiries', href: '/ops/expiries', built: true },
     ],
   }
 }

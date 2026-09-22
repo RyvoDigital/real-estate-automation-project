@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { buildToday, type TodayInputs, type TodayQueueRow } from '../src/lib/today/model'
 import type { AnomalyGroup, AnomalyRow } from '../src/lib/anomaly'
-import { buildExpiries, type ExpiriesInputs } from '../src/lib/expiries/model'
+import { buildExpiries, countedParts, TRACKED, TRACKED_KINDS, type ExpiriesInputs } from '../src/lib/expiries/model'
 import { GATES, openGatesOldestFirst, type OpenGate } from '../src/lib/gates'
 import type { StillGood } from '../src/lib/publication/still-good'
 
@@ -150,11 +150,13 @@ test('group 5 resting: no open gate is a sentence, with its count', () => {
   assert.equal(g.count, 'nobody waited on · all 0 read · the ledger, uncapped')
 })
 
-test('🔒 groups 3 and 4 say they are PARTIAL: what is tracked, and that clearances are not', () => {
+test('🔒 groups 3 and 4 say they are PARTIAL: what is tracked (clearances included, since 0039), and what is not yet', () => {
   const [g3, g4] = buildToday(inputs()).groups.slice(2, 4)
   for (const g of [g3, g4]) {
     assert.match(g.partial ?? '', /^Partial: this tracks the n8n deploy key, /)
-    assert.match(g.partial ?? '', /Not yet: clearances/)
+    assert.match(g.partial ?? '', /the clearances the publication gate recorded/)
+    assert.match(g.partial ?? '', /Not yet: template approvals/)
+    assert.doesNotMatch(g.partial ?? '', /no clearances table/, 'the false sentence Today printed until 22 Sep 2026')
   }
   assert.equal(buildToday(inputs()).groups[0].partial, null)
 })
@@ -164,7 +166,7 @@ test('group 3: the most overdue first, with its client; the count carries what w
   const g = buildToday(inputs({ expiries: e })).groups[2]
   assert.equal(g.state, 'rows')
   assert.match(g.preview, /^Longest past: pt energy certificate · A-2 · Marbella Sur · 40 days ago$/)
-  assert.equal(g.count, '2 run out · checked the deploy key, 3 documents, 0 registrations across 1 client')
+  assert.equal(g.count, '2 run out · checked the deploy key, 0 of Ryvo’s own, 3 documents, 0 registrations, 0 clearances across 1 client')
 })
 
 test('🔒 group 4 previews the head of EACH of its two lists, never one ranked head', () => {
@@ -172,7 +174,7 @@ test('🔒 group 4 previews the head of EACH of its two lists, never one ranked 
   const g = buildToday(inputs({ expiries: e })).groups[3]
   assert.match(g.preview, /^Soonest: pt energy certificate · A-8 · Casa Atlântica · in 4 days$/)
   assert.equal(g.also, 'Longest unconfirmed: pt ami licence 777 · Casa Atlântica')
-  assert.equal(g.count, '2 within 30 days · 1 to confirm · checked the deploy key, 2 documents, 1 registration across 1 client')
+  assert.equal(g.count, '2 within 30 days · 1 to confirm · checked the deploy key, 0 of Ryvo’s own, 2 documents, 1 registration, 0 clearances across 1 client')
   const onlyConfirm = buildToday(inputs({ expiries: ex({ clients: [{ id: 'c1', name: 'M', stillGood: sg({ registrations: [reg('1', 'stale', 120)] }) }] }) })).groups[3]
   assert.equal(onlyConfirm.preview, 'Nothing tracked runs out within 30 days.', 'an empty list says so; the other list does not stand in for it')
 })
@@ -180,7 +182,7 @@ test('🔒 group 4 previews the head of EACH of its two lists, never one ranked 
 test('🔒 groups 3 and 4 resting say what was checked; a failed read is readFailed, never resting', () => {
   const m = buildToday(inputs())
   assert.equal(m.groups[2].state, 'resting')
-  assert.match(m.groups[2].preview, /^Nothing tracked has run out\. Checked the deploy key, 0 documents/)
+  assert.match(m.groups[2].preview, /^Nothing tracked has run out\. Checked the deploy key, 0 of Ryvo’s own, 0 documents, 0 registrations, 0 clearances across 0 clients\.$/)
   const f = buildToday(inputs({ expiries: ex({ deployKey: null, clients: null }) }))
   assert.equal(f.groups[2].state, 'readFailed'); assert.equal(f.groups[3].state, 'readFailed')
   assert.match(f.groups[2].detail ?? '', /deploy key’s expiry could not be read/)
@@ -195,4 +197,34 @@ test('outage: three of one system reason in 15 minutes is one fault', () => {
   const m = buildToday(inputs({ queue: { rows, threw: '', cap: 100 } }))
   assert.equal(m.outage.active, true)
   assert.equal(m.outage.count, 3)
+})
+
+
+/*
+ * 🔒 THE COUNT AND THE PARTIAL LINE NAME THE SAME SET (22 Sep 2026, Manuel's
+ * decision). Group 3 said "checked the deploy key, N documents, N
+ * registrations" while the line under it said the screen also tracks the
+ * domain, Ryvo's own obligations and the clearances: a complete-looking count
+ * of an incomplete set. Both now come from TRACKED_KINDS, and this fails if a
+ * tracked thing is ever added without something that counts it.
+ */
+test('🔒 every tracked thing is counted: the count line and the partial line name the same set', () => {
+  const full = { deployKeys: 1, domains: 1, documents: 4, registrations: 2, clients: 3, obligations: 5, clearances: 9, stillGoodClearances: 8 }
+  const parts = countedParts(full)
+  assert.equal(parts.length, TRACKED.length, 'a tracked thing that nothing counts, or a count for something untracked')
+  assert.equal(TRACKED_KINDS.length, TRACKED.length)
+  for (const k of TRACKED_KINDS) assert.ok(k.counted(full), `${k.key} is tracked and counts nothing`)
+  assert.deepEqual(parts, ['the deploy key', 'the domain', '5 of Ryvo\u2019s own', '4 documents', '2 registrations', '9 clearances'])
+  // A thing this run did not read drops out: it never claims a zero it did not measure.
+  assert.deepEqual(countedParts({ ...full, deployKeys: 0, domains: 0 }), ['5 of Ryvo\u2019s own', '4 documents', '2 registrations', '9 clearances'])
+})
+
+test('🔒 groups 3 and 4 print that same count, beside that same partial line', () => {
+  const e = ex({ domain: { expiresOn: '2027-03-18', readAt: new Date(now - 60000).toISOString() }, obligations: [], clearances: [] })
+  const m = buildToday(inputs({ expiries: e }))
+  for (const n of [3, 4]) {
+    const g = m.groups.find((x) => x.n === n)!
+    for (const part of countedParts(e.checked)) assert.ok(g.count.includes(part), `group ${n}'s count is missing "${part}"`)
+    for (const words of TRACKED) assert.ok((g.partial ?? '').includes(words), `group ${n}'s partial line is missing "${words}"`)
+  }
 })

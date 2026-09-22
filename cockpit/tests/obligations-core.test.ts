@@ -29,7 +29,7 @@ function store() {
 const f = (over: Partial<ObligationForm> = {}): ObligationForm => ({
   actId: A, obligationId: null, supersedesId: null, act: 'entered', kind: 'certidao', label: 'Certidão permanente',
   expiresOn: '2027-03-01', noExpiryStated: null, cardBrand: null, cardLastFour: null, cardExpMonth: null, cardExpYear: null,
-  services: null, note: null, ...over,
+  services: null, note: null, confirm: null, ...over,
 })
 const card = (over: Partial<ObligationForm> = {}) => f({ kind: 'payment_card', label: 'Cartão da empresa', expiresOn: null, cardBrand: 'Visa', cardLastFour: '4242', cardExpMonth: '11', cardExpYear: '2027', services: 'Hetzner\nVercel, Supabase', ...over })
 const key = (r: ReturnType<typeof buildObligation>) => (r.ok ? 'ok' : r.refusal.key)
@@ -109,7 +109,7 @@ test('a card is brand, exactly four digits, a month/year and its services — an
 })
 
 test('a retirement needs only its head; a database refusal is a key with its code, never its message', async () => {
-  const r = buildObligation(card({ actId: B, act: 'retired', obligationId: A, supersedesId: A, cardBrand: null, cardLastFour: null, services: null }), ME)
+  const r = buildObligation(card({ actId: B, act: 'retired', obligationId: A, supersedesId: A, cardBrand: null, cardLastFour: null, services: null, confirm: 'yes' }), ME)
   assert.equal(r.ok, true)
   const deps: ObligationDeps = { insert: async () => ({ error: { code: '23514', message: 'new row violates check constraint "card_is_described"' } }) }
   assert.deepEqual(await recordObligation(card(), ME, deps), { ok: false, refusal: { key: 'dbRefused', params: { code: '23514' } } })
@@ -123,4 +123,31 @@ test('every key the core returns is in its catalogue, and the core names 0058\'s
   const mig = readFileSync(join(import.meta.dirname, '..', '..', 'db', 'migrations', '0058_ryvo_obligations.sql'), 'utf8')
   assert.match(mig, /create table public\.ryvo_obligations \(\n  id uuid primary key,/)
   assert.match(mig, new RegExp(`create unique index ${ONE_SUCCESSOR} `))
+})
+
+
+/*
+ * 🔒 RETIRING IS THE ONE ACT NOBODY CAN UNDO (22 Sep 2026, Manuel's decision).
+ * Every other act is superseded by recording the truth afterwards, so it stays
+ * one click. A retirement ends the chain, so it is confirmed — and the
+ * confirmation is enforced here, not only by the markup.
+ */
+test('🔒 a retirement with no confirmation is refused, and nothing is written', async () => {
+  const { rows, deps } = store()
+  const retire = (over = {}) => f({ actId: B, act: 'retired', obligationId: A, supersedesId: A, expiresOn: null, ...over })
+  assert.equal(key(buildObligation(retire(), ME)), 'retireUnconfirmed')
+  assert.equal(key(buildObligation(retire({ confirm: 'no' }), ME)), 'retireUnconfirmed')
+  assert.equal(key(buildObligation(retire({ confirm: 'on' }), ME)), 'retireUnconfirmed', 'a box\u2019s default "on" is not the answer we asked for')
+  const r = await recordObligation(retire(), ME, deps)
+  assert.equal(r.ok, false)
+  assert.equal(rows.length, 0, 'an unconfirmed retirement wrote a row')
+  // Confirmed, it is recorded.
+  assert.equal(key(buildObligation(retire({ confirm: 'yes' }), ME)), 'ok')
+})
+
+test('🔒 only retiring asks: a check, a renewal and a correction need no confirmation', () => {
+  for (const act of ['checked', 'renewed', 'corrected']) {
+    assert.equal(key(buildObligation(f({ actId: B, act, obligationId: A, supersedesId: A }), ME)), 'ok', `${act} should not ask`)
+  }
+  assert.equal(key(buildObligation(f({ actId: B, act: 'entered', obligationId: null, supersedesId: null }), ME)), 'ok')
 })
