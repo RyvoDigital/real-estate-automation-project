@@ -1,5 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { good } from './fixtures/onboarding-draft'
 import { createClientCore, probeVerdict, type CreateDeps, type CalendarProbe } from '../src/lib/onboarding-create'
 import type { ClientDraft } from '../src/lib/onboarding'
@@ -17,51 +19,35 @@ type Row = Record<string, unknown>
 function fakeDb(over: Partial<{
   probe: CalendarProbe
   clash: { id: string; name: string } | null
-  insertClientError: { code?: string; message: string } | null
-  automationId: string | null
-  insertConfigError: { message: string } | null
+  /** what create_client_with_config raises, if anything (0053) */
+  raises: { code?: string; message: string } | null
   readBack: boolean
-  deleteError: { message: string } | null
-  deleteSticks: boolean
   eventError: { message: string } | null
 }> = {}) {
   const o = {
     probe: { ok: true, error: null, busyCount: 3 } as CalendarProbe,
-    clash: null, insertClientError: null, automationId: 'auto-1', insertConfigError: null,
-    readBack: true, deleteError: null, deleteSticks: true, eventError: null, ...over,
+    clash: null, raises: null, readBack: true, eventError: null, ...over,
   }
   const state = {
     clients: new Map<string, Row>(), configs: [] as Row[], events: [] as Row[],
-    probes: 0, deletes: [] as string[], revalidated: [] as string[],
+    probes: 0, calls: [] as { client: Row; key: string; config: Row }[], revalidated: [] as string[],
   }
   const deps: CreateDeps = {
     async probeCalendar() { state.probes++; return o.probe },
     async findClientByNumber() { return o.clash },
-    async insertClient(row) {
-      if (o.insertClientError) return { id: null, error: o.insertClientError }
+    // The fake keeps 0053's promise: the client and its config, or NEITHER.
+    async createAtomically(client, key, config) {
+      state.calls.push({ client, key, config })
+      if (o.raises) return { id: null, error: o.raises }
       const id = `client-${state.clients.size + 1}`
-      state.clients.set(id, row)
+      state.clients.set(id, client)
+      state.configs.push({ client_id: id, automation_key: key, enabled: true, config })
       return { id, error: null }
-    },
-    async findAutomationId() { return o.automationId },
-    async insertConfig(row) {
-      if (o.insertConfigError) return { error: o.insertConfigError }
-      state.configs.push(row); return { error: null }
     },
     async readConfig(clientId) {
       const c = state.configs.find((r) => r.client_id === clientId)
       return o.readBack && c ? { config: c.config } : null
     },
-    async deleteClient(clientId) {
-      state.deletes.push(clientId)
-      if (o.deleteError) return { error: o.deleteError }
-      if (o.deleteSticks) {
-        state.clients.delete(clientId)
-        state.configs = state.configs.filter((r) => r.client_id !== clientId)   // ON DELETE CASCADE
-      }
-      return { error: null }
-    },
-    async clientExists(clientId) { return state.clients.has(clientId) },
     async insertEvent(row) { if (o.eventError) return { error: o.eventError }; state.events.push(row); return { error: null } },
     revalidate(path) { state.revalidated.push(path) },
   }
@@ -83,7 +69,8 @@ test('a rehearsal: one client with rehearsal=true, one enabled config, one event
   assert.equal(row.status, 'active')
   assert.equal(state.configs.length, 1)
   assert.equal(state.configs[0].enabled, true)
-  assert.equal(state.configs[0].automation_id, 'auto-1')
+  assert.equal(state.calls.length, 1, 'one call: the client and its config are one transaction')
+  assert.equal(state.calls[0].key, 'inbound_concierge')
   assert.equal(state.events.length, 1)
   assert.equal(state.events[0].type, 'client.created')
   assert.equal((state.events[0].data as Row).rehearsal, true)
@@ -165,71 +152,67 @@ test('a number another client holds -> refused by the check, naming that client,
 })
 
 test('a duplicate that races past the check -> 0007\'s unique violation is the same refusal, not a generic failure', async () => {
-  const { deps, state } = fakeDb({ insertClientError: { code: '23505', message: 'duplicate key value violates unique constraint' } })
+  const { deps, state } = fakeDb({ raises: { code: '23505', message: 'duplicate key value violates unique constraint' } })
   const r = await createClientCore(draft(), deps)
   assert.equal(r.ok, false)
   if (!r.ok) { assert.equal(r.kind, 'duplicate'); assert.ok(r.errors.some((e) => e.field === 'whatsappNumber')) }
   assert.equal(state.clients.size, 0)
 })
 
-test('any other client insert failure -> nothing written, the reason given', async () => {
-  const { deps, state } = fakeDb({ insertClientError: { code: '42501', message: 'permission denied for table clients' } })
+test('any other failure of the transaction -> nothing written, the reason given', async () => {
+  const { deps, state } = fakeDb({ raises: { code: '42501', message: 'permission denied for table clients' } })
   const r = await createClientCore(draft(), deps)
   assert.equal(r.ok, false)
   if (!r.ok) { assert.equal(r.kind, 'write_failed'); assert.match(r.message, /permission denied/) }
   assert.equal(state.clients.size, 0)
 })
 
-// ---------------------------------------------------------------- 🔴 nothing kept half-made
+// ---------------------------------------------------------------- 🔴 nothing kept half-made (0053)
 
-for (const [name, over, why] of [
-  ['the automation missing from the catalogue', { automationId: null }, /missing from the catalogue/],
-  ['the config insert refused', { insertConfigError: { message: 'violates check constraint' } }, /config was not written/],
-  ['the config not reading back', { readBack: false }, /did not read back/],
-] as const) {
-  test(`🔴 ${name}: the half-made client is DELETED (by its id), so the number is free again`, async () => {
-    const { deps, state } = fakeDb(over)
-    const r = await createClientCore(draft(), deps)
-    assert.equal(r.ok, false)
-    if (!r.ok) {
-      assert.equal(r.kind, 'write_failed')
-      assert.match(r.message, why)
-      assert.match(r.message, /removed, so nothing was kept/)
-      assert.equal(r.leftBehind, null)
-    }
-    assert.deepEqual(state.deletes, ['client-1'], 'exactly the row this call created, by id')
-    assert.equal(state.clients.size, 0)
-    assert.equal(state.configs.length, 0)
-    assert.equal(state.events.length, 0, 'no client.created event for a client that does not exist')
-    assert.deepEqual(state.revalidated, [])
-  })
-}
-
-test('🔴 and a retry after that succeeds: the number was not left held by the orphan', async () => {
-  const first = fakeDb({ insertConfigError: { message: 'boom' } })
-  await createClientCore(draft(), first.deps)
-  // the same fake, now healthy: nothing of the first attempt is in the way
-  const clash = [...first.state.clients.values()].find((c) => c.whatsapp_number === '+34600123456')
-  assert.equal(clash, undefined)
+test('🔴 the config refused inside the transaction: nothing kept, the number free, no delete attempted', async () => {
+  const { deps, state } = fakeDb({ raises: { code: '23514', message: 'new row violates check constraint' } })
+  const r = await createClientCore(draft(), deps)
+  assert.equal(r.ok, false)
+  if (!r.ok) {
+    assert.equal(r.kind, 'write_failed')
+    assert.match(r.message, /Nothing was saved: the client and its config are one transaction/)
+    assert.equal(r.leftBehind, null)
+  }
+  assert.equal(state.clients.size, 0)
+  assert.equal(state.configs.length, 0)
+  assert.equal(state.events.length, 0, 'no client.created event for a client that does not exist')
+  assert.deepEqual(state.revalidated, [])
 })
 
-test('🔴 if removing the half-made client FAILS, the result says exactly what remains', async () => {
-  const { deps, state } = fakeDb({ insertConfigError: { message: 'boom' }, deleteError: { message: 'permission denied' } })
+test('the automation missing from the catalogue (P0002): nothing created, and it says what to fix', async () => {
+  const { deps, state } = fakeDb({ raises: { code: 'P0002', message: 'the automation is not in the catalogue' } })
+  const r = await createClientCore(draft(), deps)
+  assert.equal(r.ok, false)
+  if (!r.ok) { assert.equal(r.kind, 'write_failed'); assert.match(r.message, /missing from the catalogue, so nothing was created/) }
+  assert.equal(state.clients.size, 0)
+})
+
+test('🔴 the config not reading back: NOTHING is deleted; the client is named so it can be checked', async () => {
+  const { deps, state } = fakeDb({ readBack: false })
   const r = await createClientCore(draft(), deps)
   assert.equal(r.ok, false)
   if (!r.ok) {
     assert.equal(r.leftBehind, 'client-1')
-    assert.match(r.message, /FAILED/)
-    assert.match(r.message, /client-1 remains and holds \+34600123456/)
+    assert.match(r.message, /Nothing was deleted/)
   }
-  assert.equal(state.clients.size, 1)
+  assert.equal(state.clients.size, 1, 'the transaction committed both rows; nothing may remove them')
+  assert.equal(state.events.length, 0)
 })
 
-test('🔴 a delete that reports success but did not happen is caught by the read-back', async () => {
-  const { deps } = fakeDb({ insertConfigError: { message: 'boom' }, deleteSticks: false })
-  const r = await createClientCore(draft(), deps)
-  assert.equal(r.ok, false)
-  if (!r.ok) { assert.equal(r.leftBehind, 'client-1'); assert.match(r.message, /still there after the delete/) }
+test('🔒 there is NO delete path: neither the core nor the server action can delete a client (0049; operator, 22 Sep)', () => {
+  const core = readFileSync(join(import.meta.dirname, '..', 'src', 'lib', 'onboarding-create.ts'), 'utf8')
+  const actions = readFileSync(join(import.meta.dirname, '..', 'src', 'lib', 'actions.ts'), 'utf8')
+  const wrapper = actions.slice(actions.indexOf('export async function createClient('), actions.indexOf('\n}\n', actions.indexOf('export async function createClient(')))
+  assert.doesNotMatch(core, /\.delete\(|deleteClient/)
+  assert.doesNotMatch(wrapper, /\.delete\(|deleteClient/)
+  assert.match(wrapper, /db\.rpc\('create_client_with_config'/)
+  // and the old two-insert path is gone from the wrapper
+  assert.doesNotMatch(wrapper, /from\('clients'\)\.insert|from\('client_automations'\)\.insert/)
 })
 
 // ---------------------------------------------------------------- the audit event

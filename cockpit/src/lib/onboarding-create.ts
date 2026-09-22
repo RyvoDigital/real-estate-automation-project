@@ -10,10 +10,11 @@
  *
  *   🔒 Nothing is kept half-made. The client row holds the WhatsApp number, and
  *      0007 makes that number unique, so a client whose config failed used to
- *      stay behind and refuse the retry as "already uses this number". Every
- *      failure after the client insert DELETES the row this call created (never
- *      one found by number), reads it back to be sure, and says exactly what,
- *      if anything, remains.
+ *      stay behind and refuse the retry as "already uses this number". The two
+ *      inserts are now ONE transaction (0053, create_client_with_config): a
+ *      failure anywhere inside it keeps neither row. There is no delete path,
+ *      on purpose (operator, 22 Sep 2026): no application code deletes a client
+ *      (0049), and a client delete cascades through 19 tables.
  *   🔒 "The calendar check could not run" is not "the calendar is wrong" (brief
  *      §2.8, S4). Only an answer from Google about THIS calendar is a field
  *      error; a check that never reached it is not the operator's mistake.
@@ -36,12 +37,9 @@ type DbError = { code?: string; message: string }
 export type CreateDeps = {
   probeCalendar(calendarId: string, timezone: string): Promise<CalendarProbe>
   findClientByNumber(whatsappNumber: string): Promise<{ id: string; name: string } | null>
-  insertClient(row: Record<string, unknown>): Promise<{ id: string | null; error: DbError | null }>
-  findAutomationId(key: string): Promise<string | null>
-  insertConfig(row: Record<string, unknown>): Promise<{ error: DbError | null }>
+  /** 0053's create_client_with_config: the client and its config, or neither. */
+  createAtomically(client: Record<string, unknown>, automationKey: string, config: Record<string, unknown>): Promise<{ id: string | null; error: DbError | null }>
   readConfig(clientId: string): Promise<{ config: unknown } | null>
-  deleteClient(clientId: string): Promise<{ error: DbError | null }>
-  clientExists(clientId: string): Promise<boolean>
   insertEvent(row: Record<string, unknown>): Promise<{ error: DbError | null }>
   revalidate(path: string): void
 }
@@ -99,36 +97,29 @@ export async function createClientCore(draft: ClientDraft, deps: CreateDeps): Pr
   if (clash) return duplicate(clash.name)
 
   const name = draft.agencyName.trim()
-  const inserted = await deps.insertClient({
+  const created = await deps.createAtomically({
     name, agency_name: name, whatsapp_number: wa,
     timezone: draft.timezone.trim(), locale: draft.locale.trim(), status: 'active',
     rehearsal: rehearsalToColumn(answer),
-  })
-  if (inserted.error?.code === '23505') return duplicate(null)       // 0007 arbitrated a race
-  if (inserted.error || !inserted.id) return fail('write_failed', `Could not create the client: ${inserted.error?.message ?? 'no id returned'}. Nothing was saved.`)
-  const clientId = inserted.id
-
-  // From here on, a failure removes what this call created.
-  const undo = async (why: string): Promise<CreateResult> => {
-    const del = await deps.deleteClient(clientId)
-    const still = await deps.clientExists(clientId)
-    if (del.error || still) {
-      return fail('write_failed',
-        `${why} Removing the half-made client FAILED (${del.error?.message ?? 'it is still there after the delete'}): ` +
-        `client ${clientId} remains and holds ${wa}. Delete it before trying again.`, [], clientId)
-    }
-    return fail('write_failed', `${why} The half-made client was removed, so nothing was kept and ${wa} is free to try again.`)
+  }, 'inbound_concierge', toConfig(draft) as Record<string, unknown>)
+  if (created.error?.code === '23505') return duplicate(null)        // 0007 arbitrated a race
+  if (created.error?.code === 'P0002') {
+    return fail('write_failed', 'The inbound_concierge automation is missing from the catalogue, so nothing was created. Fix the catalogue before onboarding anyone.')
   }
+  if (created.error || !created.id) {
+    return fail('write_failed', `Could not create the client: ${created.error?.message ?? 'no id returned'}. Nothing was saved: the client and its config are one transaction.`)
+  }
+  const clientId = created.id
 
-  const automationId = await deps.findAutomationId('inbound_concierge')
-  if (!automationId) return undo('The inbound_concierge automation is missing from the catalogue, so no config could be written.')
-
-  const cfg = await deps.insertConfig({ client_id: clientId, automation_id: automationId, enabled: true, config: toConfig(draft) })
-  if (cfg.error) return undo(`The config was not written: ${cfg.error.message}.`)
-
-  // A green insert is not evidence the row exists (rule 14).
+  // A green call is not evidence the rows exist (rule 14). Both were created in one
+  // transaction, so a config that does not read back is a READ problem to check,
+  // never a reason to delete anything.
   const check = await deps.readConfig(clientId)
-  if (!check?.config) return undo('The config did not read back after the insert.')
+  if (!check?.config) {
+    return fail('write_failed',
+      `The client was created (${clientId}), but its config did not read back. Nothing was deleted: check client_automations for this client before trying again.`,
+      [], clientId)
+  }
 
   const ev = await deps.insertEvent({
     client_id: clientId, type: 'client.created', severity: 'info',

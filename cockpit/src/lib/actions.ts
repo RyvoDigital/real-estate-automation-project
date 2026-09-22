@@ -303,31 +303,17 @@ export async function createClient(draft: ClientDraft): Promise<CreateResult> {
       if (error) throw new Error(`the duplicate-number check could not read clients: ${error.message}`)
       return data ? { id: data.id as string, name: data.name as string } : null
     },
-    async insertClient(row) {
-      const { data, error } = await db.from('clients').insert(row).select('id').single()
-      return { id: (data?.id as string | undefined) ?? null, error: error ? { code: error.code, message: error.message } : null }
-    },
-    async findAutomationId(key) {
-      const { data } = await db.from('automations').select('id').eq('key', key).maybeSingle()
-      return (data?.id as string | undefined) ?? null
-    },
-    async insertConfig(row) {
-      // `health` is NOT written: 0036 drops the column, and the per-client health
-      // rollup is derived from automation_runs and the anomaly events instead.
-      const { error } = await db.from('client_automations').insert(row)
-      return { error: error ? { code: error.code, message: error.message } : null }
+    async createAtomically(client, automationKey, config) {
+      // 0053: one statement, one transaction. PostgREST passes the SQLSTATE through
+      // as error.code (23505 a held number, P0002 an automation not in the catalogue).
+      const { data, error } = await db.rpc('create_client_with_config', {
+        p_client: client, p_automation_key: automationKey, p_config: config,
+      })
+      return { id: (data as string | null) ?? null, error: error ? { code: error.code, message: error.message } : null }
     },
     async readConfig(clientId) {
       const { data } = await db.from('client_automations').select('config').eq('client_id', clientId).maybeSingle()
       return data ? { config: data.config } : null
-    },
-    async deleteClient(clientId) {
-      const { error } = await db.from('clients').delete().eq('id', clientId)
-      return { error: error ? { code: error.code, message: error.message } : null }
-    },
-    async clientExists(clientId) {
-      const { data } = await db.from('clients').select('id').eq('id', clientId).maybeSingle()
-      return Boolean(data)
     },
     async insertEvent(row) {
       const { error } = await db.from('events').insert(row)
