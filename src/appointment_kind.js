@@ -141,12 +141,49 @@ const VIEWING_WORDS = [
   { rx: /\bsee the (?:property|house|apartment|flat|villa)\b/, label: 'see the property' },
 ];
 
+// 22 Sep 2026, the booking gate (runs 1 and 4): the model EXPLAINED that no
+// property was named -- "a first meeting ... rather than a specific property
+// viewing", "There's no specific property lined up yet for a viewing" -- and
+// this guard, which matched the word anywhere, rejected both drafts and handed
+// the lead over. A viewing word is now NOT a claim when, and only when:
+//   1. a negation governs it directly: "not a viewing", "isn't a viewing",
+//      "nao e uma visita", "no es una visita";
+//   2. a contrast stands directly before it: "rather than a (specific property)
+//      viewing", "instead of", "em vez de", "en lugar de";
+//   3. EARLIER IN THE SAME CLAUSE the reply says no property is identified:
+//      "no specific property lined up yet for a viewing", "sem imovel ... visita".
+// Everything else still rejects, and the dangerous direction stays shut: "I'll
+// book you a viewing of the villa on Thursday" has none of the three.
+// WHICH words negate, and where a clause ends, are src/time_guard.js's rules
+// (TG_NEG_*, TG_CLAUSE_SPLIT_RX), not second lists here: every node that embeds
+// this file embeds time_guard.js too.
+function viewingDenied(sentence, i) {
+  const before = sentence.slice(0, i);
+  const DET = '(?:(?:a|an|the|any|um|uma|un|una|nenhum|nenhuma|ningun|ninguna)\\s+)?';
+  const ADJ = '(?:(?:specific|particular|actual|real|property|imovel|propriedade|propiedad|inmueble|concreta?|especifica?)\\s+){0,2}';
+  const NEG = '(?:' + [TG_NEG_EN, TG_NEG_EN_NT, TG_NEG_PT, TG_NEG_ES].join('|') + ')';
+  const COPULA = '(?:(?:be|is|e|es|sera|seria|era|yet|still|ainda|aun|todavia|really|actually)\\s+)?';
+  if (new RegExp(NEG + '\\s+' + COPULA + DET + ADJ + '$').test(before)) return true;
+  const CONTRAST = '(?:rather than|instead of|as opposed to|em vez de|em lugar de|ao inves de|en lugar de|en vez de)';
+  if (new RegExp('\\b' + CONTRAST + '\\s+' + DET + ADJ + '$').test(before)) return true;
+  // the clause this word sits in, from its last boundary before the word
+  let start = 0;
+  for (const m of before.matchAll(new RegExp(TG_CLAUSE_SPLIT_RX.source, 'g'))) start = m.index + m[0].length;
+  const clauseBefore = before.slice(start);
+  const NO_PROPERTY = /\b(?:no|not any|without(?: a| any)?|sem(?: um| nenhum)?|nenhum|ningun|sin(?: un| ningun)?)\s+(?:(?:specific|particular|concrete|especifico|concreto|concreta)\s+)?(?:property|properties|home|listing|house|imovel|imoveis|propriedade|propiedad|inmueble|vivienda)\b/;
+  return NO_PROPERTY.test(clauseBefore);
+}
+
 function viewingClaim(reply) {
-  const t = deaccent(reply).toLowerCase();
+  const t = tgDeaccent(reply);
   if (!t.trim()) return null;
-  for (const w of VIEWING_WORDS) {
-    const m = t.match(w.rx);
-    if (m) return m[0];
+  for (const sentence of t.split(/(?<=[.!?\n])\s+|\n+/)) {
+    for (const w of VIEWING_WORDS) {
+      for (const m of sentence.matchAll(new RegExp(w.rx.source, w.rx.flags.replace('g', '') + 'g'))) {
+        if (viewingDenied(sentence, m.index)) continue;
+        return m[0];
+      }
+    }
   }
   return null;
 }

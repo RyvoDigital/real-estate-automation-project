@@ -9,7 +9,11 @@ const fs = require('fs');
 const path = require('path');
 const SRC = process.env.APPOINTMENT_KIND_SRC ||
             path.join(__dirname, '..', 'src', 'appointment_kind.js');
-eval(fs.readFileSync(SRC, 'utf8'));
+// viewingClaim() reads time_guard.js's negation words and clause boundaries
+// (22 Sep 2026): which words negate is that file's rule, not a second list here.
+// ONE eval, as one node script: a const in one eval is not visible to another.
+eval(fs.readFileSync(process.env.TIME_GUARD_SRC || path.join(__dirname, '..', 'src', 'time_guard.js'), 'utf8') +
+     '\n' + fs.readFileSync(SRC, 'utf8'));
 
 let pass = 0, fail = 0;
 const chk = (n, c, d) => { c ? pass++ : fail++; console.log(`  [${c ? 'PASS' : 'FAIL'}] ${n}${d ? '  ' + d : ''}`); };
@@ -124,6 +128,34 @@ chk('so the reply that was sent is rejected',
     viewingClaim(THREAD[5].body) !== null);
 chk('a later reference does not backdate it',
     appointmentKindFor(THREAD).kind === 'viewing' && atConfirm.kind === 'meeting');
+
+console.log('\nviewingClaim, 22 Sep 2026: explaining that there is NO viewing is not claiming one (the booking gate, runs 1 and 4)');
+// CAPTURED OUTPUT, word for word: all four drafts. Each was rejected; both leads were handed over.
+chk("en: run 1, first draft (gate exec 5483) passes", viewingClaim("We'd be looking at a first meeting with our colleague rather than a specific property viewing at this stage, João. I have these times available: Wednesday 23 September at 09:00, Thursday 24 September at 09:00, or Friday 25 September at 09:00, all Lisbon time - which works best for you?") === null, viewingClaim("We'd be looking at a first meeting with our colleague rather than a specific property viewing at this stage, João. I have these times available: Wednesday 23 September at 09:00, Thursday 24 September at 09:00, or Friday 25 September at 09:00, all Lisbon time - which works best for you?"));
+chk("en: run 1, guard retry (gate exec 5483) passes", viewingClaim("Just to clarify, no specific property has been named yet, so this would be a first meeting with our colleague to discuss options rather than a viewing. We have Wednesday 23 September at 09:00, Thursday 24 September at 09:00, or Friday 25 September at 09:00, all Lisbon time - which works best for you, João?") === null, viewingClaim("Just to clarify, no specific property has been named yet, so this would be a first meeting with our colleague to discuss options rather than a viewing. We have Wednesday 23 September at 09:00, Thursday 24 September at 09:00, or Friday 25 September at 09:00, all Lisbon time - which works best for you, João?"));
+chk("en: run 4, first draft (gate exec 5509) passes", viewingClaim("There's no specific property lined up yet for a viewing, but I'd love to set up a first meeting with our colleague to discuss options with you, João. Would Wednesday 23 September at 11:00, Thursday 24 September at 09:00, or Friday 25 September at 09:00 Lisbon time work for you?") === null, viewingClaim("There's no specific property lined up yet for a viewing, but I'd love to set up a first meeting with our colleague to discuss options with you, João. Would Wednesday 23 September at 11:00, Thursday 24 September at 09:00, or Friday 25 September at 09:00 Lisbon time work for you?"));
+chk("en: run 4, guard retry (gate exec 5509) passes", viewingClaim("Since no specific property has come up yet, this would be a first meeting with our colleague rather than a viewing. I can offer Wednesday 23 September at 11:00, Thursday 24 September at 09:00, or Friday 25 September at 09:00, Lisbon time - would any of those work for you, João?") === null, viewingClaim("Since no specific property has come up yet, this would be a first meeting with our colleague rather than a viewing. I can offer Wednesday 23 September at 11:00, Thursday 24 September at 09:00, or Friday 25 September at 09:00, Lisbon time - would any of those work for you, João?"));
+for (const [name, text] of [
+  ['pt: em vez de uma visita', 'Seria uma primeira reunião com o nosso colega, em vez de uma visita a um imóvel.'],
+  ['pt: ainda não é uma visita', 'Isto ainda não é uma visita, é uma primeira conversa com o nosso colega.'],
+  ['pt: sem imóvel identificado', 'Como ainda não há nenhum imóvel identificado para visitar, proponho uma primeira reunião.'],
+  ['es: en lugar de una visita', 'Sería una primera reunión con nuestro colega en lugar de una visita.'],
+  ['es: no es una visita', 'No es una visita todavía, sino una primera reunión con nuestro colega.'],
+  ['en: isn\'t a viewing (U+2019)', 'This isn’t a viewing yet, it is a first meeting with our colleague.'],
+]) chk(name + ' passes', viewingClaim(text) === null, viewingClaim(text));
+// THE DANGEROUS DIRECTION STAYS SHUT (operator, 22 Sep): a viewing promised or
+// confirmed with no property identified is rejected, in every language.
+for (const [name, text] of [
+  ['en: I\'ll book you a viewing of the villa on Thursday', "I'll book you a viewing of the villa on Thursday."],
+  ['pt: vou marcar-lhe uma visita à moradia na quinta', 'Vou marcar-lhe uma visita à moradia na quinta-feira.'],
+  ['es: le reservo una visita a la villa el jueves', 'Le reservo una visita a la villa el jueves.'],
+  ['en: your viewing is confirmed', 'Your viewing is confirmed for Thursday at 09:00.'],
+  ['en: a denial in one clause, a viewing in the next', 'There is no property yet, but I will book you a viewing on Thursday.'],
+  ['en: the no-property words AFTER the viewing do not excuse it', "I'll book you a viewing, no property details needed."],
+  ['pt: não se preocupe, a visita está marcada', 'Não se preocupe, a visita está marcada para quinta-feira.'],
+  ['es: no hay problema, le reservo una visita', 'No hay problema, le reservo una visita el jueves.'],
+  ['en: not only a meeting, but a viewing too', 'Not only a meeting, but a viewing of the villa too.'],
+]) chk(name + ' is still caught', viewingClaim(text) !== null, text);
 
 console.log(`\n  ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

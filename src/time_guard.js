@@ -90,6 +90,10 @@ const TG_NEG_EN = "(?<!\\b(?:why|if|or|whether)\\s)\\bnot";
 const TG_NEG_PT = "(?<!\\b(?:porque|por que|se|ou)\\s)\\bnao";
 // es. Not "por qué no", "porque no", "si no", "o no".
 const TG_NEG_ES = "(?<!\\b(?:por que|porque|si|o)\\s)\\bno";
+// en contractions ("isn't", "won't"). NOT part of the time guard's own rule (its
+// decline list carries those forms itself); shared for src/appointment_kind.js's
+// viewing guard (22 Sep 2026), so "this isn't a viewing" is read as a denial.
+const TG_NEG_EN_NT = "\\b(?:is|are|was|were|does|do|did|would|will|wo|could|ca)n'?t";
 // A negation that governs the time after it.
 const TG_NOT_BEFORE_RX = new RegExp('(?:' + [
   TG_NEG_EN,
@@ -166,20 +170,25 @@ const TG_DECLINE_RX = new RegExp([
   // just booked for 11:00" must never be read as one.
   "\\b(?:was|were|has been|have been|got) (?:just )?taken\\b(?! care)", "\\bjust (?:been |got )?(?:taken|gone)\\b(?! care)",
   "\\b(?:has|have) (?:just )?gone\\b",
+  "\\b(?:taken|booked|reserved) by (?:someone else|somebody else|another (?:client|person|customer|lead))\\b",
   // pt. Same rule: "nao ha problema" is not a decline.
   "\\bnao (?:esta|estao|temos|tenho|ha|existe|existem|e|sera|fica|ficam)\\b[^.;]{0,25}?\\b(?:disponiv|disponibilidade|livre|possiv|vaga|aberto|opcao)",
   "\\bindisponive(?:l|is)\\b",
   "\\bja (?:esta|estao) (?:ocupad|preenchid|reservad)", "\\b(?:esta|estao) (?:ocupad|preenchid)",
   "\\bsem disponibilidade\\b", "\\bnao (?:consigo|conseguimos|posso|podemos) (?:oferecer|marcar|agendar|disponibilizar)",
   // 22 Sep 2026: "ficou ocupado", "acabou de ser ocupado". Never "marcado": see en.
+  // "Reservado" only with WHO took it: "acabou de ser reservado por outra pessoa"
+  // (the booking gate, run 5). Kept narrow: someone ELSE, never the lead's own booking.
+  "\\b(?:reservad|marcad|ocupad)[oa]s? por (?:outra pessoa|outro cliente|outra cliente|outras pessoas|alguem)\\b",
   "\\b(?:ficou|ficaram|foi|foram) (?:entretanto |agora |ja )?(?:ocupad|preenchid)", "\\bacab(?:ou|aram) de (?:ser |ficar )?(?:ocupad|preenchid)",
   // es. "no hay problema" is not a decline.
   "\\bno (?:esta|estan|tenemos|tengo|hay|es|sera|queda|quedan)\\b[^.;]{0,25}?\\b(?:disponib|libre|posible|hueco|opcion)",
   "\\bya (?:esta|estan) (?:ocupad|reservad|complet)", "\\b(?:esta|estan) (?:ocupad|complet)",
   "\\bsin disponibilidad\\b", "\\bno (?:puedo|podemos) (?:ofrecer|agendar|reservar)",
   // 22 Sep 2026, the booking gate's run 9: "Ese horario de las 16:00 se acaba de
-  // ocupar". Never "reservado": see en.
-  "\\bse (?:acaba|acaban) de ocupar\\b", "\\bacaba(?:n)? de (?:ser |quedar )?ocupad", "\\bse (?:ocupo|ocuparon)\\b", "\\b(?:quedo|quedaron) (?:ya )?ocupad",
+  // ocupar"; run 6: "acaba de ocuparse". Never "reservado" alone: see en.
+  "\\b(?:reservad|ocupad|cogid)[oa]s? por (?:otra persona|otro cliente|otra clienta|otras personas|alguien)\\b",
+  "\\bse (?:acaba|acaban) de ocupar\\b", "\\bacaba(?:n)? de ocupar(?:se)?\\b", "\\bacaba(?:n)? de (?:ser |quedar )?ocupad", "\\bse (?:ocupo|ocuparon)\\b", "\\b(?:quedo|quedaron) (?:ya )?ocupad",
 ].join('|'));
 
 // Contrast words and dashes end a clause. Deaccented text.

@@ -169,6 +169,13 @@ console.log('\n2026-09-22, the booking gate: the slot another lead has JUST TAKE
   passes('pt: "esse horário das 16:00 acabou de ser ocupado"', 'quarta às 16:00', 'Peço desculpa, esse horário das 16:00 acabou de ser ocupado. Temos as 17:00 ou as 18:00.', AFTER);
   // The dangerous direction: none of the new phrases may excuse a CONFIRMATION of
   // the lead's unoffered time. "Booked", "marcado", "reservado" are deliberately absent.
+  // CAPTURED, word for word: the second booking gate (22 Sep), runs 5 and 6, both fired invariant 1.
+  passes('pt: run 5, "acabou de ser reservado por outra pessoa" (CAPTURED)', 'quarta-feira às 11:00, por favor', "Peço desculpa, João, mas esse horário das 11:00 acabou de ser reservado por outra pessoa. Ainda tenho disponível quarta-feira, 23 de setembro às 12:00, quarta-feira, 23 de setembro às 13:00, ou quinta-feira, 24 de setembro às 09:00, hora de Lisboa. Algum destes serve?", [{ timeLocal: '12:00' }, { timeLocal: '13:00' }, { timeLocal: '09:00' }]);
+  passes('es: run 6, "acaba de ocuparse" (CAPTURED)', 'El miércoles a las 12:00, por favor', "Lo siento mucho, João, ese horario de las 12:00 acaba de ocuparse justo ahora. Todavía tenemos disponibles el miércoles 23 de septiembre a las 13:00, el miércoles 23 de septiembre a las 14:00 o el jueves 24 de septiembre a las 09:00 (hora de Lisboa). ¿Cuál te viene mejor?", [{ timeLocal: '13:00' }, { timeLocal: '14:00' }, { timeLocal: '09:00' }]);
+  passes('en: "taken by someone else"', 'Wednesday at 16:00 please', 'Sorry, 16:00 was just taken by someone else. I have 17:00 or 18:00.', AFTER);
+  passes('es: "reservado por otra persona"', 'El miércoles a las 16:00', 'Lo siento, las 16:00 ya han sido reservadas por otra persona. Tengo las 17:00 o las 18:00.', AFTER);
+  rejects('pt: "reservado para si às 11:00" (the lead\'s OWN booking) still rejects', '11:00?', 'Ótimo, fica reservado para si às 11:00.', CHECK2, ['11:00']);
+  rejects('en: "booked by our colleague for 11:00" still rejects', '11:00?', 'Great, 11:00 has been booked by our colleague for you.', CHECK2, ['11:00']);
   rejects('en: "your meeting was just booked for 11:00" still rejects', '11:00?', 'Great news, your meeting was just booked for 11:00.', CHECK2, ['11:00']);
   rejects('pt: "a reunião foi marcada para as 11:00" still rejects', '11:00?', 'Ótimo, a reunião foi marcada para as 11:00.', CHECK2, ['11:00']);
   rejects('es: "la cita quedó reservada a las 11:00" still rejects', '11:00?', 'Perfecto, la cita quedó reservada a las 11:00.', CHECK2, ['11:00']);

@@ -7,7 +7,9 @@
 //   PARSE_REPLY_SRC=path node tests/parse_reply.test.js
 const fs = require('fs');
 const path = require('path');
-eval(fs.readFileSync(path.join(__dirname, '..', 'src', 'appointment_kind.js'), 'utf8'));
+// appointment_kind.js's viewingClaim() reads time_guard.js (22 Sep 2026); one eval, as one node script.
+eval(fs.readFileSync(path.join(__dirname, '..', 'src', 'time_guard.js'), 'utf8') + '\n' +
+     fs.readFileSync(path.join(__dirname, '..', 'src', 'appointment_kind.js'), 'utf8'));
 eval(fs.readFileSync(process.env.PARSE_REPLY_SRC || path.join(__dirname, '..', 'src', 'parse_reply.js'), 'utf8'));
 
 let pass = 0, fail = 0;
