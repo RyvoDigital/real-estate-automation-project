@@ -577,26 +577,32 @@
     {
       "id": "0053-create-client-atomically",
       "what": "public.create_client_with_config(p_client, p_automation_key, p_config): the client row and its automation config in ONE transaction, or neither. SECURITY INVOKER, EXECUTE for service_role only; the rehearsal answer required as a JSON boolean; 23505 for a held number, P0002 for an automation not in the catalogue. WHY: a failed config insert left a client HOLDING its WhatsApp number (0007), refusing the retry; the operator refused a delete-on-failure path (22 Sep 2026): no application code deletes a client (0049), and a client delete cascades through 19 tables.",
-      "how": "Run in the same sitting as 0054. Apply db/migrations/0053_create_client_atomically.sql, then run db/tests/0053_create_client_atomically.test.sql WHOLE: nine verdict rows, every row PASS. Case 6 creates a refusing trigger on client_automations INSIDE an always-undone block; case 7 checks it is gone. Dry-run 22 Sep 2026 on a scratch PGlite (Postgres in WebAssembly) with a stub of automations, clients (rehearsal NOT NULL, 0007's unique index) and client_automations: before 0053, 1-6 and 8 FAIL, 7 and 9 PASS (as the file states); after, 9/9 PASS. Sabotage there: an unanswered rehearsal accepted (case 4 red), SECURITY DEFINER and EXECUTE for anon (case 1 red).",
+      "how": "Run in the same sitting as 0054. Apply db/migrations/0053_create_client_atomically.sql, then run db/tests/0053_create_client_atomically.test.sql WHOLE: nine verdict rows, every row PASS. Case 6 creates a refusing trigger on client_automations INSIDE an always-undone block; case 7 checks it is gone. Dry-run 22 Sep 2026 on a scratch PGlite (Postgres in WebAssembly) with a stub of automations, clients (rehearsal NOT NULL, 0007's unique index) and client_automations: before 0053, 1-6 and 8 FAIL, 7 and 9 PASS (as the file states); after, 9/9 PASS. Sabotage there: an unanswered rehearsal accepted (case 4 red), SECURITY DEFINER and EXECUTE for anon (case 1 red). RUN 22 Sep 2026: Manuel applied 0053 (Success, no rows) and ran the proof: 9/9 PASS. Confirmed read-only after: invoker rights, EXECUTE for service_role only, no proof client and no trace of case 6's trigger.",
       "watches": [
         "db/migrations/0053_create_client_atomically.sql",
         "db/tests/0053_create_client_atomically.test.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0053_create_client_atomically.sql": "128ff449627f3bf7dcca7480c11667e06503023a05df2889cfe0cd645ac42c1e",
+        "db/tests/0053_create_client_atomically.test.sql": "504f4e711bc531b267588c168fa8e6e6d1a8255267d1275ca3f4f00b9f9bfebb"
+      },
+      "last_proved": "2026-09-22",
+      "proved_by": "Manuel Vale"
     },
     {
       "id": "0054-onboarding-records",
       "what": "public.onboarding_records: what onboarding proved or did, with the day it happened (routing_proved, ai_disclosure_told). APPEND-ONLY (0050's shape: triggers refuse UPDATE/DELETE/TRUNCATE; service_role SELECT+INSERT only; corrections are new rows via supersedes_id, same client and step, each record corrected at most once: onboarding_records_one_correction_each, the 0050 lesson); client_id RESTRICT; RLS on. A routing proof must carry BOTH halves (the new client answered AND another, existing client still answered); a disclosure record must name who was told. The cockpit reads onboarding_records_current (security_invoker). WHY: brief §2.8, /onboarding checkpoint 2 (operator, 22 Sep 2026).",
-      "how": "Run in the same sitting as 0053. Apply db/migrations/0054_onboarding_records.sql, then run db/tests/0054_onboarding_records.test.sql WHOLE: twelve verdict rows, every row PASS. Dry-run 22 Sep 2026 on a scratch PGlite with the same stub: before 0054, 1-11 FAIL and 12 PASS; after, 12/12 PASS (after two fixes found there: the insert trigger no longer pre-empts the both-halves CHECK, and RESTRICT is 23001). Sabotage there: the both-halves CHECK removed (case 5 red), the append-only trigger removed (case 8 red), CASCADE instead of RESTRICT (case 10 red); the one-correction index removed or made non-unique (case 11 red); the index removed with the postcondition left in: 0054 refuses itself. Case 11 added 22 Sep 2026 at the operator's review.",
+      "how": "Run in the same sitting as 0053. Apply db/migrations/0054_onboarding_records.sql, then run db/tests/0054_onboarding_records.test.sql WHOLE: twelve verdict rows, every row PASS. Dry-run 22 Sep 2026 on a scratch PGlite with the same stub: before 0054, 1-11 FAIL and 12 PASS; after, 12/12 PASS (after two fixes found there: the insert trigger no longer pre-empts the both-halves CHECK, and RESTRICT is 23001). Sabotage there: the both-halves CHECK removed (case 5 red), the append-only trigger removed (case 8 red), CASCADE instead of RESTRICT (case 10 red); the one-correction index removed or made non-unique (case 11 red); the index removed with the postcondition left in: 0054 refuses itself. Case 11 added 22 Sep 2026 at the operator's review. RUN 22 Sep 2026: Manuel applied 0054 (Success, no rows) and ran the proof: 12/12 PASS. Case 10 was refused as 23503 on production (PGlite raised 23001; the case accepts either). Confirmed read-only after: RLS on, service_role INSERT+SELECT only, the one-correction index unique and partial, the three triggers, the view security_invoker, 0 rows.",
       "watches": [
         "db/migrations/0054_onboarding_records.sql",
         "db/tests/0054_onboarding_records.test.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0054_onboarding_records.sql": "290aa27052b854baa1c1a9bd60c17c1a977a138af56edcfbcac938ac51356c1f",
+        "db/tests/0054_onboarding_records.test.sql": "b651e63e4cac57d2d46c2c6f3d63fc1d09ac105b67429f8b507855c52416d0a0"
+      },
+      "last_proved": "2026-09-22",
+      "proved_by": "Manuel Vale"
     }
   ]
 }
