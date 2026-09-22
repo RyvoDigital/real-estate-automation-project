@@ -1,88 +1,58 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { admin } from '@/lib/supabase/admin'
 import { requireOperator } from '@/lib/auth'
-import { deriveThresholds, problemsWith, type Answers } from './thresholds'
+import { recordCalibration, type CalibrateDeps } from './calibrate-core'
 
 /**
- * Saving the calibration answers.
+ * Saving a calibration sitting. It parses the form and nothing more: every
+ * rule is in calibrate-core.ts, and the write is record_calibration (0056): the
+ * record and the engine's config in ONE transaction, or neither.
  *
- * ⚠️ IT WRITES THE DERIVED NUMBERS **AND** THE ANSWERS THEY CAME FROM.
+ * The recorder is the SESSION, never a form field; who at the agency answered
+ * is typed on the form, because only the person in the room knows.
  *
- * The engine reads the six values. The screen, six months later, has to show
- * the agency what they actually said — "you told us you'd stretch to
- * €2,100,000" — and a percentage cannot be turned back into that sentence
- * without the reference figure. Keeping only the derived numbers would mean the
- * agency could never recognise their own answer, which is the same failure as a
- * consent record that keeps our reading and discards their wording.
- *
- * Merged into the existing config rather than replacing it: `listing_ingest`
- * and `areas` live on the same row and are not ours to drop.
+ * The outcome goes back in the URL rather than as a thrown error: a refusal in
+ * front of an agent is a sentence on the screen, never an error page.
  */
-function num(v: FormDataEntryValue | null): number | null {
-  if (v === null) return null
-  const s = String(v).replace(/[^\d.,-]/g, '').replace(/\.(?=\d{3}\b)/g, '').replace(',', '.')
-  const n = Number(s)
-  return s !== '' && Number.isFinite(n) ? n : null
+const deps: CalibrateDeps = {
+  record: async (args) => {
+    const { data, error } = await admin().rpc('record_calibration', args)
+    return { data: (data as string | null) ?? null, error: error ? { code: error.code ?? null, message: error.message } : null }
+  },
 }
 
 export async function saveCalibrationAction(formData: FormData): Promise<void> {
   const who = await requireOperator()
-  const clientId = String(formData.get('clientId') ?? '')
-  if (!clientId) throw new Error('saveCalibration: no client')
-
-  /*
-   * AN UNANSWERED QUESTION IS NULL, NOT "NO".
-   *
-   * The select's empty option submits '', and `String('') === 'yes'` is false —
-   * so an unanswered question would have been recorded as the agency saying
-   * they would NOT show a smaller property, silently, and `problemsWith` would
-   * have found nothing to complain about. A missing answer must survive as
-   * missing all the way to the check that refuses it.
-   */
-  const raw = formData.get('showsOneFewerBedroom')
-  const bedrooms = raw === null || String(raw).trim() === '' ? null : String(raw)
-  const answers: Answers = {
-    budgetSaid: num(formData.get('budgetSaid')),
-    budgetMost: num(formData.get('budgetMost')),
-    budgetStretchMost: num(formData.get('budgetStretchMost')),
-    showsOneFewerBedroom: bedrooms === null ? null : bedrooms === 'yes',
-    ofHowMany: num(formData.get('ofHowMany')),
-    strongAtLeast: num(formData.get('strongAtLeast')),
-    possibleAtLeast: num(formData.get('possibleAtLeast')),
-    adjacency: String(formData.get('adjacency') ?? ''),
+  const text = (k: string) => {
+    const v = formData.get(k)
+    return typeof v === 'string' ? v : null
   }
+  const clientId = text('clientId') ?? ''
+  const back = `/calibrate/${clientId}`
 
-  const problems = problemsWith(answers)
-  if (problems.length > 0) {
-    // Shown, never swallowed. The screen re-renders with the fields named.
-    throw new Error(`calibration:${JSON.stringify(problems)}`)
+  const result = await recordCalibration({
+    calibrationId: text('calibrationId'),
+    clientId,
+    answeredBy: text('answeredBy'),
+    budgetSaid: text('budgetSaid'),
+    budgetMost: text('budgetMost'),
+    budgetStretchMost: text('budgetStretchMost'),
+    showsOneFewerBedroom: text('showsOneFewerBedroom'),
+    ofHowMany: text('ofHowMany'),
+    strongAtLeast: text('strongAtLeast'),
+    possibleAtLeast: text('possibleAtLeast'),
+    adjacency: text('adjacency'),
+  }, who.email, deps)
+
+  if (!result.ok && result.kind === 'problems') {
+    redirect(`${back}?campos=${encodeURIComponent(result.problems.map((p) => `${p.field}:${p.why}`).join(','))}`)
   }
-
-  const db = admin()
-  const { data: rows, error: readErr } = await db
-    .from('client_automations')
-    .select('id, config, automations!inner(key)')
-    .eq('client_id', clientId)
-  if (readErr) throw new Error(`saveCalibration: config read failed: ${readErr.message}`)
-  const typed = (rows ?? []) as unknown as { id: string; config: Record<string, unknown>; automations: { key: string } }[]
-  const row = typed.find((r) => r.automations?.key === 'lead_nurture')
-  if (!row) throw new Error('saveCalibration: this client has no lead_nurture automation row')
-
-  const config = {
-    ...row.config,
-    ...deriveThresholds(answers),
-    calibration: {
-      answers,
-      recorded_by: who?.email ?? null,
-      recorded_at: new Date().toISOString(),
-    },
-  }
-
-  const { error } = await db.from('client_automations').update({ config }).eq('id', row.id)
-  if (error) throw new Error(`saveCalibration: write failed: ${error.message}`)
-
-  revalidatePath(`/calibrate/${clientId}`)
+  if (!result.ok) redirect(`${back}?erro=${encodeURIComponent(result.reason)}`)
+  revalidatePath(back)
   revalidatePath('/listings')
+  if (result.alreadyRecorded) redirect(`${back}?jaGuardado=1`)
+  redirect(`${back}?guardado=1`)
 }

@@ -618,6 +618,18 @@
       },
       "last_proved": "2026-09-22",
       "proved_by": "Manuel Vale"
+    },
+    {
+      "id": "0056-calibration-records",
+      "what": "public.calibration_records: one row per calibration sitting (who at the agency answered, who recorded, when, the answers in the agent's units, the six thresholds). APPEND-ONLY (0050's shape: triggers refuse UPDATE/DELETE/TRUNCATE; service_role SELECT+INSERT only; RLS on); client_id RESTRICT; the answerer and recorder must differ; all six thresholds required; the id (minted when the form is drawn) is the primary key, so a resubmission is 23505 on calibration_records_pkey. record_calibration(): ONE transaction that locks the client's lead_nurture row, inserts the record and merges the thresholds and the calibration stamp into its config with || (no concurrent config write lost); no lead_nurture row is P0002. WHY: /calibrate checkpoint 1 (22 Sep 2026): the old action overwrote the previous sitting, could lose a concurrent config write, and kept only the operator.",
+      "how": "Apply db/migrations/0056_calibration_records.sql, then run db/tests/0056_calibration_records.test.sql WHOLE: ten verdict rows, every row PASS. Do NOT push the cockpit's calibrate change before this: the new action calls record_calibration. Dry-run 22 Sep 2026 on a scratch PGlite: before 0056, 1-9 FAIL and 10 PASS; after, 10/10 PASS, no row left. Sabotage there: the six-threshold CHECK removed (case 6 red); the config replaced instead of merged (case 2 red: listing_ingest lost); the answerer/recorder CHECK removed (case 5 red); CASCADE instead of RESTRICT (cases 1 and 9 red); the UPDATE/DELETE trigger removed (cases 1 and 8 red). The record/update order swapped stays green, as it must: the function is one transaction, so the order is not what protects the config.",
+      "watches": [
+        "db/migrations/0056_calibration_records.sql",
+        "db/tests/0056_calibration_records.test.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
     }
   ]
 }
