@@ -149,8 +149,16 @@ function bookingClaim(reply) {
     const t = deaccentClaim(s);
     if (CLAIM_CONDITIONAL_RX.test(t)) continue;
     for (const c of BOOKING_CLAIMS) {
-      const m = t.match(c.rx);
-      if (m) return m[0];
+      // Every occurrence, not the first: a negated one ("ainda nao temos uma
+      // reuniao marcada") must not hide an affirmed one later in the sentence.
+      for (const m of t.matchAll(new RegExp(c.rx.source, c.rx.flags.replace('g', '') + 'g'))) {
+        // A negation governing the claim makes it a denial (22 Sep 2026, the
+        // booking gate's run 8). Which words negate is src/time_guard.js's rule,
+        // tgNegatedBefore(), not a second list here: every node that embeds this
+        // file embeds time_guard.js too.
+        if (tgNegatedBefore(t.slice(0, m.index))) continue;
+        return m[0];
+      }
     }
   }
   return null;

@@ -81,22 +81,42 @@ const TG_DAY = '(?:(?:mon|tues|wednes|thurs|fri|satur|sun)day|(?:segunda|terca|q
 const TG_BRIDGE = '(?:(?:(?:on|this|next|na|no|nesta|neste|el|este)\\s+)?' + TG_DAY +
   '(?:\\s+(?:dia\\s+)?\\d{1,2}(?:\\s+(?:de\\s+)?[a-z]+)?)?\\s+)?' +
   '(?:(?:at|for|the|as|a|pelas|para as|a las|las|a la|para las)\\s+)?$';
+// The negation words themselves, one per language, with the forms that do NOT
+// negate what follows. Shared: the time guard's rule below and tgNegatedBefore()
+// (which src/booking_claim.js calls) read these three and no other list.
+// en. Not "why not", "if not", "or not", "whether not".
+const TG_NEG_EN = "(?<!\\b(?:why|if|or|whether)\\s)\\bnot";
+// pt. Not "porque não", "por que não", "se não", "ou não".
+const TG_NEG_PT = "(?<!\\b(?:porque|por que|se|ou)\\s)\\bnao";
+// es. Not "por qué no", "porque no", "si no", "o no".
+const TG_NEG_ES = "(?<!\\b(?:por que|porque|si|o)\\s)\\bno";
 // A negation that governs the time after it.
 const TG_NOT_BEFORE_RX = new RegExp('(?:' + [
-  // en. Not "why not", "if not", "or not", "whether not".
-  "(?<!\\b(?:why|if|or|whether)\\s)\\bnot",
+  TG_NEG_EN,
   "\\b(?:(?:don'?t|do not|doesn'?t|does not)\\s+have|have no|haven'?t got)(?:\\s+(?:an?|the|any))?",
   "\\b(?:can'?t|cannot|can not)\\s+(?:do|offer|make|book)",
-  // pt. Not "porque não", "por que não", "se não", "ou não".
-  "(?<!\\b(?:porque|por que|se|ou)\\s)\\bnao",
+  TG_NEG_PT,
   "\\bnao\\s+(?:consigo|conseguimos|posso|podemos)\\s+(?:fazer|oferecer|marcar|agendar)",
   "\\bnao\\s+(?:tenho|temos|ha)(?:\\s+(?:vaga|disponibilidade))?",
   // es. A bare "no" governs only through a preposition: "pero no a las 11:00".
-  // Not "por qué no", "porque no", "si no", "o no".
-  "(?<!\\b(?:por que|porque|si|o)\\s)\\bno(?=\\s+(?:(?:a las|las|para las|a la)\\s+$|(?:el\\s+)?" + TG_DAY + "))",
+  TG_NEG_ES + "(?=\\s+(?:(?:a las|las|para las|a la)\\s+$|(?:el\\s+)?" + TG_DAY + "))",
   "\\bno\\s+(?:puedo|podemos)\\s+(?:hacer|ofrecer|agendar|reservar)",
   "\\bno\\s+(?:tengo|tenemos|hay)(?:\\s+(?:hueco|disponibilidad))?",
 ].join('|') + ')\\s+' + TG_BRIDGE);
+// Does a negation govern whatever starts right after `before`? Deaccented,
+// lower-cased text. The negation must END the text, optionally followed by one
+// adverb: "ainda nao temos uma reuniao marcada" is negated at "temos"; "nao, temos
+// a reuniao marcada" is not (the comma ends the negation's reach), and neither is
+// "nao se preocupe, temos a reuniao marcada". Added 22 Sep 2026 for the claim
+// guard (src/booking_claim.js): "Ainda não temos uma reunião marcada, João. Posso
+// propor..." was read as a claim, both drafts rejected, the lead handed over
+// (the booking gate, run 8).
+const TG_NEGATED_BEFORE_RX = new RegExp('(?:' + [TG_NEG_EN, TG_NEG_PT, TG_NEG_ES].join('|') +
+  ')\\s+(?:(?:ainda|ja|aun|todavia|yet|still|really|actually)\\s+)?$');
+function tgNegatedBefore(before) {
+  return TG_NEGATED_BEFORE_RX.test(String(before == null ? '' : before));
+}
+
 // "except" and its kin. They decline the time only when the rest of the clause
 // is not about something UNAVAILABLE: "any time except 11:00" declines it,
 // "everything except 11:00 is taken" offers it.
@@ -141,15 +161,25 @@ const TG_DECLINE_RX = new RegExp([
   "\\bno (?:availability|slot|slots|opening|openings)\\b",
   "\\b(?:don'?t|do not) have (?:availability|anything|a slot|slots|that time|an opening)\\b",
   "\\b(?:can'?t|cannot) offer\\b",
+  // 22 Sep 2026: the slot another lead has just taken. TAKEN and GONE only, never
+  // "booked": a decline lets the lead's own time through, and "your meeting was
+  // just booked for 11:00" must never be read as one.
+  "\\b(?:was|were|has been|have been|got) (?:just )?taken\\b(?! care)", "\\bjust (?:been |got )?(?:taken|gone)\\b(?! care)",
+  "\\b(?:has|have) (?:just )?gone\\b",
   // pt. Same rule: "nao ha problema" is not a decline.
   "\\bnao (?:esta|estao|temos|tenho|ha|existe|existem|e|sera|fica|ficam)\\b[^.;]{0,25}?\\b(?:disponiv|disponibilidade|livre|possiv|vaga|aberto|opcao)",
   "\\bindisponive(?:l|is)\\b",
   "\\bja (?:esta|estao) (?:ocupad|preenchid|reservad)", "\\b(?:esta|estao) (?:ocupad|preenchid)",
   "\\bsem disponibilidade\\b", "\\bnao (?:consigo|conseguimos|posso|podemos) (?:oferecer|marcar|agendar|disponibilizar)",
+  // 22 Sep 2026: "ficou ocupado", "acabou de ser ocupado". Never "marcado": see en.
+  "\\b(?:ficou|ficaram|foi|foram) (?:entretanto |agora |ja )?(?:ocupad|preenchid)", "\\bacab(?:ou|aram) de (?:ser |ficar )?(?:ocupad|preenchid)",
   // es. "no hay problema" is not a decline.
   "\\bno (?:esta|estan|tenemos|tengo|hay|es|sera|queda|quedan)\\b[^.;]{0,25}?\\b(?:disponib|libre|posible|hueco|opcion)",
   "\\bya (?:esta|estan) (?:ocupad|reservad|complet)", "\\b(?:esta|estan) (?:ocupad|complet)",
   "\\bsin disponibilidad\\b", "\\bno (?:puedo|podemos) (?:ofrecer|agendar|reservar)",
+  // 22 Sep 2026, the booking gate's run 9: "Ese horario de las 16:00 se acaba de
+  // ocupar". Never "reservado": see en.
+  "\\bse (?:acaba|acaban) de ocupar\\b", "\\bacaba(?:n)? de (?:ser |quedar )?ocupad", "\\bse (?:ocupo|ocuparon)\\b", "\\b(?:quedo|quedaron) (?:ya )?ocupad",
 ].join('|'));
 
 // Contrast words and dashes end a clause. Deaccented text.

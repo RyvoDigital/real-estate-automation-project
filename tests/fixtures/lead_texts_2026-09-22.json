@@ -2732,6 +2732,18 @@
    "source": "fixture",
    "claim": false,
    "text": "Esa hora no está entre las disponibles por ahora, pero puedo ofrecerle el jueves 24 de septiembre a las 09:00 o a las 10:00, o el miércoles 23 de septiembre a las 09:00, hora de Lisboa. ¿Le viene bien alguna de estas?"
+  },
+  {
+   "source": "exec:GATE:5305 (first draft)",
+   "claim": false,
+   "text": "Ainda não temos uma reunião marcada, João. Posso propor uma primeira conversa com o nosso colega: quarta-feira dia 23 de setembro às 16:00, quinta-feira dia 24 de setembro às 09:00, ou sexta-feira dia 25 de setembro às 09:00, horário de Lisboa. Qual destas horas prefere?",
+   "why": "a DENIAL: \"Ainda não temos uma reunião marcada\". Rejected by the claim guard on 22 Sep, both drafts, the lead handed over (the booking gate, run 8)"
+  },
+  {
+   "source": "exec:GATE:5305 (guard retry)",
+   "claim": false,
+   "text": "Ainda não temos uma reunião marcada, João. Posso propor estes horários para uma primeira reunião com o nosso colega: quarta-feira, 23 de setembro às 16:00, quinta-feira, 24 de setembro às 09:00, ou sexta-feira, 25 de setembro às 09:00, hora de Lisboa. Qual destes lhe fica melhor?",
+   "why": "a DENIAL: \"Ainda não temos uma reunião marcada\". Rejected by the claim guard on 22 Sep, both drafts, the lead handed over (the booking gate, run 8)"
   }
  ]
 }

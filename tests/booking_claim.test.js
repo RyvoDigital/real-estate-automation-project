@@ -7,6 +7,10 @@ const fs = require('fs');
 const path = require('path');
 const SRC = process.env.BOOKING_CLAIM_SRC || path.join(__dirname, '..', 'src', 'booking_claim.js');
 eval(fs.readFileSync(SRC, 'utf8'));
+// bookingClaim() calls time_guard.js's tgNegatedBefore(): which words negate is
+// that file's rule, not a second list here (22 Sep 2026). Every node that embeds
+// booking_claim.js embeds time_guard.js too.
+eval(fs.readFileSync(process.env.TIME_GUARD_SRC || path.join(__dirname, '..', 'src', 'time_guard.js'), 'utf8'));
 
 let pass = 0, fail = 0;
 const chk = (n, c, d) => { c ? pass++ : fail++; console.log(`  [${c ? 'PASS' : 'FAIL'}] ${n}${d ? '  ' + d : ''}`); };
@@ -139,15 +143,32 @@ claims('en: a condition that is NOT the lead\'s still claims', "Once our colleag
 passes('pt: "ainda não ficou confirmado" is a negation', 'Ainda não ficou confirmado, João.');
 passes('en: "you\'re set to receive" is not a booking', "You're set to receive a call from our colleague about the listing.");
 
+console.log('\n2026-09-22, the booking gate run 8: a NEGATED claim is a denial (time_guard.js decides what negates)');
+// CAPTURED OUTPUT, word for word: both drafts of gate exec 5305. The guard read
+// "temos uma reuniao marcad" and rejected both; the lead was handed over.
+passes('pt: run 8, first draft (gate exec 5305)', "Ainda não temos uma reunião marcada, João. Posso propor uma primeira conversa com o nosso colega: quarta-feira dia 23 de setembro às 16:00, quinta-feira dia 24 de setembro às 09:00, ou sexta-feira dia 25 de setembro às 09:00, horário de Lisboa. Qual destas horas prefere?");
+passes('pt: run 8, guard retry (gate exec 5305)', "Ainda não temos uma reunião marcada, João. Posso propor estes horários para uma primeira reunião com o nosso colega: quarta-feira, 23 de setembro às 16:00, quinta-feira, 24 de setembro às 09:00, ou sexta-feira, 25 de setembro às 09:00, hora de Lisboa. Qual destes lhe fica melhor?");
+// The affirmative must still fire, and a negation that does not govern the claim changes nothing.
+claims('pt: "Já temos a reunião marcada" still fires', 'Já temos a reunião marcada para quinta-feira às 09:00.');
+claims('pt: "Temos a reunião marcada" still fires', 'Temos a reunião marcada para quinta às 09:00.');
+claims('pt: "Não, temos a reunião marcada" -- the comma ends the negation', 'Não, temos a reunião marcada para quinta às 09:00.');
+claims('pt: "Não se preocupe, temos a reunião marcada"', 'Não se preocupe, temos a reunião marcada para quinta às 09:00.');
+claims('pt: a denial, then a claim in the same sentence -> the claim', 'Ainda não temos uma reunião marcada para sexta, mas temos a reunião marcada para quinta às 09:00.');
+passes('pt: "Já não temos a reunião marcada" (no longer)', 'Já não temos a reunião marcada, João.');
+passes('en: "we do not yet have you booked for" style denial', "You're not booked for Thursday yet.");
+passes('es: "Todavía no tiene una cita"', 'Todavía no tiene una cita programada.');
+claims('es: "Ya tiene una cita" still fires', 'Ya tiene una cita el jueves a las 09:00.');
+claims('es: "Porque no, ya tiene una cita" -- "porque no" does not negate', 'Porque no hace falta: ya tiene una cita el jueves a las 09:00.');
+
 console.log('\nEVERY lead-facing text captured by 22 Sep (tests/fixtures/lead_texts_2026-09-22.json)');
-// 536 texts: 36 claims (25 confirmations, 2 restated held bookings, 9 phantoms or
-// discarded drafts) and 500 that claim nothing. Invariant 2's false-alarm and miss
+// 538 texts: 36 claims (25 confirmations, 2 restated held bookings, 9 phantoms or
+// discarded drafts) and 502 that claim nothing (the booking gate's run-8 drafts added). Invariant 2's false-alarm and miss
 // counts are these two numbers.
 {
   const fx = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'lead_texts_2026-09-22.json'), 'utf8')).texts;
   const misses = fx.filter(t => t.claim && bookingClaim(t.text) === null);
   const alarms = fx.filter(t => !t.claim && bookingClaim(t.text) !== null);
-  chk(`all ${fx.length} texts, ${fx.filter(t => t.claim).length} claims: 0 misses`, fx.length === 536 && misses.length === 0,
+  chk(`all ${fx.length} texts, ${fx.filter(t => t.claim).length} claims: 0 misses`, fx.length === 538 && misses.length === 0,
       misses.map(t => t.source + ': ' + t.text.slice(0, 70)).join(' | '));
   chk(`and 0 false alarms on the ${fx.filter(t => !t.claim).length} that claim nothing`, alarms.length === 0,
       alarms.map(t => t.source + ' [' + bookingClaim(t.text) + ']: ' + t.text.slice(0, 70)).join(' | '));

@@ -102,6 +102,19 @@ console.log('\ninvariant 1 -- declining the lead\'s own time is not naming one (
   chk('BROKEN: declining a time the lead never named -> fires', violated(other, '1'));
 }
 
+console.log('\ninvariant 1 -- the booking gate, run 9 (22 Sep): a "just taken" decline is not naming a time');
+{
+  // CAPTURED OUTPUT, word for word, in the turn's context: B asked for 16:00, A had
+  // just booked it, so 16:00 has left the stored offer. It fired critical on 21 Sep.
+  const S17 = { local: '2026-09-23T17:00:00.000+01:00', zone: 'Europe/Lisbon' }, S18 = { local: '2026-09-23T18:00:00.000+01:00', zone: 'Europe/Lisbon' }, T09 = { local: '2026-09-24T09:00:00.000+01:00', zone: 'Europe/Lisbon' };
+  const r9 = run({ textSent: "¡Vaya, lo siento mucho! Ese horario de las 16:00 se acaba de ocupar. Puedo ofrecerte el miércoles 23 de septiembre a las 17:00, a las 18:00, o el jueves 24 de septiembre a las 09:00, hora de Lisboa. ¿Cuál te viene bien?", leadText: 'El miércoles a las 16:00, por favor',
+                   bookingIntent: 'taken', row: { qualification: { proposed_slots: { at: '2026-09-21T23:22:00.000Z', slots: [S17, S18, T09] } } } });
+  chk('PASS (run 9): "Ese horario de las 16:00 se acaba de ocupar" -> invariant 1 holds', !violated(r9, '1'), JSON.stringify(r9.detail['1']));
+  const conf = run({ textSent: 'Perfecto, la cita quedó reservada a las 16:00.', leadText: 'El miércoles a las 16:00, por favor',
+                     row: { qualification: { proposed_slots: { at: '2026-09-21T23:22:00.000Z', slots: [S17, S18, T09] } } } });
+  chk('BROKEN: CONFIRMING the unoffered 16:00 still fires', violated(conf, '1'));
+}
+
 console.log('\ninvariant 2 -- a booking confirmed in the text has an event behind it');
 {
   const claim = run({ textSent: 'Já tem uma reunião marcada para terça-feira às 15:00.', row: { qualification: { proposed_slots: OFFER } } });

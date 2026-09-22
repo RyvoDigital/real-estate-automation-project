@@ -156,5 +156,25 @@ console.log('\n🔒 KNOWN GAP, recorded rather than hidden: the guard compares T
 passes('KNOWN GAP: 11:00 offered on some day lets "Thursday at 11:00" through',
   'Thursday?', 'Thursday at 11:00 works.', [{ timeLocal: '11:00', dateLocal: '2026-09-22' }]);
 
+console.log('\n2026-09-22, the booking gate: the slot another lead has JUST TAKEN is a decline');
+// CAPTURED OUTPUT, word for word: the booking gate's run 9 (lead B asked for the
+// 16:00 lead A had just booked). Invariant 1 fired, critical: "se acaba de ocupar"
+// was not in the decline list and 16:00 had left the stored offer.
+{
+  const AFTER = [{ timeLocal: '17:00' }, { timeLocal: '18:00' }, { timeLocal: '09:00' }];
+  passes('es: run 9, "Ese horario de las 16:00 se acaba de ocupar" (CAPTURED)', 'El miércoles a las 16:00, por favor', "¡Vaya, lo siento mucho! Ese horario de las 16:00 se acaba de ocupar. Puedo ofrecerte el miércoles 23 de septiembre a las 17:00, a las 18:00, o el jueves 24 de septiembre a las 09:00, hora de Lisboa. ¿Cuál te viene bien?", AFTER);
+  passes('en: "that 16:00 slot was just taken"', 'Wednesday at 16:00 please', 'Sorry, that 16:00 slot was just taken. I can offer 17:00 or 18:00 instead.', AFTER);
+  passes('en: "16:00 has just gone"', 'Wednesday at 16:00 please', 'Ah, 16:00 has just gone, I am afraid. Would 17:00 work?', AFTER);
+  passes('pt: "as 16:00 ficaram ocupadas"', 'quarta às 16:00', 'Lamento, as 16:00 ficaram entretanto ocupadas. Posso oferecer as 17:00 ou as 18:00.', AFTER);
+  passes('pt: "esse horário das 16:00 acabou de ser ocupado"', 'quarta às 16:00', 'Peço desculpa, esse horário das 16:00 acabou de ser ocupado. Temos as 17:00 ou as 18:00.', AFTER);
+  // The dangerous direction: none of the new phrases may excuse a CONFIRMATION of
+  // the lead's unoffered time. "Booked", "marcado", "reservado" are deliberately absent.
+  rejects('en: "your meeting was just booked for 11:00" still rejects', '11:00?', 'Great news, your meeting was just booked for 11:00.', CHECK2, ['11:00']);
+  rejects('pt: "a reunião foi marcada para as 11:00" still rejects', '11:00?', 'Ótimo, a reunião foi marcada para as 11:00.', CHECK2, ['11:00']);
+  rejects('es: "la cita quedó reservada a las 11:00" still rejects', '11:00?', 'Perfecto, la cita quedó reservada a las 11:00.', CHECK2, ['11:00']);
+  rejects('en: "11:00 is taken care of" still rejects', '11:00?', 'Done, 11:00 has been taken care of for you.', CHECK2, ['11:00']);
+  rejects('es: a time the lead never named is still rejected', 'El miércoles a las 16:00, por favor', 'Ese horario de las 16:00 se acaba de ocupar, pero las 12:00 están libres.', AFTER, ['12:00']);
+}
+
 console.log(`\n  ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
