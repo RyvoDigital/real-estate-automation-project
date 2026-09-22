@@ -35,8 +35,14 @@
 --     lead_nurture row, inserts the record, and merges the thresholds and the
 --     calibration stamp into its config with `||` — one statement under the
 --     row lock, so no concurrent config write is lost, and the record and the
---     numbers the engine reads cannot disagree. A client with no lead_nurture
---     row is refused by name (P0002): nothing is created for it here.
+--     numbers the engine reads cannot disagree.
+--   * 🔴 A CLIENT WITH NO lead_nurture ROW GETS ONE, DISABLED (operator,
+--     22 Sep 2026). /onboarding creates only the Concierge's row, so without
+--     this no onboarded client could ever be calibrated. The row is created in
+--     the same transaction with enabled = FALSE, stated explicitly, because the
+--     column's default is TRUE. Calibrating records what the agency answered;
+--     it never switches an automation on, and an existing row's `enabled` is
+--     never written at all. Switching nurture on stays a separate, explicit act.
 --
 -- The config keeps what readers already use: the six threshold keys (the engine,
 -- lib/matching/run.ts) and calibration.recorded_at (lib/onboarding-read.ts). It
@@ -44,7 +50,9 @@
 --
 -- Checked read-only before writing (22 Sep 2026): no client_automations config
 -- carries a calibration or a threshold yet, so there is nothing to backfill.
--- 3 clients, all rehearsals; 2 have a lead_nurture row.
+-- 3 clients, all rehearsals; 2 have a lead_nurture row. client_automations has
+-- UNIQUE (client_id, automation_id), which the create-if-absent relies on, and
+-- its `enabled` defaults to true, which is why the insert states false.
 
 begin;
 
@@ -114,6 +122,7 @@ security invoker
 set search_path = public, pg_temp
 as $$
 declare
+  v_automation uuid;
   v_row uuid;
   v_at timestamptz;
 begin
@@ -121,15 +130,28 @@ begin
     raise exception using errcode = '22023', message = 'record_calibration: the calibration id and the client are required';
   end if;
 
+  select id into v_automation from public.automations where key = 'lead_nurture';
+  if v_automation is null then
+    raise exception using errcode = 'P0002',
+      message = 'record_calibration: lead_nurture is not in the automation catalogue, so there is nothing to calibrate. Nothing was recorded.';
+  end if;
+
+  -- 🔴 The row, created DISABLED if the client has none. `enabled` is stated
+  -- because its default is true; an existing row is left exactly as it is.
+  insert into public.client_automations (client_id, automation_id, enabled, config)
+  values (p_client_id, v_automation, false, '{}'::jsonb)
+  on conflict (client_id, automation_id) do nothing;
+
   -- Lock the row the engine reads, so nothing else writes its config until this commits.
   select ca.id into v_row
     from public.client_automations ca
-    join public.automations a on a.id = ca.automation_id
-   where ca.client_id = p_client_id and a.key = 'lead_nurture'
-   for update of ca;
+   where ca.client_id = p_client_id and ca.automation_id = v_automation
+   for update;
   if v_row is null then
+    -- Unreachable after the insert above, unless the row was removed in between. Refuse rather than
+    -- record a sitting whose numbers would reach no config: the record and the projection, or neither.
     raise exception using errcode = 'P0002',
-      message = 'record_calibration: this client has no lead_nurture automation row, so there is nothing to calibrate. Nothing was recorded.';
+      message = 'record_calibration: the lead_nurture row could not be found or created. Nothing was recorded.';
   end if;
 
   -- The record: a resubmitted form is refused here (23505, calibration_records_pkey). The function is one
@@ -138,7 +160,8 @@ begin
   values (p_calibration_id, p_client_id, trim(p_answered_by), trim(p_recorded_by), p_answers, p_thresholds)
   returning recorded_at into v_at;
 
-  -- Then the numbers the engine reads, merged in ONE statement under the lock: every other key survives.
+  -- Then the numbers the engine reads, merged in ONE statement under the lock: every other key survives,
+  -- and `enabled` is not in this statement at all.
   update public.client_automations
      set config = coalesce(config, '{}'::jsonb) || p_thresholds || jsonb_build_object('calibration', jsonb_build_object(
            'calibration_id', p_calibration_id,

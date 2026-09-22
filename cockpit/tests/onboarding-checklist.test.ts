@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { checklistFor, type ChecklistInputs } from '../src/lib/onboarding-checklist'
+import { readFileSync } from 'node:fs'
+import { checklistFor, nurtureSoldFrom, type ChecklistInputs } from '../src/lib/onboarding-checklist'
 
 /* Brief §2.8: no "onboarded" state while anything is outstanding; the two agency
    conversations are named when outstanding; a fact that could not be read is
@@ -12,6 +13,7 @@ const base = (over: Partial<ChecklistInputs> = {}): ChecklistInputs => ({
   records: [],
   declaredOn: null,
   calibratedOn: null,
+  nurtureSold: true,
   clientNames: new Map([[OTHER, 'Ryvo Test Client']]),
   ...over,
 })
@@ -90,4 +92,51 @@ test('the two agency conversations link out; the proofs and the disclosure are r
 test('a rehearsal says so on its first step', () => {
   const s = checklistFor(base({ client: { id: 'c1', name: 'ZZ Demo', rehearsal: true, createdOn: '2026-09-22' } })).steps[0]
   assert.match(s.line, /rehearsal/)
+})
+
+// ── the calibration applies only where automation 03 was sold (operator, 22 Sep 2026) ──
+
+const done = { records: [routing, told], declaredOn: '2026-09-24', calibratedOn: null }
+
+test('🔴 a Concierge-only client is never shown the calibration as outstanding, and can be onboarded without it', () => {
+  const c = checklistFor(base({ ...done, nurtureSold: false }))
+  const cal = c.steps.find((s) => s.key === 'calibration')!
+  assert.equal(cal.state, 'not_applicable')
+  assert.equal(cal.href, null, 'no link to calibrate something that was not sold')
+  assert.ok(!c.outstanding.some((s) => s.key === 'calibration'))
+  assert.ok(!c.unknown.some((s) => s.key === 'calibration'))
+  assert.equal(c.onboarded, true)
+})
+
+test('where nurture WAS sold, an uncalibrated client is outstanding exactly as before', () => {
+  const c = checklistFor(base({ ...done, nurtureSold: true }))
+  assert.deepEqual(c.outstanding.map((s) => s.key), ['calibration'])
+  assert.equal(c.onboarded, false)
+})
+
+test('🔒 no contract in force, or contracts unread: unknown, never outstanding and never "not sold"', () => {
+  for (const nurtureSold of [null, undefined]) {
+    const c = checklistFor(base({ ...done, nurtureSold }))
+    const cal = c.steps.find((s) => s.key === 'calibration')!
+    assert.equal(cal.state, 'unknown', `nurtureSold=${nurtureSold}`)
+    assert.equal(c.onboarded, false, 'a client is not onboarded on no evidence of what was sold')
+  }
+  assert.match(checklistFor(base({ ...done, nurtureSold: null })).steps[4].line, /No contract is recorded/)
+  assert.match(checklistFor(base({ ...done, nurtureSold: undefined })).steps[4].line, /could not be read/)
+})
+
+test('🔴 "sold" comes from the contract in force, never from an automation row existing', () => {
+  const today = '2026-09-22'
+  assert.equal(nurtureSoldFrom([{ automations: ['inbound_concierge', 'lead_nurture'], endsOn: null }], today), true)
+  assert.equal(nurtureSoldFrom([{ automations: ['inbound_concierge'], endsOn: null }], today), false)
+  assert.equal(nurtureSoldFrom([], today), null, 'no contract: not known, not "not sold"')
+  assert.equal(nurtureSoldFrom([{ automations: ['lead_nurture'], endsOn: '2026-09-01' }], today), null, 'an ended contract is not in force')
+  assert.equal(nurtureSoldFrom([{ automations: ['lead_nurture'], endsOn: '2026-09-22' }], today), true, 'in force through its last day')
+  assert.equal(nurtureSoldFrom([{ automations: ['lead_nurture'], endsOn: '2026-09-01' }, { automations: ['inbound_concierge'], endsOn: null }], today), false,
+    'nurture sold once and ended, Concierge still running: not sold now')
+  // The read never looks at client_automations for this: 0056 creates that row disabled at a first calibration.
+  const read = readFileSync(new URL('../src/lib/onboarding-read.ts', import.meta.url), 'utf8')
+  const fn = read.slice(read.indexOf('async function readContracts'), read.indexOf('export type OnboardingIndex'))
+  assert.match(fn, /from\('client_contracts_uncorrected'\)/)
+  assert.doesNotMatch(fn, /client_automations/)
 })

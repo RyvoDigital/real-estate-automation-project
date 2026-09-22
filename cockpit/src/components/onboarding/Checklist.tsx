@@ -23,6 +23,7 @@ const KIND: Record<Step['kind'], string> = {
 function Chip({ state }: { state: Step['state'] }) {
   if (state === 'done') return <StateChip meaning="through">done</StateChip>
   if (state === 'unknown') return <StateChip meaning="grey">not known</StateChip>
+  if (state === 'not_applicable') return <StateChip meaning="grey">not sold</StateChip>
   return <StateChip meaning="grey">outstanding</StateChip>
 }
 

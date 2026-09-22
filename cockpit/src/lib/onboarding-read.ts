@@ -2,7 +2,7 @@ import 'server-only'
 import { admin } from '@/lib/supabase/admin'
 import { gateClientIds } from '@/lib/gate-clients'
 import { lisbonToday } from '@/lib/month/model'
-import { checklistFor, type Checklist, type ChecklistInputs } from '@/lib/onboarding-checklist'
+import { checklistFor, nurtureSoldFrom, type Checklist, type ChecklistInputs, type ContractFact } from '@/lib/onboarding-checklist'
 
 /*
  * The reads behind /onboarding (checkpoint 2). Each source fails on its own:
@@ -11,7 +11,9 @@ import { checklistFor, type Checklist, type ChecklistInputs } from '@/lib/onboar
  *
  *   🔒 Narrow columns. consent_events: client_id and occurred_at of kind
  *      'declared' only, never a phone or a wording. client_automations: the
- *      calibration stamp only.
+ *      calibration stamp only. Contracts: from client_contracts_uncorrected (the
+ *      view The Month reads, corrections already dropped), the client, what it
+ *      covers and when it ends, never a fee.
  *   🔒 The deploy gate's test clients (config.gate_only) are left out of the
  *      list and out of the routing proof's choices: the gate client's number is
  *      not a real inbound route.
@@ -62,6 +64,19 @@ async function readCalibrated(ids: string[]): Promise<Map<string, string> | null
   return m
 }
 
+/** What each client was sold, from its contracts (never from an automation row existing). */
+async function readContracts(ids: string[]): Promise<Map<string, ContractFact[]> | null> {
+  if (!ids.length) return new Map()
+  const { data, error } = await admin().from('client_contracts_uncorrected')
+    .select('automation_client_id, automations, ends_on').in('automation_client_id', ids)
+  if (error) return null
+  const m = new Map<string, ContractFact[]>(ids.map((id) => [id, []]))
+  for (const r of (data ?? []) as { automation_client_id: string; automations: string[] | null; ends_on: string | null }[]) {
+    m.get(r.automation_client_id)?.push({ automations: r.automations, endsOn: r.ends_on })
+  }
+  return m
+}
+
 export type OnboardingIndex = {
   clients: { client: ClientRow; checklist: Checklist }[] | null
   failure: string | null
@@ -75,12 +90,13 @@ async function readClients(): Promise<{ rows: ClientRow[] | null; gate: string[]
 }
 
 function inputsFor(c: ClientRow, records: Awaited<ReturnType<typeof readRecords>>, declared: Map<string, string> | null,
-                   calibrated: Map<string, string> | null, names: Map<string, string>): ChecklistInputs {
+                   calibrated: Map<string, string> | null, contracts: Map<string, ContractFact[]> | null, names: Map<string, string>): ChecklistInputs {
   return {
     client: { id: c.id, name: c.name, rehearsal: c.rehearsal, createdOn: lisbonToday(new Date(c.created_at)) },
     records: records === null ? null : records === 'not_migrated' ? 'not_migrated' : (records.get(c.id) ?? []),
     declaredOn: declared === null ? undefined : (declared.get(c.id) ?? null),
     calibratedOn: calibrated === null ? undefined : (calibrated.get(c.id) ?? null),
+    nurtureSold: contracts === null ? undefined : nurtureSoldFrom(contracts.get(c.id) ?? [], lisbonToday(new Date())),
     clientNames: names,
   }
 }
@@ -91,8 +107,8 @@ export async function readOnboardingIndex(): Promise<OnboardingIndex> {
   if (!rows) return { clients: null, failure: 'The clients could not be read.' }
   const ids = rows.map((c) => c.id)
   const names = new Map(rows.map((c) => [c.id, c.name]))
-  const [records, declared, calibrated] = await Promise.all([readRecords(ids), readDeclared(ids), readCalibrated(ids)])
-  return { clients: rows.map((c) => ({ client: c, checklist: checklistFor(inputsFor(c, records, declared, calibrated, names)) })), failure: null }
+  const [records, declared, calibrated, contracts] = await Promise.all([readRecords(ids), readDeclared(ids), readCalibrated(ids), readContracts(ids)])
+  return { clients: rows.map((c) => ({ client: c, checklist: checklistFor(inputsFor(c, records, declared, calibrated, contracts, names)) })), failure: null }
 }
 
 export type OnboardingOne = {
@@ -110,10 +126,10 @@ export async function readOnboardingOne(clientId: string): Promise<OnboardingOne
   const client = rows?.find((c) => c.id === clientId)
   if (!rows || !client) return null
   const names = new Map(rows.map((c) => [c.id, c.name]))
-  const [records, declared, calibrated] = await Promise.all([readRecords([clientId]), readDeclared([clientId]), readCalibrated([clientId])])
+  const [records, declared, calibrated, contracts] = await Promise.all([readRecords([clientId]), readDeclared([clientId]), readCalibrated([clientId]), readContracts([clientId])])
   return {
     client,
-    checklist: checklistFor(inputsFor(client, records, declared, calibrated, names)),
+    checklist: checklistFor(inputsFor(client, records, declared, calibrated, contracts, names)),
     others: rows.filter((c) => c.id !== clientId).map((c) => ({ id: c.id, name: c.name })),
     // Only a missing relation means 0054 is not applied; a failed READ says nothing
     // about whether a write would work, so it does not block recording.

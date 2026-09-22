@@ -51,7 +51,7 @@ const B = '00000000-0000-0000-0000-0000000000b1'
 const NAMES = new Map([[B, 'Casa Atlântica']])
 const inputs = (over: Partial<ChecklistInputs>): ChecklistInputs => ({
   client: { id: 'c-new', name: 'Marbella Sur', rehearsal: false, createdOn: '2026-09-22' },
-  records: [], declaredOn: null, calibratedOn: null, clientNames: NAMES, ...over,
+  records: [], declaredOn: null, calibratedOn: null, nurtureSold: true, clientNames: NAMES, ...over,
 })
 const ROUTING = { step: 'routing_proved' as const, happenedOn: '2026-09-22', recordedBy: 'manuel@ryvodigital.com', detail: { new_client_answered: true, existing_client_answered: true, existing_client_id: B } }
 const TOLD = { step: 'ai_disclosure_told' as const, happenedOn: '2026-09-22', recordedBy: 'manuel@ryvodigital.com', detail: { told: 'Lucía Ortega, the owner' } }

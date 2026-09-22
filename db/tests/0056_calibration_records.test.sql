@@ -1,23 +1,28 @@
 -- Proof for 0056. Run in the Supabase SQL editor WHOLE, after applying 0056.
 -- Every case writes inside a block that raises ZZ056 to undo it, so nothing it
--- writes survives (case 10 checks). The verdict lives in a temp table, which the
+-- writes survives (case 11 checks). The verdict lives in a temp table, which the
 -- undo does not touch.
 --
 -- Expected AFTER 0056: every row PASS.
--- Expected BEFORE 0056: 1-9 FAIL (no table, no function), 10 PASS.
+-- Expected BEFORE 0056: 1-10 FAIL (no table, no function), 11 PASS.
 
 drop table if exists pg_temp.v0056;
 create temp table v0056 (n int primary key, verdict text not null, reason text not null);
 
--- Two fixture clients: one with a lead_nurture row whose config already holds a
--- key that is not ours (it must survive), one with no lead_nurture row at all.
+-- Three fixture clients: 1 has a DISABLED lead_nurture row whose config holds a
+-- key that is not ours (it must survive); 2 has no lead_nurture row at all
+-- (a Concierge-only client, as /onboarding creates one); 3 has an ENABLED row.
 create or replace function pg_temp.f0056_fixtures() returns void language plpgsql as $$
 begin
   insert into public.clients (id, name, whatsapp_number, rehearsal) values
     ('00000000-0000-0000-0000-000000056001', 'proof 0056', '+351900056001', true),
-    ('00000000-0000-0000-0000-000000056002', 'proof 0056 no nurture', '+351900056002', true);
+    ('00000000-0000-0000-0000-000000056002', 'proof 0056 no nurture', '+351900056002', true),
+    ('00000000-0000-0000-0000-000000056003', 'proof 0056 enabled', '+351900056003', true);
   insert into public.client_automations (client_id, automation_id, enabled, config)
   select '00000000-0000-0000-0000-000000056001', id, false, '{"listing_ingest":{"kept":true}}'::jsonb
+    from public.automations where key = 'lead_nurture';
+  insert into public.client_automations (client_id, automation_id, enabled, config)
+  select '00000000-0000-0000-0000-000000056003', id, true, '{}'::jsonb
     from public.automations where key = 'lead_nurture';
 end $$;
 
@@ -191,29 +196,53 @@ begin
   insert into v0056 values (6, v, why);
 end $$;
 
--- ══ CASE 7 — a client with no lead_nurture row is refused by name ═══════════
+-- ══ 🔴 CASE 7 — a client with NO lead_nurture row is calibrated, and the row it gets is DISABLED ═
 do $$
-declare v text := 'FAIL'; why text := 'did not reach a verdict'; n int;
+declare v text := 'FAIL'; why text := 'did not reach a verdict'; n int; en boolean; cfg jsonb; rows int;
 begin
   begin
     perform pg_temp.f0056_fixtures();
-    begin
-      perform pg_temp.f0056_record('56565656-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000056002', 'Marta Soares', 'proof 0056', 0.05);
-      v := 'FAIL'; why := 'ACCEPTED a calibration for a client with nothing to calibrate';
-    exception when sqlstate 'P0002' then
-      select count(*) into n from public.calibration_records where client_id = '00000000-0000-0000-0000-000000056002';
-      if n = 0 and sqlerrm like '%no lead_nurture automation row%' then v := 'PASS'; why := 'refused P0002, naming the missing row; nothing recorded';
-      else v := 'FAIL'; why := 'refused, but records=' || n || ': ' || sqlerrm; end if;
-    end;
+    perform pg_temp.f0056_record('56565656-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000056002', 'Marta Soares', 'proof 0056', 0.05);
+    select count(*) into n from public.calibration_records where client_id = '00000000-0000-0000-0000-000000056002';
+    select count(*), bool_or(ca.enabled), max(ca.config::text)::jsonb into rows, en, cfg
+      from public.client_automations ca join public.automations a on a.id = ca.automation_id
+     where ca.client_id = '00000000-0000-0000-0000-000000056002' and a.key = 'lead_nurture';
+    if n = 1 and rows = 1 and en = false and (cfg ->> 'budget_stretch')::numeric = 0.05 then
+      v := 'PASS'; why := 'recorded; the lead_nurture row now exists, DISABLED, carrying the thresholds';
+    else
+      v := 'FAIL'; why := 'records=' || n || ' rows=' || rows || ' enabled=' || coalesce(en::text, 'null') || ' config=' || left(coalesce(cfg::text, 'null'), 100);
+    end if;
+    raise exception using errcode = 'ZZ056', message = 'undo';
+  exception
+    when sqlstate 'ZZ056' then null;
+    when others then v := 'FAIL'; why := 'calibrating a client with no row was REFUSED: ' || sqlerrm;
+  end;
+  insert into v0056 values (7, v, why);
+end $$;
+
+-- ══ 🔴 CASE 8 — an existing row keeps its `enabled`, whatever it is ════════
+do $$
+declare v text := 'FAIL'; why text := 'did not reach a verdict'; e1 boolean; e3 boolean;
+begin
+  begin
+    perform pg_temp.f0056_fixtures();
+    perform pg_temp.f0056_record('56565656-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000056001', 'Marta Soares', 'proof 0056', 0.05);
+    perform pg_temp.f0056_record('56565656-0000-0000-0000-000000000007', '00000000-0000-0000-0000-000000056003', 'Marta Soares', 'proof 0056', 0.05);
+    select ca.enabled into e1 from public.client_automations ca join public.automations a on a.id = ca.automation_id
+     where ca.client_id = '00000000-0000-0000-0000-000000056001' and a.key = 'lead_nurture';
+    select ca.enabled into e3 from public.client_automations ca join public.automations a on a.id = ca.automation_id
+     where ca.client_id = '00000000-0000-0000-0000-000000056003' and a.key = 'lead_nurture';
+    if e1 = false and e3 = true then v := 'PASS'; why := 'the disabled row stayed disabled and the enabled row stayed enabled';
+    else v := 'FAIL'; why := 'enabled after calibrating: disabled row=' || coalesce(e1::text, 'null') || ', enabled row=' || coalesce(e3::text, 'null'); end if;
     raise exception using errcode = 'ZZ056', message = 'undo';
   exception
     when sqlstate 'ZZ056' then null;
     when others then v := 'FAIL'; why := 'the case itself errored: ' || sqlerrm;
   end;
-  insert into v0056 values (7, v, why);
+  insert into v0056 values (8, v, why);
 end $$;
 
--- ══ CASE 8 — append-only: a recorded sitting cannot be edited or deleted ════
+-- ══ CASE 9 — append-only: a recorded sitting cannot be edited or deleted ════
 do $$
 declare v text := 'PASS'; why text := 'UPDATE and DELETE were both refused';
 begin
@@ -235,10 +264,10 @@ begin
     when sqlstate 'ZZ056' then null;
     when others then v := 'FAIL'; why := 'the case itself errored: ' || sqlerrm;
   end;
-  insert into v0056 values (8, v, why);
+  insert into v0056 values (9, v, why);
 end $$;
 
--- ══ CASE 9 — RESTRICT: a client with a calibration cannot be deleted ════════
+-- ══ CASE 10 — RESTRICT: a client with a calibration cannot be deleted ════════
 do $$
 declare v text := 'FAIL'; why text := 'did not reach a verdict';
 begin
@@ -256,10 +285,10 @@ begin
     when sqlstate 'ZZ056' then null;
     when others then v := 'FAIL'; why := 'the case itself errored: ' || sqlerrm;
   end;
-  insert into v0056 values (9, v, why);
+  insert into v0056 values (10, v, why);
 end $$;
 
--- ══ CASE 10 — no fixture survived ══════════════════════════════════════════
+-- ══ CASE 11 — no fixture survived ══════════════════════════════════════════
 do $$
 declare n int;
 begin
@@ -267,11 +296,11 @@ begin
   if to_regclass('public.calibration_records') is not null then
     execute 'select $1 + count(*) from public.calibration_records where recorded_by = ''proof 0056''' into n using n;
   end if;
-  insert into v0056 values (10, case when n = 0 then 'PASS' else 'FAIL' end,
+  insert into v0056 values (11, case when n = 0 then 'PASS' else 'FAIL' end,
     case when n = 0 then 'no 0056 fixture row exists'
          else n || ' fixture row(s) SURVIVED in production; tell Manuel before touching them' end);
 exception when others then
-  insert into v0056 values (10, 'FAIL', 'the case itself errored: ' || sqlerrm);
+  insert into v0056 values (11, 'FAIL', 'the case itself errored: ' || sqlerrm);
 end $$;
 
 -- ══ THE VERDICT — the only output that matters ════════════════════════════
@@ -286,10 +315,11 @@ select c.n as "case", c.what,
     (4,  '🔴 a second sitting is new; the first is kept',                'FAIL'),
     (5,  'the agency answers, we record',                                'FAIL'),
     (6,  '🔴 a missing threshold: refused, config untouched',            'FAIL'),
-    (7,  'no lead_nurture row: refused by name',                         'FAIL'),
-    (8,  'append-only: UPDATE and DELETE refused',                       'FAIL'),
-    (9,  'RESTRICT: a calibrated client cannot be deleted',              'FAIL'),
-    (10, 'no fixture survived',                                          'PASS')
+    (7,  '🔴 no lead_nurture row: calibrated, the row created DISABLED', 'FAIL'),
+    (8,  '🔴 an existing row keeps its enabled value',                  'FAIL'),
+    (9,  'append-only: UPDATE and DELETE refused',                       'FAIL'),
+    (10, 'RESTRICT: a calibrated client cannot be deleted',              'FAIL'),
+    (11, 'no fixture survived',                                          'PASS')
   ) as c(n, what, before_0056)
   left join v0056 r using (n)
  order by c.n;

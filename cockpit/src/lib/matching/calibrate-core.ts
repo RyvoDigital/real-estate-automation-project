@@ -62,8 +62,9 @@ export const SAME_PERSON =
   'The person answering and the person recording are the same name. The agency answers and we record; the record has to keep them apart. Nothing was recorded.'
 export const NO_ID =
   'This form has no calibration id, so a resubmission could not be told from a new sitting. Nothing was recorded: reload the screen.'
+/** 0056 creates a missing nurture row (disabled) itself, so this is only a catalogue without nurture in it. */
 export const NO_NURTURE =
-  'This client has no automation to calibrate yet (no nurture row), so there is nothing these answers could set. Nothing was recorded.'
+  'The follow-up automation is not in the catalogue, so there is nothing these answers could set. Nothing was recorded.'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 

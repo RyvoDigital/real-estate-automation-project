@@ -15,10 +15,19 @@
  *   🔒 The declaration and the calibration are the AGENCY's assertions, made in
  *      their name on their own screens. Here they are only read and linked to,
  *      never recorded (brief §2.8, "Cannot do").
+ *   🔒 THE CALIBRATION APPLIES ONLY WHERE AUTOMATION 03 WAS SOLD (operator,
+ *      22 Sep 2026). "Sold" is read from the CONTRACT, never from an automation
+ *      row existing (0056 creates that row disabled at a first calibration):
+ *      a contract in force (not corrected, not ended by today) whose
+ *      `automations` includes lead_nurture. `nurtureSoldFrom` below decides it.
+ *        sold                          the step applies: done or outstanding
+ *        a contract, nurture not in it  not applicable: never outstanding
+ *        no contract in force           unknown: what was sold is not recorded
+ *        the contracts unread           unknown
  */
 
 export type StepKey = 'agency' | 'routing' | 'disclosure' | 'declaration' | 'calibration'
-export type StepState = 'done' | 'outstanding' | 'unknown'
+export type StepState = 'done' | 'outstanding' | 'unknown' | 'not_applicable'
 
 export type Step = {
   key: StepKey
@@ -42,6 +51,8 @@ export type ChecklistInputs = {
   declaredOn: string | null | undefined
   /** the day the calibration was recorded; null = none; undefined = the read failed */
   calibratedOn: string | null | undefined
+  /** from the contract (nurtureSoldFrom): true sold; false a contract without it; null no contract in force; undefined the read failed */
+  nurtureSold: boolean | null | undefined
   /** names for the routing proof's other half */
   clientNames: Map<string, string>
 }
@@ -55,6 +66,44 @@ export type Checklist = {
 }
 
 const one = <T,>(xs: T[]): T | null => xs[xs.length - 1] ?? null
+
+/** One contract, as nurtureSoldFrom reads it (client_contracts_uncorrected: corrections already dropped). */
+export type ContractFact = { automations: string[] | null; endsOn: string | null }
+
+/**
+ * Was automation 03 sold to this client, by its contracts IN FORCE today?
+ * A contract that has ended does not count; one starting later does (it is
+ * sold, and onboarding comes before the start). No contract in force is null:
+ * not "not sold", because nothing recorded says so.
+ */
+export function nurtureSoldFrom(contracts: ContractFact[], today: string): boolean | null {
+  const inForce = contracts.filter((c) => c.endsOn === null || c.endsOn >= today)
+  if (inForce.length === 0) return null
+  return inForce.some((c) => (c.automations ?? []).includes('lead_nurture'))
+}
+
+function calibrationStep(i: ChecklistInputs): Step {
+  const base = { key: 'calibration' as const, title: 'The calibration', kind: 'conversation' as const, href: '/calibrate' }
+  if (i.nurtureSold === false) {
+    return { ...base, state: 'not_applicable', on: null, href: null,
+      line: 'Not part of this client’s contract: the follow-up automation was not sold, so there is nothing to calibrate.' }
+  }
+  if (i.nurtureSold === undefined) {
+    return { ...base, state: 'unknown', on: null, line: 'The contracts could not be read, so whether this step applies is not known.' }
+  }
+  if (i.nurtureSold === null) {
+    return { ...base, state: 'unknown', on: null,
+      line: 'No contract is recorded for this client, so whether the follow-up automation was sold is not known. Record the contract on The Month.' }
+  }
+  return {
+    ...base,
+    state: i.calibratedOn === undefined ? 'unknown' : i.calibratedOn ? 'done' : 'outstanding',
+    on: i.calibratedOn ?? null,
+    line: i.calibratedOn === undefined ? 'The calibration could not be read, so this is not known.'
+      : i.calibratedOn ? 'The agency set its own matching thresholds, in its own words.'
+      : 'An afternoon with the agency, in their words, nothing pre-filled.',
+  }
+}
 
 export function checklistFor(i: ChecklistInputs): Checklist {
   const recs = Array.isArray(i.records) ? i.records : null
@@ -101,15 +150,7 @@ export function checklistFor(i: ChecklistInputs): Checklist {
         : 'The agency declares, in its own name, where its contacts came from. Until it does, the gate refuses every contact, correctly.',
       href: '/segmentation',
     },
-    {
-      key: 'calibration', title: 'The calibration', kind: 'conversation',
-      state: i.calibratedOn === undefined ? 'unknown' : i.calibratedOn ? 'done' : 'outstanding',
-      on: i.calibratedOn ?? null,
-      line: i.calibratedOn === undefined ? 'The calibration could not be read, so this is not known.'
-        : i.calibratedOn ? 'The agency set its own matching thresholds, in its own words.'
-        : 'An afternoon with the agency, in their words, nothing pre-filled.',
-      href: '/calibrate',
-    },
+    calibrationStep(i),
   ]
 
   const outstanding = steps.filter((s) => s.state === 'outstanding')
