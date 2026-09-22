@@ -1,6 +1,6 @@
 # Where we left off
 
-**Last updated:** 2026-09-22, 10:25 UTC: `fd90df4` deployed (served `b79cd7f7`), gated and phone-checked; the cockpit pushed with it.
+**Last updated:** 2026-09-22, 11:25 UTC: `a7b7786` deployed (served `40fc6d76`), gated and phone-checked; the cockpit (`75b0975`) with it. Next: the /onboarding rebuild.
 **Where the work is:** the COCKPIT REDESIGN, stage C — building it. §0 below is
 the current state.
 
@@ -34,6 +34,65 @@ This file is the running state-of-play for whoever (human or agent) picks the
 project up next. The durable *design* lives in the handoff and design documents
 under `docs/`; this file records what is actually deployed right now and what
 tripped us up. **Sections are newest first.**
+
+---
+
+# 000000. 22 September 2026, midday: `a7b7786` IS LIVE. READ THIS FIRST
+
+§00000 below was true until 11:10 UTC today. **Its "Production" and "Open"
+sections are superseded by this one.** Everything it lists as live is still live.
+
+## Production, right now
+- **n8n Concierge: `a7b7786`, served version `40fc6d76`**, API deploy at 11:10:12 UTC
+  with no restart. Verify 4/4 (activeVersionId; one `twilio-inbound` row; 403
+  unsigned; served == file in every field of 126 nodes and the connections).
+  **Rollback:** `python3 infra/scripts/n8n_api_deploy.py activate --id ryvoInboundConc01 --version b79cd7f7-a751-4b14-98b4-1a374841602d`
+  (fd90df4).
+- **Cockpit:** `75b0975`, READY (cloned 11:10:22 UTC), pushed in the same window.
+- **New and live (Defect D, and the gate leads):**
+  - `replyLooksBroken` catches a clock time fused to a word, a character outside
+    an explicit alphabet, and a word said twice; 0 false positives on 573 captured
+    texts. The garbled reply delivered on the gate (exec 5780) now fails.
+  - A name replaces a stored one only if the lead wrote it (the "Joãoo" path).
+  - Every run records `payload.model_calls`: each call's stop_reason, tokens,
+    text length, request shape, and why it was rejected.
+  - The cockpit leaves the gate client (config.gate_only) out of the Queue, every
+    count, /leads and the operator-wide anomalies; one client asked for by id
+    still shows it. **The Queue went from 78 to what is real** (the operator's
+    badge showed 1 after check 3).
+  - Both gate scripts read every delivered message with the build's detector,
+    and clear every gate escalation at the end, as the cockpit's hand-back does.
+- **The gate, on the gate copy of `a7b7786`:**
+  - booking test: 10/10 booked, 10/10 refused, 0 alerts, 0 escalations,
+    40 delivered messages read, 0 broken; the backlog of 78 gate escalations cleared;
+  - 4 races: one booking each, losers 3 by Google's 409 and 1 by the re-check,
+    4 lost-race escalations, 0 alerts, 16 read, 0 broken;
+  - 20-run gate: 60 messages, 0 unexpected escalations, 0 invariant alerts,
+    0 wrong language, 60 read, 0 broken.
+  Two guard retries, both recovered: one empty reply, and one viewing-guard
+  clarification ("I can't book a viewing without a property confirmed"), logged as
+  the ninth miss in the structural plan and left for that rebuild.
+- **Phone checks passed** (11:15–11:18 UTC, one at a time, on `40fc6d76`, 0 invariants):
+  1. "Ok let's go with Thursday morning": English, 09:00 or 10:00, ambiguous, no
+     booking; `model_calls` recorded.
+  2. "11:00?": English decline, first draft, no retry.
+  3. "Talk to a human": `needs_human` (person class), English handoff, operator
+     WhatsApp. The Queue badge showed 1.
+- `workflows/ryvoInboundConc01.json` is production again (re-exported and
+  normalised exactly as `backup.sh` does).
+
+## Open, in order
+1. **Next build work: the /onboarding rebuild** (cockpit), starting now, pausing at
+   its first checkpoint.
+2. **The structural guards plan** (`docs/concierge-structural-guards-plan.md`, about
+   5.5 days): the next Concierge piece of work, before any real client. Nine misses
+   are logged in its table.
+3. **The test lead (…230) is escalated again, ON PURPOSE**, from check 3 (11:17 UTC).
+   It is now the only lead in the Queue. Hand it back from Ryvo Test Client.
+4. The race-2 miscount (runbook, "Open question"): cause unknown, not clock skew.
+5. The gate copy and the sink are **off**.
+6. Three cockpit tests fail before and after these deploys: stale proofs for
+   0045–0047, and one reachability test.
 
 ---
 
