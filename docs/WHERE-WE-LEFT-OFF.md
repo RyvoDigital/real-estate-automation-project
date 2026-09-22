@@ -1,6 +1,6 @@
 # Where we left off
 
-**Last updated:** 2026-09-21, late evening: `31b8a8e` deployed, gated and phone-checked.
+**Last updated:** 2026-09-22, 10:25 UTC: `fd90df4` deployed (served `b79cd7f7`), gated and phone-checked; the cockpit pushed with it.
 **Where the work is:** the COCKPIT REDESIGN, stage C — building it. §0 below is
 the current state.
 
@@ -34,6 +34,79 @@ This file is the running state-of-play for whoever (human or agent) picks the
 project up next. The durable *design* lives in the handoff and design documents
 under `docs/`; this file records what is actually deployed right now and what
 tripped us up. **Sections are newest first.**
+
+---
+
+# 00000. 22 September 2026, morning: `fd90df4` IS LIVE. READ THIS FIRST
+
+§0000 below was true until 10:13 UTC today. **Its "Production" and "Open" sections
+are superseded by this one.**
+
+## Production, right now
+- **n8n Concierge: `fd90df4`, served version `b79cd7f7`**, deployed at 10:13:09 UTC
+  through n8n's API (`n8n_api_deploy.py deploy --production`), with no import and no restart:
+  its first production use.
+  - Verify: `activeVersionId` set; exactly one `twilio-inbound` row; 403 on an
+    unsigned POST; the served version equals the file in every field of every node
+    (126/126) and in the connections.
+  - **Rollback:** `python3 infra/scripts/n8n_api_deploy.py activate --id ryvoInboundConc01 --version b28ba526-2b05-4e51-ba07-fd9ca944c398`
+    (the `31b8a8e` content). No file and no restart needed.
+- **Cockpit:** pushed in the same window. `vercel inspect`: READY, production,
+  Commit `f908680` (cloned 10:13:21 UTC). It carries `booking_lost_race` as a
+  person reason, landing together with the workflow that writes it.
+- **Live now:**
+  - **Invariant 2** fires only on a CLAIMED booking with no event (the claim list),
+    never on a named slot. Measured: 0 false alarms and 0 misses on 538 captured
+    texts; on the 372 texts actually sent, it fired only on the two real 12/14 Sep
+    phantoms. The claim list learned the model's own confirmation shapes, and a
+    promise that waits on the lead.
+  - **Defect A:** a negated claim is a denial ("Ainda não temos uma reunião
+    marcada"), read with time_guard's negation words.
+  - **Defect B:** "just taken" declines (en/pt/es): "se acaba de ocupar",
+    "acaba de ocuparse", "reservado por outra pessoa". Never "booked/marcado" on its
+    own.
+  - **Defect C:** explaining there is no viewing ("rather than a viewing", "no
+    property lined up yet for a viewing") is not claiming one. The dangerous
+    direction is tested shut in three languages.
+  - **A lost race** is `booking_lost_race`, a person reason: not an error run, not
+    "system".
+- **The gate, on the gate copy of `fd90df4`** (the booking test is now part of it):
+  - booking test, 10 sequential: 10/10 booked, 10/10 second leads refused,
+    10 `viewing.booked`, language 10/10, 0 invariant alerts, 0 escalations;
+  - 4 races: exactly one booking each; losers caught 2 by the re-check and 2 by
+    Google's 409; 4 lost-race escalations, none an error run; 0 alerts;
+  - 20-run gate: 60 messages, 0 unexpected escalations, 0 invariant alerts,
+    0 wrong language, 0 empty replies.
+- **Phone checks passed** (10:21–10:22 UTC, one at a time, on `b79cd7f7`, 0
+  invariants):
+  1. "Ok let's go with Thursday morning": English, 09:00 or 10:00, ambiguous, so
+     no booking.
+  2. "11:00?": English decline, first draft, no retry.
+  3. "Talk to a human": `needs_human` (person class), English handoff, operator
+     WhatsApp.
+- `workflows/ryvoInboundConc01.json` is production again: the re-export, normalised
+  exactly as `backup.sh` does.
+- **Server clock:** systemd-timesyncd, ntp.hetzner.com, offset +0.82 ms; the
+  database host agrees to within 1 s.
+
+## Open, in order
+1. 🔴 **Defect D, LIVE:** a garbled guard-retry reply was DELIVERED on the gate
+   ("only be2509:00 September25:00 09Lisbon time … 」use دdireidply,"), and the same
+   turn wrote "Joãoo" to the lead's name. `replyLooksBroken` has none of the needed
+   markers. The only occurrence in 322 stored AI messages; production's 16 are
+   clean. **Next: the fix, then the full re-gate, then pause for the deploy.**
+2. **Gate leads flood the operator's lists** (Queue: 78, almost all ZZ GATE "João"):
+   the operator handed back a gate lead instead of …230 on 22 Sep. Fix: exclude the
+   gate_only client from the Queue, Escalations and every count; the harness clears
+   what it escalates. Same deploy as D.
+3. **The test lead (…230) is escalated again, ON PURPOSE**, from check 3 (10:22
+   UTC). Hand it back from the **Ryvo Test Client** list, and confirm the id
+   (`b35915d1`).
+4. **The structural guards plan** (`docs/concierge-structural-guards-plan.md`): the
+   next Concierge piece of work, before any real client.
+5. The gate copy and the sink are **off** (deactivated through the API).
+6. Three cockpit tests fail before and after this deploy: stale proofs for
+   0045–0047, and one reachability test. Unrelated to it.
 
 ---
 
