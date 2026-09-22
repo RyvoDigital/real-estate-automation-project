@@ -44,5 +44,25 @@ chk('a different name is the lead restating it, and wins', r.changed === true &&
 r = mergeName('João Ferreira', 'stated', 'Ferreira João');
 chk('the same tokens in another order are not a change', r.changed === false);
 
+console.log('\n2026-09-22, DEFECT D: a name replaces a stored one only if the lead wrote it');
+{
+  // The gate's exec 5780, as it happened: the stored stated name João, the lead's
+  // messages, and the corrupted response's full_name.
+  const LEAD = ["Ok let's go with Thursday morning", '11:00?'];
+  let r = mergeName('João', 'stated', 'Joãoo', LEAD);
+  chk('BROKEN (exec 5780): "Joãoo", never written by the lead, does not replace João', r.name === 'João' && !r.changed, JSON.stringify(r));
+  chk('  and it says why', /never written by the lead/.test(r.kept || ''), r.kept);
+  r = mergeName('Manuel', 'profile', 'João Ferreira', ['Hi', 'My name is João Ferreira']);
+  chk('a stated name the lead wrote still beats the profile name', r.name === 'João Ferreira' && r.changed, JSON.stringify(r));
+  r = mergeName('João', 'stated', 'João Ferreira', ['Sou o João Ferreira, já agora']);
+  chk('a restated fuller name the lead wrote still wins', r.name === 'João Ferreira', JSON.stringify(r));
+  r = mergeName('Manuel', 'profile', 'Joao Ferreira', ['o meu nome é João Ferreira']);
+  chk('accents and case do not matter (Joao / João)', r.name === 'Joao Ferreira', JSON.stringify(r));
+  r = mergeName(null, null, 'João', ['11:00?']);
+  chk('a first name on an empty row is still taken', r.name === 'João' && r.changed, JSON.stringify(r));
+  r = mergeName('João', 'stated', 'Joãoo');
+  chk('leadTexts undefined keeps the old rule (no silent change for other callers)', r.name === 'Joãoo', JSON.stringify(r));
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

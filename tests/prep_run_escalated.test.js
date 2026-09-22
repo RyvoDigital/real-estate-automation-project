@@ -105,5 +105,11 @@ console.log('\na lost race is not a system failure; a failed calendar still is (
   }
 }
 
+console.log('\nevery run records its model calls (22 Sep 2026, Defect D)');
+{
+  const r = runNode({ handoffOk: true, reasons: ['needs_human'] });
+  chk('payload.model_calls is present and a list (empty here: no model node ran in the stub)', Array.isArray(r.payload.model_calls), JSON.stringify(r.payload.model_calls));
+}
+
 console.log(`\n  ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

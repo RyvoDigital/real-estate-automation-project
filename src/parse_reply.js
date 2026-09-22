@@ -71,6 +71,45 @@ function parseModelResponse(res) {
 // ---------------------------------------------------------------------------
 const PR_DOMAIN_RX = /\b(?:https?:\/\/\S+|www\.\S+|[\w.+-]+@[\w-]+(?:\.[\w-]+)+|[\w-]+(?:\.[\w-]+)*\.(?:com|pt|es|net|org|io|co|uk|eu|page|app|gl|dev|ai|info|biz|me|tv|us|fr|de|link|ly)\b\S*)/gi;
 
+// 2026-09-22, DEFECT D: a first attempt came back corrupted end to end and was
+// DELIVERED (gate exec 5780): " only be2509:00 September25:00 09Lisbon time, 09:00
+// on 26 September, or 09:00 on 28 September - which which is closest.」use
+// دdireidply,". None of the markers above fired. Three structural ones, each
+// measured on the 538-text corpus (tests/fixtures/lead_texts_2026-09-22.json):
+//   - a clock time fused to a letter on either side ("be2509:00", "09:00Lisbon"),
+//     or digits fused to a capitalised word ("09Lisbon");
+//   - a character outside the set a pt/en/es reply can contain: PR_ALLOWED_CHAR
+//     below, defined explicitly (Latin with its accents, typographic punctuation,
+//     currency, arrows and emoji). "」" and "د" are outside it;
+//   - the same word twice in a row ("which which"), for words of 3+ letters.
+const PR_ALLOWED_CHAR = new RegExp('^[' + [
+  '\\t\\n\\r\\u0020-\\u007E',   // printable ASCII
+  '\\u00A0-\\u00FF',             // Latin-1: NBSP, ¡ ¿ « » º ª °, accented letters
+  '\\u0100-\\u017F',             // Latin Extended-A: names like Łukasz, Ōta
+  '\\u0300-\\u036F',             // combining accents (decomposed text)
+  '\\u2000-\\u206F',             // general punctuation: – — ‘ ’ “ ” … • and the zero-width joiner
+  '\\u20A0-\\u20CF',             // currency symbols, €
+  '\\u2100-\\u214F',             // letterlike: ™ №
+  '\\u2190-\\u21FF',             // arrows
+  '\\u2300-\\u23FF',             // technical: ⌚ ⏰
+  '\\u2600-\\u27BF',             // misc symbols and dingbats: ☀ ✓ ✅ ❤
+  '\\u2B00-\\u2BFF',             // ⭐ and arrows
+  '\\uFE0E\\uFE0F',              // emoji variation selectors
+].join('') + ']$');
+const PR_EMOJI_RX = /\p{Extended_Pictographic}|\p{Emoji_Component}/u;
+// "10:00h" is legitimate Portuguese, so a lone trailing h is not a fused word.
+const PR_FUSED_TIME_RX = /[A-Za-zÀ-ÿ]\d{1,4}:\d{2}\b|\b\d{1,2}:\d{2}(?!h\b)[A-Za-zÀ-ÿ]|\b\d{1,2}[A-Z][a-z]{2,}/;
+const PR_DOUBLED_WORD_RX = /(?<![\p{L}\p{N}])([\p{L}]{3,})\s+\1(?![\p{L}\p{N}])/iu;
+
+function prForeignChar(t) {
+  for (const ch of t) {
+    if (PR_ALLOWED_CHAR.test(ch)) continue;
+    if (PR_EMOJI_RX.test(ch)) continue;            // emoji beyond the BMP ranges above (🤖, 🏡)
+    return ch;
+  }
+  return null;
+}
+
 function replyLooksBroken(s) {
   const t = (s || '').trim();
   if (t.length < 15) return 'too short (' + t.length + ' chars)';
@@ -82,6 +121,12 @@ function replyLooksBroken(s) {
   if (m1) return 'doubled punctuation: ' + JSON.stringify(m1[0]);
   const m2 = t.replace(PR_DOMAIN_RX, ' ').match(/[a-zà-ÿ]{2}\.[a-zà-ÿ]{2}/);
   if (m2) return 'a full stop glued to the next word: ' + JSON.stringify(m2[0]);
+  const m3 = t.match(PR_FUSED_TIME_RX);
+  if (m3) return 'a time fused to a word: ' + JSON.stringify(m3[0]);
+  const ch = prForeignChar(t);
+  if (ch) return 'a character outside the reply alphabet: ' + JSON.stringify(ch) + ' (U+' + ch.codePointAt(0).toString(16).toUpperCase().padStart(4, '0') + ')';
+  const m4 = t.match(PR_DOUBLED_WORD_RX);
+  if (m4) return 'the same word twice: ' + JSON.stringify(m4[0]);
   return null;
 }
 

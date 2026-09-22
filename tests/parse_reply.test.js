@@ -94,5 +94,35 @@ console.log('\nallowedTimesFor, viewingClaimFailure, saneBudgets');
   chk('an inverted pair is flagged, not nulled', saneBudgets(q).budgetInconsistent === true && q.budget_min === 900000);
 }
 
+console.log('\n2026-09-22, DEFECT D: a first attempt corrupted end to end, and DELIVERED (gate exec 5780)');
+{
+  const B = (s) => replyLooksBroken(s);
+  // CAPTURED OUTPUT, word for word.
+  const D = "only be2509:00 September25:00 09Lisbon time, 09:00 on 26 September, or 09:00 on 28 September - which which is closest.」use دdireidply,";
+  chk('the delivered reply is now caught', B(D) !== null, B(D));
+  // Each marker alone, so no one of them is carrying the others.
+  chk('marker 1 alone: a time fused to a word ("be2509:00")', /time fused/.test(B('I can only be2509:00 on Friday, all Lisbon time.') || ''), B('I can only be2509:00 on Friday, all Lisbon time.'));
+  chk('marker 1 alone: digits fused to a capitalised word ("09Lisbon")', /time fused/.test(B('Friday at 09Lisbon time works for our colleague.') || ''), B('Friday at 09Lisbon time works for our colleague.'));
+  chk('marker 2 alone: a CJK bracket', /outside the reply alphabet/.test(B('Friday at 09:00 works well for you」 our colleague will be there.') || ''), B('Friday at 09:00 works well for you」 our colleague will be there.'));
+  chk('marker 2 alone: an Arabic letter', /outside the reply alphabet/.test(B('Friday at 09:00 works well for you, د our colleague will be there.') || ''), B('Friday at 09:00 works well for you, د our colleague will be there.'));
+  chk('marker 2 alone: Cyrillic', /outside the reply alphabet/.test(B('Friday at 09:00 works well for you, спасибо, see you then.') || ''), B('Friday at 09:00 works well for you, спасибо, see you then.'));
+  chk('marker 3 alone: the same word twice ("which which")', /same word twice/.test(B('Friday or Saturday - which which is closest to you?') || ''), B('Friday or Saturday - which which is closest to you?'));
+  // THE ALLOWED SET, stated explicitly (operator, 22 Sep): accented Latin, emoji,
+  // typographic quotes, dashes and ellipses must never be read as foreign.
+  for (const [name, s] of [
+    ['pt accents', 'Ótimo, João! Fica confirmada a sua primeira reunião às 10:00, horário de Lisboa.'],
+    ['es accents and ¡ ¿', '¡Perfecto! ¿Le viene bien el miércoles a las 10:00? Nos vemos allí, señor Muñoz.'],
+    ['the disclosure banner emoji', '🤖 Sofia, assistente virtual da ZZ GATE. Esta conversa é respondida por inteligência artificial.'],
+    ['other emoji', 'Great news 🏡✅ ☀️ we have Friday at 09:00 ❤️ for you, João 👍🏽.'],
+    ['typographic quotes and apostrophes', 'That’s “Friday” at 09:00 — and ‘Saturday’ too, João.'],
+    ['en and em dashes, ellipsis', 'Friday – or Saturday — at 09:00… whichever suits you best.'],
+    ['currency and guillemets', 'O orçamento de € 800 000 fica registado « até lá », João.'],
+    ['10:00h (Portuguese)', 'Temos disponibilidade às 10:00h de quinta-feira, João.'],
+    ['a no-break space', 'Temos quinta-feira\u00A0às 10:00, João, se lhe convier.'],
+    ['a Polish name', 'Of course, Łukasz, Friday at 09:00 works for our colleague.'],
+    ['two offers with repeated words that are not adjacent', 'We have Friday at 09:00 or Saturday at 09:00 for you.'],
+  ]) chk('allowed: ' + name, B(s) === null, B(s));
+}
+
 console.log(`\n  ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
