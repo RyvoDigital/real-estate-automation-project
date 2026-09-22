@@ -6,7 +6,7 @@ real client**. The operator schedules it.
 
 ## Why
 
-By 22 Sep, eight replies had been wrongly rejected, or wrongly flagged by an
+By 22 Sep, nine replies had been wrongly rejected, or wrongly flagged by an
 alert, and every one was a guard deciding what the model's prose *means*:
 
 | Miss | Guard | What it misread |
@@ -18,6 +18,7 @@ alert, and every one was a guard deciding what the model's prose *means*:
 | "Ainda não temos uma reunião marcada" | claim | a denial read as a claim |
 | "se acaba de ocupar", "acaba de ocuparse", "reservado por outra pessoa" | time guard / invariant 1 | a decline |
 | "rather than a viewing", "no property lined up yet for a viewing" | viewing guard | a clarification read as a claim |
+| "There's no specific property lined up yet, so this would be a first meeting with our colleague to go through options - I can't book a viewing without a property confirmed. We have Thursday 24 September at 15:00, Friday 25 September at 09:00, or Saturday 26 September at 09:00, all Lisbon time - would any of these work for you?" (gate exec 6032, 22 Sep, on a7b7786; the same shape as exec 5656 on fd90df4: "I can't book a viewing myself") | viewing guard | a clarification read as a claim: a verb between the negation and the word, and the no-property words AFTER it. Recovered by the retry; left for this rebuild (operator, 22 Sep) |
 
 None came from **extracting** something with a fixed format (times, money
 amounts, the JSON reply, strings the workflow wrote), and none from the
@@ -95,7 +96,7 @@ for an unreadable message stay as they are.
 
 ### 2. Declining the lead's own requested time
 Today the model writes "11:00 isn't available", and the time guard reads it
-with a phrase list: five of the eight misses were here. After: the time the lead
+with a phrase list: five of the nine misses were here. After: the time the lead
 asked for is **extracted from the lead's message** (extraction, which converges:
 `tgTimesIn` on the lead text), checked against the slots the workflow holds, and
 if it is not one of them the **decline is rendered by a template** ("11:00 isn't
