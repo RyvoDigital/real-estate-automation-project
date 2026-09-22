@@ -79,6 +79,60 @@ lists stay, limited to their affirmative, high-precision patterns, because
 catching a model that *declares* `none` while writing "you're booked" is the
 reason they exist.
 
+## Five points the plan must settle (operator, 22 Sep)
+
+### 1. Other languages
+The templates exist in **pt, en and es**, the three languages the Concierge
+speaks. The language of every rendered sentence is the language the workflow
+already resolved for the reply (`reply_lang`), never detected again, the same
+rule the AI disclosure follows. **One message is never in two languages**: if the
+model's prose and the rendered sentence disagree (the language check says the
+prose is Portuguese while `reply_lang` is `en`), that is the existing language
+failure, with one retry and then the reply delivered with a warning, and the
+template is never switched to match a mixed reply. A lead writing in a fourth
+language gets the client's default language, as today, and the escalation rules
+for an unreadable message stay as they are.
+
+### 2. Declining the lead's own requested time
+Today the model writes "11:00 isn't available", and the time guard reads it
+with a phrase list: five of the eight misses were here. After: the time the lead
+asked for is **extracted from the lead's message** (extraction, which converges:
+`tgTimesIn` on the lead text), checked against the slots the workflow holds, and
+if it is not one of them the **decline is rendered by a template** ("11:00 isn't
+available. We have …"), followed by the rendered offer. The model never writes a
+time, so it never writes a decline of one either. A lead who names no time gets
+no decline sentence.
+
+### 3. Placeholder failures
+The model writes its prose around one placeholder (`{{SLOTS}}`, or
+`{{CONFIRMATION}}` on a booking turn). Each failure has a defined behaviour and a
+test:
+
+| The model's text | Behaviour |
+|---|---|
+| no placeholder | the rendered block is appended after the prose; a warning event (`template.placeholder_missing`) |
+| the placeholder twice | rendered once, at the first; the second is removed; a warning event |
+| a mangled placeholder (`{{SLOT}}`, `{SLOTS}`, `{{ SLOTS }}`) | treated as missing: removed, block appended, warning event |
+| times written anyway, beside the placeholder | the extraction check rejects it: one retry, then the dangerous-direction rule if it claims a booking, otherwise a warning |
+| a placeholder on a turn that has nothing to render | removed; a warning event |
+
+### 4. The rendered times across 25 Oct
+The templates format each slot from its stored UTC instant in the client's zone,
+through the slot engine's Luxon path, never by adding an offset. The existing DST
+test (`tests/slot_engine.test.js`, "DST: Fri 23 Oct to Mon 26 Oct 2026") is
+extended to the RENDERED text: an offer spanning the change says "09:00" on Friday
+(+01:00) and "09:00" on Monday (+00:00), in all three languages, and the
+sabotage (a fixed +01:00) must turn it red.
+
+### 5. "Send with a warning" is visible
+Every reply delivered with a warning (a prose check that disagreed, a
+placeholder failure, a language mismatch after the retry) writes an event of one
+type family (`reply.delivered_with_warning:<reason>`). The cockpit shows them:
+**a count on Today** beside the escalations ("3 replies sent with a warning this
+week"), and **a line per event on Health**, each opening the conversation. A
+warning nobody can see is the same as no warning. Rehearsal and gate clients are
+excluded from the count by the gate_only marker, as every operator count now is.
+
 ## Guard by guard
 
 | Check | Today | After |
@@ -103,7 +157,8 @@ reason they exist.
 | Declared fields | prompt and schema; ParseClaude checks; invariant 2 on the fields | 1 day |
 | Prose as a second line | the disagreement path (retry, then send with a warning), with the dangerous-direction exception; its tests and sabotage | 0.5 day |
 | Measurement | every captured text (the 538-text fixture and the execution corpus) replayed against the new checks; false alarms and misses counted | 0.5 day |
-| **Build total** | | **about 4 working days** |
+| The five points | the rendered decline of the lead's own time; placeholder handling and its warning events; DST on the rendered text in three languages; the warning count on Today and the lines on Health | 1.5 days |
+| **Build total** | | **about 5.5 working days** |
 
 **Prompt suites:** this is a prompt-shaped change, so every suite in
 `tests/prompt_suites.py` runs against the new prompt, compared with the 12 Sep
