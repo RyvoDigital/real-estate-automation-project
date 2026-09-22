@@ -117,5 +117,7 @@ async function main() {
   one('conversations', 'routing and disclosure recorded; the agency’s two conversations outstanding', inputs({ records: [ROUTING, TOLD] }))
   one('onboarded', 'every step done', inputs({ records: [ROUTING, TOLD], declaredOn: '2026-09-23', calibratedOn: '2026-09-24' }))
   one('unmigrated', 'migration 0054 not applied yet', inputs({ records: 'not_migrated' }), false, true)
+  one('notsold', 'Concierge only: the calibration is not sold, so not outstanding', inputs({ records: [ROUTING, TOLD], declaredOn: '2026-09-23', nurtureSold: false }))
+  one('nocontract', 'no contract recorded: whether nurture was sold is not known', inputs({ records: [ROUTING, TOLD], declaredOn: '2026-09-23', nurtureSold: null }))
 }
 main().catch((e) => { console.error(e); process.exit(1) })

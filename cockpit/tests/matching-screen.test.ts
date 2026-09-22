@@ -104,12 +104,17 @@ test('no prose hides in a page where the vocabulary guard cannot see it', () => 
     '../src/app/listings/[id]/page.tsx',
     '../src/app/calibrate/page.tsx',
     '../src/app/calibrate/[clientId]/page.tsx',
+    // The calibration screen is drawn here since checkpoint 2 (22 Sep 2026).
+    '../src/components/calibrate/CalibrateView.tsx',
+    '../src/components/calibrate/CalibrateForm.tsx',
   ]
   const offences: string[] = []
   for (const rel of pages) {
     const src = readFileSync(new URL(rel, import.meta.url), 'utf8')
       .replace(/\/\*[\s\S]*?\*\//g, '')
       .replace(/^\s*\/\/.*$/gm, '')
+      // A module directive is not rendered text: a client component's first line is 'use client'.
+      .replace(/^\s*['"]use (client|server)['"];?\s*$/m, '')
     const literals = [...src.matchAll(/'([^'\n]{6,})'|"([^"\n]{6,})"/g)].map((m) => m[1] ?? m[2])
     const textNodes = [...src.matchAll(/>([^<>{}\n]+)</g)].map((m) => m[1].trim())
     for (const s of [...literals, ...textNodes]) {

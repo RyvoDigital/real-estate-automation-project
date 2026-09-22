@@ -348,6 +348,22 @@ export const CALIBRATE = {
   savedAreasNone: 'Nenhuma zona é tratada como equivalente a outra.',
   notSavedYet: 'Ainda não respondeu a estas perguntas.',
 
+  // Checkpoint 2 (22 Sep 2026). Each sitting is its own record, so the fields
+  // start EMPTY every time: the last answers sit beside them to read, never
+  // inside them to click past.
+  blankEachTime: 'As respostas começam sempre em branco: cada vez é uma resposta nova. As anteriores ficam ao lado, só para consulta.',
+  lastSitting: (date: string, who: string, recorder: string) => `Da última vez: ${date}, respondeu ${who} (registado por ${recorder}).`,
+  lastTime: 'Da última vez',
+  noAnswerThen: 'sem resposta',
+  noAreasThen: 'nenhuma zona',
+  whoAnswers: 'Quem na agência está a responder',
+  whoAnswersHint: 'O nome de quem sabe a resposta, mesmo que sejamos nós a escrever. Fica no registo.',
+  readFailed: 'Não foi possível ler as respostas anteriores, por isso esta página não está a dizer que não há nenhuma.',
+  alreadySaved: 'Estas respostas já estavam guardadas. Não se gravou nada de novo.',
+  fixFirst: 'Há respostas em falta ou que não batem certo. Estão assinaladas abaixo; nada foi guardado.',
+  unknownClient: 'Esta agência não foi encontrada.',
+  back: 'Todas as agências',
+
   /** Problems, in the agent's terms. Never "invalid input". */
   problem: {
     missing: 'Falta esta resposta.',

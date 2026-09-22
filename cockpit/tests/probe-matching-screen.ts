@@ -44,8 +44,9 @@ async function main() {
 
   const cal = await read.readCalibration(clientId)
   line()
-  line(`${CALIBRATE.title}: ${cal.saved ? CALIBRATE.saved : CALIBRATE.notSavedYet}`)
-  if (!cal.saved) line(`  (${cal.missing.length} unanswered)`)
+  // A failed read is its own line, never "not answered yet".
+  line(`${CALIBRATE.title}: ${cal.saved ? CALIBRATE.saved : 'failed' in cal ? `${CALIBRATE.readFailed} (${cal.failed})` : CALIBRATE.notSavedYet}`)
+  if (!cal.saved && 'missing' in cal) line(`  (${cal.missing.length} unanswered)`)
 
   const listings = await read.readListings(clientId)
   line()

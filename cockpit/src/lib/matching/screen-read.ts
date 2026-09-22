@@ -149,14 +149,17 @@ export async function readMatches(listingId: string): Promise<MatchesScreen> {
 }
 
 export type SavedCalibration =
+  /** 🔴 the read failed: NOT "not calibrated" (the /calibrate screen now reads calibrate-read.ts; the probe still reads this) */
+  | { saved: false; failed: string }
   | { saved: false; missing: string[] }
   | { saved: true; thresholds: Thresholds; explained: ReturnType<typeof explainSaved> }
 
 export async function readCalibration(clientId: string): Promise<SavedCalibration> {
-  const { data } = await admin()
+  const { data, error } = await admin()
     .from('client_automations')
     .select('config, automations!inner(key)')
     .eq('client_id', clientId)
+  if (error) return { saved: false, failed: error.message }
   const rows = (data ?? []) as unknown as { config: Record<string, unknown>; automations: { key: string } }[]
   const cfg = rows.find((r) => r.automations?.key === 'lead_nurture')?.config ?? {}
   const missing = missingThresholds(cfg)

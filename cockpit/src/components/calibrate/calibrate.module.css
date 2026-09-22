@@ -1,0 +1,67 @@
+/*
+ * /calibrate — redrawn 22 Sep 2026 (checkpoint 2) in The Month's direction:
+ * ONE 4px spacing scale, ONE rhythm, sections separated by space rather than
+ * rules, the display face for what is asked.
+ *
+ * 🔒 NO COLOUR IN THIS FILE. The screen sits on the light, contrast-tested
+ * surface it shares with /segmentation (lib/segmentation/surface.ts): each
+ * background comes with its text and its control scheme. Hairlines are mixed
+ * from the text colour they sit on.
+ */
+
+.page {
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
+  --hair: color-mix(in srgb, currentColor 14%, transparent);
+  --hair-strong: color-mix(in srgb, currentColor 30%, transparent);
+  min-height: 100vh; font-family: var(--sans); font-size: 16px; line-height: 1.55;
+}
+.inner { max-width: 920px; margin: 0 auto; padding: var(--s6) var(--s5) var(--s7); display: flex; flex-direction: column; gap: var(--s5); }
+
+.back { align-self: flex-start; min-height: 44px; display: inline-flex; align-items: center; font-size: 14px; font-weight: 600; color: inherit; }
+.head { display: flex; flex-direction: column; gap: var(--s2); }
+.title { margin: 0; font-family: var(--display); font-size: 30px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; }
+.agency { margin: 0; font-family: var(--display); font-size: 19px; font-weight: 600; letter-spacing: -0.02em; }
+.intro { margin: 0; max-width: 68ch; font-size: 15px; }
+.line { margin: 0; font-size: 14px; line-height: 1.5; max-width: 72ch; }
+
+.banner { margin: 0; padding: var(--s3) var(--s4); border-radius: 14px; border: 1px solid var(--hair); font-size: 15px; display: flex; flex-direction: column; gap: var(--s1); }
+.detail { font-family: var(--mono); font-size: 12.5px; white-space: pre-wrap; }
+
+/* ── the previous sitting, as reference ──────────────────────────────────── */
+.summary { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s4) var(--s5); border-radius: 18px; border: 1px solid var(--hair); }
+.summaryHead { margin: 0; font-size: 15px; font-weight: 600; }
+
+/* ── the form: a question and its field on the left, last time's answer on the right ── */
+.form { display: flex; flex-direction: column; gap: var(--s6); }
+.section { display: flex; flex-direction: column; gap: var(--s4); }
+.sectionTitle { margin: 0; font-family: var(--display); font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: var(--s5); align-items: end; }
+.field { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
+.fieldLabel { font-size: 15px; font-weight: 600; }
+.hint { font-size: 14px; }
+.input { min-height: 44px; margin-top: var(--s1); padding: 0 var(--s3); border-radius: 12px; border: 1px solid var(--hair-strong); font: inherit; font-size: 16px; width: 100%; box-sizing: border-box; }
+.input:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
+.area { padding: var(--s3); min-height: 104px; resize: vertical; line-height: 1.45; }
+.problem { font-size: 13.5px; font-weight: 600; }
+.problem::before { content: '— '; }
+
+/* The reference: read-only by construction (text, not a control), aligned with the field it answers. */
+.ref { display: flex; flex-direction: column; gap: 2px; min-height: 44px; justify-content: center; padding: var(--s2) var(--s3); border-radius: 12px; border: 1px dashed var(--hair); font-size: 14px; }
+.ref:empty { border: 0; }
+.refLabel { font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.refValue { font-variant-numeric: tabular-nums; }
+
+.actions { display: flex; gap: var(--s4); align-items: center; }
+.primary { min-height: 48px; padding: 0 var(--s6); border-radius: 999px; border: 1px solid currentColor; background: none; color: inherit; font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+.primary:active { transform: scale(0.97); }
+.primary:disabled { opacity: 0.55; cursor: progress; }
+
+.list { display: flex; flex-direction: column; gap: var(--s3); }
+.clientRow { display: flex; align-items: center; min-height: 56px; padding: 0 var(--s5); border-radius: 18px; border: 1px solid var(--hair); color: inherit; text-decoration: none; font-family: var(--display); font-size: 19px; font-weight: 600; }
+.clientRow:hover { border-color: var(--hair-strong); }
+
+@media (max-width: 720px) {
+  .inner { padding: var(--s5) var(--s4) var(--s6); }
+  .row { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .primary:active { transform: none; } }
