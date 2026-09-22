@@ -298,7 +298,12 @@ if args.race:
 # The whole window, once more, after the last run settled: an alert for ANY gate lead counts.
 all_inv = events_since('invariant.violated', start_iso)
 print(f'  invariant alerts (whole run): {len(all_inv)}  {[(e["data"].get("invariant"), e["data"].get("slug")) for e in all_inv]}')
-print(f'  escalations:                  {sum(r.get("escalations", 0) for r in results)}')
+# And the escalations over the whole window, for the same reason: a run that ends early
+# ("no slot offered to both") never reaches its per-run count. On 22 Sep run 8 escalated
+# (bad_reply_twice) and the per-run total said 0. Expected: exactly one per lost race.
+all_esc = [e for e in events_since('lead.escalated', start_iso)]
+want_esc = sum(1 for r in results if r.get('loser_caught_by') in ('re-check', "Google's 409"))
+print(f'  escalations (whole run):      {len(all_esc)} (expected {want_esc}: one per lost race)')
 print(f'  runs with any problem:        {sum(1 for r in results if r["problems"])}')
-ok = all(not r['problems'] for r in results) and len(booked) == created and not all_inv
+ok = all(not r['problems'] for r in results) and len(booked) == created and not all_inv and len(all_esc) == want_esc
 print('PASS' if ok else 'FAIL')
