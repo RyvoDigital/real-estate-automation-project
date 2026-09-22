@@ -55,6 +55,13 @@ export function ListingDetailView({ id, screen }: { id: string; screen: MatchesS
 
             {/* The triage floor is reachable whatever the run did: it needs no thresholds. */}
             <a className={styles.link} href={`/listings/${id}/triage`}>{MATCHES.goToTriage}</a>
+            {/*
+              * 🔴 THE EXEMPTION HAD NO WAY IN (22 Sep 2026). It was rebuilt in
+              * the same week and NOTHING in the cockpit linked to it — not even
+              * this page, the one place the question arises. It belongs beside
+              * the triage floor: both are things this property needs answered.
+              */}
+            <a className={styles.link} href={`/listings/${id}/exemption`}>{MATCHES.goToExemption}</a>
 
             {computed.length > 0 && (
               <section className={styles.section}>

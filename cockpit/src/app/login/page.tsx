@@ -89,7 +89,7 @@ async function enterCode(formData: FormData) {
   const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' })
   if (error) redirect('/login?error=' + encodeURIComponent(error.message))
 
-  redirect('/queue')
+  redirect('/today')
 }
 
 export default async function LoginPage({

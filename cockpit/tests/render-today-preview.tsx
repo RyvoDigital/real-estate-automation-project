@@ -71,7 +71,7 @@ function draw(name: string, title: string, sample: boolean, model: TodayModel, q
 const NOW = new Date('2026-09-22T09:40:00Z')
 const ago = (m: number) => new Date(NOW.getTime() - m * 60000).toISOString()
 const qr = (id: string, name: string, client: string, minutes: number, reason: string, over: Partial<QueueRow> = {}): QueueRow => ({
-  id, name, phone: null, clientId: `c-${client}`, clientName: client, at: ago(minutes), minutes, tier: 0, reasons: [reason],
+  id, name, phone: '+351910000000', clientId: `c-${client}`, clientName: client, at: ago(minutes), minutes, tier: 0, reasons: [reason],
   primary: reason.startsWith('claude') ? 'system' : reason.startsWith('high_value') ? 'high_value' : 'person',
   classes: [reason.startsWith('claude') ? 'system' : reason.startsWith('high_value') ? 'high_value' : 'person'],
   lastMessage: null, handledElsewhere: false, handledAt: null, ...over,
@@ -93,7 +93,8 @@ async function main() {
   const queue = [
     qr('l1', 'Inês Carvalhal', 'Marbella Sur', 312, 'needs_human:wants to talk to someone'),
     qr('l2', 'Tomás Reigada', 'Casa Atlântica', 64, 'high_value:3200000>=1500000'),
-    qr('l3', 'Beatriz Lobato', 'Marbella Sur', 11, 'booking_lost_race'),
+    // 🔒 no number on file: the row must render WITHOUT a link, not with one that cannot work
+    qr('l3', 'Beatriz Lobato', 'Marbella Sur', 11, 'booking_lost_race', { phone: null }),
     qr('l4', 'Rui Fonsequinha', 'Casa Atlântica', 420, 'no_availability:window_full', { handledElsewhere: true, handledAt: ago(38) }),
   ]
   const feed: AnomalyFeed = {

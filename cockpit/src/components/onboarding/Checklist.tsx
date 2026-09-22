@@ -55,9 +55,21 @@ export function Checklist({ clientId, model, others, recordable, today, createdO
             {s.state === 'outstanding' && s.key === 'disclosure' ? (
               <DisclosureForm clientId={clientId} recordable={recordable} today={today} min={createdOn} />
             ) : null}
-            {s.href && s.state !== 'done' ? (
+            {/*
+              * 🔴 SHOWN WHATEVER THE STATE (22 Sep 2026). This rendered only
+              * while the step was NOT done — and these two links are the ONLY
+              * way to reach /segmentation and /calibrate in the whole cockpit.
+              * So the screen that writes a consent declaration disappeared the
+              * moment it had been used once, and with every client onboarded
+              * neither screen could be reached by clicking at all. A done step
+              * still opens: the declaration is re-read with the agency, and a
+              * calibration is re-answered when what they sell changes.
+              */}
+            {s.href ? (
               <a className={styles.out} href={s.href}>
-                {s.key === 'declaration' ? 'Open the declaration, with the agency' : 'Open the calibration, with the agency'}
+                {s.state === 'done'
+                  ? (s.key === 'declaration' ? 'Open the declaration again' : 'Open the calibration again')
+                  : (s.key === 'declaration' ? 'Open the declaration, with the agency' : 'Open the calibration, with the agency')}
               </a>
             ) : null}
           </li>

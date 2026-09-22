@@ -76,6 +76,16 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
       <div className={styles.desk}>
         <TheMonth model={model} activity={activity} readAt={read.readAt} failures={read.failures} hrefFor={(m) => `/?m=${monthKey(m)}`} />
         <Entry parties={parties} contracts={contracts} recordable={read.inputs.clientCostsRecordable !== false} />
+        {/*
+          * 🔴 THE WAY ON, ON A DESK TOO (22 Sep 2026). "Open Today" lived only
+          * inside the phone refusal below, which is `display: none` above
+          * 760px — so on a laptop the landing's only exits were the sidebar
+          * and the month stepper. The refusal keeps its own copy: it says the
+          * Month needs a desk, which is not a sentence to show on one.
+          */}
+        <p className={styles.deskOn}>
+          <a href="/today">What needs you right now is on Today ›</a>
+        </p>
       </div>
       <div className={styles.refuse}>
         <h2>The Month needs a desk.</h2>

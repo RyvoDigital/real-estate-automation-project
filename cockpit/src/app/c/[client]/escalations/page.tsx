@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { requireOperator } from '@/lib/auth'
 import { getClients, getQueue, type QueueRow } from '@/lib/data'
 import { readCounts, headline } from '@/lib/counts'
+import { contactHref } from '@/lib/contact/phone-url'
 import { CLASS_LABEL, detectOutage, humanise, type EscalationClass } from '@/lib/escalation'
 import { whyEmpty } from '@/lib/why-empty'
 import { Live } from '@/components/Live'
@@ -49,9 +50,15 @@ function Row({ row }: { row: QueueRow }) {
   // say "late" about a lead already dealt with, which is the reading the tray
   // exists to prevent.
   const handled = row.handledElsewhere && row.handledAt !== null
-  return (
-    <div className={styles.rowWrap}>
-    <Link href={`/c/${row.clientId}/contacts/${row.id}`} className={styles.row}>
+  /*
+   * 🔴 KEYED BY PHONE, NOT BY LEAD (fixed 22 Sep 2026; the same defect Today
+   * carried). The contact record is `(client_id, phone_e164)`, never a lead
+   * row, so a lead id in this URL lands on "that is not a number we can look
+   * up". A row with no number is not a link at all.
+   */
+  const href = row.phone ? contactHref(row.clientId, row.phone) : null
+  const inner = (
+    <>
       <span className={styles.mark}>
         {initials(row.name)}
         {row.primary === 'system' && (
@@ -84,7 +91,11 @@ function Row({ row }: { row: QueueRow }) {
       ) : (
         <Clock at={row.at} serverMinutes={row.minutes} />
       )}
-    </Link>
+    </>
+  )
+  return (
+    <div className={styles.rowWrap}>
+    {href ? <Link href={href} className={styles.row}>{inner}</Link> : <div className={styles.row}>{inner}</div>}
     <HandBack leadId={row.id} clientId={row.clientId} name={row.name} />
     </div>
   )

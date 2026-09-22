@@ -77,6 +77,7 @@ export const MATCHES = {
   lastSpokeMany: (n: number) => `Sem falar há ${n} meses.`,
   engineWordsHeading: 'Como o sistema chegou aí',
   goToTriage: 'Ver quem o sistema não sabe ordenar',
+  goToExemption: 'Este imóvel não precisa de certificado?',
   strengthWord: { strong: 'Forte', possible: 'Possível', weak: 'Fraco' } as Record<string, string>,
   // Checkpoint 2 (22 Sep 2026): a failed read is said, never shown as an answer.
   listingUnread: 'Não foi possível ler este imóvel, por isso esta página não está a dizer que ele não existe.',

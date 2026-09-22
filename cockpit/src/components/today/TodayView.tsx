@@ -5,6 +5,7 @@ import type { AnomalyGroup } from '@/lib/anomaly'
 import type { ExpiryItem } from '@/lib/expiries/model'
 import type { TodayGroup, TodayModel, WaitingGate } from '@/lib/today/model'
 import { Clock } from '@/components/Clock'
+import { contactHref } from '@/lib/contact/phone-url'
 import { StateChip, StateMark, StateSurface, type Meaning } from '@/components/state-chip'
 import styles from './today.module.css'
 
@@ -69,8 +70,17 @@ function Failed({ g }: { g: TodayGroup }) {
 
 function QueueItem({ row }: { row: QueueRow }) {
   const handled = row.handledElsewhere && row.handledAt !== null
-  return (
-    <Link href={`/c/${row.clientId}/contacts/${row.id}`} className={styles.row}>
+  /*
+   * 🔴 THE CONTACT RECORD IS KEYED BY PHONE, NOT BY LEAD (fixed 22 Sep 2026).
+   * This linked `contacts/<lead id>`, so every row on the busiest group in the
+   * cockpit landed on "That is not a number we can look up". The screen was
+   * right to refuse — it will not guess at a number — and the link was wrong.
+   * 🔒 A row with NO number is not a link at all, rather than a link that
+   * cannot work. phone-url.ts owns the encoding, `+` and all.
+   */
+  const href = row.phone ? contactHref(row.clientId, row.phone) : null
+  const inner = (
+    <>
       <span className={styles.initials}>
         {initials(row.name)}
         {row.primary === 'system' && <span className={styles.badge}><StateMark meaning="red" label="something broke" /></span>}
@@ -88,8 +98,11 @@ function QueueItem({ row }: { row: QueueRow }) {
       ) : (
         <Clock at={row.at} serverMinutes={row.minutes} />
       )}
-    </Link>
+    </>
   )
+  return href
+    ? <Link href={href} className={styles.row}>{inner}</Link>
+    : <div className={styles.row}>{inner}</div>
 }
 
 function AnomalyItem({ g, windowDays }: { g: AnomalyGroup; windowDays: number }) {
@@ -234,6 +247,9 @@ export function TodayView({ model, queue, anomalies, windowDays, now }: {
         <Head g={g3} />
         <div className={styles.body}>
           <p className={styles.note}>{g3.partial}</p>
+          {/* 🔒 The same module this group reads has a screen of its own, with
+              every client's items and Ryvo's own. Nothing pointed at it. */}
+          <p className={styles.links}><Link href="/ops/expiries">Everything that expires, and Ryvo&rsquo;s own</Link></p>
           {g3.state === 'readFailed' ? <Failed g={g3} /> : (
             <>
               {g3.detail && <p className={styles.failNote}><StateMark meaning="red" label="partly unread" /> {g3.detail}</p>}
@@ -248,6 +264,7 @@ export function TodayView({ model, queue, anomalies, windowDays, now }: {
         <Head g={g4} />
         <div className={styles.body}>
           <p className={styles.note}>{g4.partial}</p>
+          <p className={styles.links}><Link href="/ops/expiries">Everything that expires, and Ryvo&rsquo;s own</Link></p>
           {g4.state === 'readFailed' ? <Failed g={g4} /> : (
             <>
               {g4.detail && <p className={styles.failNote}><StateMark meaning="red" label="partly unread" /> {g4.detail}</p>}

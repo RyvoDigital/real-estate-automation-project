@@ -101,6 +101,11 @@
   .halves, .lower { grid-template-columns: 1fr; }
 }
 
+/* The way on from the landing, on a desk. The phone has its own, below. */
+.deskOn { margin: 28px 0 0; font-size: 14px; }
+.deskOn a { color: var(--text-2); text-underline-offset: 3px; }
+.deskOn a:hover { color: var(--text); }
+
 /* The phone is refused (brief §1.13): The Month needs a desk; Today works here. */
 .refuse { display: none; }
 @media (max-width: 760px) {
