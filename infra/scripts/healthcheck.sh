@@ -267,6 +267,26 @@ print(int(json.loads(base64.urlsafe_b64decode(p + "=" * (-len(p) % 4)))["exp"]))
   fi
 fi
 
+# --- the domain (22 Sep 2026, /ops/expiries) ---------------------------------
+# ryvodigital.com's registry expiry, over RDAP (brief §2.3 "Ryvo's own"), so
+# /ops/expiries can say when the name lapses. Published as
+# health_runs.domain_expires_on (migration 0058).
+#   NOT a failure when it cannot be read: this runs every ten minutes and an
+#   RDAP hiccup is not an incident. The column is left null for this run, and
+#   the screen shows the last run that DID read it, with its age, never a stale
+#   date as a clean one (§2.3's stale-sweep rule).
+#   NOT an alert when near: the brief has only the deploy key email. The
+#   screen's 30-day notice is the domain's.
+DOMAIN_EXPIRES_ON="$(curl -s --max-time 10 -H 'accept: application/rdap+json' \
+  'https://rdap.verisign.com/com/v1/domain/ryvodigital.com' 2>/dev/null | python3 -c 'import json, sys
+d = json.load(sys.stdin)
+e = [x.get("eventDate", "") for x in d.get("events", []) if x.get("eventAction") == "expiration"]
+print(e[0][:10] if e else "")' 2>/dev/null)"
+if [[ ! "${DOMAIN_EXPIRES_ON}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+  DOMAIN_EXPIRES_ON=""
+  log "  domain expiry could not be read over RDAP this run (not a failure: the screen shows the last read, with its age)"
+fi
+
 # --- verdict ---------------------------------------------------------------
 # State: "<state> <since_epoch> <consecutive_fails> <notified 0|1>"
 #
@@ -319,7 +339,7 @@ publish_health() {
   # unsigned POST, expected 403"), and hand-rolled JSON would break on the
   # first one and publish nothing.
   payload="$(
-    HC_OK="$1" HC_MS="$2" HC_HOST="$(hostname)" HC_KEY_EXP="${N8N_API_KEY_EXP:-}" \
+    HC_OK="$1" HC_MS="$2" HC_HOST="$(hostname)" HC_KEY_EXP="${N8N_API_KEY_EXP:-}" HC_DOMAIN_EXP="${DOMAIN_EXPIRES_ON:-}" \
     python3 - "${PASSED[@]:-}" --failed-- "${FAILURES[@]:-}" <<'PYEOF'
 import json, os, sys
 args = sys.argv[1:]
@@ -335,6 +355,7 @@ print(json.dumps({
     "host": os.environ["HC_HOST"],
     **({"n8n_api_key_exp": __import__("datetime").datetime.fromtimestamp(int(os.environ["HC_KEY_EXP"]), __import__("datetime").timezone.utc).isoformat()}
        if os.environ.get("HC_KEY_EXP") else {}),
+    **({"domain_expires_on": os.environ["HC_DOMAIN_EXP"]} if os.environ.get("HC_DOMAIN_EXP") else {}),
 }))
 PYEOF
   )" || { log "  publish skipped - could not build the payload"; return 0; }
@@ -347,6 +368,20 @@ PYEOF
     -H "content-type: application/json" \
     -H "Prefer: return=minimal" \
     -d "${payload}" 2>/dev/null)" || code="000"
+
+  # domain_expires_on needs migration 0058. Until it is applied, PostgREST rejects the
+  # unknown column (400): retry once without it, before the 0051 retry below.
+  if [[ ! "${code}" =~ ^2 && "${payload}" == *domain_expires_on* ]]; then
+    log "  publish with domain_expires_on got HTTP ${code} - retrying without it (is migration 0058 applied?)"
+    payload="$(printf '%s' "${payload}" | python3 -c 'import json, sys; d = json.load(sys.stdin); d.pop("domain_expires_on", None); print(json.dumps(d))')"
+    code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
+      -X POST "${SUPABASE_URL%/}/rest/v1/health_runs" \
+      -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+      -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+      -H "content-type: application/json" \
+      -H "Prefer: return=minimal" \
+      -d "${payload}" 2>/dev/null)" || code="000"
+  fi
 
   # n8n_api_key_exp needs migration 0051. Until it is applied, PostgREST rejects the
   # unknown column (400) -- so retry once without it rather than publish nothing.

@@ -648,6 +648,18 @@
       },
       "last_proved": "2026-09-22",
       "proved_by": "Manuel Vale"
+    },
+    {
+      "id": "0058-ryvo-obligations",
+      "what": "Ryvo's own expiries (brief §2.3): public.ryvo_obligations, one row per act on an obligation (entered, corrected, checked, renewed, retired), chained by obligation_id/supersedes_id, each row superseded at most once (ryvo_obligations_one_successor_each), a successor keeps the chain and the kind (trigger). APPEND-ONLY (triggers; service_role SELECT+INSERT only; RLS on); ryvo_obligations_current (security_invoker) = the head of each non-retired chain. Per kind: a certidão has its date; a procuração has a date XOR no_expiry_stated, never blank; a card is brand + last four + month/year + services, and NO field may hold a run of 13+ digits not written as a phone (never a card number). health_runs.domain_expires_on for the RDAP read. WHY: /ops/expiries checkpoint 1 (22 Sep 2026).",
+      "how": "Apply db/migrations/0058_ryvo_obligations.sql, then run db/tests/0058_ryvo_obligations.test.sql WHOLE: fifteen verdict rows, every row PASS. Dry-run 22 Sep 2026 on a scratch PGlite with health_runs as production has it: before 0058, 1-13 and 15 FAIL, 14 PASS; after, 15/15 PASS, no row left. Sabotage there: the card guard removed (6, 7 red); the procuração rule removed (4, 5); the one-successor index non-unique (11); the chain trigger removed (1, 12); retired left in the view (13). Two defects found there and fixed before this was shown: the card guard first refused any 8+ digit run, which caught a date once its dashes were gone, then a 12+ run, which caught a phone with its country code; case 15 now holds both as PERMITTED. healthcheck.sh's RDAP read is written, not deployed (a server change).",
+      "watches": [
+        "db/migrations/0058_ryvo_obligations.sql",
+        "db/tests/0058_ryvo_obligations.test.sql"
+      ],
+      "hashes": {},
+      "last_proved": null,
+      "proved_by": null
     }
   ]
 }
