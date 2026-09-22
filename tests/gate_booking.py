@@ -37,7 +37,16 @@ ap.add_argument('--env', default='/opt/ryvo-automation-platform/.env')
 ap.add_argument('--gate-path', default='twilio-inbound-gate-5e1d8c47')
 ap.add_argument('--out', default='/tmp/gate_booking.json')
 ap.add_argument('--race', action='store_true', help='A and B confirm the same slot at the same instant: the re-check (RecheckFreeBusy) is the only thing between them')
+ap.add_argument('--parse-reply-src', default=__import__('os').path.join(__import__('os').path.dirname(__import__('os').path.dirname(__import__('os').path.abspath(__file__))), 'src', 'parse_reply.js'),
+                help="the BUILD's src/parse_reply.js: its replyLooksBroken() reads every delivered message")
 args = ap.parse_args()
+
+# 22 Sep 2026: the delivered-message scan and the gate cleanup (Defect D; gate leads
+# crowding the cockpit). Modules next to this script; the detector is the BUILD's.
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from gate_delivered import delivered_broken
+from gate_cleanup import clear_gate_escalations
 
 E = {}
 for l in open(args.env):
@@ -314,6 +323,14 @@ print(f'  invariant alerts (whole run): {len(all_inv)}  {[(e["data"].get("invari
 all_esc = [e for e in events_since('lead.escalated', start_iso)]
 want_esc = sum(1 for r in results if r.get('loser_caught_by') in ('re-check', "Google's 409"))
 print(f'  escalations (whole run):      {len(all_esc)} (expected {want_esc}: one per lost race)')
+n_read, broken = delivered_broken(db, cid, start_iso, args.parse_reply_src)
+print(f'  delivered messages read:      {n_read}, broken: {len(broken)}')
+for b in broken: print(f'    BROKEN {b["at"]} {b["origin"]}: {b["why"]}')
 print(f'  runs with any problem:        {sum(1 for r in results if r["problems"])}')
-ok = all(not r['problems'] for r in results) and len(booked) == created and not all_inv and len(all_esc) == want_esc
+ok = (all(not r['problems'] for r in results) and len(booked) == created and not all_inv and len(all_esc) == want_esc
+      and n_read > 0 and not broken)
+# The lost races escalated their losers on purpose; clear them, and any backlog.
+cleared, not_cleared = clear_gate_escalations(db, cid)
+print(f'  gate escalations cleared:     {cleared}' + (f', NOT cleared: {not_cleared}' if not_cleared else ''))
+ok = ok and not not_cleared
 print('PASS' if ok else 'FAIL')

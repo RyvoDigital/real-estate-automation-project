@@ -1,5 +1,6 @@
 import 'server-only'
 
+import { gateClientIds, withoutGateClients, withoutGateClientsKeepingUnattributed } from '@/lib/gate-clients'
 import { admin } from '@/lib/supabase/admin'
 import {
   ANOMALY_TYPES,
@@ -106,10 +107,16 @@ type LeadRow = {
  * tests/probe-queue.ts asserts the two agree.
  */
 export async function getOpenCount(limit = 100): Promise<number> {
-  const { data, error } = await admin()
-    .from('leads')
-    .select('qualification')
-    .not('qualification->>escalated', 'is', null)
+  // 🔒 The same gate exclusion as getQueue's operator-wide read (lib/gate-clients.ts),
+  // or the badge and the queue would disagree by every gate lead.
+  const gate = await gateClientIds()
+  const { data, error } = await withoutGateClients(
+    admin()
+      .from('leads')
+      .select('qualification')
+      .not('qualification->>escalated', 'is', null),
+    gate,
+  )
     .limit(limit)
 
   if (error) throw new Error(`open count query failed: ${error.message}`)
@@ -133,7 +140,10 @@ export async function getQueue(limit = 100, clientId?: string): Promise<QueueRow
       'id, full_name, phone, client_id, qualification, budget_min, budget_max, timeline, area, stage, lead_type, last_contact_at',
     )
     .not('qualification->>escalated', 'is', null)
+  // 🔒 One client asked for by id is the explicit route, the gate client included.
+  // Operator-wide, the deploy gate's test clients are left out (lib/gate-clients.ts).
   if (clientId) q = q.eq('client_id', clientId)
+  else q = withoutGateClients(q, await gateClientIds())
 
   const { data: leads, error } = await q.limit(limit)
 
@@ -563,10 +573,14 @@ export async function getLeads(f: LeadFilters): Promise<{
 }> {
   // Apply the same filters to both queries from one place. Two copies of a
   // filter chain is two chances for the count and the rows to disagree.
+  // 🔒 A client chosen in the filter is the explicit route, the gate client included;
+  // otherwise the deploy gate's test clients are left out (lib/gate-clients.ts).
+  const gate = f.client && UUID.test(f.client) ? [] : await gateClientIds()
   const applyFilters = <T extends { eq: Function; not: Function; is: Function; or: Function }>(
     query: T,
   ): T => {
     let q2 = query
+    q2 = withoutGateClients(q2, gate)
     // A client id that is not a uuid reaches Postgres as a bad cast and comes
     // back as a 500 — from a URL anyone can type. Same class as the
     // out-of-range page above: hostile input gets ignored, never crashed on.
@@ -756,6 +770,9 @@ async function readAnomalies(filter?: { leadId?: string; clientId?: string }): P
    * cannot show.
    */
   if (filter?.clientId) q = q.eq('client_id', filter.clientId)
+  // Operator-wide (no lead, no client): the deploy gate's test clients are left out,
+  // and an anomaly that names no client is KEPT (lib/gate-clients.ts).
+  if (!filter?.leadId && !filter?.clientId) q = withoutGateClientsKeepingUnattributed(q, await gateClientIds())
 
   const { data, error } = await q
   if (error) throw new Error(`anomalies query failed: ${error.message}`)

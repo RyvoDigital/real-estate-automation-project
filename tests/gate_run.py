@@ -26,7 +26,16 @@ ap.add_argument('--runs', type=int, default=20)
 ap.add_argument('--env', default='/opt/ryvo-automation-platform/.env')
 ap.add_argument('--gate-path', default='twilio-inbound-gate-5e1d8c47')
 ap.add_argument('--out', default='/tmp/gate_result.json')
+ap.add_argument('--parse-reply-src', default=__import__('os').path.join(__import__('os').path.dirname(__import__('os').path.dirname(__import__('os').path.abspath(__file__))), 'src', 'parse_reply.js'),
+                help="the BUILD's src/parse_reply.js: its replyLooksBroken() reads every delivered message")
 args = ap.parse_args()
+
+# 22 Sep 2026: the delivered-message scan and the gate cleanup (Defect D; gate leads
+# crowding the cockpit). Modules next to this script; the detector is the BUILD's.
+import os as _os, sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from gate_delivered import delivered_broken
+from gate_cleanup import clear_gate_escalations
 
 E = {}
 for l in open(args.env):
@@ -184,4 +193,13 @@ print(f'  EMPTY REPLIES:          {empty} of {model_calls} (the running measurem
 for k, v in retry_reasons.most_common(): print(f'    {v:3d}  {k}')
 json.dump({'start': start_iso, 'stamp': stamp, 'runs': results, 'model_calls': model_calls,
            'retry_reasons': dict(retry_reasons)}, open(args.out, 'w'), ensure_ascii=False, indent=1)
-print('PASS' if (unexpected_esc == 0 and inv == 0 and not events and lang == 0 and other == 0) else 'FAIL')
+# Every message the gate delivered, read by the build's own detector (Defect D).
+n_read, broken = delivered_broken(db, cid, start_iso, args.parse_reply_src)
+print(f'  delivered messages read: {n_read}, broken: {len(broken)}')
+for b in broken: print(f'    BROKEN {b["at"]} {b["origin"]}: {b["why"]}')
+# Then clear what the gate escalated, so nothing accumulates in the cockpit.
+cleared, not_cleared = clear_gate_escalations(db, cid)
+print(f'  gate escalations cleared: {cleared}' + (f', NOT cleared: {not_cleared}' if not_cleared else ''))
+ok = (unexpected_esc == 0 and inv == 0 and not events and lang == 0 and other == 0
+      and n_read > 0 and not broken and not not_cleared)
+print('PASS' if ok else 'FAIL')
