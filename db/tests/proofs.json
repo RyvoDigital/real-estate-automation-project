@@ -637,14 +637,17 @@
     {
       "id": "0057-listing-acts",
       "what": "The listing screens' two acts, each ONE transaction. exemption_records: one row per exemption declared (who at the agency, who recorded, the basis, when), APPEND-ONLY (triggers refuse UPDATE/DELETE/TRUNCATE; service_role SELECT+INSERT only; RLS on), id minted when the form is drawn (pkey: a resubmission is 23505 exemption_records_pkey), declarer and recorder must differ. record_exemption(): locks the fact row, refuses over an existing rating (RY001), writes the act, the current value in listing_facts (carrying the act's id) and the event. record_agent_pick(): refuses another agency's contact (RY002), a second pick of an already-chosen contact (RY003), a resubmission (23505 naming listing_matches_pkey), chooser = recorder (23514); supersedes the engine's current computed match instead of hitting listing_matches_current_uniq; writes the match, the requirements its sentence taught and the event together. WHY: listing screens checkpoint 1 (22 Sep 2026).",
-      "how": "Apply db/migrations/0057_listing_acts.sql, then run db/tests/0057_listing_acts.test.sql WHOLE: fifteen verdict rows, every row PASS. Do NOT push the cockpit's listing change before this: the new actions call record_exemption and record_agent_pick, and the triage and exemption screens gain their form ids in checkpoint 2. Dry-run 22 Sep 2026 on a scratch PGlite that applies the REAL 0025, 0026 and 0030 over minimal base tables: before 0057, 1-14 FAIL and 15 PASS; after, 15/15 PASS, no row left. Sabotage there: the rated check removed (4 red); the agency check removed (10); the supersede removed (9 and 13: the unique index again); either same-person rule removed (5, 14); the already-chosen check removed (12); FOUND reused after the act's insert (2 and 6: the current value silently not written, the bug found in review and fixed); the exemption event not written (2, 3).",
+      "how": "Apply db/migrations/0057_listing_acts.sql, then run db/tests/0057_listing_acts.test.sql WHOLE: fifteen verdict rows, every row PASS. Do NOT push the cockpit's listing change before this: the new actions call record_exemption and record_agent_pick, and the triage and exemption screens gain their form ids in checkpoint 2. Dry-run 22 Sep 2026 on a scratch PGlite that applies the REAL 0025, 0026 and 0030 over minimal base tables: before 0057, 1-14 FAIL and 15 PASS; after, 15/15 PASS, no row left. Sabotage there: the rated check removed (4 red); the agency check removed (10); the supersede removed (9 and 13: the unique index again); either same-person rule removed (5, 14); the already-chosen check removed (12); FOUND reused after the act's insert (2 and 6: the current value silently not written, the bug found in review and fixed); the exemption event not written (2, 3). RUN 22 Sep 2026: the first apply hung in the SQL editor; running queries showed nothing and to_regclass('public.exemption_records') was null, so nothing had been kept (the transaction held). Manuel's second run: Success, no rows. Proof 15/15 PASS (case 9 engine → agent with one current row; case 10 RY002, no match written; case 13 refused whole, the engine's match not superseded; case 15 no fixture). Confirmed read-only after: RLS on; service_role SELECT+INSERT only; both append-only triggers; both functions service_role only, security invoker; the four CHECKs; FKs RESTRICT; 0 records, no fixture, no lingering 0057 session.",
       "watches": [
         "db/migrations/0057_listing_acts.sql",
         "db/tests/0057_listing_acts.test.sql"
       ],
-      "hashes": {},
-      "last_proved": null,
-      "proved_by": null
+      "hashes": {
+        "db/migrations/0057_listing_acts.sql": "ffabcf8e80251fd84eb18da19ec310d3c2890e38c815695d20b2a490c90b07d9",
+        "db/tests/0057_listing_acts.test.sql": "c8fefd07f2a23aa93749615e13ca4950cf64639e2278b06dbbf35032124dac6b"
+      },
+      "last_proved": "2026-09-22",
+      "proved_by": "Manuel Vale"
     }
   ]
 }
