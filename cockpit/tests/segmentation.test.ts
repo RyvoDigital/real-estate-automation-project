@@ -9,7 +9,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { proposeGroups, describeContact, sharedClaimCell, type ContactRow } from '../src/lib/segmentation/groups'
-import { validateDeclaration, type DeclareInput } from '../src/lib/segmentation/declare'
+import { validateDeclaration, type DeclareInput } from '../src/lib/segmentation/declare-core'
 import { presentStep2 } from '../src/lib/segmentation/present'
 import { SURFACE, contrastRatio, luminance } from '../src/lib/segmentation/surface'
 import {
@@ -90,7 +90,7 @@ test('NO GROUP ARRIVES WITH A PRE-SELECTED PROPOSAL', () => {
 
 const d = (over: Partial<DeclareInput> = {}): DeclareInput => ({
   clientId: 'client', contacts: [{ phone: '+351912345678' }], segment: 'A',
-  declaredBy: 'Ana Ferreira', recordedBy: 'Manuel Vale', ...over,
+  declaredBy: 'Ana Ferreira', recordedBy: 'Manuel Vale', uncertainty: false, ...over,
 })
 
 test('a declaration without the agency person is refused, before the database refuses it', () => {
@@ -339,9 +339,13 @@ test('the page takes the RECORDER from the session, never from the form', () => 
   // A form field for it would let both names be set to the same value from the
   // browser, which is the collapse declare.ts refuses.
   const actions = readFileSync(new URL('../src/lib/segmentation/actions.ts', import.meta.url), 'utf8')
-  assert.match(actions, /recordedBy: operator\.email/)
-  assert.equal(/get\(['"]recordedBy['"]\)/.test(actions), false,
+  // Since checkpoint 1 (22 Sep 2026) the session's email is resolveDeclaration's
+  // third argument, and the core copies that argument, and only it, into recordedBy.
+  assert.match(actions, /resolveDeclaration\([\s\S]*?,\s*operator\.email,?\s*\)/)
+  assert.equal(/(get|text)\(['"]recordedBy['"]\)/.test(actions), false,
     'recordedBy is being read from the form — it must come from the session')
+  const core = readFileSync(new URL('../src/lib/segmentation/declare-core.ts', import.meta.url), 'utf8')
+  assert.match(core, /\n\s+recordedBy,\n/, 'the core takes recordedBy from its argument')
 })
 
 test('a failed declaration is SHOWN, never swallowed', () => {
