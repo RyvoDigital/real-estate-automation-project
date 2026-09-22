@@ -2519,6 +2519,33 @@ No import and no restart: activation from the running instance registers the
 webhook row. The sink's saved version is the one that mints a fresh sid per call
 (`ff3f157`).
 
+**The booking test is part of the gate** (22 Sep 2026): `tests/gate_booking.py --runs 10`,
+then `--runs 4 --race`, before `gate_run.py`. It counts invariant alerts and
+escalations itself, over the whole window, never off the payloads.
+
+**Gate leads show up in the cockpit's escalation lists.** Every "Talk to a human"
+and every lost race leaves an escalated lead under **ZZ GATE**, all named João. On
+22 Sep the operator's hand-back after a deploy landed on one of them (…901) instead
+of the Ryvo Test Client's lead (…230). Hand back from the **Ryvo Test Client**
+list, and confirm the id against the row before the phone checks.
+
+#### Open question: the race-2 miscount (22 Sep 2026, cause unknown)
+
+On the gate copy of fd90df4, `gate_booking.py --race`, race 2 (pt) reported
+*"winner's outbound ['ai', 'ai'], expected ['ai']"*. The messages table shows the
+winning lead received **one** message after its pick (the confirmation, 09:50:07
+UTC). The only other outbound was the slot offer at 09:49:56, 3 s **before** the
+pick, which the window (opened ~1 s before the send) should have excluded.
+
+**Not clock skew**, which was the first guess: the server is NTP-synced
+(systemd-timesyncd, ntp.hetzner.com, offset +0.82 ms) and the database host agrees
+with it to within the 1 s resolution of the HTTP Date header. The harness now
+reads each lead's outbound after that lead's own pick message, found by its sid in
+the database (commit `f908680`), so the check no longer depends on the cause, and
+the four races re-run on it passed. The cause of the double count is still
+unexplained. If it recurs, capture the raw `outs` lists and the `since` value in
+the run's JSON before drawing a conclusion.
+
 ### Caddy: config changes are a graceful reload, and the bind mount lags (2026-09-21)
 
 `infra/Caddyfile` is bind-mounted as a **single file**. `git pull` replaces the file
