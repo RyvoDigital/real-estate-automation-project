@@ -26,6 +26,7 @@
  */
 
 import { deriveThresholds, problemsWith, type Answers, type Problem } from './thresholds'
+import { operatorName } from '@/lib/operators'
 
 export type CalibrationInput = {
   calibrationId: string
@@ -114,7 +115,9 @@ export async function recordCalibration(form: CalibrationForm, recordedBy: strin
   if (!UUID.test(form.calibrationId ?? '')) return { ok: false, kind: 'refused', reason: NO_ID }
   const answeredBy = (form.answeredBy ?? '').trim()
   if (!answeredBy) return { ok: false, kind: 'refused', reason: NO_NAME }
-  if (answeredBy.toLowerCase() === recordedBy.trim().toLowerCase()) return { ok: false, kind: 'refused', reason: SAME_PERSON }
+  // The recorder's email, or the recorder's NAME typed as the answerer: either is us answering for them.
+  const ours = [recordedBy, operatorName(recordedBy)].filter(Boolean).map((x) => x!.trim().toLowerCase())
+  if (ours.includes(answeredBy.toLowerCase())) return { ok: false, kind: 'refused', reason: SAME_PERSON }
 
   const answers = parseAnswers(form)
   const problems = problemsWith(answers)

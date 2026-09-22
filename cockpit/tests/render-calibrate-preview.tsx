@@ -37,7 +37,7 @@ const client = { id: 'c-sample', name: 'Marbella Sur' }
 const previous: CalibrationScreen['previous'] = {
   answers: { ...EMPTY_ANSWERS, budgetSaid: 2000000, budgetMost: 2100000, budgetStretchMost: 2300000, showsOneFewerBedroom: true,
     ofHowMany: 5, strongAtLeast: 4, possibleAtLeast: 3, adjacency: 'Cascais: Estoril, Parede\nSintra: Colares' },
-  answeredBy: 'Marta Soares', recordedBy: 'manuel@ryvodigital.com', recordedAt: '2026-09-12T14:20:00Z',
+  answeredBy: 'Marta Soares', recordedBy: 'manuelvale@ryvodigital.com', recordedAt: '2026-09-12T14:20:00Z',
   thresholds: { budget_stretch: 0.05, budget_stretch_with_evidence: 0.15, bedrooms_tolerance: 1,
     area_adjacency: { Cascais: ['Estoril', 'Parede'], Estoril: ['Cascais'], Parede: ['Cascais'], Sintra: ['Colares'], Colares: ['Sintra'] },
     min_score_strong: 0.8, min_score_possible: 0.6 },

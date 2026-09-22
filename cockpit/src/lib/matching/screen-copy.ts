@@ -354,6 +354,8 @@ export const CALIBRATE = {
   blankEachTime: 'As respostas começam sempre em branco: cada vez é uma resposta nova. As anteriores ficam ao lado, só para consulta.',
   lastSitting: (date: string, who: string, recorder: string) => `Da última vez: ${date}, respondeu ${who} (registado por ${recorder}).`,
   lastTime: 'Da última vez',
+  /** the recorder, when the email is not a known operator: never the address itself */
+  ourTeam: 'a equipa da Ryvo',
   noAnswerThen: 'sem resposta',
   noAreasThen: 'nenhuma zona',
   whoAnswers: 'Quem na agência está a responder',

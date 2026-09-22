@@ -11,6 +11,7 @@ import { calibrationScreenFrom } from '../src/lib/matching/calibrate-read'
 import { referenceLines, sittingDate } from '../src/lib/matching/calibrate-reference'
 import { CALIBRATE } from '../src/lib/matching/screen-copy'
 import { EMPTY_ANSWERS } from '../src/lib/matching/thresholds'
+import { operatorName } from '../src/lib/operators'
 
 const code = (rel: string) => readFileSync(new URL(rel, import.meta.url), 'utf8')
   .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/^\s*\/\/.*$/gm, '')
@@ -57,7 +58,7 @@ test('🔴 NOTHING IS PRE-FILLED: no answer field carries a value, the previous 
 })
 
 test('the previous sitting is shown with its date, who answered and who recorded it', () => {
-  assert.match(VIEW, /CALIBRATE\.lastSitting\(sittingDate\(prev\.recordedAt\), prev\.answeredBy, prev\.recordedBy\)/)
+  assert.match(VIEW, /CALIBRATE\.lastSitting\(sittingDate\(prev\.recordedAt\), prev\.answeredBy, operatorName\(prev\.recordedBy\) \?\? CALIBRATE\.ourTeam\)/)
   assert.match(CALIBRATE.lastSitting('12 set. 2026', 'Marta Soares', 'manuel'), /12 set\. 2026.*Marta Soares.*manuel/)
   assert.match(sittingDate('2026-09-12T23:30:00Z'), /13/, 'dated in Lisbon, where 23:30 UTC is the next day')
 })
@@ -89,4 +90,22 @@ test('who at the agency answers is asked on the form; the recorder never is', ()
 test('the form checks with the SAME problemsWith the server runs, and a problem blocks the send', () => {
   assert.match(FORM, /problemsWith\(parseAnswers\(form\)\)/)
   assert.match(FORM, /if \(Object\.keys\(found\)\.length > 0\) e\.preventDefault\(\)/)
+})
+
+test('🔴 "who is answering" comes first, before any question', () => {
+  const who = FORM.indexOf('name="answeredBy"')
+  assert.ok(who > 0, 'no answeredBy field — this guard would pass vacuously')
+  for (const q of ['name="budgetSaid"', 'name="showsOneFewerBedroom"', 'name="ofHowMany"', 'name="adjacency"']) {
+    const at = q === 'name="budgetSaid"' ? FORM.indexOf('<Num name="budgetSaid"') : FORM.indexOf(q)
+    assert.ok(at > who, `${q} comes before who is answering`)
+  }
+})
+
+test('🔴 the agency sees the recorder by NAME, never an email', () => {
+  assert.equal(operatorName('manuelvale@ryvodigital.com'), 'Manuel Vale')
+  assert.equal(operatorName(' ManuelVale@RyvoDigital.com '), 'Manuel Vale')
+  assert.equal(operatorName('someone@else.com'), null)
+  assert.match(VIEW, /operatorName\(prev\.recordedBy\) \?\? CALIBRATE\.ourTeam/)
+  assert.doesNotMatch(VIEW, /prev\.recordedBy\)(?! \?\?)/, 'the raw recorder reaches the screen somewhere')
+  assert.doesNotMatch(CALIBRATE.ourTeam, /@/)
 })

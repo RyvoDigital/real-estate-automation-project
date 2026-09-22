@@ -89,6 +89,19 @@ export function CalibrateForm({ clientId, calibrationId, reference, serverProble
         <p role="alert" className={styles.banner} style={{ ...SURFACE.error }}>{CALIBRATE.fixFirst}</p>
       )}
 
+      {/* Who is answering comes FIRST (operator, 22 Sep 2026): every answer below is theirs. */}
+      <section className={styles.section}>
+        <div className={styles.row}>
+          <label className={styles.field}>
+            <span className={styles.fieldLabel}>{CALIBRATE.whoAnswers}</span>
+            <span className={styles.hint} style={muted}>{CALIBRATE.whoAnswersHint}</span>
+            <input name="answeredBy" autoComplete="off" className={styles.input} style={field} />
+            <Problem f="answeredBy" />
+          </label>
+          <span className={styles.ref} aria-hidden />
+        </div>
+      </section>
+
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>{CALIBRATE.budgetHeading}</h2>
         <Num name="budgetSaid" label={CALIBRATE.budgetSaid} />
@@ -133,17 +146,6 @@ export function CalibrateForm({ clientId, calibrationId, reference, serverProble
         </div>
       </section>
 
-      <section className={styles.section}>
-        <div className={styles.row}>
-          <label className={styles.field}>
-            <span className={styles.fieldLabel}>{CALIBRATE.whoAnswers}</span>
-            <span className={styles.hint} style={muted}>{CALIBRATE.whoAnswersHint}</span>
-            <input name="answeredBy" autoComplete="off" className={styles.input} style={field} />
-            <Problem f="answeredBy" />
-          </label>
-          <span className={styles.ref} aria-hidden />
-        </div>
-      </section>
 
       <div className={styles.actions}><Submit /></div>
     </form>

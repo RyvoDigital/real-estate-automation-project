@@ -83,9 +83,11 @@ test('another unique violation is a failure, never mistaken for "already recorde
 })
 
 test('🔒 THE AGENCY ANSWERS, WE RECORD: no name, or our own name, is refused before the store', async () => {
-  for (const [answeredBy, reason] of [[null, NO_NAME], ['   ', NO_NAME], [ME, SAME_PERSON], [' Manuel@RyvoDigital.com ', SAME_PERSON]] as const) {
+  for (const [answeredBy, reason, me] of [[null, NO_NAME, ME], ['   ', NO_NAME, ME], [ME, SAME_PERSON, ME], [' Manuel@RyvoDigital.com ', SAME_PERSON, ME],
+    // the operator's NAME typed as the answerer is us answering too (lib/operators.ts)
+    ['Manuel Vale', SAME_PERSON, 'manuelvale@ryvodigital.com'], [' manuel vale ', SAME_PERSON, 'manuelvale@ryvodigital.com']] as const) {
     const s = store()
-    assert.deepEqual(await recordCalibration(form({ answeredBy }), ME, s.deps), { ok: false, kind: 'refused', reason })
+    assert.deepEqual(await recordCalibration(form({ answeredBy }), me, s.deps), { ok: false, kind: 'refused', reason })
     assert.equal(s.calls.length, 0)
   }
 })

@@ -5,6 +5,7 @@ import { referenceLines, sittingDate } from '@/lib/matching/calibrate-reference'
 import type { CalibrationScreen } from '@/lib/matching/calibrate-read'
 import type { Answers } from '@/lib/matching/thresholds'
 import { SURFACE } from '@/lib/segmentation/surface'
+import { operatorName } from '@/lib/operators'
 import { CalibrateForm } from './CalibrateForm'
 import styles from './calibrate.module.css'
 
@@ -17,6 +18,8 @@ import styles from './calibrate.module.css'
  *      never "not answered yet" on a read that did not happen.
  *   🔒 The previous sitting is REFERENCE: its date, who answered and who
  *      recorded it here, and each answer beside its field. The fields are empty.
+ *   🔒 The recorder is shown by NAME (lib/operators.ts), never by email: the
+ *      agency sees this screen.
  *   🔒 THE CALIBRATION ID IS MINTED HERE, per drawn form, and travels in it.
  */
 
@@ -64,7 +67,7 @@ export function CalibrateView({ clientId, screen, guardado, jaGuardado, erro, ca
           <section className={styles.summary}>
             {prev && explained ? (
               <>
-                <p className={styles.summaryHead}>{CALIBRATE.lastSitting(sittingDate(prev.recordedAt), prev.answeredBy, prev.recordedBy)}</p>
+                <p className={styles.summaryHead}>{CALIBRATE.lastSitting(sittingDate(prev.recordedAt), prev.answeredBy, operatorName(prev.recordedBy) ?? CALIBRATE.ourTeam)}</p>
                 <p className={styles.line}>{CALIBRATE.savedSummary(euro(2_000_000), euro(explained.plainCeiling), euro(explained.statedCeiling))}</p>
                 <p className={styles.line}>{explained.bedrooms ? CALIBRATE.savedBedroomsYes : CALIBRATE.savedBedroomsNo}</p>
                 {explained.areas.length === 0 && <p className={styles.line}>{CALIBRATE.savedAreasNone}</p>}
