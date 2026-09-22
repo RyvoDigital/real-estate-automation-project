@@ -75,7 +75,9 @@ test('🔴 an unanswered draft is REFUSED, and the message says why it matters',
 
 // ── where the default would come back ───────────────────────────────────────
 
-const ONBOARDING = readFileSync(join(import.meta.dirname, '..', 'src', 'components', 'Onboarding.tsx'), 'utf-8')
+// 22 Sep 2026: the form was rebuilt as components/onboarding/NewClient.tsx (/onboarding
+// checkpoint 2); the old components/Onboarding.tsx is gone. The same rules, the new file.
+const ONBOARDING = readFileSync(join(import.meta.dirname, '..', 'src', 'components', 'onboarding', 'NewClient.tsx'), 'utf-8')
 // 22 Sep 2026: the insert moved into the tested write core (lib/onboarding-create.ts);
 // lib/actions.ts's createClient only supplies its dependencies. So the column rule is
 // read where the insert now lives, and the action is checked to delegate to it.

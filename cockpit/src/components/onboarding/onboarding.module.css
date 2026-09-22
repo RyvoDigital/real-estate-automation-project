@@ -1,0 +1,92 @@
+/*
+ * /onboarding — rebuilt 22 Sep 2026 (checkpoint 2), in The Month's direction
+ * (operator-approved 21 Sep): ONE 4px spacing scale, ONE rhythm (a label, a
+ * figure, at most one supporting line), sections separated by space and never
+ * by stacked rules, neutral tokens everywhere. State colour (done, broken)
+ * comes ONLY through state-chip; absence is grey (tokens.test.ts, rule 3).
+ */
+
+.page {
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
+  display: flex; flex-direction: column; gap: var(--s6); min-width: 0; max-width: 1080px;
+}
+
+/* ── the header ──────────────────────────────────────────────────────────── */
+.top { display: flex; align-items: center; gap: var(--s4); flex-wrap: wrap; }
+.title { margin: 0; font-family: var(--display); font-size: 28px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; color: var(--text); }
+.back { font-size: 13px; color: var(--text-2); text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
+.back:hover { color: var(--text); }
+.lede { margin: calc(var(--s4) * -1) 0 0; max-width: 68ch; font-size: 15px; line-height: 1.5; color: var(--text-2); }
+.lede b { color: var(--text); font-weight: 600; }
+
+.label { font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
+.panel { display: flex; flex-direction: column; gap: var(--s5); padding: var(--s5); border-radius: 24px; background: var(--glass); box-shadow: var(--glass-hi); min-width: 0; }
+.panelHead { display: flex; align-items: baseline; gap: var(--s3); flex-wrap: wrap; }
+.panelHead h2 { margin: 0; font-family: var(--display); font-size: 22px; font-weight: 700; letter-spacing: -0.025em; color: var(--text); }
+.panelHead span { font-size: 13px; color: var(--text-2); }
+
+/* ── the checklist: one step = number, title + state, one line ───────────── */
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s5); counter-reset: step; }
+.step { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: var(--s2) var(--s4); counter-increment: step; }
+.step::before { content: counter(step); grid-row: span 3; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; background: var(--lift-3); color: var(--text-2); font-family: var(--display); font-size: 14px; font-weight: 600; }
+.stepHead { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; min-width: 0; }
+.stepTitle { margin: 0; font-family: var(--display); font-size: 17px; font-weight: 600; letter-spacing: -0.015em; color: var(--text); }
+.kind { font-size: 12px; color: var(--text-3); }
+.on { margin-left: auto; font-size: 12.5px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.stepLine { margin: 0; max-width: 72ch; font-size: 13.5px; line-height: 1.5; color: var(--text-2); }
+.out { display: inline-flex; align-items: center; gap: var(--s2); min-height: 44px; font-size: 13.5px; font-weight: 600; color: var(--text); text-decoration: none; }
+.out:hover { text-decoration: underline; }
+.out::after { content: '→'; color: var(--text-3); }
+
+/* ── a record, recorded here ──────────────────────────────────────────────── */
+.record summary { cursor: pointer; min-height: 44px; display: inline-flex; align-items: center; gap: var(--s2); font-size: 13.5px; font-weight: 600; color: var(--text); list-style: none; }
+.record summary::-webkit-details-marker { display: none; }
+.record summary::after { content: '+'; color: var(--text-3); }
+.record[open] summary::after { content: '−'; }
+.form { display: flex; flex-direction: column; gap: var(--s4); padding: var(--s4) 0 0; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s4) var(--s5); }
+.wide { grid-column: 1 / -1; }
+.field { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
+.fieldLabel { font-size: 13px; font-weight: 600; color: var(--text); }
+.fieldLabel small { margin-left: var(--s2); font-weight: 500; color: var(--text-3); }
+.input { min-height: 44px; padding: 0 var(--s3); border-radius: 12px; border: 1px solid var(--edge-2); background: var(--lift-1); color: var(--text); font: inherit; font-size: 14px; }
+.input:focus-visible { outline: 2px solid var(--text-2); outline-offset: 1px; }
+textarea.input { padding: var(--s3); min-height: 72px; resize: vertical; line-height: 1.45; }
+.check { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: var(--s3); align-items: start; min-height: 44px; font-size: 13.5px; line-height: 1.45; color: var(--text); }
+.check input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--text); }
+.check small { display: block; color: var(--text-3); }
+.err { font-size: 12.5px; color: var(--text); }
+.err::before { content: '— '; color: var(--text-3); }
+.actions { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
+.submit { min-height: 44px; padding: 0 var(--s5); border: 0; border-radius: 999px; background: var(--press); box-shadow: var(--press-shadow); color: var(--text); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.submit:active { transform: scale(0.97); }
+.ghost { min-height: 44px; padding: 0 var(--s4); border: 1px solid var(--edge-2); border-radius: 999px; background: transparent; color: var(--text); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.ghost:active { transform: scale(0.97); }
+.outcome { display: inline-flex; align-items: center; gap: var(--s2); font-size: 13px; color: var(--text-2); }
+
+/* ── the rehearsal question: two choices, nothing pre-selected ────────────── */
+.choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s3); margin: 0; padding: 0; border: 0; }
+.choices legend { margin-bottom: var(--s2); font-size: 13px; font-weight: 600; color: var(--text); }
+.choice { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: var(--s3); padding: var(--s4); border-radius: 16px; border: 1px solid var(--edge-2); background: var(--lift-1); cursor: pointer; min-height: 44px; }
+.choice:has(input:checked) { border-color: var(--text-2); background: var(--lift-2); }
+.choice input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--text); }
+.choice b { display: block; font-size: 14px; font-weight: 600; color: var(--text); }
+.choice span { display: block; margin-top: 2px; font-size: 12.5px; line-height: 1.4; color: var(--text-2); }
+
+/* ── the list of clients ──────────────────────────────────────────────────── */
+.rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s2); }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s4); align-items: center; padding: var(--s3) var(--s4); border-radius: 16px; text-decoration: none; color: var(--text); min-height: 44px; }
+.row:hover { background: var(--lift-2); }
+.rowName { font-size: 15px; font-weight: 600; min-width: 0; }
+.rowName small { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 500; color: var(--text-3); }
+.empty { margin: 0; font-size: 14px; color: var(--text-2); }
+
+.note { margin: 0; max-width: 72ch; font-size: 12.5px; line-height: 1.5; color: var(--text-3); }
+
+.cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: var(--s5); align-items: start; }
+@media (max-width: 1100px) { .cols { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .grid, .choices { grid-template-columns: 1fr; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .submit:active, .ghost:active { transform: none; }
+}
