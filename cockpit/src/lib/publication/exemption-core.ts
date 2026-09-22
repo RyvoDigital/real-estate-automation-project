@@ -16,6 +16,11 @@
  *      session. Neither our email nor our name may be the declarer.
  *   🔒 ONCE: the id is minted when the form is drawn; the same form again is
  *      "already recorded". NOTHING THROWS: every outcome is a sentence.
+ *   🔒 ERRORS ARE MAPPED BY CONSTRAINT NAME (operator, 22 Sep 2026). Only the
+ *      form's OWN key (exemption_records_pkey) means "already recorded". Two
+ *      DIFFERENT forms racing on a property with no fact yet: the loser hits
+ *      listing_facts_current, which means "someone else just recorded this",
+ *      named when the name can be read.
  */
 import { validateExemption } from './exemption'
 import { operatorName } from '@/lib/operators'
@@ -36,6 +41,8 @@ export type ActResult =
 export type RpcError = { code: string | null; message: string }
 
 export type ExemptionDeps = {
+  /** who declared the CURRENT exemption for this requirement, for the race's sentence; null = none or unreadable */
+  currentDeclarer(listingId: string, requirementId: string): Promise<string | null>
   /** 🔒 THE ONE VERB: record_exemption (0057) — the act, the current value and the event, or none. */
   record(args: {
     p_exemption_id: string; p_listing_id: string; p_requirement_id: string
@@ -47,6 +54,10 @@ export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
 export const NO_ID = 'This form has no id, so sending it twice could not be told from a new declaration. Nothing was recorded: reload the screen.'
 export const NO_REQUIREMENT = 'Which requirement this exemption is against is missing. Nothing was recorded: reload the screen.'
 export const ONE_EXEMPTION_KEY = 'exemption_records_pkey'
+/** 0030's one-current-fact rule: what a racing second form hits when no fact existed */
+export const ONE_CURRENT_FACT = 'listing_facts_current'
+export const justDeclared = (who: string | null) =>
+  `${who ?? 'Someone else'} just recorded an exemption for this property, while this form was open. Nothing new was recorded.`
 
 /** The recorder's email or name typed as the agency's person is us declaring for them. */
 export function isUs(name: string, recordedBy: string): boolean {
@@ -71,6 +82,9 @@ export async function recordExemptionAct(form: ExemptionForm, recordedBy: string
     p_declared_by: declaredBy, p_recorded_by: recordedBy.trim(), p_basis: basis,
   })
   if (error?.code === '23505' && error.message.includes(ONE_EXEMPTION_KEY)) return { ok: true, alreadyRecorded: true }
+  if (error?.code === '23505' && error.message.includes(ONE_CURRENT_FACT)) {
+    return { ok: false, reason: justDeclared(await deps.currentDeclarer(form.listingId, form.requirementId!.trim()).catch(() => null)) }
+  }
   if (error?.code === 'RY001') {
     return { ok: false, reason: validateExemption({ listingId: form.listingId, basis, declaredBy, recordedBy, alreadyRated: true })! }
   }

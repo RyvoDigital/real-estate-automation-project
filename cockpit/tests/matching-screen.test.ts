@@ -107,6 +107,10 @@ test('no prose hides in a page where the vocabulary guard cannot see it', () => 
     // The calibration screen is drawn here since checkpoint 2 (22 Sep 2026).
     '../src/components/calibrate/CalibrateView.tsx',
     '../src/components/calibrate/CalibrateForm.tsx',
+    // The listing screens are drawn here since their checkpoint 2 (22 Sep 2026).
+    '../src/components/listings/ListingDetailView.tsx',
+    '../src/components/listings/TriageView.tsx',
+    '../src/components/listings/ExemptionView.tsx',
   ]
   const offences: string[] = []
   for (const rel of pages) {

@@ -15,6 +15,11 @@ import { recordExemptionAct, type ExemptionDeps } from './exemption-core'
  * recorder is the session. The outcome goes back in the URL, never as a throw.
  */
 const deps: ExemptionDeps = {
+  currentDeclarer: async (listingId, requirementId) => {
+    const { data, error } = await admin().from('listing_facts').select('exemption')
+      .eq('listing_id', listingId).eq('requirement_id', requirementId).maybeSingle()
+    return error ? null : (((data?.exemption as { declared_by?: string } | null)?.declared_by) ?? null)
+  },
   record: async (args) => {
     const { error } = await admin().rpc('record_exemption', args)
     return { error: error ? { code: error.code ?? null, message: error.message } : null }

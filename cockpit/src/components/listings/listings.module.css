@@ -1,0 +1,66 @@
+/*
+ * The listing screens (detail, triage, exemption), redrawn 22 Sep 2026
+ * (checkpoint 2) in The Month's direction: ONE 4px spacing scale, ONE rhythm,
+ * sections separated by space rather than rules, the display face for what is
+ * asked. They may be shown to somebody at the agency, so they sit on the light,
+ * contrast-tested surface /segmentation and /calibrate share
+ * (lib/segmentation/surface.ts).
+ *
+ * 🔒 NO COLOUR IN THIS FILE. Hairlines are mixed from the text they sit on.
+ */
+
+.page {
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
+  --hair: color-mix(in srgb, currentColor 14%, transparent);
+  --hair-strong: color-mix(in srgb, currentColor 30%, transparent);
+  min-height: 100vh; font-family: var(--sans); font-size: 16px; line-height: 1.55;
+}
+.inner { max-width: 880px; margin: 0 auto; padding: var(--s6) var(--s5) var(--s7); display: flex; flex-direction: column; gap: var(--s5); }
+
+.back { align-self: flex-start; min-height: 44px; display: inline-flex; align-items: center; font-size: 14px; font-weight: 600; color: inherit; }
+.head { display: flex; flex-direction: column; gap: var(--s2); }
+.title { margin: 0; font-family: var(--display); font-size: 30px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; }
+.sub { margin: 0; font-family: var(--display); font-size: 18px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.intro { margin: 0; max-width: 68ch; font-size: 15px; }
+.line { margin: 0; font-size: 14px; line-height: 1.5; max-width: 72ch; }
+.label { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+
+.banner { margin: 0; padding: var(--s3) var(--s4); border-radius: 14px; border: 1px solid var(--hair); font-size: 15px; display: flex; flex-direction: column; gap: var(--s1); }
+.detail { font-family: var(--mono); font-size: 12.5px; white-space: pre-wrap; }
+
+.link { align-self: flex-start; min-height: 44px; display: inline-flex; align-items: center; font-weight: 600; color: inherit; }
+
+/* ── lists of people ─────────────────────────────────────────────────────── */
+.section { display: flex; flex-direction: column; gap: var(--s3); }
+.sectionTitle { margin: 0; font-family: var(--display); font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+.people { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s2); }
+.person { display: flex; flex-direction: column; gap: var(--s1); padding: var(--s3) var(--s4); border-radius: 16px; border: 1px solid var(--hair); }
+.personName { font-size: 16px; font-weight: 600; }
+.personLine { font-size: 14px; }
+.reasons summary { cursor: pointer; min-height: 44px; display: inline-flex; align-items: center; font-size: 14px; font-weight: 600; }
+.reasons ul { margin: 0; padding-left: var(--s5); font-size: 14px; }
+
+/* ── the triage floor ────────────────────────────────────────────────────── */
+.contact { border-radius: 16px; border: 1px solid var(--hair); }
+.contact summary { cursor: pointer; list-style: none; min-height: 52px; display: flex; align-items: center; gap: var(--s3); padding: 0 var(--s4); font-size: 16px; font-weight: 600; }
+.contact summary::-webkit-details-marker { display: none; }
+.contact summary::after { content: '+'; margin-left: auto; font-weight: 500; }
+.contact[open] summary::after { content: '−'; }
+.tag { font-size: 12.5px; font-weight: 600; padding: 2px var(--s2); border-radius: 999px; border: 1px solid var(--hair-strong); }
+.form { display: flex; flex-direction: column; gap: var(--s4); padding: 0 var(--s4) var(--s4); }
+
+/* ── forms ───────────────────────────────────────────────────────────────── */
+.field { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
+.fieldLabel { font-size: 15px; font-weight: 600; }
+.hint { font-size: 14px; }
+.input { min-height: 44px; margin-top: var(--s1); padding: 0 var(--s3); border-radius: 12px; border: 1px solid var(--hair-strong); font: inherit; font-size: 16px; width: 100%; box-sizing: border-box; }
+.input:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
+.record { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s4) var(--s5); border-radius: 18px; border: 1px solid var(--hair); }
+.record p { margin: 0; }
+.actions { display: flex; gap: var(--s4); align-items: center; }
+.primary { min-height: 48px; padding: 0 var(--s6); border-radius: 999px; border: 1px solid currentColor; background: none; color: inherit; font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+.primary:active { transform: scale(0.97); }
+.primary:disabled { opacity: 0.55; cursor: progress; }
+
+@media (max-width: 720px) { .inner { padding: var(--s5) var(--s4) var(--s6); } }
+@media (prefers-reduced-motion: reduce) { .primary:active { transform: none; } }

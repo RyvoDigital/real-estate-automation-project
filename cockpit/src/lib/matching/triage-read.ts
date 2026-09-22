@@ -22,16 +22,25 @@ export type TriageScreen = {
   groups: TriageGroup[]
   total: number
   chosen: number
+  /**
+   * 🔴 Reads that FAILED, named (checkpoint 2, 22 Sep 2026). A failed
+   * requirements read would have put rankable contacts on the floor; a failed
+   * picks read would have shown every contact as not yet chosen. When either
+   * fails, the screen says so and offers no picks.
+   */
+  failures: { listing?: string; requirements?: string; picks?: string }
 }
 
 export async function readTriage(listingId: string): Promise<TriageScreen> {
   const db = admin()
-  const { data: listing } = await db
+  const failures: TriageScreen['failures'] = {}
+  const { data: listing, error: lErr } = await db
     .from('listings')
     .select('id, client_id, reference, area, price, status')
     .eq('id', listingId)
     .maybeSingle()
-  if (!listing) return { listing: null, clientId: null, groups: [], total: 0, chosen: 0 }
+  if (lErr) failures.listing = lErr.message
+  if (!listing) return { listing: null, clientId: null, groups: [], total: 0, chosen: 0, failures }
 
   const clientId = listing.client_id as string
 
@@ -44,20 +53,22 @@ export async function readTriage(listingId: string): Promise<TriageScreen> {
   // Leads that DO have something binding are ranked elsewhere and must not
   // appear here — the two lists are the same rule seen from opposite sides,
   // so a lead in both would be offered twice for the same listing.
-  const { data: reqs } = await db
+  const { data: reqs, error: rErr } = await db
     .from('lead_requirements')
     .select('lead_id')
     .eq('client_id', clientId)
     .eq('strength', 'hard')
     .is('superseded_by', null)
+  if (rErr) failures.requirements = rErr.message
   const rankable = new Set((reqs ?? []).map((r) => r.lead_id as string))
 
-  const { data: picked } = await db
+  const { data: picked, error: pErr } = await db
     .from('listing_matches')
     .select('lead_id')
     .eq('listing_id', listingId)
     .eq('origin', 'agent')
     .is('superseded_at', null)
+  if (pErr) failures.picks = pErr.message
   const chosenIds = new Set((picked ?? []).map((r) => r.lead_id as string))
 
   const contacts: TriageContact[] = (leads ?? [])
@@ -96,5 +107,6 @@ export async function readTriage(listingId: string): Promise<TriageScreen> {
     groups: groupForTriage(contacts),
     total: contacts.length,
     chosen: contacts.filter((c) => c.alreadyChosen).length,
+    failures,
   }
 }

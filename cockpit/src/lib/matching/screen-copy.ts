@@ -78,6 +78,10 @@ export const MATCHES = {
   engineWordsHeading: 'Como o sistema chegou aí',
   goToTriage: 'Ver quem o sistema não sabe ordenar',
   strengthWord: { strong: 'Forte', possible: 'Possível', weak: 'Fraco' } as Record<string, string>,
+  // Checkpoint 2 (22 Sep 2026): a failed read is said, never shown as an answer.
+  listingUnread: 'Não foi possível ler este imóvel, por isso esta página não está a dizer que ele não existe.',
+  readFailed: 'Parte desta página não pôde ser lida, por isso não está a dizer que não há ninguém, nem que falta a conversa sobre o que é uma boa proposta.',
+  back: 'Imóveis',
 } as const
 
 export const TRIAGE = {
@@ -114,6 +118,12 @@ export const TRIAGE = {
   chosenSoFarOne: '1 pessoa escolhida para este imóvel.',
   chosenSoFarMany: (n: number) => `${n} pessoas escolhidas para este imóvel.`,
   notAvailable: 'Este imóvel não está disponível. Pode escolher, mas não o proponha a ninguém.',
+  // Checkpoint 2 (22 Sep 2026).
+  listingUnread: 'Não foi possível ler este imóvel, por isso esta página não está a dizer que ele não existe.',
+  readFailed: 'Não foi possível ler quem já foi escolhido, ou o que já se sabe destes contactos, por isso não se pode escolher agora. Tente de novo.',
+  saved: 'Registado: esta pessoa fica escolhida para este imóvel.',
+  alreadySaved: 'Esta escolha já estava registada. Não se gravou nada de novo.',
+  back: 'A quem serve este imóvel',
 } as const
 
 /**
@@ -147,6 +157,13 @@ export const EXEMPTION = {
   current: (who: string, when: string) => `Dispensa registada por ${who} em ${when}.`,
   currentBasis: 'Fundamento:',
   nothingYet: 'Não há nenhuma dispensa registada para este imóvel.',
+  // Checkpoint 2 (22 Sep 2026).
+  listingUnread: 'Não foi possível ler este imóvel, por isso esta página não está a dizer que ele não existe.',
+  readFailed: 'Parte desta página não pôde ser lida, por isso não está a dizer se há ou não uma dispensa. Não se pode registar agora.',
+  alreadySaved: 'Esta dispensa já estava registada. Não se gravou nada de novo.',
+  ambiguous: 'Há mais do que um requisito que pode ser dispensado, e esta página não escolhe por si. Nada pode ser registado aqui até isso estar resolvido.',
+  noRequirement: 'Nenhum requisito deste imóvel pode ser dispensado, por isso não há nada a registar aqui.',
+  back: 'A quem serve este imóvel',
 } as const
 
 /**

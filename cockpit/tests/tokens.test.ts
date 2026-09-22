@@ -82,9 +82,6 @@ function walk(dir: string, out: string[] = []): string[] {
 const LEGACY: Record<string, { count: number; until: string }> = {
   'app/globals.css': { count: 203, until: 'C6 — when the last screen depending on its classes is rebuilt; see build plan §2.2b' },
   'app/layout.tsx': { count: 1, until: 'C6 — the themeColor literal, which a manifest needs as a literal' },
-  'app/listings/[id]/exemption/page.tsx': { count: 8, until: 'C5' },
-  'app/listings/[id]/page.tsx': { count: 12, until: 'C5' },
-  'app/listings/[id]/triage/page.tsx': { count: 15, until: 'C5' },
   'app/listings/page.tsx': { count: 9, until: 'C5' },
   'app/review/[clientId]/page.tsx': { count: 6, until: 'C6' },
   'app/review/page.tsx': { count: 3, until: 'C6' },

@@ -31,6 +31,11 @@ const deps: PickDeps = {
     }
     return [...areas]
   },
+  currentChooser: async (listingId, leadId) => {
+    const { data, error } = await admin().from('listing_matches').select('chosen_by')
+      .eq('listing_id', listingId).eq('lead_id', leadId).is('superseded_at', null).maybeSingle()
+    return error ? null : ((data?.chosen_by as string | null) ?? null)
+  },
   record: async (args) => {
     const { data, error } = await admin().rpc('record_agent_pick', args)
     return { data: (data as string | null) ?? null, error: error ? { code: error.code ?? null, message: error.message } : null }

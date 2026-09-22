@@ -76,9 +76,17 @@ export type MatchRow = {
 export type MatchesScreen = {
   listing: { id: string; reference: string | null; area: string | null; price: number | null; status: string } | null
   clientId: string | null
-  /** Absent thresholds, named. The screen turns this into a sentence. */
+  /** Absent thresholds, named. The screen turns this into a sentence. Only meaningful when the config was READ. */
   missingThresholds: string[]
   matches: MatchRow[]
+  /**
+   * 🔴 Reads that FAILED, named (listing screens checkpoint 2, 22 Sep 2026).
+   * Until then every error here was swallowed: a failed listing read was a 404,
+   * a failed matches read was "nobody proposed", and a failed config read was
+   * "not calibrated". The screen now says what could not be read and claims
+   * nothing that read would have decided.
+   */
+  failures: { listing?: string; matches?: string; leads?: string; config?: string }
 }
 
 function monthsSince(iso: string | null): number | null {
@@ -90,31 +98,36 @@ function monthsSince(iso: string | null): number | null {
 
 export async function readMatches(listingId: string): Promise<MatchesScreen> {
   const db = admin()
-  const { data: listing } = await db
+  const failures: MatchesScreen['failures'] = {}
+  const { data: listing, error: lErr } = await db
     .from('listings')
     .select('id, client_id, reference, area, price, status')
     .eq('id', listingId)
     .maybeSingle()
-  if (!listing) return { listing: null, clientId: null, missingThresholds: [], matches: [] }
+  if (lErr) failures.listing = lErr.message
+  if (!listing) return { listing: null, clientId: null, missingThresholds: [], matches: [], failures }
 
   const clientId = listing.client_id as string
-  const { data: rows } = await db
+  const { data: rows, error: mErr } = await db
     .from('listing_matches')
     .select('lead_id, origin, strength, filter_would_find, reasoning, chosen_by, chosen_reason, score')
     .eq('listing_id', listingId)
     .is('superseded_at', null)
     .order('score', { ascending: false, nullsFirst: false })
+  if (mErr) failures.matches = mErr.message
 
   const leadIds = (rows ?? []).map((r) => r.lead_id as string)
-  const { data: leads } = leadIds.length
+  const { data: leads, error: ldErr } = leadIds.length
     ? await db.from('leads').select('id, full_name, last_contact_at').in('id', leadIds)
-    : { data: [] as { id: string; full_name: string | null; last_contact_at: string | null }[] }
+    : { data: [] as { id: string; full_name: string | null; last_contact_at: string | null }[], error: null }
+  if (ldErr) failures.leads = ldErr.message
   const byId = new Map((leads ?? []).map((l) => [l.id as string, l]))
 
-  const { data: cas } = await db
+  const { data: cas, error: cErr } = await db
     .from('client_automations')
     .select('config, automations!inner(key)')
     .eq('client_id', clientId)
+  if (cErr) failures.config = cErr.message
   const caRows = (cas ?? []) as unknown as { config: Record<string, unknown>; automations: { key: string } }[]
   const cfg = caRows.find((r) => r.automations?.key === 'lead_nurture')?.config ?? {}
 
@@ -127,7 +140,9 @@ export async function readMatches(listingId: string): Promise<MatchesScreen> {
       status: listing.status as string,
     },
     clientId,
-    missingThresholds: missingThresholds(cfg),
+    // Not read is not "missing": a failed config read claims nothing about calibration.
+    missingThresholds: cErr ? [] : missingThresholds(cfg),
+    failures,
     matches: (rows ?? []).map((r) => {
       const l = byId.get(r.lead_id as string)
       const reasoning = (r.reasoning ?? {}) as { reasons?: Reason[] }

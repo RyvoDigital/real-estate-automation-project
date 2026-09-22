@@ -17,6 +17,11 @@
  *   🔒 THE AREAS THE SENTENCE IS READ AGAINST MUST BE READ: a failed read is a
  *      refusal, never an empty list that silently learns nothing.
  *   🔒 ONCE: the id is minted when the form is drawn. NOTHING THROWS.
+ *   🔒 ERRORS ARE MAPPED BY CONSTRAINT NAME (operator, 22 Sep 2026). Only the
+ *      form's OWN key (listing_matches_pkey) means "already recorded". Two
+ *      DIFFERENT forms for the same contact racing: the loser hits the
+ *      one-current-match rule (listing_matches_current_uniq), which means
+ *      "someone else just chose this contact", named when the name can be read.
  */
 import { planPick } from './triage'
 import { UUID, isUs, type RpcError } from '@/lib/publication/exemption-core'
@@ -37,6 +42,8 @@ export type PickResult =
 export type PickDeps = {
   /** the areas this listing's agency's buyers talk about (§4.3); null = the read failed */
   knownAreas(listingId: string): Promise<string[] | null>
+  /** who chose the CURRENT match for this pair, for the race's sentence; null = none or unreadable */
+  currentChooser(listingId: string, leadId: string): Promise<string | null>
   /** 🔒 THE ONE VERB: record_agent_pick (0057). */
   record(args: {
     p_match_id: string; p_listing_id: string; p_lead_id: string; p_chosen_by: string; p_recorded_by: string
@@ -51,6 +58,10 @@ export const SAME_PERSON = 'The person choosing and the person recording are the
 export const AREAS_UNREAD = 'The areas this agency works in could not be read, so the reason could not be understood. Nothing was recorded: try again.'
 export const OTHER_AGENCY = 'This contact belongs to another agency, so it cannot be chosen for this property. Nothing was recorded.'
 export const ONE_PICK_KEY = 'listing_matches_pkey'
+/** 0025's one-current-match rule: what a racing second form hits */
+export const ONE_CURRENT_MATCH = 'listing_matches_current_uniq'
+export const justChosen = (who: string | null) =>
+  `${who ?? 'Someone else'} just chose this contact for this property, while this form was open. Nothing new was recorded.`
 
 export async function recordPick(form: PickForm, recordedBy: string, deps: PickDeps): Promise<PickResult> {
   if (!UUID.test(form.pickId ?? '')) return { ok: false, reason: NO_ID }
@@ -70,6 +81,9 @@ export async function recordPick(form: PickForm, recordedBy: string, deps: PickD
     p_requirements: plan.requirements.map((r) => ({ kind: r.kind, value: r.value, strength: r.strength, why: r.why, superseded_by: r.supersededBy ?? null })),
   })
   if (error?.code === '23505' && error.message.includes(ONE_PICK_KEY)) return { ok: true, alreadyRecorded: true }
+  if (error?.code === '23505' && error.message.includes(ONE_CURRENT_MATCH)) {
+    return { ok: false, reason: justChosen(await deps.currentChooser(form.listingId, form.leadId).catch(() => null)) }
+  }
   if (error?.code === 'RY002') return { ok: false, reason: OTHER_AGENCY }
   if (error) return { ok: false, reason: error.message.replace(/^record_agent_pick: /, '') }
   return { ok: true, alreadyRecorded: false, supersededComputed: data === 'superseded_computed', learned: plan.requirements.length }
