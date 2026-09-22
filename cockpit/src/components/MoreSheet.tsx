@@ -36,10 +36,10 @@ export function MoreSheet({ active, email }: { active: boolean; email: string })
           <div className="sheet__panel" onClick={(e) => e.stopPropagation()}>
             <span className="sheet__grab" />
 
-            <Link href="/health" className="sheet__item" onClick={() => setOpen(false)}>
+            <Link href="/ops/infrastructure" className="sheet__item" onClick={() => setOpen(false)}>
               <IconPulse size={19} />
               Health
-              <span className="sheet__meta">Twelve checks</span>
+              <span className="sheet__meta">The last run</span>
             </Link>
 
             <Link href="/onboarding" className="sheet__item" onClick={() => setOpen(false)}>

@@ -119,7 +119,7 @@ async function main() {
   }
 
   console.log('')
-  for (const p of ['/queue', '/leads', '/report', '/health']) {
+  for (const p of ['/queue', '/leads', '/report', '/ops/infrastructure']) {
     const gap = out[p].total - out[p].ttfb
     check(
       gap > 20,

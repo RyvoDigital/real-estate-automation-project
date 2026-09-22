@@ -105,7 +105,7 @@ function ours(input: BandInput): Band {
           what: `${a.name} has ${a.erroredRecently} errored run${a.erroredRecently === 1 ? '' : 's'}${
             a.lastRun?.errorType ? `, the last one ${a.lastRun.errorType}` : ''
           }`,
-          opens: { label: 'opens Health', href: '/health' },
+          opens: { label: 'opens Infrastructure', href: '/ops/infrastructure' },
           tone: 'red',
           code: a.lastRun?.errorType ?? undefined,
         })

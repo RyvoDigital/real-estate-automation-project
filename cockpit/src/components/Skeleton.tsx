@@ -77,7 +77,7 @@ export function SkeletonShell({
           <IconPulse size={19} />
           <span className="dtab__text">
             Health
-            <span className="dtab__meta">Twelve checks</span>
+            <span className="dtab__meta">The last run</span>
           </span>
         </span>
         <span className={dcls('onboarding')}>

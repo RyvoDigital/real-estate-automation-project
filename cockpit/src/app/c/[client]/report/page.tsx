@@ -4,6 +4,7 @@ import { getClients, lastCompleteWeekStart } from '@/lib/data'
 import { readWeek } from '@/lib/report/week-read'
 import { renderWeekly } from '@/lib/report/attribution'
 import { whyEmpty } from '@/lib/why-empty'
+import { CopyAsText } from '@/components/report/CopyAsText'
 import { StateChip, StateSurface } from '@/components/state-chip'
 import styles from './report.module.css'
 
@@ -146,6 +147,10 @@ export default async function WeeklyReport({
           {/* 🔒 renderWeekly's own lines and spacing. A second formatter here
               would drift from what is actually sent. */}
           <pre className={styles.artefact}>{renderWeekly(figures!)}</pre>
+          {/* 🔒 The copy, never the send (§5.7), and only here: a held week has
+              no control at all, which is the branch above. It hands over the
+              SAME string this <pre> shows, so nothing can drift from it. */}
+          <CopyAsText text={renderWeekly(figures!)} />
           {report.days.every((d) => d.state === 'derived') &&
             figures!.conversations === 0 &&
             figures!.meetings === 0 && (

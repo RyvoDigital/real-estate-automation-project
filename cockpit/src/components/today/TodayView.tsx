@@ -200,7 +200,7 @@ export function TodayView({ model, queue, anomalies, windowDays, now }: {
                     Three of one fault is a dependency down, not three problems.
                     <span className={styles.links}>
                       <a href="#group-2">See what else broke in the same window</a>
-                      <Link href="/health">See what the system was doing</Link>
+                      <Link href="/ops/infrastructure">See what the system was doing</Link>
                     </span>
                   </span>
                 </StateSurface>

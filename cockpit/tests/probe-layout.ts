@@ -448,7 +448,7 @@ async function main() {
   await c.send('Emulation.setDeviceMetricsOverride', {
     width: 390, height: 844, deviceScaleFactor: 1, mobile: true,
   })
-  await measure(c, `${BASE}/health`)
+  await measure(c, `${BASE}/ops/infrastructure`)
   const navPhone = (
     await c.send('Runtime.evaluate', { expression: NAVSHAPE, returnByValue: true })
   ).result.value
@@ -462,7 +462,7 @@ async function main() {
   await c.send('Emulation.setDeviceMetricsOverride', {
     width: 1440, height: 900, deviceScaleFactor: 1, mobile: false,
   })
-  await measure(c, `${BASE}/health`)
+  await measure(c, `${BASE}/ops/infrastructure`)
   const navDesk = (
     await c.send('Runtime.evaluate', { expression: NAVSHAPE, returnByValue: true })
   ).result.value

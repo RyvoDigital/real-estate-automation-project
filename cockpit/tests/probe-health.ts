@@ -46,7 +46,11 @@ async function main() {
   if (!run) process.exit(1)
 
   const expected = (run.passed as string[]).length + (run.failed as string[]).length
-  check(expected === 12, 'the producer published all twelve checks', `${expected}`)
+  // 🔴 NEVER A HARDCODED COUNT. This asserted 12 while the producer published
+  // 13 (the n8n key check, added 21 Sep 2026): a probe that knows the number in
+  // advance goes stale exactly when the thing it watches changes. It now checks
+  // that what the screen SHOWS equals what the producer PUBLISHED.
+  check(expected > 0, 'the producer published its checks', `${expected}`)
 
   const email = (process.env.COCKPIT_ALLOWED_EMAILS ?? '').split(',')[0].trim()
   const { data } = await db.auth.admin.generateLink({ type: 'magiclink', email })
@@ -56,20 +60,20 @@ async function main() {
   )
   const cookie = (cb.headers.getSetCookie?.() ?? [])[0]?.split(';')[0] ?? ''
 
-  const res = await fetch(`${BASE}/health`, { headers: { cookie } })
+  const res = await fetch(`${BASE}/ops/infrastructure`, { headers: { cookie } })
   const html = await res.text()
 
-  check(res.status === 200, 'health renders', String(res.status))
+  check(res.status === 200, 'infrastructure renders', String(res.status))
 
-  // Count the ROW class, not a substring inside it: hcheck__dot appears in
-  // both the HTML and the inlined RSC payload, so counting it double-counts.
-  // The property is "one row per check", so measure that.
-  const rows = (html.match(/class="hcheck"/g) ?? []).length + (html.match(/class="hcheck hcheck--bad"/g) ?? []).length
+  // Count a STABLE ATTRIBUTE, not a class: on /ops/infrastructure the classes
+  // are CSS-module hashes that change whenever the file does, and the property
+  // being measured is "one row per check the producer published".
+  const rows = (html.match(/data-check="/g) ?? []).length
   check(rows === expected, 'every check the producer published is on the page', `${rows}/${expected}`)
 
   check(html.includes('This page rendered'), 'the render time is printed absolutely, not only relatively')
 
-  const isStale = html.includes('hstamp--stale')
+  const isStale = html.includes('data-standing="stale"')
   check(isStale === wantStale, wantStale ? 'stale styling applied' : 'stale styling absent')
   check(
     html.includes('it is telling you nothing') === wantStale,

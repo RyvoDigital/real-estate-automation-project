@@ -72,7 +72,16 @@ test('🔴 there is NO send control on a held week — not a greyed one', () => 
    * pressable in the first render. A report that cannot honestly be sent must
    * not look one click from going.
    */
-  assert.ok(!/<button/i.test(body), 'the report screen has acquired a button')
+  /*
+   * 22 Sep 2026: this read the WHOLE file, which stopped being the property
+   * once "Copy as text" was carried over from the old screen. The property was
+   * always about the HELD branch — a week that cannot honestly be sent must not
+   * look one click from going — so it is now read where it lives.
+   */
+  const held = body.slice(body.indexOf('Sending is held'), body.indexOf('What the agency receives'))
+  assert.ok(held.length > 100, 'the held branch was not found — this guard would pass vacuously')
+  assert.ok(!/<button/i.test(held), 'the held week has acquired a button')
+  assert.ok(!/CopyAsText/.test(held), 'a copy control appeared on a week that cannot be sent')
   assert.ok(!/disabled/.test(body), 'a disabled control appeared on the report screen')
   assert.match(PAGE, /There is no control here, rather than a greyed one/)
 })
@@ -120,4 +129,24 @@ test('the absences name none of the forbidden words', () => {
    */
   const absences = PAGE.slice(PAGE.indexOf('What this page does not do'))
   assert.doesNotMatch(absences, /\bviewings?\b/i, 'the absences print the word they exist to avoid')
+})
+
+
+/*
+ * "Copy as text" was on the OLD report screen (components/Report.tsx) and had
+ * to survive the move (22 Sep 2026). The cockpit does not send the weekly
+ * report: a human copies it and sends it, so the copy IS the delivery path.
+ */
+test('🔒 "Copy as text" survives onto the new screen, copying exactly what is shown', () => {
+  const island = readFileSync(join(import.meta.dirname, '..', 'src', 'components', 'report', 'CopyAsText.tsx'), 'utf-8')
+  assert.match(PAGE, /import \{ CopyAsText \} from '@\/components\/report\/CopyAsText'/)
+  assert.match(body, /<CopyAsText text=\{renderWeekly\(figures!\)\} \/>/)
+  // The SAME string the <pre> renders: a second formatter would drift from what is sent.
+  const pre = body.indexOf('<pre className={styles.artefact}>{renderWeekly(figures!)}</pre>')
+  assert.ok(pre > 0 && body.indexOf('<CopyAsText') > pre, 'the copy must sit with the artefact it copies')
+  assert.match(island, /navigator\.clipboard\.writeText\(text\)/)
+  assert.match(island, /'Copied' : 'Copy as text'/)
+  // 🔴 A refused clipboard says so: resetting silently looks exactly like a copy that worked.
+  assert.match(island, /This browser refused the clipboard/)
+  assert.match(island, /Nothing is sent from here/)
 })

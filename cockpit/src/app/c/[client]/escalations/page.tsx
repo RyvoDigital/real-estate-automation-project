@@ -9,6 +9,8 @@ import { Live } from '@/components/Live'
 import { Clock } from '@/components/Clock'
 import { Stamp } from '@/components/Stamp'
 import { StateChip, StateMark, StateSurface, type Meaning } from '@/components/state-chip'
+import { HandBack } from '@/components/escalations/HandBack'
+import { HANDBACK } from '@/lib/escalations/copy'
 import styles from './escalations.module.css'
 
 /*
@@ -48,6 +50,7 @@ function Row({ row }: { row: QueueRow }) {
   // exists to prevent.
   const handled = row.handledElsewhere && row.handledAt !== null
   return (
+    <div className={styles.rowWrap}>
     <Link href={`/c/${row.clientId}/contacts/${row.id}`} className={styles.row}>
       <span className={styles.mark}>
         {initials(row.name)}
@@ -82,12 +85,18 @@ function Row({ row }: { row: QueueRow }) {
         <Clock at={row.at} serverMinutes={row.minutes} />
       )}
     </Link>
+    <HandBack leadId={row.id} clientId={row.clientId} name={row.name} />
+    </div>
   )
 }
 
-export default async function EscalationsPage({ params }: { params: Promise<{ client: string }> }) {
+export default async function EscalationsPage({ params, searchParams }: {
+  params: Promise<{ client: string }>
+  searchParams: Promise<{ handback?: string }>
+}) {
   await requireOperator()
   const { client: clientId } = await params
+  const said = HANDBACK[(await searchParams).handback ?? ''] ?? null
   const clients = await getClients()
   const client = clients.find((c) => c.id === clientId)
   if (!client) notFound()
@@ -121,6 +130,9 @@ export default async function EscalationsPage({ params }: { params: Promise<{ cl
         </div>
         {rows !== null && <Stamp serverAt={readAt} />}
       </header>
+
+      {/* What the hand-back did, in this screen's words: the URL carried a key. */}
+      {said && <StateSurface meaning={said.meaning} className={styles.banner}>{said.says}</StateSurface>}
 
       {rows === null ? (
         /* 🔴 It does not say the queue is empty. Until it reads, assume
@@ -188,8 +200,11 @@ export default async function EscalationsPage({ params }: { params: Promise<{ cl
 
       <div className={styles.absent}>
         <h2>What this page does not do</h2>
-        <p>No dismiss, no acknowledge, no snooze — the flag clears by the work being done.</p>
-        <p>No bulk hand-back.</p>
+        <p>
+          No dismiss, no acknowledge, no snooze — the flag clears by the work being done, or by handing that one lead
+          back to the AI on purpose, which is a decision and says so.
+        </p>
+        <p>No bulk hand-back: one lead at a time, or the one you had not read yet goes with the rest.</p>
         <p>Nothing re-sorts by tier or severity. The clock is the sort.</p>
         <p>No replying from here.</p>
       </div>

@@ -243,7 +243,7 @@ async function main() {
   )
 
   // ---- 11. health -------------------------------------------------------
-  const health = await (await get('/health')).text()
+  const health = await (await get('/ops/infrastructure')).text()
   const { data: hr } = await db
     .from('health_runs')
     .select('ran_at, passed, failed')

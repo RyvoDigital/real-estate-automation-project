@@ -75,11 +75,11 @@ export function Shell({
         {/* Desktop only. Absent from the phone layout, not rearranged into it. */}
         <span className="dtab__rule" aria-hidden />
 
-        <Link href="/health" className={dcls('health')} aria-current={active === 'health'}>
+        <Link href="/ops/infrastructure" className={dcls('health')} aria-current={active === 'health'}>
           <IconPulse size={19} />
           <span className="dtab__text">
             Health
-            <span className="dtab__meta">Twelve checks</span>
+            <span className="dtab__meta">The last run</span>
           </span>
         </Link>
         <Link href="/onboarding" className={dcls('onboarding')} aria-current={active === 'onboarding'}>
