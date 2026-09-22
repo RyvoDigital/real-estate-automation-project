@@ -38,10 +38,16 @@
  * named the automations itself would be a second claim about which gate holds
  * what, and the whole point of this file is that there is only one.
  *
- * Today's group 5 — "Waiting on someone else" — still says it is not built.
- * The source now exists, but group 5 is the OPERATOR's waiting room across
- * every client, and it is not rendered until it is designed as the thing it
- * is rather than as the thing that completes a row of five.
+ * Today's group 5 — "Waiting on someone else" — reads this too, through
+ * `openGatesOldestFirst`. DECIDED 22 Sep 2026 (operator, Today checkpoint 2):
+ * its design IS the plain list. Read-only; per open gate, what waits, who
+ * holds it, since when, and whether the agency can end it; NO actions; a
+ * fixed order, oldest first (a gate whose start is not recorded goes last and
+ * says "since unknown", never a guessed date); the same count convention as
+ * the other groups ("N waiting · all N read"). The earlier hold — not to render
+ * it until designed as the operator's waiting room rather than as the fifth of
+ * a row — is discharged by that decision, not forgotten: anything MORE than
+ * that plain list (actions, reminders, per-client grouping) is a new design.
  */
 
 export type GateId =
@@ -428,4 +434,19 @@ export function gatesHoldingAutomation(key: AutomationKey): { gate: Gate; entrie
   return GATES.filter((g) => !g.open)
     .map((g) => ({ gate: g, entries: mine.filter((b) => b.gate === g.id) }))
     .filter((x) => x.entries.length > 0)
+}
+
+/**
+ * Today's group 5: every OPEN gate, oldest `since` first. A gate with no
+ * recorded start goes after every dated one, in ledger order: "since unknown"
+ * is stated, never sorted in as if it were a date. The order lives here, with
+ * the ledger, so the Today model keeps its rule of never ordering anything.
+ */
+export type OpenGate = { id: GateId; what: string; whoHolds: string; answerable: Gate['answerable']; since: string | null }
+
+export function openGatesOldestFirst(): OpenGate[] {
+  return GATES.map((g, i) => ({ g, i }))
+    .filter(({ g }) => !g.open)
+    .sort((a, b) => (a.g.since && b.g.since ? a.g.since.localeCompare(b.g.since) || a.i - b.i : a.g.since ? -1 : b.g.since ? 1 : a.i - b.i))
+    .map(({ g }) => ({ id: g.id, what: g.what, whoHolds: g.whoHolds, answerable: g.answerable, since: g.since ?? null }))
 }

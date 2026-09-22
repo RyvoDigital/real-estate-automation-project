@@ -119,7 +119,6 @@ const CARRIED: Record<string, string> = {
 
   // ── not a gate record: mechanism, or a denial ────────────────────────────
   'cockpit/src/app/c/[client]/templates/page.tsx': 'NOT A GATE RECORD — "Nothing is waiting on Meta" is the screen DENYING that anything is held. The ledger must never absorb a denial',
-  'cockpit/src/app/today/page.tsx': 'NOT A GATE RECORD — group 5 notBuilt copy, naming the waiting room as a thing not yet built',
   'cockpit/src/lib/segmentation/copy.ts': 'NOT A GATE RECORD — explains the DISTINCTION between a country analysed-and-waiting and one never analysed. The Spain fix is in this sentence',
   'cockpit/tests/segmentation.test.ts': 'NOT A GATE RECORD — asserts that distinction, quoting it',
   'docs/engineering-lessons.md': 'NOT A GATE RECORD — \u00a71o QUOTES the templates screen denial as its example of what a detector cannot tell apart. The guard firing on the lesson that explains why it fires on denials IS the lesson',

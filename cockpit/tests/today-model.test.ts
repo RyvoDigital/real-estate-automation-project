@@ -4,10 +4,19 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { buildToday, type TodayInputs, type TodayQueueRow } from '../src/lib/today/model'
 import type { AnomalyGroup, AnomalyRow } from '../src/lib/anomaly'
+import { buildExpiries, type ExpiriesInputs } from '../src/lib/expiries/model'
+import { GATES, openGatesOldestFirst, type OpenGate } from '../src/lib/gates'
+import type { StillGood } from '../src/lib/publication/still-good'
 
 /* Today, checkpoint 1: every rule of brief §2.1 the page will draw, held here. */
 
 const now = Date.now()
+const NOW = new Date(now)
+const ex = (over: Partial<ExpiriesInputs> = {}) => buildExpiries({ deployKey: { exp: new Date(now + 365 * 86400000).toISOString(), readAt: new Date(now - 60000).toISOString() }, clients: [], now: NOW, ...over })
+const sg = (over: Partial<StillGood> = {}): StillGood => ({ documents: [], registrations: [], exempt: 0, warnWithinDays: 30, staleAfterDays: 90, at: NOW.toISOString(), notAnswered: [], ...over })
+const doc = (id: string, daysLeft: number, standing: 'past' | 'soon' | 'good') => ({ listingId: id, reference: `A-${id}`, requirementId: 'pt_energy_certificate', certificateNumber: null, validUntil: new Date(now + daysLeft * 86400000).toISOString().slice(0, 10), daysLeft, standing })
+const reg = (n: string, standing: 'not_valid' | 'never_checked' | 'stale' | 'good', days: number | null = null) => ({ requirementId: 'pt_ami_licence', number: n, country: 'PT', region: null, status: 'valid' as never, checkedAt: null, daysSinceChecked: days, standing })
+const gate = (id: string, since: string | null, answerable: 'the agency' | 'outside' = 'outside'): OpenGate => ({ id: id as OpenGate['id'], what: `the ${id} gate`, whoHolds: `holder of ${id}`, since, answerable })
 const ago = (min: number) => new Date(now - min * 60000).toISOString()
 const q = (id: string, minutes: number, over: Partial<TodayQueueRow> = {}): TodayQueueRow => ({
   id, name: `Lead ${id}`, clientId: 'c1', clientName: 'Marbella Sur', at: ago(minutes), minutes,
@@ -22,7 +31,9 @@ const inputs = (over: Partial<TodayInputs> = {}): TodayInputs => ({
   queue: { rows: [], threw: '', cap: 100 },
   anomalies: { groups: [], total: 0, capped: false, threw: '', windowDays: 7 },
   clientsWithAutomation: 1,
-  openGates: 6,
+  expiries: ex(),
+  waiting: [],
+  now: NOW,
   ...over,
 })
 
@@ -111,19 +122,72 @@ test('S2: no client has any automation on is its own sentence, not a resting gro
   assert.equal(buildToday(inputs({ clientsWithAutomation: null })).never, null, 'a failed read is not S2')
 })
 
-test('🔴 group 5 no longer claims "nothing holds these": the ledger does; it is NOT DESIGNED yet', () => {
-  const g = buildToday(inputs({ openGates: 6 })).groups[4]
-  assert.equal(g.state, 'notDesigned')
-  assert.match(g.count, /6 open gates in the ledger · not designed yet/)
-  assert.doesNotMatch(g.preview, /nothing holds these/)
+test('🔴 group 5 is the plain list: read-only, oldest first, who holds it, whether the agency can end it', () => {
+  const w = [gate('old', '2026-08-24'), gate('newer', '2026-09-03', 'the agency'), gate('undated', null)]
+  const m = buildToday(inputs({ waiting: w }))
+  const g = m.groups[4]
+  assert.equal(g.state, 'rows')
+  assert.equal(g.count, '3 waiting · all 3 read · the ledger, uncapped')
+  assert.match(g.preview, /^Longest: the old gate · holder of old · since 24 Aug 2026 \(\d+ days\)$/)
+  assert.deepEqual(g.distribution, [{ label: 'the agency can end', n: 1 }, { label: 'outside', n: 2 }])
+  assert.deepEqual(m.waiting.map((x) => x.id), ['old', 'newer', 'undated'], 'the ledger order, untouched')
+  assert.doesNotMatch(g.preview, /nothing holds these|not designed/)
 })
 
-test('groups 3 and 4 say what is missing and what ends the gap', () => {
+test('🔒 the ledger hands group 5 its gates oldest first, undated last, and never an open one', () => {
+  const got = openGatesOldestFirst()
+  assert.equal(got.length, GATES.filter((g) => !g.open).length)
+  const dated = got.filter((g) => g.since).map((g) => g.since!)
+  assert.deepEqual(dated, [...dated].sort(), 'dated gates oldest first')
+  const firstUndated = got.findIndex((g) => !g.since)
+  assert.ok(firstUndated === -1 || got.slice(firstUndated).every((g) => !g.since), 'no dated gate after an undated one')
+  assert.ok(dated.length > 0, 'the control: the real ledger has dated gates, so the order was tested')
+})
+
+test('group 5 resting: no open gate is a sentence, with its count', () => {
+  const g = buildToday(inputs({ waiting: [] })).groups[4]
+  assert.equal(g.state, 'resting')
+  assert.equal(g.count, 'nobody waited on · all 0 read · the ledger, uncapped')
+})
+
+test('🔒 groups 3 and 4 say they are PARTIAL: what is tracked, and that clearances are not', () => {
   const [g3, g4] = buildToday(inputs()).groups.slice(2, 4)
-  assert.equal(g3.state, 'notBuilt'); assert.equal(g4.state, 'notBuilt')
-  assert.match(g3.preview, /no clearances table and nothing writes one/)
-  assert.match(g3.preview, /It needs a clearances table and a writer in the gate\./)
-  assert.match(g4.preview, /the same missing input as group 3/)
+  for (const g of [g3, g4]) {
+    assert.match(g.partial ?? '', /^Partial: this tracks the n8n deploy key, /)
+    assert.match(g.partial ?? '', /Not yet: clearances/)
+  }
+  assert.equal(buildToday(inputs()).groups[0].partial, null)
+})
+
+test('group 3: the most overdue first, with its client; the count carries what was checked', () => {
+  const e = ex({ clients: [{ id: 'c1', name: 'Marbella Sur', stillGood: sg({ documents: [doc('1', -3, 'past'), doc('2', -40, 'past'), doc('3', 200, 'good')] }) }] })
+  const g = buildToday(inputs({ expiries: e })).groups[2]
+  assert.equal(g.state, 'rows')
+  assert.match(g.preview, /^Longest past: pt energy certificate · A-2 · Marbella Sur · 40 days ago$/)
+  assert.equal(g.count, '2 run out · checked the deploy key, 3 documents, 0 registrations across 1 client')
+})
+
+test('🔒 group 4 previews the head of EACH of its two lists, never one ranked head', () => {
+  const e = ex({ clients: [{ id: 'c1', name: 'Casa Atlântica', stillGood: sg({ documents: [doc('9', 12, 'soon'), doc('8', 4, 'soon')], registrations: [reg('777', 'never_checked')] }) }] })
+  const g = buildToday(inputs({ expiries: e })).groups[3]
+  assert.match(g.preview, /^Soonest: pt energy certificate · A-8 · Casa Atlântica · in 4 days$/)
+  assert.equal(g.also, 'Longest unconfirmed: pt ami licence 777 · Casa Atlântica')
+  assert.equal(g.count, '2 within 30 days · 1 to confirm · checked the deploy key, 2 documents, 1 registration across 1 client')
+  const onlyConfirm = buildToday(inputs({ expiries: ex({ clients: [{ id: 'c1', name: 'M', stillGood: sg({ registrations: [reg('1', 'stale', 120)] }) }] }) })).groups[3]
+  assert.equal(onlyConfirm.preview, 'Nothing tracked runs out within 30 days.', 'an empty list says so; the other list does not stand in for it')
+})
+
+test('🔒 groups 3 and 4 resting say what was checked; a failed read is readFailed, never resting', () => {
+  const m = buildToday(inputs())
+  assert.equal(m.groups[2].state, 'resting')
+  assert.match(m.groups[2].preview, /^Nothing tracked has run out\. Checked the deploy key, 0 documents/)
+  const f = buildToday(inputs({ expiries: ex({ deployKey: null, clients: null }) }))
+  assert.equal(f.groups[2].state, 'readFailed'); assert.equal(f.groups[3].state, 'readFailed')
+  assert.match(f.groups[2].detail ?? '', /deploy key’s expiry could not be read/)
+  // One source failing while another read: the groups draw what was read and still name the failure.
+  const half = buildToday(inputs({ expiries: ex({ clients: null }) }))
+  assert.equal(half.groups[2].state, 'resting')
+  assert.match(half.groups[2].detail ?? '', /no client’s documents were checked/)
 })
 
 test('outage: three of one system reason in 15 minutes is one fault', () => {
