@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { gateClientIds, withoutGateClients, withoutGateClientsKeepingUnattributed } from '@/lib/gate-clients'
+import { hiddenClients } from '@/lib/hidden-clients'
 import { admin } from '@/lib/supabase/admin'
 import {
   ANOMALY_TYPES,
@@ -106,10 +107,10 @@ type LeadRow = {
  * head query would have been one fewer byte and a different number.
  * tests/probe-queue.ts asserts the two agree.
  */
-export async function getOpenCount(limit = 100): Promise<number> {
-  // 🔒 The same gate exclusion as getQueue's operator-wide read (lib/gate-clients.ts),
-  // or the badge and the queue would disagree by every gate lead.
-  const gate = await gateClientIds()
+export async function getOpenCount(limit = 100, includeRehearsals = false): Promise<number> {
+  // 🔒 The same exclusion as getQueue's operator-wide read (lib/hidden-clients.ts),
+  // or the badge and the queue would disagree by every hidden lead.
+  const gate = (await hiddenClients(includeRehearsals)).ids
   const { data, error } = await withoutGateClients(
     admin()
       .from('leads')
@@ -123,7 +124,7 @@ export async function getOpenCount(limit = 100): Promise<number> {
   return (data ?? []).filter((l) => parseEscalated(l.qualification)).length
 }
 
-export async function getQueue(limit = 100, clientId?: string): Promise<QueueRow[]> {
+export async function getQueue(limit = 100, clientId?: string, includeRehearsals = false): Promise<QueueRow[]> {
   const db = admin()
 
   /*
@@ -140,10 +141,11 @@ export async function getQueue(limit = 100, clientId?: string): Promise<QueueRow
       'id, full_name, phone, client_id, qualification, budget_min, budget_max, timeline, area, stage, lead_type, last_contact_at',
     )
     .not('qualification->>escalated', 'is', null)
-  // 🔒 One client asked for by id is the explicit route, the gate client included.
-  // Operator-wide, the deploy gate's test clients are left out (lib/gate-clients.ts).
+  // 🔒 One client asked for by id is the explicit route: a rehearsal's own screen
+  // shows its own work, and so does the gate client's. Operator-wide, both are
+  // left out unless the screen asked for them (lib/hidden-clients.ts).
   if (clientId) q = q.eq('client_id', clientId)
-  else q = withoutGateClients(q, await gateClientIds())
+  else q = withoutGateClients(q, (await hiddenClients(includeRehearsals)).ids)
 
   const { data: leads, error } = await q.limit(limit)
 
@@ -750,7 +752,7 @@ async function getLeadNames(ids: string[]): Promise<Map<string, string>> {
   return new Map((data ?? []).map((l) => [l.id as string, (l.full_name as string) ?? 'Unknown lead']))
 }
 
-async function readAnomalies(filter?: { leadId?: string; clientId?: string }): Promise<AnomalyRow[]> {
+async function readAnomalies(filter?: { leadId?: string; clientId?: string; includeRehearsals?: boolean }): Promise<AnomalyRow[]> {
   const since = new Date(Date.now() - ANOMALY_WINDOW_DAYS * 86_400_000).toISOString()
 
   let q = admin()
@@ -770,9 +772,13 @@ async function readAnomalies(filter?: { leadId?: string; clientId?: string }): P
    * cannot show.
    */
   if (filter?.clientId) q = q.eq('client_id', filter.clientId)
-  // Operator-wide (no lead, no client): the deploy gate's test clients are left out,
-  // and an anomaly that names no client is KEPT (lib/gate-clients.ts).
-  if (!filter?.leadId && !filter?.clientId) q = withoutGateClientsKeepingUnattributed(q, await gateClientIds())
+  // Operator-wide (no lead, no client): rehearsals and the deploy gate's client
+  // are left out — a fault of theirs is a fault in a rehearsal, not in the
+  // business's work — and an anomaly that names NO client is KEPT, because
+  // something unattributed may be about anybody (lib/hidden-clients.ts).
+  if (!filter?.leadId && !filter?.clientId) {
+    q = withoutGateClientsKeepingUnattributed(q, (await hiddenClients(filter?.includeRehearsals ?? false)).ids)
+  }
 
   const { data, error } = await q
   if (error) throw new Error(`anomalies query failed: ${error.message}`)
@@ -780,8 +786,8 @@ async function readAnomalies(filter?: { leadId?: string; clientId?: string }): P
   return (data ?? []).map((e) => shapeAnomaly(e as AnomalyEvent))
 }
 
-export async function getAnomalies(): Promise<AnomalyFeed> {
-  const rows = await readAnomalies()
+export async function getAnomalies(includeRehearsals = false): Promise<AnomalyFeed> {
+  const rows = await readAnomalies({ includeRehearsals })
   const leadNames = await getLeadNames(rows.map((r) => r.leadId).filter((v): v is string => v !== null))
 
   return {

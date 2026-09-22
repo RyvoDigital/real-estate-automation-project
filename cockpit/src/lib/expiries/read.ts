@@ -1,6 +1,6 @@
 import 'server-only'
 import { admin } from '@/lib/supabase/admin'
-import { gateClientIds } from '@/lib/gate-clients'
+import { hiddenClients } from '@/lib/hidden-clients'
 import { agencyFacts, clientFacts, listingReferences } from '@/lib/publication/facts-store'
 import { classifyStillGood } from '@/lib/publication/still-good'
 import { standingClearances } from '@/lib/publication/clearances-store'
@@ -24,7 +24,7 @@ import { buildExpiries, type Expiries, type ExpiriesInputs, type ObligationCurre
  *   AS IT STANDS NOW and the client's agency facts, exactly as the re-check
  *   notice does (app/c/[client]/notice).
  */
-export async function readExpiries(now = new Date()): Promise<Expiries> {
+export async function readExpiries(now = new Date(), includeRehearsals = false): Promise<Expiries> {
   const db = admin()
 
   let deployKey: ExpiriesInputs['deployKey']
@@ -50,7 +50,9 @@ export async function readExpiries(now = new Date()): Promise<Expiries> {
   let clients: ExpiriesInputs['clients']
   let clearances: ExpiriesInputs['clearances']
   try {
-    const gate = await gateClientIds()
+    // 🔒 Rehearsals and the gate's client are left out unless the screen asked
+    // for them, by the flag and never by name (lib/hidden-clients.ts).
+    const gate = (await hiddenClients(includeRehearsals)).ids
     const { data, error } = await db.from('clients').select('id, name').order('name')
     if (error) { clients = null; clearances = null }
     else {

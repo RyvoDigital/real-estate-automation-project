@@ -33,6 +33,7 @@
 import { tierFor, TIER_WORD, humanise, detectOutage, type Tier } from '@/lib/escalation'
 import { whyEmpty } from '@/lib/why-empty'
 import type { AnomalyGroup } from '@/lib/anomaly'
+import { hiddenLine, NONE_HIDDEN, type Hidden } from '@/lib/hidden-clients'
 import type { Expiries, ExpiryItem } from '@/lib/expiries/model'
 import { countedParts } from '@/lib/expiries/model'
 
@@ -52,6 +53,12 @@ export type TodayInputs = {
   expiries: Expiries
   /** group 5: the gated ledger's OPEN gates, oldest first (gates.ts openGatesOldestFirst) */
   waiting: WaitingGate[]
+  /**
+   * 🔒 WHO IS LEFT OUT OF THE OPERATOR-WIDE READS, so the groups can say it.
+   * A screen that quietly drops a rehearsal's waiting lead is a screen that
+   * says "nothing is waiting" about work somebody did (lib/hidden-clients.ts).
+   */
+  hidden?: Hidden
   now: Date
 }
 
@@ -92,6 +99,14 @@ export type TodayModel = {
   waiting: WaitingGate[]
   /** group 4's first list's horizon, from still-good.ts, never re-typed on the page */
   warnWithinDays: number
+  /**
+   * 🔒 One short line, when something is being left out, for the groups that
+   * read across clients (1, 2, 3 and 4). Null when nothing is hidden: a screen
+   * does not say "0 hidden".
+   */
+  hiddenNote: string | null
+  /** whether this render was asked to include them, for the control's state */
+  includingRehearsals: boolean
 }
 
 const NAMES = {
@@ -229,5 +244,12 @@ export function buildToday(i: TodayInputs): TodayModel {
   const waiting = i.waiting
   const groups: TodayGroup[] = [group1(i.queue), group2(i.anomalies), group3(i.expiries), group4(i.expiries), group5(waiting, i.now)]
   const outage = detectOutage((i.queue.rows ?? []).map((r) => ({ at: r.at, reasons: r.reasons })))
-  return { never, groups, outage, runOut: i.expiries.runOut, aboutTo: i.expiries.aboutTo, toConfirm: i.expiries.toConfirm, waiting, warnWithinDays: i.expiries.warnWithinDays }
+  const hidden = i.hidden ?? NONE_HIDDEN
+  return {
+    never, groups, outage,
+    runOut: i.expiries.runOut, aboutTo: i.expiries.aboutTo, toConfirm: i.expiries.toConfirm,
+    waiting, warnWithinDays: i.expiries.warnWithinDays,
+    hiddenNote: hiddenLine(hidden),
+    includingRehearsals: hidden.includingRehearsals,
+  }
 }

@@ -135,6 +135,66 @@ export const CLIENT_SCREENS: NavItem[] = [
   { slug: 'notice', built: true, label: 'The re-check notice', labelPt: 'Uma coisa a confirmar', inNav: false, presented: true },
 ]
 
+/**
+ * 🔒 SCREENS THAT HOLD A FORM. Switching client on one of these cannot carry
+ * the form's subject — a lead, a number or a template belongs to the agency
+ * whose screen it is — so the switcher lands on the other client's LANDING and
+ * says why (brief §1.3: "either carries the form's subject with it, or refuses
+ * and says why. Never silently re-points an in-progress declaration, threshold
+ * answer or close at a different agency").
+ */
+export const HOLDS_A_FORM: readonly string[] = ['escalations', 'contacts', 'templates', 'import']
+
+export type SwitchTarget = {
+  id: string
+  name: string
+  href: string
+  /** Why this lands somewhere other than the screen you are on. Null when it does not. */
+  why: string | null
+}
+
+/**
+ * Where the switcher sends you, per client. Pure, so the rule is testable
+ * without a render.
+ *
+ *   🔒 THE SAME SCREEN, THE OTHER AGENCY — that is what makes it a switcher
+ *      rather than a way out.
+ *   🔒 EXCEPT where the screen holds a form, or where the URL names something
+ *      that belongs to THIS client (a phone, a batch, a listing): the other
+ *      agency has no such row, so the landing is the honest destination.
+ *   🔒 THE CLIENT YOU ARE ON IS NOT A DESTINATION. It is named as where you are.
+ */
+export function switchTargets(
+  clients: { id: string; name: string }[],
+  opts: { currentClientId?: string; currentSlug?: string; deep?: boolean } = {},
+): SwitchTarget[] {
+  const { currentClientId, currentSlug, deep } = opts
+  const screen = CLIENT_SCREENS.find((s) => s.slug === (currentSlug ?? ''))
+  const landsOnLanding =
+    !screen || !screen.built || !screen.inNav || deep === true || HOLDS_A_FORM.includes(screen.slug)
+  /*
+   * 🔒 THE MOST SPECIFIC REASON WINS. A screen can be several of these at once
+   * — Templates holds a form AND is not in the sidebar — and the one worth
+   * saying is the one about what you would lose, not about the sidebar.
+   */
+  const why = screen && HOLDS_A_FORM.includes(screen.slug)
+    ? 'this screen holds a form, and nothing typed here is carried across'
+    : deep
+      ? 'this page is about one record of this agency’s, which the other does not have'
+      : !screen || !screen.inNav || !screen.built
+        ? 'that screen does not exist for another agency yet, so this opens their landing'
+        : null
+
+  return clients
+    .filter((c) => c.id !== currentClientId)
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      href: landsOnLanding ? `/c/${c.id}` : `/c/${c.id}/${screen!.slug}`.replace(/\/$/, ''),
+      why: landsOnLanding ? why : null,
+    }))
+}
+
 export type FrameSide = {
   mode: FrameMode
   /** The marker that says this is a presentation. Null in the other modes. */

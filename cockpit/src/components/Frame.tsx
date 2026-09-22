@@ -1,6 +1,8 @@
 import Link from 'next/link'
-import { frameSide, type FrameMode } from '@/lib/frame'
+import { ClientSwitcher } from '@/components/ClientSwitcher'
+import { frameSide, switchTargets, type FrameMode } from '@/lib/frame'
 import { badge, type CountsOrUnknown } from '@/lib/counts'
+import { switcherClients } from '@/lib/switcher-read'
 import { FrameTabs } from './FrameTabs'
 import styles from './Frame.module.css'
 
@@ -19,7 +21,7 @@ import styles from './Frame.module.css'
  * drawn with no sidebar at all; one function with a mode is why that cannot
  * happen again.
  */
-export function Frame({
+export async function Frame({
   mode,
   client,
   current,
@@ -38,11 +40,32 @@ export function Frame({
 }) {
   const side = frameSide(mode, { client, current })
   const waiting = side.showsCounts ? badge(counts) : ''
+  /*
+   * 🔒 THE SWITCHER'S LIST IS READ HERE, ONCE, AND NEVER IN PRESENTED MODE.
+   * §1.4 is mechanical about it: no other client's name may appear ANYWHERE in
+   * the served HTML of a presented screen, options and payloads included. A
+   * read that happens and is then filtered out has already put the names in
+   * the render; this one does not happen at all.
+   */
+  const clients = mode === 'presented' ? [] : await switcherClients()
+  const targets = switchTargets(clients, { currentClientId: client?.id, currentSlug: current })
 
   return (
     <div className={styles.app}>
       <aside className={styles.side}>
         <div className={styles.brand}>Ryvo</div>
+
+        {/*
+          * 🔴 THE WAY INTO A CLIENT, AT THE TOP LEVEL (22 Sep 2026). frameSide
+          * still says the operator frame has no SWITCHER — there is no current
+          * client to switch from, and the brief is right about that. What was
+          * missing is an OPENER: mapped on 22 Sep, the only doors into a client
+          * were two kinds of row on Today, so an agency with nothing waiting
+          * and nothing expiring could not be reached by clicking at all.
+          */}
+        {mode === 'operator' && (
+          <ClientSwitcher current={null} targets={targets} openLabel="Open a client" />
+        )}
 
         {side.marker && <span className={styles.marker}>{side.marker}</span>}
 
@@ -57,9 +80,12 @@ export function Frame({
 
         {side.switcher &&
           (side.switcher.pressable ? (
-            <button type="button" className={styles.switcher} aria-haspopup="menu">
-              <span className={styles.switcherName}>{side.switcher.name}</span>
-            </button>
+            /*
+             * 🔒 THE ONE ISLAND IN THE CHROME. A menu opens on a click, and the
+             * Frame is a server component; until 22 Sep 2026 this was a button
+             * with aria-haspopup="menu" and nothing behind it.
+             */
+            <ClientSwitcher current={side.switcher.name} targets={targets} openLabel="Open a client" />
           ) : (
             // 🔒 Not a disabled button. A greyed control still reads as one
             // click from opening, and what must not exist here is the control

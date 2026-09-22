@@ -30,6 +30,27 @@ const initials = (name: string) => name.split(/\s+/).filter(Boolean).map((w) => 
 const day = (iso: string) => new Date(`${iso.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 const whose = (x: ExpiryItem) => (x.owner.kind === 'ryvo' ? 'Ryvo' : x.owner.name)
 
+/**
+ * 🔒 ONE SHORT LINE, in the groups that read across clients (1, 2, 3, 4).
+ * A screen that drops a rehearsal's waiting lead without saying so reports
+ * "nothing is waiting" about work somebody did (lib/hidden-clients.ts).
+ */
+function Hidden({ model }: { model: TodayModel }) {
+  if (!model.hiddenNote) return null
+  return <p className={styles.hiddenNote}>{model.hiddenNote}</p>
+}
+
+/**
+ * 🔒 OFF BY DEFAULT, and a LINK rather than a checkbox: it works before
+ * hydration, it can be bookmarked, and its state is in the URL where the
+ * screenshot of a strange day will show it.
+ */
+function Rehearsals({ model }: { model: TodayModel }) {
+  return model.includingRehearsals
+    ? <a className={styles.rehearsals} href="/today">Hide rehearsals again</a>
+    : <a className={styles.rehearsals} href="/today?ensaios=1">Include rehearsals</a>
+}
+
 function Head({ g }: { g: TodayGroup }) {
   return (
     <summary className={styles.head}>
@@ -198,11 +219,15 @@ export function TodayView({ model, queue, anomalies, windowDays, now }: {
   const handled = (queue ?? []).filter((r) => r.handledElsewhere)
 
   return (
+    <>
+    {/* The control sits above the groups, where what it changes is visible. */}
+    <p className={styles.rehearsalsRow}><Rehearsals model={model} /></p>
     <ol className={styles.groups}>
       {/* ── 1 ── */}
       <li><details className={styles.group} id="group-1" data-state={g1.state}>
         <Head g={g1} />
         <div className={styles.body}>
+          <Hidden model={model} />
           {g1.state === 'readFailed' ? <Failed g={g1} /> : (
             <>
               {model.outage.active && (
@@ -236,6 +261,7 @@ export function TodayView({ model, queue, anomalies, windowDays, now }: {
       <li><details className={styles.group} id="group-2" data-state={g2.state}>
         <Head g={g2} />
         <div className={styles.body}>
+          <Hidden model={model} />
           {g2.state === 'readFailed' ? <Failed g={g2} /> : g2.state === 'rows' && anomalies
             ? <Rows>{anomalies.groups.map((a) => <AnomalyItem key={a.latest.kind} g={a} windowDays={windowDays} />)}</Rows>
             : null}
@@ -246,6 +272,7 @@ export function TodayView({ model, queue, anomalies, windowDays, now }: {
       <li><details className={styles.group} id="group-3" data-state={g3.state}>
         <Head g={g3} />
         <div className={styles.body}>
+          <Hidden model={model} />
           <p className={styles.note}>{g3.partial}</p>
           {/* 🔒 The same module this group reads has a screen of its own, with
               every client's items and Ryvo's own. Nothing pointed at it. */}
@@ -263,6 +290,7 @@ export function TodayView({ model, queue, anomalies, windowDays, now }: {
       <li><details className={styles.group} id="group-4" data-state={g4.state}>
         <Head g={g4} />
         <div className={styles.body}>
+          <Hidden model={model} />
           <p className={styles.note}>{g4.partial}</p>
           <p className={styles.links}><Link href="/ops/expiries">Everything that expires, and Ryvo&rsquo;s own</Link></p>
           {g4.state === 'readFailed' ? <Failed g={g4} /> : (
@@ -288,6 +316,7 @@ export function TodayView({ model, queue, anomalies, windowDays, now }: {
         </div>
       </details></li>
     </ol>
+    </>
   )
 }
 

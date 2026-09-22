@@ -142,19 +142,30 @@ test('no internal vocabulary reaches the screen', () => {
   assert.deepEqual(offences, [])
 })
 
-test('no prose hides in the page, and the screen has no way to contact anybody', () => {
-  const src = readFileSync(new URL('../src/app/silence/[clientId]/page.tsx', import.meta.url), 'utf8')
+test('the screen surfaces who was left alone, and has no way to contact anybody', () => {
+  /*
+   * 🔁 22 Sep 2026. /silence/[clientId] was RETIRED; this guards its
+   * replacement, /c/<client>/silence.
+   *
+   * 🔒 WHAT SURVIVED THE MOVE, and it is the half that matters: reaching these
+   * people is consent-gated and paced (§7, §6.2). A "contact them all" control
+   * on a screen designed to produce indignation is how an agency's database
+   * gets burned in an afternoon.
+   *
+   * 🔴 WHAT DID NOT, said plainly rather than quietly dropped: the old screen
+   * also asserted NO PROSE IN THE PAGE, because its sentences were the
+   * agency's, in Portuguese, and belonged in screen-copy.ts where the
+   * vocabulary guard above can see them. The rebuilt screen is operator-facing
+   * and English, and writes its sentences inline like every other /c/ screen.
+   * The vocabulary guard still covers the copy module; this file no longer
+   * claims the page holds no prose, because it does.
+   */
+  const src = readFileSync(new URL('../src/app/c/[client]/silence/page.tsx', import.meta.url), 'utf8')
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/^\s*\/\/.*$/gm, '')
-  const PROSE = /[a-zà-ú]{3,}\s+[a-zà-ú]{3,}/i
-  const literals = [...src.matchAll(/'([^'\n]{6,})'|"([^"\n]{6,})"/g)].map((m) => m[1] ?? m[2])
-  const textNodes = [...src.matchAll(/>([^<>{}\n]+)</g)].map((m) => m[1].trim())
-  assert.deepEqual([...literals, ...textNodes].filter((s) => PROSE.test(s)), [])
-
-  // §7 and §6.2: reaching these people is consent-gated and paced. A
-  // "contact them all" control on a screen designed to produce indignation is
-  // how an agency's database gets burned in an afternoon.
   assert.doesNotMatch(src, /<form|<button|action=/, 'this screen surfaces; it does not act')
+  // And it is still the same read behind it, not a second one that agrees today.
+  assert.match(src, /readSilence\(/)
 })
 
 test('⚠️ the silence path does not read consent, the ledger or the suppression list', () => {

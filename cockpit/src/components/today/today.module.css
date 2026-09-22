@@ -88,3 +88,9 @@ a.row:hover { background: var(--lift-2); }
   .dist { grid-column: 2; justify-content: flex-start; }
   .body { padding-left: var(--s5); }
 }
+
+/* Who is left out of the operator-wide reads, and the control that includes them (22 Sep 2026). */
+.hiddenNote { margin: 0 0 10px; font-size: 12.5px; color: var(--text-3); }
+.rehearsalsRow { margin: 0 0 14px; }
+.rehearsals { font-size: 12.5px; color: var(--text-2); text-underline-offset: 3px; }
+.rehearsals:hover { color: var(--text); }

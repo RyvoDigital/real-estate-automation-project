@@ -70,9 +70,15 @@ const QUEUE_LIMIT = 100
  * own headline are then the same function with a different argument, which is
  * the whole point — see the note at the top of this file.
  */
-export async function readCounts(clientId?: string): Promise<CountsOrUnknown> {
+export async function readCounts(clientId?: string, includeRehearsals = false): Promise<CountsOrUnknown> {
   try {
-    const rows = await getQueue(QUEUE_LIMIT, clientId)
+    /*
+     * 🔒 THE BADGE COUNTS WHAT THE SCREEN SHOWS. If Today hides rehearsals and
+     * the badge does not, the two disagree by every rehearsal lead — the same
+     * failure the gate exclusion was added for on the morning of 22 Sep. So the
+     * page's answer to "include rehearsals?" reaches this read too.
+     */
+    const rows = await getQueue(QUEUE_LIMIT, clientId, includeRehearsals)
     const handledElsewhere = rows.filter((r) => r.handledElsewhere).length
     return {
       waiting: rows.length - handledElsewhere,

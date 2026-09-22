@@ -79,14 +79,13 @@ function walk(dir: string, out: string[] = []): string[] {
  * manifest generate images and metadata rather than CSS, so they cannot read a
  * custom property. They are the only entries that are allowed to stay.
  */
+// 🔁 22 Sep 2026: /review and /silence were RETIRED (their client-level
+// replacements are reachable from the client sidebar), so their four entries
+// left this ledger by deletion rather than by being cleaned up.
 const LEGACY: Record<string, { count: number; until: string }> = {
   'app/globals.css': { count: 203, until: 'C6 — when the last screen depending on its classes is rebuilt; see build plan §2.2b' },
   'app/layout.tsx': { count: 1, until: 'C6 — the themeColor literal, which a manifest needs as a literal' },
   'app/listings/page.tsx': { count: 9, until: 'C5' },
-  'app/review/[clientId]/page.tsx': { count: 6, until: 'C6' },
-  'app/review/page.tsx': { count: 3, until: 'C6' },
-  'app/silence/[clientId]/page.tsx': { count: 6, until: 'C6' },
-  'app/silence/page.tsx': { count: 3, until: 'C6' },
   'components/Queue.tsx': { count: 1, until: 'C3 — the escalations rebuild' },
   'lib/segmentation/surface.ts': { count: 13, until: 'C5 — 🔴 colour in a lib module, which is where erosion ends up' },
   // Permanent, and the reason is that they do not produce CSS:

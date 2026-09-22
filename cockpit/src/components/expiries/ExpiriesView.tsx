@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { Expiries, ExpiryItem, ExpiryStanding, ObligationCurrent } from '@/lib/expiries/model'
 import { OBLIGATION_REFUSALS } from '@/lib/expiries/copy'
 import { recordObligationAction } from '@/lib/expiries/obligations-actions'
+import { hiddenLine, type Hidden } from '@/lib/hidden-clients'
 import { say, type Refusal } from '@/lib/refusals'
 import { operatorName } from '@/lib/operators'
 import { StateChip, StateSurface, type Meaning } from '@/components/state-chip'
@@ -208,8 +209,10 @@ function List({ title, sub, items, empty }: { title: string; sub: string; items:
   )
 }
 
-export function ExpiriesView({ e, refusal, guardado, jaGuardado }: {
+export function ExpiriesView({ e, refusal, guardado, jaGuardado, hidden }: {
   e: Expiries; refusal?: Refusal | null; guardado?: string; jaGuardado?: string
+  /** who is left out of this cross-client read, and whether they were asked for */
+  hidden?: Hidden
 }) {
   const c = e.checked
   return (
@@ -218,6 +221,20 @@ export function ExpiriesView({ e, refusal, guardado, jaGuardado }: {
         <h1 className={styles.title}>Expiries</h1>
         <p className={styles.lede}>What has run out, what is about to, and what needs confirming, across every client, and Ryvo&rsquo;s own. Nothing here acts on the outside world.</p>
       </header>
+
+      {/*
+        * 🔒 WHO IS NOT ON THIS SCREEN, in one line, and the way to include them.
+        * Off by default: a rehearsal's certificate running out is real, and it
+        * is not the business's obligation (lib/hidden-clients.ts).
+        */}
+      {hidden && (
+        <p className={styles.hiddenNote}>
+          {hiddenLine(hidden)}{' '}
+          <a className={styles.link} href={hidden.includingRehearsals ? '/ops/expiries' : '/ops/expiries?ensaios=1'}>
+            {hidden.includingRehearsals ? 'Hide rehearsals again' : 'Include rehearsals'}
+          </a>
+        </p>
+      )}
 
       {refusal && <StateSurface meaning="red" className={styles.banner}><b>{say(OBLIGATION_REFUSALS, 'en', refusal)}</b></StateSurface>}
       {guardado && <StateSurface meaning="through" className={styles.banner}>Recorded.</StateSurface>}

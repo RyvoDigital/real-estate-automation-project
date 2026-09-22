@@ -21,9 +21,20 @@ import styles from '@/components/today/today.module.css'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export default async function TodayPage() {
+export default async function TodayPage({ searchParams }: {
+  searchParams: Promise<{ ensaios?: string }>
+}) {
   const operator = await requireOperator()
-  const [today, counts] = await Promise.all([readToday(), readCounts()])
+  /*
+   * 🔒 OFF BY DEFAULT. A rehearsal is real work on real rows, and it is not
+   * this business's work: it does not belong in the count of who is waiting.
+   * The answer reaches BOTH reads, so the badge and the groups cannot disagree.
+   */
+  const includeRehearsals = (await searchParams).ensaios === '1'
+  const [today, counts] = await Promise.all([
+    readToday(new Date(), includeRehearsals),
+    readCounts(undefined, includeRehearsals),
+  ])
 
   return (
     <Frame mode="operator" current="today" counts={counts} operatorEmail={operator.email}>

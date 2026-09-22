@@ -58,15 +58,24 @@ test('no gate client known (or the marker read failed): nothing is filtered, so 
   assert.match(gateSrc, /if \(error\) return \[\]/)
 })
 
-test('getQueue: operator-wide excludes the gate; one client asked for by id does not', () => {
+test('getQueue: operator-wide excludes the hidden clients; one client asked for by id does not', () => {
+  /*
+   * 🔁 22 Sep 2026: the set widened from the deploy gate's client to everyone
+   * who is not this business — rehearsals too (lib/hidden-clients.ts). The
+   * PROPERTY is unchanged and is what this asserts: operator-wide leaves them
+   * out, one client asked for by id gets its own work whatever it is.
+   */
   const b = body('getQueue')
-  assert.match(b, /if \(clientId\) q = q\.eq\('client_id', clientId\)\s*\n\s*else q = withoutGateClients\(q, await gateClientIds\(\)\)/)
+  assert.match(b, /if \(clientId\) q = q\.eq\('client_id', clientId\)\s*\n\s*else q = withoutGateClients\(q, \(await hiddenClients\(includeRehearsals\)\)\.ids\)/)
 })
 
 test('getOpenCount applies the same exclusion as getQueue (the badge and the queue agree)', () => {
   const b = body('getOpenCount')
-  assert.match(b, /await gateClientIds\(\)/)
+  assert.match(b, /await hiddenClients\(includeRehearsals\)/)
   assert.match(b, /withoutGateClients\(/)
+  // 🔒 The badge takes the same answer the screen did, or the two disagree by every rehearsal lead.
+  const counts = readFileSync(join(SRC, 'counts.ts'), 'utf8')
+  assert.match(counts, /getQueue\(QUEUE_LIMIT, clientId, includeRehearsals\)/)
 })
 
 test('getLeads: the list and its count exclude the gate, unless a client is chosen in the filter', () => {
@@ -76,12 +85,49 @@ test('getLeads: the list and its count exclude the gate, unless a client is chos
   assert.match(b, /applyFilters[\s\S]*q2 = withoutGateClients\(q2, gate\)/)
 })
 
-test('anomalies: operator-wide excludes the gate and keeps the unattributed; per lead or per client does not', () => {
+test('anomalies: operator-wide excludes the hidden clients and keeps the unattributed; per lead or per client does not', () => {
+  // 🔒 A fault of a rehearsal's is a fault in a rehearsal. One that names NO
+  // client is kept, because it may be about anybody.
   const b = body('readAnomalies')
-  assert.match(b, /if \(!filter\?\.leadId && !filter\?\.clientId\) q = withoutGateClientsKeepingUnattributed\(q, await gateClientIds\(\)\)/)
+  assert.match(b, /if \(!filter\?\.leadId && !filter\?\.clientId\) \{/)
+  assert.match(b, /withoutGateClientsKeepingUnattributed\(q, \(await hiddenClients\(filter\?\.includeRehearsals \?\? false\)\)\.ids\)/)
 })
 
 test('every operator count comes through getQueue (counts.ts), so it inherits the exclusion', () => {
   const counts = readFileSync(join(SRC, 'counts.ts'), 'utf8')
-  assert.match(counts, /const rows = await getQueue\(QUEUE_LIMIT, clientId\)/)
+  assert.match(counts, /const rows = await getQueue\(QUEUE_LIMIT, clientId, includeRehearsals\)/)
+})
+
+/*
+ * 🔴 THE WIDER RULE (22 Sep 2026): a rehearsal is real work on real rows and is
+ * not this business's work, so it is left out of the operator-wide screens —
+ * BY THE FLAG, never by name — with a control to include it and a line saying
+ * how many are hidden.
+ */
+test('🔴 rehearsals are hidden by the flag, and an unanswered flag hides NOBODY', () => {
+  const hidden = readFileSync(join(SRC, 'hidden-clients.ts'), 'utf8')
+  assert.match(hidden, /select\('id, rehearsal'\)/)
+  assert.match(hidden, /c\.rehearsal === true/, 'hidden only when the answer is true')
+  assert.doesNotMatch(hidden, /rehearsal !== false/, 'a null answer must not hide a real agency’s waiting lead')
+  // Never by name — read from the CODE: this file's own comment quotes "ZZ GATE"
+  // as the example of what must not be done, which is prose, not a filter.
+  const code = hidden.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+  assert.doesNotMatch(code, /\.eq\('name'|ZZ|GATE/)
+})
+
+test('🔴 a failed read of the flags hides nobody, and says so', () => {
+  const hidden = readFileSync(join(SRC, 'hidden-clients.ts'), 'utf8')
+  assert.match(hidden, /failed: true/)
+  assert.match(hidden, /if \(h\.failed\) return/, 'the line must say the flags could not be read')
+  assert.match(hidden, /may include rehearsals/)
+})
+
+test('🔒 the screens say how many are hidden, and offer to include them', () => {
+  const today = readFileSync(join(SRC, '..', 'components', 'today', 'TodayView.tsx'), 'utf8')
+  const expiries = readFileSync(join(SRC, '..', 'components', 'expiries', 'ExpiriesView.tsx'), 'utf8')
+  // One line per cross-client group: 1, 2, 3 and 4.
+  assert.equal([...today.matchAll(/<Hidden model=\{model\} \/>/g)].length, 4)
+  assert.match(today, /ensaios=1/)
+  assert.match(expiries, /hiddenLine\(hidden\)/)
+  assert.match(expiries, /ensaios=1/)
 })

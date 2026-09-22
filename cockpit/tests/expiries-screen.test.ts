@@ -63,7 +63,7 @@ test('🔴 failed reads and un-checked causes are banners, and the S1 note carri
 
 test('the page is operator-only, reads the one expiries module, and renders in the operator frame', () => {
   assert.match(PAGE, /await requireOperator\(\)/)
-  assert.match(PAGE, /readExpiries\(new Date\(\)\)/)
+  assert.match(PAGE, /readExpiries\(new Date\(\), includeRehearsals\)/)
   assert.match(PAGE, /<Frame mode="operator" current="expiries"/)
   assert.match(PAGE, /refusal=\{refusalFrom\(sp\)\}/)
 })

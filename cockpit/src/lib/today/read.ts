@@ -1,7 +1,7 @@
 import 'server-only'
 import { admin } from '@/lib/supabase/admin'
 import { ANOMALY_WINDOW_DAYS, getAnomalies, getQueue, type AnomalyFeed, type QueueRow } from '@/lib/data'
-import { gateClientIds } from '@/lib/gate-clients'
+import { hiddenClients } from '@/lib/hidden-clients'
 import { readExpiries } from '@/lib/expiries/read'
 import { openGatesOldestFirst } from '@/lib/gates'
 import { buildToday, type TodayModel } from './model'
@@ -24,10 +24,10 @@ export type TodayRead = {
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
-/** Clients (gate clients excepted) with at least one automation switched on; null = the read failed. */
-async function clientsWithAutomation(): Promise<number | null> {
+/** Clients with an automation switched on, hidden ones excepted; null = the read failed. */
+async function clientsWithAutomation(includeRehearsals: boolean): Promise<number | null> {
   try {
-    const gate = await gateClientIds()
+    const gate = (await hiddenClients(includeRehearsals)).ids
     const { data, error } = await admin().from('client_automations').select('client_id').eq('enabled', true)
     if (error) return null
     return new Set((data ?? []).map((r) => r.client_id as string).filter((id) => !gate.includes(id))).size
@@ -36,12 +36,14 @@ async function clientsWithAutomation(): Promise<number | null> {
   }
 }
 
-export async function readToday(now = new Date()): Promise<TodayRead> {
-  const [queue, anomalies, automation, expiries] = await Promise.all([
-    getQueue(QUEUE_CAP).then((rows) => ({ rows, threw: '' }), (e) => ({ rows: null, threw: message(e) })),
-    getAnomalies().then((feed) => ({ feed, threw: '' }), (e) => ({ feed: null, threw: message(e) })),
-    clientsWithAutomation(),
-    readExpiries(now),
+export async function readToday(now = new Date(), includeRehearsals = false): Promise<TodayRead> {
+  const [queue, anomalies, automation, expiries, hidden] = await Promise.all([
+    getQueue(QUEUE_CAP, undefined, includeRehearsals).then((rows) => ({ rows, threw: '' }), (e) => ({ rows: null, threw: message(e) })),
+    getAnomalies(includeRehearsals).then((feed) => ({ feed, threw: '' }), (e) => ({ feed: null, threw: message(e) })),
+    clientsWithAutomation(includeRehearsals),
+    readExpiries(now, includeRehearsals),
+    // 🔒 Read once, and reported: a screen that hides rows says how many.
+    hiddenClients(includeRehearsals),
   ])
   const model = buildToday({
     queue: { rows: queue.rows, threw: queue.threw, cap: QUEUE_CAP },
@@ -51,6 +53,7 @@ export async function readToday(now = new Date()): Promise<TodayRead> {
     clientsWithAutomation: automation,
     expiries,
     waiting: openGatesOldestFirst(),
+    hidden,
     now,
   })
   return { model, queue: queue.rows, anomalies: anomalies.feed, readAt: now.toISOString() }

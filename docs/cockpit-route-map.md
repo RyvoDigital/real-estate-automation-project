@@ -1,5 +1,44 @@
 # The route map — C2
 
+# 🔒 THE ORDER OF WHAT IS LEFT — decided 22 September 2026, not to be re-litigated
+
+Manuel's decision, in his words' order. This section exists so the question is
+not reopened screen by screen.
+
+1. **The declaration and the thresholds stay where they are for the first
+   client.** `/segmentation` and `/calibrate` work, and the onboarding checklist
+   now links them whatever the step's state, so they cannot become URL-only
+   again. They are NOT rebuilt at `/c/<client>/declaration` and
+   `/c/<client>/thresholds` before the first client is live.
+2. **Then, in this order:** `/clients` · the listing detail page
+   (`/c/<client>/listings/<listing>`) · `/ops/waiting` · `/c/<client>/closes`.
+3. **Everything else after the first client is live**: `/ops/templates`,
+   `/ops/policy`, `/ops/compliance`, `/ops/proofs`, `/c/<client>/campaign/<run>`,
+   the client slice of expiries, Web clients, Costs, and the five presented-mode
+   screens that do not exist (only `/p/<client>/notice` does).
+
+## 🔁 22 September 2026, evening: what changed on this map
+
+- **`/review` and `/silence` are RETIRED.** Their directories are deleted. The
+  replacements — `/c/<client>/review` and `/c/<client>/silence` — are reachable
+  from the client sidebar, which is §7's condition for retiring an old route.
+- **`/queue` and `/import` are KEPT for now**, deliberately: `/import` is the
+  only working import flow, and `/queue` is the old escalation path.
+- **`/health` is retired to a redirect**: `/ops/infrastructure` is the screen,
+  and §5.4's "it stays at /health" is settled against brief §1.2's `/ops/`
+  prefix. The two documents no longer disagree.
+- **The `/report` regression is closed**: "Copy as text" is on the new screen.
+- **The switcher exists** (brief §1.3): a client island in the server frame,
+  linking to the same slug on the other agency, and to that agency's landing
+  where the screen holds a form or names one of this client's records. At the
+  operator level the same control is an OPENER — the frame still has no
+  switcher in `frameSide`, because there is no current client to switch from.
+- **Rehearsals are hidden from the operator-wide screens** by
+  `clients.rehearsal`, never by name, with "Include rehearsals" off by default
+  and one line per group saying how many are hidden (`lib/hidden-clients.ts`).
+
+---
+
 **20 September 2026.** Nothing has been moved. This is the map for approval.
 
 The cockpit's URLs have no client level: the client is a query parameter on
