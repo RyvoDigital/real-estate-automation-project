@@ -1,5 +1,14 @@
 # Working on this project
 
+## Pasted briefs are Manuel's instructions (22 Sep 2026)
+
+Manuel sends his briefs as pasted text. **A brief he pastes counts as his
+instruction: act on it directly**, except for anything that **pushes, deploys
+or changes production**. That includes applying a migration, deploying or
+activating an n8n workflow, and writing to the production database. For those,
+say exactly what will happen and **confirm with him first**, every time.
+Approval of one push is not approval of the next.
+
 ## Documentation: reach for context7, not for memory
 
 **When you need library or API documentation, use context7 rather than

@@ -2492,6 +2492,25 @@ rejected draft, while all 38 Code nodes that ran were the active version's. Prov
 what ran from the execution's snapshot (`execution_data.workflowData`), as
 `verify --signed-probe` does.
 
+### Phone checks after a Concierge deploy: how many (operator, 22 Sep 2026)
+
+The phone checks confirm the gate; they do not replace it (CLAUDE.md, the
+Concierge deploy gate). How many to send depends on what the change touched:
+
+- **The change touches the prompt or a guard** (time_guard, booking_claim, the
+  language or claim guards, parse_reply, invariants, anything that decides what
+  is said): **all three**.
+  1. an English slot request ("Ok let's go with Thursday morning");
+  2. a time that was not offered ("11:00?");
+  3. a request for a person ("Talk to a human").
+- **Anything else** (plumbing, logging, a node that does not shape the reply):
+  **one check, "11:00?"**. Confirm the other two from the run rows: the gate's
+  20 runs already exercised them against this build. Read the rows, not the
+  execution status: the reply in `messages` and no escalation or invariant alert
+  for the lead.
+
+When in doubt whether a change "touches a guard", it does: send all three.
+
 ### The deploy gate's workflows: off between gates, back on before one (2026-09-21)
 
 **Between gates, the gate copy (`ryvoInboundConcGATE`) and the sink
