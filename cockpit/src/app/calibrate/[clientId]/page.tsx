@@ -1,6 +1,7 @@
 import { requireOperator } from '@/lib/auth'
 import { readCalibrationScreen } from '@/lib/matching/calibrate-read'
 import { CalibrateView } from '@/components/calibrate/CalibrateView'
+import { refusalFrom } from '@/lib/refusals'
 
 /**
  * The calibration conversation. Redrawn 22 Sep 2026 (checkpoint 2): this file
@@ -17,11 +18,11 @@ export const revalidate = 0
 
 export default async function Calibrate({ params, searchParams }: {
   params: Promise<{ clientId: string }>
-  searchParams: Promise<{ guardado?: string; jaGuardado?: string; erro?: string; campos?: string }>
+  searchParams: Promise<{ guardado?: string; jaGuardado?: string; recusa?: string; p?: string; campos?: string }>
 }) {
   await requireOperator()
   const { clientId } = await params
-  const { guardado, jaGuardado, erro, campos } = await searchParams
+  const sp = await searchParams
   const screen = await readCalibrationScreen(clientId)
-  return <CalibrateView clientId={clientId} screen={screen} guardado={guardado} jaGuardado={jaGuardado} erro={erro} campos={campos} />
+  return <CalibrateView clientId={clientId} screen={screen} guardado={sp.guardado} jaGuardado={sp.jaGuardado} refusal={refusalFrom(sp)} campos={sp.campos} />
 }

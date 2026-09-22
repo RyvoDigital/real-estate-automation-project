@@ -38,6 +38,11 @@
  */
 
 import type { Segment } from '@/lib/segmentation/declare-types'
+import type { Refusal } from '@/lib/refusals'
+import type { DeclarationRefusalKey } from '@/lib/segmentation/copy'
+
+/** What this core refuses: a KEY, said in the agency's language by the screen (lib/refusals.ts). */
+export type DeclarationRefusal = Refusal<DeclarationRefusalKey>
 
 export type DeclareInput = {
   clientId: string
@@ -66,7 +71,7 @@ export type DeclareResult =
   | { ok: true; written: number; declarationId: string; alreadyRecorded: false }
   /** the same form again: nothing written, and nothing wrong */
   | { ok: true; written: 0; declarationId: string; alreadyRecorded: true }
-  | { ok: false; reason: string }
+  | { ok: false; refusal: DeclarationRefusal }
 
 /** 0055's index. tests/segmentation-declare-core.test.ts reads the migration to hold this name to it. */
 export const ONE_DECLARATION_INDEX = 'consent_events_one_row_per_declaration_and_contact'
@@ -103,48 +108,23 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const SEGMENTS: readonly Segment[] = ['A', 'B', 'C', 'D']
 
 /** Pure, so every refusal below is a test with no database. */
-export function validateDeclaration(input: DeclareInput): string | null {
-  if (!input.declaredBy?.trim()) {
-    return (
-      'A declaration needs the name of the person at the agency who made it. ' +
-      'Not the operator recording it: responsibility follows knowledge, and 0024 refuses the row.'
-    )
-  }
-  if (input.declaredBy.trim() === input.recordedBy?.trim()) {
-    return (
-      `"${input.declaredBy}" is both the declarer and the recorder. The agency declares and we ` +
-      'record; if they are the same person the row claims we knew where these contacts came from.'
-    )
-  }
-  if (!SEGMENTS.includes(input.segment)) {
-    // E is the consequence of an objection and comes from the CONTACT. An
-    // agency that could assign it could also remove it.
-    return `"${input.segment}" is not something an agency may declare.`
-  }
-  if (!UUID.test(input.declarationId ?? '')) {
-    return 'This form has no declaration id, so a resubmission could not be told from a new answer. Nothing was recorded: reload the screen.'
-  }
-  if (typeof input.uncertainty !== 'boolean') {
-    return 'Whether the person was sure has to be answered, not assumed. Nothing is recorded without it.'
-  }
-  if (input.contacts.length === 0) return 'No contacts to declare.'
+export function validateDeclaration(input: DeclareInput): DeclarationRefusal | null {
+  if (!input.declaredBy?.trim()) return { key: 'noDeclarer' }
+  if (input.declaredBy.trim() === input.recordedBy?.trim()) return { key: 'sameAsRecorder', params: { name: input.declaredBy.trim() } }
+  // E is the consequence of an objection and comes from the CONTACT. An agency
+  // that could assign it could also remove it.
+  if (!SEGMENTS.includes(input.segment)) return { key: 'notDeclarable', params: { value: String(input.segment) } }
+  if (!UUID.test(input.declarationId ?? '')) return { key: 'noId' }
+  if (typeof input.uncertainty !== 'boolean') return { key: 'unsureUnanswered' }
+  if (input.contacts.length === 0) return { key: 'noContacts' }
+  // A group declaration records how many it covered; the two must agree or the
+  // record misstates what was in front of the person when they said it.
   if (input.group && input.group.size !== input.contacts.length) {
-    return (
-      `The group says ${input.group.size} contacts and ${input.contacts.length} were supplied. ` +
-      'A group declaration records how many it covered; the two must agree or the record misstates ' +
-      'what was in front of the person when they said it.'
-    )
+    return { key: 'sizeMismatch', params: { size: String(input.group.size), given: String(input.contacts.length) } }
   }
-  if (input.segment === 'B' && !input.basis?.trim()) {
-    // B is the one segment that claims evidence exists. A claim with no
-    // description of the evidence is exactly the cell we spent the week
-    // undoing.
-    return (
-      'Declaring that authorisation exists needs a description of where it is — which form, which ' +
-      'system, what date. Without it the declaration is another unevidenced claim, which is the ' +
-      'thing this screen exists to stop repeating.'
-    )
-  }
+  // B is the one segment that claims evidence exists. A claim with no
+  // description of the evidence is exactly the cell we spent the week undoing.
+  if (input.segment === 'B' && !input.basis?.trim()) return { key: 'basisNeeded' }
   return null
 }
 
@@ -180,7 +160,7 @@ export function buildRows(input: DeclareInput, now: Date): DeclarationRow[] {
 /** Validate, build, and write every row in ONE insert. A refusal or a failure writes nothing. */
 export async function declareSegment(input: DeclareInput, deps: DeclareDeps): Promise<DeclareResult> {
   const problem = validateDeclaration(input)
-  if (problem) return { ok: false, reason: problem }
+  if (problem) return { ok: false, refusal: problem }
   const rows = buildRows(input, deps.now())
   const { error } = await deps.insertAll(rows)
   const declarationId = input.declarationId
@@ -188,9 +168,8 @@ export async function declareSegment(input: DeclareInput, deps: DeclareDeps): Pr
     // The same form, again: the first submit is the record. Nothing new was written.
     return { ok: true, written: 0, declarationId, alreadyRecorded: true }
   }
-  if (error) {
-    return { ok: false, reason: `The database refused the declaration, and nothing was recorded: ${error.message}` }
-  }
+  // The database's own text never reaches an agency: its code does, in their language.
+  if (error) return { ok: false, refusal: { key: 'dbRefused', params: { code: error.code ?? '?' } } }
   return { ok: true, written: rows.length, declarationId, alreadyRecorded: false }
 }
 
@@ -218,40 +197,37 @@ export type DeclarationForm = {
 export type ServerGroup = { id: string; label: string; contactIds: string[] }
 export type ServerContact = { id: string; phone: string }
 
-export const UNANSWERED_SURE =
-  'Whether the person is sure of this answer was not answered. Nothing is recorded without it, and none is assumed.'
-export const UNCHOSEN =
-  'No origin was chosen. Nothing is recorded without an answer, and none is assumed.'
-export const NONE_LEFT = 'Every contact in the group was taken out, so there is nothing to declare. Nothing was recorded.'
-export const GROUP_CHANGED =
-  'This group changed after the screen was drawn (a contact was added or removed). Nothing was recorded: ' +
-  'reload the screen, so the declaration covers the people actually in front of the agency.'
+export const UNANSWERED_SURE: DeclarationRefusal = { key: 'unsureUnanswered' }
+export const UNCHOSEN: DeclarationRefusal = { key: 'unchosen' }
+export const NONE_LEFT: DeclarationRefusal = { key: 'noneLeft' }
+export const GROUP_CHANGED: DeclarationRefusal = { key: 'groupChanged' }
+export const GROUP_GONE: DeclarationRefusal = { key: 'groupGone' }
 
 export function resolveDeclaration(
   form: DeclarationForm,
   server: { groups: ServerGroup[]; contacts: ServerContact[] },
   recordedBy: string,
-): { ok: true; input: DeclareInput } | { ok: false; reason: string } {
+): { ok: true; input: DeclareInput } | { ok: false; refusal: DeclarationRefusal } {
   const segment = form.segment
   if (segment === null || !(SEGMENTS as readonly string[]).includes(segment)) {
-    return { ok: false, reason: segment ? `"${segment}" is not something an agency may declare.` : UNCHOSEN }
+    return { ok: false, refusal: segment ? { key: 'notDeclarable', params: { value: segment } } : UNCHOSEN }
   }
-  if (form.uncertainty !== 'sure' && form.uncertainty !== 'unsure') return { ok: false, reason: UNANSWERED_SURE }
+  if (form.uncertainty !== 'sure' && form.uncertainty !== 'unsure') return { ok: false, refusal: UNANSWERED_SURE }
   const group = server.groups.find((g) => g.id === form.groupId)
-  if (!group) return { ok: false, reason: 'That group is no longer on this screen. Nothing was recorded: reload it.' }
+  if (!group) return { ok: false, refusal: GROUP_GONE }
 
   // What the form was drawn with must be exactly the group as the server reads it now.
   const drawn = new Set(form.contacts)
   const now = new Set(group.contactIds)
-  if (drawn.size !== now.size || [...drawn].some((id) => !now.has(id))) return { ok: false, reason: GROUP_CHANGED }
+  if (drawn.size !== now.size || [...drawn].some((id) => !now.has(id))) return { ok: false, refusal: GROUP_CHANGED }
 
   const excluded = new Set(form.excluded)
-  if ([...excluded].some((id) => !now.has(id))) return { ok: false, reason: GROUP_CHANGED }
+  if ([...excluded].some((id) => !now.has(id))) return { ok: false, refusal: GROUP_CHANGED }
 
   const byId = new Map(server.contacts.map((c) => [c.id, c]))
   const chosen = group.contactIds.filter((id) => !excluded.has(id)).map((id) => byId.get(id))
-  if (chosen.some((c) => !c)) return { ok: false, reason: GROUP_CHANGED }
-  if (chosen.length === 0) return { ok: false, reason: NONE_LEFT }
+  if (chosen.some((c) => !c)) return { ok: false, refusal: GROUP_CHANGED }
+  if (chosen.length === 0) return { ok: false, refusal: NONE_LEFT }
 
   return {
     ok: true,

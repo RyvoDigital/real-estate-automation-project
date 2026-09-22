@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation'
 import { requireOperator } from '@/lib/auth'
 import { readTriage } from '@/lib/matching/triage-read'
 import { TriageView } from '@/components/listings/TriageView'
+import { readClientLocale } from '@/lib/client-locale'
+import { refusalFrom } from '@/lib/refusals'
 
 /**
  * The triage floor: the product for an agency with no structured data. Redrawn
@@ -13,12 +15,15 @@ export const revalidate = 0
 
 export default async function Triage({ params, searchParams }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ guardado?: string; jaGuardado?: string; erro?: string }>
+  searchParams: Promise<{ guardado?: string; jaGuardado?: string; recusa?: string; p?: string }>
 }) {
   await requireOperator()
   const { id } = await params
-  const { guardado, jaGuardado, erro } = await searchParams
+  const sp = await searchParams
   const screen = await readTriage(id)
   if (!screen.listing && !screen.failures.listing) notFound()
-  return <TriageView id={id} screen={screen} guardado={guardado} jaGuardado={jaGuardado} erro={erro} />
+  const refusal = refusalFrom(sp)
+  // The agency's language, read only when there is a refusal to say.
+  const locale = refusal ? await readClientLocale(screen.clientId) : null
+  return <TriageView id={id} screen={screen} guardado={sp.guardado} jaGuardado={sp.jaGuardado} refusal={refusal} locale={locale} />
 }

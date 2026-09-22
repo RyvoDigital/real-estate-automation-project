@@ -1,3 +1,4 @@
+import type { SaveRefusal } from '@/lib/matching/screen-copy'
 /**
  * Declaring that a property needs no energy rating.
  *
@@ -41,58 +42,23 @@ export type ExemptionInput = {
 }
 
 /**
- * What is wrong with this declaration, as a sentence.
- *
- * Returns prose rather than a code for the same reason `validateDeclaration`
- * does: it is read by somebody standing next to the person who has just made
- * the declaration, and "invalid" is not a thing to say out loud in that room.
+ * What is wrong with this declaration, as a refusal KEY (22 Sep 2026): the
+ * screen says it in the agency's language (lib/refusals.ts, SAVE_REFUSALS in
+ * lib/matching/screen-copy.ts). It used to return an English sentence.
  */
-export function validateExemption(input: ExemptionInput): string | null {
-  if (!input.listingId?.trim()) return 'An exemption has to be about a property.'
-
-  if (!input.declaredBy?.trim()) {
-    return (
-      'A declaration needs the name of the person at the agency who made it. ' +
-      'Not the operator recording it: responsibility follows knowledge, and 0028 refuses the row.'
-    )
-  }
-
+export function validateExemption(input: ExemptionInput): SaveRefusal | null {
+  if (!input.listingId?.trim()) return { key: 'exemption.noListing' }
+  if (!input.declaredBy?.trim()) return { key: 'exemption.noDeclarer' }
   // THE RULE THE SEGMENTATION SCREEN ALREADY HOLDS. Our name on their assertion
   // would put the responsibility where the knowledge is not — and here it would
   // mean we claimed to know a property was exempt from certification.
-  if (input.declaredBy.trim() === input.recordedBy?.trim()) {
-    return (
-      `"${input.declaredBy}" is both the declarer and the recorder. The agency declares and we ` +
-      'record; if they are the same person the row claims we decided this property needs no rating.'
-    )
-  }
-
-  if (!input.basis?.trim()) {
-    return (
-      'An exemption needs the reason, in their words. Without it the row says a property needs no ' +
-      'energy rating and cannot say why — which is the one thing an inspection would ask.'
-    )
-  }
-
-  // A reason so short it cannot be a reason. Not a length rule for its own
-  // sake: "n/a", "-" and "isento" are what gets typed when somebody is
-  // clicking through, and a declaration nobody meant is worse than none.
-  if (input.basis.trim().length < 12) {
-    return (
-      `"${input.basis.trim()}" is too short to be a reason. An inspection asks why this property ` +
-      'needs no rating, and the answer has to be a sentence somebody at the agency would stand behind.'
-    )
-  }
-
-  // A rated property does not need an exemption, and accepting one would leave
-  // two answers to the same question with nothing to say which governs.
-  if (input.alreadyRated) {
-    return (
-      'This property already has an energy rating on record, so it needs no exemption. ' +
-      'If the rating is wrong, correct the rating.'
-    )
-  }
-
+  if (input.declaredBy.trim() === input.recordedBy?.trim()) return { key: 'exemption.sameAsRecorder', params: { name: input.declaredBy.trim() } }
+  if (!input.basis?.trim()) return { key: 'exemption.noBasis' }
+  // A reason so short it cannot be a reason: "n/a", "-" and "isento" are what
+  // gets typed when somebody is clicking through.
+  if (input.basis.trim().length < 12) return { key: 'exemption.basisTooShort', params: { basis: input.basis.trim() } }
+  // A rated property needs no exemption: two answers to one question with nothing to say which governs.
+  if (input.alreadyRated) return { key: 'exemption.alreadyRated' }
   return null
 }
 

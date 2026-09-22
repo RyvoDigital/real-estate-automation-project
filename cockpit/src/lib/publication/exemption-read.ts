@@ -12,6 +12,8 @@ import { alreadyRated, listingFacts } from './facts-store'
  */
 export type ExemptionScreen = {
   listing: { id: string; reference: string | null; area: string | null } | null
+  /** the listing's agency, for saying a refusal in its language */
+  clientId: string | null
   /** the one exemptible requirement the policy names; null when none or more than one */
   requirementId: string | null
   /** more than one exemptible requirement: a choice is needed, never a silent first */
@@ -27,9 +29,9 @@ export async function readExemptionScreen(listingId: string): Promise<ExemptionS
   const failures: ExemptionScreen['failures'] = {}
   const empty = { requirementId: null, ambiguous: false, rated: false, current: null }
 
-  const { data: listing, error: lErr } = await db.from('listings').select('id, reference, area').eq('id', listingId).maybeSingle()
+  const { data: listing, error: lErr } = await db.from('listings').select('id, reference, area, client_id').eq('id', listingId).maybeSingle()
   if (lErr) failures.listing = lErr.message
-  if (!listing) return { listing: null, ...empty, failures }
+  if (!listing) return { listing: null, clientId: null, ...empty, failures }
 
   // WHICH requirement: from the policy row, never known by id here (see the gate).
   const { data: policy, error: pErr } = await db.from('advertising_policy').select('requires')
@@ -52,6 +54,7 @@ export async function readExemptionScreen(listingId: string): Promise<ExemptionS
   }
   return {
     listing: { id: listing.id as string, reference: (listing.reference as string) ?? null, area: (listing.area as string) ?? null },
+    clientId: (listing.client_id as string) ?? null,
     requirementId, ambiguous: exemptible.length > 1, rated, current, failures,
   }
 }

@@ -68,7 +68,7 @@ test('🔒 a page 404s only when the listing was READ and is not there', () => {
 
 test('the triage and exemption pages show the outcome of a save, and an error in words', () => {
   for (const src of [TRIAGE, EXEMPT]) {
-    assert.match(src, /\{erro && <p role="alert"/)
+    assert.match(src, /\{refusal && <p role="alert"[^>]*>\{say\(SAVE_REFUSALS, locale, refusal\)\}/)
     assert.match(src, /\{guardado && /)
     assert.match(src, /\{jaGuardado && /)
   }

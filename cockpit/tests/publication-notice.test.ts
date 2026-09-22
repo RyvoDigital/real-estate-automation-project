@@ -21,7 +21,10 @@ import {
 } from '../src/lib/publication/recheck'
 import type { AgencyFact, SatisfiedRequirement } from '../src/lib/publication/gate'
 import type { PolicyRow, Requirement } from '../src/lib/publication/requirements'
-import { NOTICE, EXEMPTION, FORBIDDEN_ON_SCREEN } from '../src/lib/matching/screen-copy'
+import { NOTICE, EXEMPTION, FORBIDDEN_ON_SCREEN, SAVE_REFUSALS } from '../src/lib/matching/screen-copy'
+import { say } from '../src/lib/refusals'
+/** What the agency reads for a refusal: the key, said in Portuguese (lib/refusals.ts). */
+const pt = (r: ReturnType<typeof validateExemption>) => (r ? say(SAVE_REFUSALS, 'pt-PT', r) : '')
 import { exemptionRecord, validateExemption } from '../src/lib/publication/exemption'
 
 /**
@@ -497,26 +500,31 @@ test('🔴 the agency declares and we record — never the same person', () => {
   // The segmentation screen's rule, and here the assertion is that a property
   // is legally exempt from certification, which is not a thing we may claim.
   const r = validateExemption(decl({ declaredBy: 'manuel@ryvodigital.com' }))
-  assert.match(String(r), /both the declarer and the recorder/)
+  assert.equal(r?.key, 'exemption.sameAsRecorder')
+  assert.match(pt(r), /quem declara e como quem regista/)
 })
 
 test('a declaration with no author, or no reason, is refused', () => {
-  assert.match(String(validateExemption(decl({ declaredBy: '' }))), /name of the person/)
-  assert.match(String(validateExemption(decl({ basis: '' }))), /the reason, in their words/)
+  assert.equal(validateExemption(decl({ declaredBy: '' }))?.key, 'exemption.noDeclarer')
+  assert.match(pt(validateExemption(decl({ declaredBy: '' }))), /nome da pessoa da agência/)
+  assert.equal(validateExemption(decl({ basis: '' }))?.key, 'exemption.noBasis')
+  assert.match(pt(validateExemption(decl({ basis: '' }))), /nas palavras da agência/)
 })
 
 test('🔴 a reason too short to be a reason is refused', () => {
   // "n/a", "-" and "isento" are what gets typed when somebody is clicking
   // through, and a declaration nobody meant is worse than none.
   for (const basis of ['n/a', '-', 'isento', 'nao precisa']) {
-    assert.match(String(validateExemption(decl({ basis }))), /too short to be a reason/, basis)
+    assert.equal(validateExemption(decl({ basis }))?.key, 'exemption.basisTooShort', basis)
+    assert.match(pt(validateExemption(decl({ basis }))), /curto demais para ser um motivo/, basis)
   }
 })
 
 test('a rated property needs no exemption, and is told to fix the rating instead', () => {
   const r = validateExemption(decl({ alreadyRated: true }))
-  assert.match(String(r), /already has an energy rating/)
-  assert.match(String(r), /correct the rating/, 'and what to do instead')
+  assert.equal(r?.key, 'exemption.alreadyRated')
+  assert.match(pt(r), /já tem uma classe energética/)
+  assert.match(pt(r), /corrija a classe/, 'and what to do instead')
 })
 
 test('the exemption screen reads like the segmentation declaration', () => {

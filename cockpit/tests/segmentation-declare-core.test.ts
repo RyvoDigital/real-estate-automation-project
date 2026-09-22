@@ -74,7 +74,8 @@ test('🔴 NOTHING HALF-WRITTEN: 450 contacts are still ONE insert (they were th
   const fails = store({ failWith: 'violates check constraint "consent_events_phone_e164"' })
   const r = await declareSegment(input({ contacts, group: { id: 'g1', label: 'x', size: 450 } }), fails.deps)
   assert.equal(r.ok, false)
-  assert.match((r as { reason: string }).reason, /nothing was recorded: violates check constraint/)
+  // The database's own text never reaches an agency: the key and the SQLSTATE do.
+  assert.deepEqual((r as { refusal: unknown }).refusal, { key: 'dbRefused', params: { code: '23514' } })
   assert.equal(fails.rows.length, 0, 'a failure leaves no row')
   assert.deepEqual(fails.calls, [450], 'and no second attempt at a remainder')
 })
@@ -89,12 +90,12 @@ test('🔒 a refusal writes nothing and never reaches the store', async () => {
 })
 
 test('🔒 "were they sure?" is required: an unanswered one is refused, never read as sure', () => {
-  assert.match(validateDeclaration(input({ uncertainty: undefined as unknown as boolean }))!, /has to be answered, not assumed/)
+  assert.equal(validateDeclaration(input({ uncertainty: undefined as unknown as boolean }))?.key, 'unsureUnanswered')
   assert.equal(buildRows(input({ uncertainty: true }), new Date())[0].evidence.uncertainty, true)
 })
 
 test('the declarer and the recorder stay two people (unchanged rule, now in the core)', () => {
-  assert.match(validateDeclaration(input({ declaredBy: 'manuel@ryvodigital.com' }))!, /the agency declares and we record/i)
+  assert.equal(validateDeclaration(input({ declaredBy: 'manuel@ryvodigital.com' }))?.key, 'sameAsRecorder')
 })
 
 // ── from the form: never pre-filled, never defaulted ────────────────────────
@@ -111,7 +112,7 @@ test('🔴 NEVER DEFAULTED: no origin, an empty one or anything but A–D is ref
     const r = resolveDeclaration(form({ segment }), SERVER, 'manuel@ryvodigital.com')
     assert.equal(r.ok, false, `segment ${JSON.stringify(segment)} was accepted`)
   }
-  assert.deepEqual(resolveDeclaration(form({ segment: null }), SERVER, 'm'), { ok: false, reason: UNCHOSEN })
+  assert.deepEqual(resolveDeclaration(form({ segment: null }), SERVER, 'm'), { ok: false, refusal: UNCHOSEN })
 })
 
 test('🔴 NEVER PRE-FILLED: the group\'s proposal cannot become the answer', () => {
@@ -119,7 +120,7 @@ test('🔴 NEVER PRE-FILLED: the group\'s proposal cannot become the answer', ()
   // answer can only be what the form carried. A form with no answer stays refused whatever was proposed.
   const proposed = { ...GROUP, proposal: { segment: 'C', why: 'last contact 2019' } } as ServerGroup
   const r = resolveDeclaration(form({ segment: null }), { ...SERVER, groups: [proposed] }, 'm')
-  assert.deepEqual(r, { ok: false, reason: UNCHOSEN })
+  assert.deepEqual(r, { ok: false, refusal: UNCHOSEN })
   const src = readFileSync(join(import.meta.dirname, '..', 'src', 'lib', 'segmentation', 'declare-core.ts'), 'utf8')
     .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '')
   assert.doesNotMatch(src, /proposal/, 'the core reads the proposal somewhere')
@@ -135,11 +136,11 @@ test('the declarer\'s name is what was typed, trimmed; no name is refused downst
 })
 
 test('🔒 what is declared is what was on the screen: a group that changed since is refused', () => {
-  assert.deepEqual(resolveDeclaration(form({ contacts: ['l1', 'l2'] }), SERVER, 'm'), { ok: false, reason: GROUP_CHANGED })
-  assert.deepEqual(resolveDeclaration(form({ contacts: ['l1', 'l2', 'l3', 'l9'] }), SERVER, 'm'), { ok: false, reason: GROUP_CHANGED }, 'a contact added in the browser')
-  assert.deepEqual(resolveDeclaration(form({ excluded: ['l9'] }), SERVER, 'm'), { ok: false, reason: GROUP_CHANGED }, 'an exclusion from outside the group')
+  assert.deepEqual(resolveDeclaration(form({ contacts: ['l1', 'l2'] }), SERVER, 'm'), { ok: false, refusal: GROUP_CHANGED })
+  assert.deepEqual(resolveDeclaration(form({ contacts: ['l1', 'l2', 'l3', 'l9'] }), SERVER, 'm'), { ok: false, refusal: GROUP_CHANGED }, 'a contact added in the browser')
+  assert.deepEqual(resolveDeclaration(form({ excluded: ['l9'] }), SERVER, 'm'), { ok: false, refusal: GROUP_CHANGED }, 'an exclusion from outside the group')
   const gone = { ...SERVER, contacts: SERVER.contacts.slice(0, 2) }
-  assert.deepEqual(resolveDeclaration(form(), gone, 'm'), { ok: false, reason: GROUP_CHANGED }, 'a member the server can no longer read')
+  assert.deepEqual(resolveDeclaration(form(), gone, 'm'), { ok: false, refusal: GROUP_CHANGED }, 'a member the server can no longer read')
 })
 
 test('exclusions come out; the label and the size are the server\'s; the recorder is the session\'s', () => {
@@ -150,7 +151,7 @@ test('exclusions come out; the label and the size are the server\'s; the recorde
   assert.deepEqual(i.group, { id: 'g1', label: 'Importação de 3 Set', size: 2 })
   assert.equal(i.recordedBy, 'manuel@ryvodigital.com')
   assert.equal(i.basis, 'Formulário do site, 2024')
-  assert.deepEqual(resolveDeclaration(form({ excluded: ['l1', 'l2', 'l3'] }), SERVER, 'm'), { ok: false, reason: NONE_LEFT })
+  assert.deepEqual(resolveDeclaration(form({ excluded: ['l1', 'l2', 'l3'] }), SERVER, 'm'), { ok: false, refusal: NONE_LEFT })
   assert.equal(resolveDeclaration(form({ groupId: 'nope' }), SERVER, 'm').ok, false)
 })
 
@@ -160,7 +161,7 @@ test('🔴 "were they sure?" is an explicit answer: sure, unsure, or refused —
   assert.equal(sure.input.uncertainty, false)
   assert.equal(unsure.input.uncertainty, true)
   for (const uncertainty of [null, '', 'on', 'yes', 'Sure']) {
-    assert.deepEqual(resolveDeclaration(form({ uncertainty }), SERVER, 'm'), { ok: false, reason: UNANSWERED_SURE }, `${JSON.stringify(uncertainty)} was read as an answer`)
+    assert.deepEqual(resolveDeclaration(form({ uncertainty }), SERVER, 'm'), { ok: false, refusal: UNANSWERED_SURE }, `${JSON.stringify(uncertainty)} was read as an answer`)
   }
 })
 

@@ -408,3 +408,37 @@ export const FORBIDDEN_ON_SCREEN = [
   'segment', 'segmento', 'gate', 'refusal', 'refused', 'quarantine', 'quarantined',
   'ledger', 'jurisdiction', 'unevidenced', 'opt_in', 'opt-in', 'payload', 'null',
 ] as const
+
+/**
+ * What the declaration's save logic refuses, in the agency's language
+ * (22 Sep 2026). declare-core.ts returns only the KEY (lib/refusals.ts); the
+ * screen says it through say(DECLARATION_REFUSALS, clientLocale, refusal).
+ *
+ * 🔒 ONE SET PER LOCALE. Spanish is `es: { ...every key... }` beside `pt`:
+ *    data, no code. `satisfies` makes a set missing a key a typecheck failure,
+ *    and tests/refusal-language.test.ts fails on any English left in a set.
+ * `{name}` placeholders are filled from the refusal's params.
+ */
+const DECLARATION_REFUSALS_PT = {
+  noDeclarer: 'Uma declaração precisa do nome da pessoa da agência que a faz, não de quem a regista: a responsabilidade é de quem sabe. Nada foi guardado.',
+  sameAsRecorder: '«{name}» aparece como quem declara e como quem regista. A agência declara e nós registamos; se fossem a mesma pessoa, o registo diria que éramos nós a saber de onde vieram estes contactos. Nada foi guardado.',
+  notDeclarable: '«{value}» não é uma resposta que a agência possa dar. Nada foi guardado.',
+  noId: 'Este formulário não tem identificador, por isso um reenvio não se distinguiria de uma resposta nova. Nada foi guardado: volte a abrir o ecrã.',
+  unsureUnanswered: 'Falta dizer se a pessoa tem a certeza desta resposta. Sem isso nada é guardado, e nada é presumido.',
+  noContacts: 'Não há contactos a declarar. Nada foi guardado.',
+  sizeMismatch: 'O grupo diz {size} contactos e chegaram {given}. Uma declaração em grupo regista quantos abrangeu, e os dois números têm de bater certo. Nada foi guardado.',
+  basisNeeded: 'Dizer que há autorização obriga a dizer onde ela está: que formulário, que sistema, que data. Sem isso é mais uma afirmação sem prova. Nada foi guardado.',
+  unchosen: 'Não foi escolhida nenhuma resposta. Nada é guardado sem resposta, e nenhuma é presumida.',
+  groupChanged: 'Este grupo mudou depois de o ecrã ser aberto: entrou ou saiu um contacto. Nada foi guardado. Volte a abrir o ecrã, para que a declaração cubra as pessoas que estão à frente da agência.',
+  noneLeft: 'Todos os contactos do grupo foram retirados, por isso não há nada a declarar. Nada foi guardado.',
+  groupGone: 'Esse grupo já não está neste ecrã. Nada foi guardado: volte a abri-lo.',
+  missingGroup: 'Faltam dados do grupo. Nada foi guardado.',
+  dbRefused: 'A base de dados recusou a declaração, e nada foi guardado (código {code}).',
+  unknown: 'Não foi possível guardar, e nada foi guardado.',
+} as const satisfies Record<string, string>
+
+export type DeclarationRefusalKey = keyof typeof DECLARATION_REFUSALS_PT
+
+export const DECLARATION_REFUSALS = {
+  pt: DECLARATION_REFUSALS_PT,
+} satisfies Record<string, Record<DeclarationRefusalKey, string>>

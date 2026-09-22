@@ -1,6 +1,8 @@
 import { requireOperator } from '@/lib/auth'
 import { readScreen } from '@/lib/segmentation/read'
 import { SegmentationView } from '@/components/segmentation/SegmentationView'
+import { readClientLocale } from '@/lib/client-locale'
+import { refusalFrom } from '@/lib/refusals'
 
 /**
  * Where did these contacts come from? /segmentation, redrawn 22 Sep 2026
@@ -23,11 +25,11 @@ export default async function SegmentationScreen({
   params, searchParams,
 }: {
   params: Promise<{ clientId: string }>
-  searchParams: Promise<{ erro?: string; guardado?: string; jaGuardado?: string; grupo?: string }>
+  searchParams: Promise<{ recusa?: string; p?: string; guardado?: string; jaGuardado?: string; grupo?: string }>
 }) {
   await requireOperator()
   const { clientId } = await params
-  const { erro, guardado, jaGuardado, grupo } = await searchParams
-  const screen = await readScreen(clientId)
-  return <SegmentationView clientId={clientId} screen={screen} grupo={grupo} erro={erro} guardado={guardado} jaGuardado={jaGuardado} />
+  const sp = await searchParams
+  const [screen, locale] = await Promise.all([readScreen(clientId), readClientLocale(clientId)])
+  return <SegmentationView clientId={clientId} screen={screen} grupo={sp.grupo} refusal={refusalFrom(sp)} locale={locale} guardado={sp.guardado} jaGuardado={sp.jaGuardado} />
 }

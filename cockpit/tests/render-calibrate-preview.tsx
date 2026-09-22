@@ -33,7 +33,7 @@ body{margin:0;-webkit-font-smoothing:antialiased}
 .banner-x{position:absolute;right:12px;top:12px;margin:0;z-index:9;padding:6px 10px;border-radius:8px;background:#111;color:#eee;font:12px/1.4 system-ui}
 </style></head><body><p class="banner-x"><b>SAMPLE</b> · rendered outside Next · ${title}</p>${body}</body></html>`
 
-const client = { id: 'c-sample', name: 'Marbella Sur' }
+const client = { id: 'c-sample', name: 'Marbella Sur', locale: 'pt-PT' }
 const previous: CalibrationScreen['previous'] = {
   answers: { ...EMPTY_ANSWERS, budgetSaid: 2000000, budgetMost: 2100000, budgetStretchMost: 2300000, showsOneFewerBedroom: true,
     ofHowMany: 5, strongAtLeast: 4, possibleAtLeast: 3, adjacency: 'Cascais: Estoril, Parede\nSintra: Colares' },

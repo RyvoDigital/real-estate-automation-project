@@ -96,7 +96,7 @@ const d = (over: Partial<DeclareInput> = {}): DeclareInput => ({
 
 test('a declaration without the agency person is refused, before the database refuses it', () => {
   for (const declaredBy of ['', '   ']) {
-    assert.match(validateDeclaration(d({ declaredBy }))!, /person at the agency/)
+    assert.equal(validateDeclaration(d({ declaredBy }))?.key, 'noDeclarer')
   }
 })
 
@@ -104,17 +104,17 @@ test('THE DECLARER AND THE RECORDER MUST NOT BE THE SAME PERSON', () => {
   // Our name on their assertion would put responsibility where the knowledge
   // is not.
   const r = validateDeclaration(d({ declaredBy: 'Manuel Vale', recordedBy: 'Manuel Vale' }))
-  assert.match(r!, /the agency declares and we record/i)
+  assert.deepEqual(r, { key: 'sameAsRecorder', params: { name: 'Manuel Vale' } })
 })
 
 test('segment E is not something an agency may declare', () => {
-  assert.match(validateDeclaration(d({ segment: 'E' as 'A' }))!, /not something an agency may declare/)
+  assert.deepEqual(validateDeclaration(d({ segment: 'E' as 'A' })), { key: 'notDeclarable', params: { value: 'E' } })
 })
 
 test('declaring that authorisation EXISTS requires saying where it is', () => {
   // B is the one segment claiming evidence. A claim with no description of the
   // evidence is exactly the spreadsheet cell this week was spent undoing.
-  assert.match(validateDeclaration(d({ segment: 'B' }))!, /which form, which system, what date/)
+  assert.equal(validateDeclaration(d({ segment: 'B' }))?.key, 'basisNeeded')
   assert.equal(validateDeclaration(d({ segment: 'B', basis: 'Formulário do site, 2024' })), null)
 })
 
@@ -123,7 +123,7 @@ test('a group declaration whose size disagrees with its contacts is refused', ()
     contacts: [{ phone: '+351912345678' }],
     group: { id: 'g', label: 'x', size: 412 },
   }))
-  assert.match(r!, /must agree or the record misstates/)
+  assert.deepEqual(r, { key: 'sizeMismatch', params: { size: '412', given: '1' } })
 })
 
 // --- the words --------------------------------------------------------------
@@ -365,11 +365,12 @@ test('a failed declaration is SHOWN, never swallowed', () => {
   // the result — is unacceptable here: somebody says a sentence, nothing
   // visibly happens, and everyone in the room assumes it was recorded.
   const actions = readFileSync(new URL('../src/lib/segmentation/actions.ts', import.meta.url), 'utf8')
-  assert.match(actions, /erro=\$\{encodeURIComponent\(result\.reason\)\}/)
+  // Since 22 Sep 2026 the KEY travels (lib/refusals.ts) and the screen says it in the agency's language.
+  assert.match(actions, /redirect\(`\/segmentation\/\$\{clientId\}\?\$\{refusalQuery\(result\.refusal\)\}`\)/)
   const page = (readFileSync(
     new URL('../src/app/segmentation/[clientId]/page.tsx', import.meta.url), 'utf8') + readFileSync(
     new URL('../src/components/segmentation/SegmentationView.tsx', import.meta.url), 'utf8'))
-  assert.match(page, /role="alert"/)
+  assert.match(page, /\{refusal && <p role="alert"[^>]*>\{say\(DECLARATION_REFUSALS, locale, refusal\)\}/)
 })
 
 test('the page is standalone: no cockpit Shell in front of a client', () => {

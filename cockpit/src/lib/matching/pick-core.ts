@@ -25,6 +25,7 @@
  */
 import { planPick } from './triage'
 import { UUID, isUs, type RpcError } from '@/lib/publication/exemption-core'
+import type { SaveRefusal } from '@/lib/matching/screen-copy'
 
 export type PickForm = {
   pickId: string | null
@@ -37,7 +38,7 @@ export type PickForm = {
 export type PickResult =
   | { ok: true; alreadyRecorded: false; supersededComputed: boolean; learned: number }
   | { ok: true; alreadyRecorded: true }
-  | { ok: false; reason: string }
+  | { ok: false; refusal: SaveRefusal }
 
 export type PickDeps = {
   /** the areas this listing's agency's buyers talk about (§4.3); null = the read failed */
@@ -51,27 +52,27 @@ export type PickDeps = {
   }): Promise<{ data: string | null; error: RpcError | null }>
 }
 
-export const NO_ID = 'This form has no id, so sending it twice could not be told from a new choice. Nothing was recorded: reload the screen.'
-export const NO_TARGET = 'The property or the contact is missing from this form. Nothing was recorded: reload the screen.'
-export const NO_NAME = 'Whose judgement this is has to be written down: the person at the agency who chose. Nothing was recorded.'
-export const SAME_PERSON = 'The person choosing and the person recording are the same. The agency chooses and we record; the record keeps them apart. Nothing was recorded.'
-export const AREAS_UNREAD = 'The areas this agency works in could not be read, so the reason could not be understood. Nothing was recorded: try again.'
-export const OTHER_AGENCY = 'This contact belongs to another agency, so it cannot be chosen for this property. Nothing was recorded.'
+export const NO_ID: SaveRefusal = { key: 'pick.noId' }
+export const NO_TARGET: SaveRefusal = { key: 'pick.noTarget' }
+export const NO_NAME: SaveRefusal = { key: 'pick.noName' }
+export const SAME_PERSON: SaveRefusal = { key: 'pick.samePerson' }
+export const AREAS_UNREAD: SaveRefusal = { key: 'pick.areasUnread' }
+export const OTHER_AGENCY: SaveRefusal = { key: 'pick.otherAgency' }
 export const ONE_PICK_KEY = 'listing_matches_pkey'
 /** 0025's one-current-match rule: what a racing second form hits */
 export const ONE_CURRENT_MATCH = 'listing_matches_current_uniq'
-export const justChosen = (who: string | null) =>
-  `${who ?? 'Someone else'} just chose this contact for this property, while this form was open. Nothing new was recorded.`
+export const justChosen = (who: string | null): SaveRefusal =>
+  who ? { key: 'pick.justChosen', params: { name: who } } : { key: 'pick.justChosenUnknown' }
 
 export async function recordPick(form: PickForm, recordedBy: string, deps: PickDeps): Promise<PickResult> {
-  if (!UUID.test(form.pickId ?? '')) return { ok: false, reason: NO_ID }
-  if (!form.listingId || !form.leadId) return { ok: false, reason: NO_TARGET }
+  if (!UUID.test(form.pickId ?? '')) return { ok: false, refusal: NO_ID }
+  if (!form.listingId || !form.leadId) return { ok: false, refusal: NO_TARGET }
   const chosenBy = (form.chosenBy ?? '').trim()
-  if (!chosenBy) return { ok: false, reason: NO_NAME }
-  if (isUs(chosenBy, recordedBy)) return { ok: false, reason: SAME_PERSON }
+  if (!chosenBy) return { ok: false, refusal: NO_NAME }
+  if (isUs(chosenBy, recordedBy)) return { ok: false, refusal: SAME_PERSON }
 
   const areas = await deps.knownAreas(form.listingId)
-  if (areas === null) return { ok: false, reason: AREAS_UNREAD }
+  if (areas === null) return { ok: false, refusal: AREAS_UNREAD }
   const reason = (form.reason ?? '').trim() || null
   const plan = planPick({ reason, knownAreas: areas })
 
@@ -82,9 +83,15 @@ export async function recordPick(form: PickForm, recordedBy: string, deps: PickD
   })
   if (error?.code === '23505' && error.message.includes(ONE_PICK_KEY)) return { ok: true, alreadyRecorded: true }
   if (error?.code === '23505' && error.message.includes(ONE_CURRENT_MATCH)) {
-    return { ok: false, reason: justChosen(await deps.currentChooser(form.listingId, form.leadId).catch(() => null)) }
+    return { ok: false, refusal: justChosen(await deps.currentChooser(form.listingId, form.leadId).catch(() => null)) }
   }
-  if (error?.code === 'RY002') return { ok: false, reason: OTHER_AGENCY }
-  if (error) return { ok: false, reason: error.message.replace(/^record_agent_pick: /, '') }
+  if (error?.code === 'RY002') return { ok: false, refusal: OTHER_AGENCY }
+  if (error?.code === 'RY003') {
+    // Who already chose them, read back: the database's own sentence is English and never reaches an agency.
+    const who = await deps.currentChooser(form.listingId, form.leadId).catch(() => null)
+    return { ok: false, refusal: who ? { key: 'pick.alreadyChosen', params: { name: who } } : { key: 'pick.alreadyChosenUnknown' } }
+  }
+  // The database's own text never reaches an agency: its code does, in their language.
+  if (error) return { ok: false, refusal: { key: 'pick.dbRefused', params: { code: error.code ?? '?' } } }
   return { ok: true, alreadyRecorded: false, supersededComputed: data === 'superseded_computed', learned: plan.requirements.length }
 }

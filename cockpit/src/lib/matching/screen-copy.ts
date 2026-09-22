@@ -482,3 +482,55 @@ export const REVIEW = {
     'Ainda não há vendas comunicadas. Isto muda assim que a agência começar a ' +
     'dizer-nos quando fecha uma.',
 } as const
+
+/**
+ * What the calibration's and the listing screens' save logic refuses, in the
+ * agency's language (22 Sep 2026). calibrate-core, pick-core and exemption-core
+ * return only the KEY (lib/refusals.ts); each screen says it through
+ * say(SAVE_REFUSALS, clientLocale, refusal).
+ *
+ * 🔒 ONE SET PER LOCALE. Spanish is `es: { ...every key... }` beside `pt`:
+ *    data, no code. `satisfies` makes a set missing a key a typecheck failure,
+ *    and tests/refusal-language.test.ts fails on any English left in a set.
+ */
+const SAVE_REFUSALS_PT = {
+  // /calibrate
+  'calibration.noId': 'Este formulário não tem identificador, por isso um reenvio não se distinguiria de uma nova resposta. Nada foi guardado: volte a abrir o ecrã.',
+  'calibration.noName': 'Tem de ficar escrito quem, na agência, deu estas respostas: são o juízo deles, não o nosso. Nada foi guardado.',
+  'calibration.samePerson': 'Quem responde e quem regista aparecem com o mesmo nome. A agência responde e nós registamos, e o registo tem de os manter separados. Nada foi guardado.',
+  'calibration.noNurture': 'O acompanhamento de contactos não está no catálogo, por isso estas respostas não teriam onde valer. Nada foi guardado.',
+  'calibration.dbRefused': 'A base de dados recusou estas respostas, e nada foi guardado (código {code}).',
+  // the agent's pick (triage)
+  'pick.noId': 'Este formulário não tem identificador, por isso um reenvio não se distinguiria de uma nova escolha. Nada foi guardado: volte a abrir o ecrã.',
+  'pick.noTarget': 'Falta o imóvel ou o contacto neste formulário. Nada foi guardado: volte a abrir o ecrã.',
+  'pick.noName': 'Tem de ficar escrito de quem é esta escolha: a pessoa da agência que decidiu. Nada foi guardado.',
+  'pick.samePerson': 'Quem escolhe e quem regista aparecem com o mesmo nome. A agência escolhe e nós registamos, e o registo tem de os manter separados. Nada foi guardado.',
+  'pick.areasUnread': 'Não foi possível ler as zonas com que esta agência trabalha, por isso o motivo não pôde ser entendido. Nada foi guardado: tente de novo.',
+  'pick.otherAgency': 'Este contacto é de outra agência, por isso não pode ser escolhido para este imóvel. Nada foi guardado.',
+  'pick.alreadyChosen': '{name} já escolheu este contacto para este imóvel. Nada de novo foi guardado.',
+  'pick.alreadyChosenUnknown': 'Este contacto já foi escolhido para este imóvel. Nada de novo foi guardado.',
+  'pick.justChosen': '{name} acabou de escolher este contacto para este imóvel, enquanto este formulário estava aberto. Nada de novo foi guardado.',
+  'pick.justChosenUnknown': 'Alguém acabou de escolher este contacto para este imóvel, enquanto este formulário estava aberto. Nada de novo foi guardado.',
+  'pick.dbRefused': 'A base de dados recusou esta escolha, e nada foi guardado (código {code}).',
+  // the exemption
+  'exemption.noId': 'Este formulário não tem identificador, por isso um reenvio não se distinguiria de uma nova dispensa. Nada foi guardado: volte a abrir o ecrã.',
+  'exemption.noRequirement': 'Falta o requisito a que esta dispensa se refere. Nada foi guardado: volte a abrir o ecrã.',
+  'exemption.noListing': 'Uma dispensa tem de ser sobre um imóvel. Nada foi guardado.',
+  'exemption.noDeclarer': 'Uma dispensa precisa do nome da pessoa da agência que a faz, não de quem a regista: a responsabilidade é de quem sabe. Nada foi guardado.',
+  'exemption.sameAsRecorder': '«{name}» aparece como quem declara e como quem regista. A agência declara e nós registamos; se fossem a mesma pessoa, o registo diria que fomos nós a decidir que este imóvel não precisa de certificado. Nada foi guardado.',
+  'exemption.noBasis': 'Uma dispensa precisa do motivo, nas palavras da agência. Sem ele o registo diz que o imóvel não precisa de certificado e não sabe dizer porquê, que é precisamente o que uma fiscalização pergunta. Nada foi guardado.',
+  'exemption.basisTooShort': '«{basis}» é curto demais para ser um motivo. Uma fiscalização pergunta porque é que este imóvel não precisa de classe energética, e a resposta tem de ser uma frase que alguém da agência assine. Nada foi guardado.',
+  'exemption.alreadyRated': 'Este imóvel já tem uma classe energética registada, por isso não precisa de dispensa. Se a classe estiver errada, corrija a classe. Nada foi guardado.',
+  'exemption.justDeclared': '{name} acabou de registar uma dispensa para este imóvel, enquanto este formulário estava aberto. Nada de novo foi guardado.',
+  'exemption.justDeclaredUnknown': 'Alguém acabou de registar uma dispensa para este imóvel, enquanto este formulário estava aberto. Nada de novo foi guardado.',
+  'exemption.dbRefused': 'A base de dados recusou esta dispensa, e nada foi guardado (código {code}).',
+  unknown: 'Não foi possível guardar, e nada foi guardado.',
+} as const satisfies Record<string, string>
+
+export type SaveRefusalKey = keyof typeof SAVE_REFUSALS_PT
+/** What the calibration and listing cores refuse: a KEY, said in the agency's language (lib/refusals.ts). */
+export type SaveRefusal = import('@/lib/refusals').Refusal<SaveRefusalKey>
+
+export const SAVE_REFUSALS = {
+  pt: SAVE_REFUSALS_PT,
+} satisfies Record<string, Record<SaveRefusalKey, string>>

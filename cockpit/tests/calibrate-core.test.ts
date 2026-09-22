@@ -87,7 +87,7 @@ test('🔒 THE AGENCY ANSWERS, WE RECORD: no name, or our own name, is refused b
     // the operator's NAME typed as the answerer is us answering too (lib/operators.ts)
     ['Manuel Vale', SAME_PERSON, 'manuelvale@ryvodigital.com'], [' manuel vale ', SAME_PERSON, 'manuelvale@ryvodigital.com']] as const) {
     const s = store()
-    assert.deepEqual(await recordCalibration(form({ answeredBy }), me, s.deps), { ok: false, kind: 'refused', reason })
+    assert.deepEqual(await recordCalibration(form({ answeredBy }), me, s.deps), { ok: false, kind: 'refused', refusal: reason })
     assert.equal(s.calls.length, 0)
   }
 })
@@ -95,7 +95,7 @@ test('🔒 THE AGENCY ANSWERS, WE RECORD: no name, or our own name, is refused b
 test('🔒 no calibration id, or a malformed one, is refused before the store', async () => {
   for (const calibrationId of [null, '', 'cal-1']) {
     const s = store()
-    assert.deepEqual(await recordCalibration(form({ calibrationId }), ME, s.deps), { ok: false, kind: 'refused', reason: NO_ID })
+    assert.deepEqual(await recordCalibration(form({ calibrationId }), ME, s.deps), { ok: false, kind: 'refused', refusal: NO_ID })
     assert.equal(s.calls.length, 0)
   }
 })
@@ -119,9 +119,9 @@ test('🔴 NOTHING IS ASSUMED: an empty field is null, never 0; an unanswered ye
 })
 
 test('a client with nothing to calibrate is refused in words, and a database refusal says nothing was recorded', async () => {
-  assert.deepEqual(await recordCalibration(form(), ME, store({ noNurture: true }).deps), { ok: false, kind: 'refused', reason: NO_NURTURE })
+  assert.deepEqual(await recordCalibration(form(), ME, store({ noNurture: true }).deps), { ok: false, kind: 'refused', refusal: NO_NURTURE })
   const r = await recordCalibration(form(), ME, store({ failWith: 'violates check constraint "x"' }).deps)
-  assert.equal(r.ok === false && r.kind === 'refused' && /nothing was recorded/.test(r.reason), true)
+  assert.deepEqual(r, { ok: false, kind: 'refused', refusal: { key: 'calibration.dbRefused', params: { code: '23514' } } })
 })
 
 test('the key the core recognises is the one 0056 creates, and the rpc it calls exists there', () => {

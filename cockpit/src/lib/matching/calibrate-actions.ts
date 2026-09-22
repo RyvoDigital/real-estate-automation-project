@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { admin } from '@/lib/supabase/admin'
 import { requireOperator } from '@/lib/auth'
 import { recordCalibration, type CalibrateDeps } from './calibrate-core'
+import { refusalQuery } from '@/lib/refusals'
 
 /**
  * Saving a calibration sitting. It parses the form and nothing more: every
@@ -50,7 +51,8 @@ export async function saveCalibrationAction(formData: FormData): Promise<void> {
   if (!result.ok && result.kind === 'problems') {
     redirect(`${back}?campos=${encodeURIComponent(result.problems.map((p) => `${p.field}:${p.why}`).join(','))}`)
   }
-  if (!result.ok) redirect(`${back}?erro=${encodeURIComponent(result.reason)}`)
+  // The KEY travels, never a sentence: the screen says it in the agency's language.
+  if (!result.ok) redirect(`${back}?${refusalQuery(result.refusal)}`)
   revalidatePath(back)
   revalidatePath('/listings')
   if (result.alreadyRecorded) redirect(`${back}?jaGuardado=1`)

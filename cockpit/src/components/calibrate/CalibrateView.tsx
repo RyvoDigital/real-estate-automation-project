@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
-import { CALIBRATE } from '@/lib/matching/screen-copy'
+import { CALIBRATE, SAVE_REFUSALS } from '@/lib/matching/screen-copy'
+import { say, type Refusal } from '@/lib/refusals'
 import { explainSaved } from '@/lib/matching/thresholds'
 import { referenceLines, sittingDate } from '@/lib/matching/calibrate-reference'
 import type { CalibrationScreen } from '@/lib/matching/calibrate-read'
@@ -26,12 +27,13 @@ import styles from './calibrate.module.css'
 const muted = { color: SURFACE.page.muted }
 const euro = (n: number) => `€${n.toLocaleString('pt-PT')}`
 
-export function CalibrateView({ clientId, screen, guardado, jaGuardado, erro, campos }: {
+export function CalibrateView({ clientId, screen, guardado, jaGuardado, refusal, campos }: {
   clientId: string
   screen: CalibrationScreen
   guardado?: string
   jaGuardado?: string
-  erro?: string
+  /** what the last save refused, as a KEY: said here in the agency's language */
+  refusal?: Refusal | null
   /** "field:why,field:why" from a server refusal */
   campos?: string
 }) {
@@ -57,7 +59,7 @@ export function CalibrateView({ clientId, screen, guardado, jaGuardado, erro, ca
             <code className={styles.detail}>{screen.failure}</code>
           </p>
         )}
-        {erro && <p role="alert" className={styles.banner} style={{ ...SURFACE.error }}>{erro}</p>}
+        {refusal && <p role="alert" className={styles.banner} style={{ ...SURFACE.error }}>{say(SAVE_REFUSALS, screen.client?.locale, refusal)}</p>}
         {guardado && <p role="status" className={styles.banner} style={{ ...SURFACE.ok }}>{CALIBRATE.saved}</p>}
         {jaGuardado && <p role="status" className={styles.banner} style={{ ...SURFACE.ok }}>{CALIBRATE.alreadySaved}</p>}
 

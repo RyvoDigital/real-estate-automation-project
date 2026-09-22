@@ -23,6 +23,7 @@
  *      named when the name can be read.
  */
 import { validateExemption } from './exemption'
+import type { SaveRefusal } from '@/lib/matching/screen-copy'
 import { operatorName } from '@/lib/operators'
 
 export type ExemptionForm = {
@@ -36,7 +37,7 @@ export type ExemptionForm = {
 export type ActResult =
   | { ok: true; alreadyRecorded: false }
   | { ok: true; alreadyRecorded: true }
-  | { ok: false; reason: string }
+  | { ok: false; refusal: SaveRefusal }
 
 export type RpcError = { code: string | null; message: string }
 
@@ -51,13 +52,13 @@ export type ExemptionDeps = {
 }
 
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-export const NO_ID = 'This form has no id, so sending it twice could not be told from a new declaration. Nothing was recorded: reload the screen.'
-export const NO_REQUIREMENT = 'Which requirement this exemption is against is missing. Nothing was recorded: reload the screen.'
+export const NO_ID: SaveRefusal = { key: 'exemption.noId' }
+export const NO_REQUIREMENT: SaveRefusal = { key: 'exemption.noRequirement' }
 export const ONE_EXEMPTION_KEY = 'exemption_records_pkey'
 /** 0030's one-current-fact rule: what a racing second form hits when no fact existed */
 export const ONE_CURRENT_FACT = 'listing_facts_current'
-export const justDeclared = (who: string | null) =>
-  `${who ?? 'Someone else'} just recorded an exemption for this property, while this form was open. Nothing new was recorded.`
+export const justDeclared = (who: string | null): SaveRefusal =>
+  who ? { key: 'exemption.justDeclared', params: { name: who } } : { key: 'exemption.justDeclaredUnknown' }
 
 /** The recorder's email or name typed as the agency's person is us declaring for them. */
 export function isUs(name: string, recordedBy: string): boolean {
@@ -66,16 +67,14 @@ export function isUs(name: string, recordedBy: string): boolean {
 }
 
 export async function recordExemptionAct(form: ExemptionForm, recordedBy: string, deps: ExemptionDeps): Promise<ActResult> {
-  if (!UUID.test(form.exemptionId ?? '')) return { ok: false, reason: NO_ID }
-  if (!(form.requirementId ?? '').trim()) return { ok: false, reason: NO_REQUIREMENT }
+  if (!UUID.test(form.exemptionId ?? '')) return { ok: false, refusal: NO_ID }
+  if (!(form.requirementId ?? '').trim()) return { ok: false, refusal: NO_REQUIREMENT }
   const declaredBy = (form.declaredBy ?? '').trim()
   const basis = (form.basis ?? '').trim()
   // "Already rated" is decided by the database under a lock (RY001), never here from a read.
   const problem = validateExemption({ listingId: form.listingId, basis, declaredBy, recordedBy, alreadyRated: false })
-  if (problem) return { ok: false, reason: problem }
-  if (isUs(declaredBy, recordedBy)) {
-    return { ok: false, reason: validateExemption({ listingId: form.listingId, basis, declaredBy: recordedBy, recordedBy, alreadyRated: false })! }
-  }
+  if (problem) return { ok: false, refusal: problem }
+  if (isUs(declaredBy, recordedBy)) return { ok: false, refusal: { key: 'exemption.sameAsRecorder', params: { name: declaredBy } } }
 
   const { error } = await deps.record({
     p_exemption_id: form.exemptionId!, p_listing_id: form.listingId, p_requirement_id: form.requirementId!.trim(),
@@ -83,11 +82,10 @@ export async function recordExemptionAct(form: ExemptionForm, recordedBy: string
   })
   if (error?.code === '23505' && error.message.includes(ONE_EXEMPTION_KEY)) return { ok: true, alreadyRecorded: true }
   if (error?.code === '23505' && error.message.includes(ONE_CURRENT_FACT)) {
-    return { ok: false, reason: justDeclared(await deps.currentDeclarer(form.listingId, form.requirementId!.trim()).catch(() => null)) }
+    return { ok: false, refusal: justDeclared(await deps.currentDeclarer(form.listingId, form.requirementId!.trim()).catch(() => null)) }
   }
-  if (error?.code === 'RY001') {
-    return { ok: false, reason: validateExemption({ listingId: form.listingId, basis, declaredBy, recordedBy, alreadyRated: true })! }
-  }
-  if (error) return { ok: false, reason: `The database refused the exemption, and nothing was recorded: ${error.message.replace(/^record_exemption: /, '')}` }
+  if (error?.code === 'RY001') return { ok: false, refusal: { key: 'exemption.alreadyRated' } }
+  // The database's own text never reaches an agency: its code does, in their language.
+  if (error) return { ok: false, refusal: { key: 'exemption.dbRefused', params: { code: error.code ?? '?' } } }
   return { ok: true, alreadyRecorded: false }
 }

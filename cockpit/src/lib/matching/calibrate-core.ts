@@ -27,6 +27,7 @@
 
 import { deriveThresholds, problemsWith, type Answers, type Problem } from './thresholds'
 import { operatorName } from '@/lib/operators'
+import type { SaveRefusal } from './screen-copy'
 
 export type CalibrationInput = {
   calibrationId: string
@@ -40,7 +41,7 @@ export type CalibrateResult =
   | { ok: true; alreadyRecorded: false; recordedAt: string }
   | { ok: true; alreadyRecorded: true }
   | { ok: false; kind: 'problems'; problems: Problem[] }
-  | { ok: false; kind: 'refused'; reason: string }
+  | { ok: false; kind: 'refused'; refusal: SaveRefusal }
 
 export type CalibrateDeps = {
   /** 🔒 THE ONE VERB: record_calibration (0056), one transaction — the record and its projection, or neither. */
@@ -57,15 +58,11 @@ export type CalibrateDeps = {
 /** 0056's primary key. The test reads the migration to hold this name to it. */
 export const ONE_CALIBRATION_KEY = 'calibration_records_pkey'
 
-export const NO_NAME =
-  'Who at the agency gave these answers has to be written down. They are their judgement, not ours. Nothing was recorded.'
-export const SAME_PERSON =
-  'The person answering and the person recording are the same name. The agency answers and we record; the record has to keep them apart. Nothing was recorded.'
-export const NO_ID =
-  'This form has no calibration id, so a resubmission could not be told from a new sitting. Nothing was recorded: reload the screen.'
+export const NO_NAME: SaveRefusal = { key: 'calibration.noName' }
+export const SAME_PERSON: SaveRefusal = { key: 'calibration.samePerson' }
+export const NO_ID: SaveRefusal = { key: 'calibration.noId' }
 /** 0056 creates a missing nurture row (disabled) itself, so this is only a catalogue without nurture in it. */
-export const NO_NURTURE =
-  'The follow-up automation is not in the catalogue, so there is nothing these answers could set. Nothing was recorded.'
+export const NO_NURTURE: SaveRefusal = { key: 'calibration.noNurture' }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -112,12 +109,12 @@ export function parseAnswers(f: CalibrationForm): Answers {
 }
 
 export async function recordCalibration(form: CalibrationForm, recordedBy: string, deps: CalibrateDeps): Promise<CalibrateResult> {
-  if (!UUID.test(form.calibrationId ?? '')) return { ok: false, kind: 'refused', reason: NO_ID }
+  if (!UUID.test(form.calibrationId ?? '')) return { ok: false, kind: 'refused', refusal: NO_ID }
   const answeredBy = (form.answeredBy ?? '').trim()
-  if (!answeredBy) return { ok: false, kind: 'refused', reason: NO_NAME }
+  if (!answeredBy) return { ok: false, kind: 'refused', refusal: NO_NAME }
   // The recorder's email, or the recorder's NAME typed as the answerer: either is us answering for them.
   const ours = [recordedBy, operatorName(recordedBy)].filter(Boolean).map((x) => x!.trim().toLowerCase())
-  if (ours.includes(answeredBy.toLowerCase())) return { ok: false, kind: 'refused', reason: SAME_PERSON }
+  if (ours.includes(answeredBy.toLowerCase())) return { ok: false, kind: 'refused', refusal: SAME_PERSON }
 
   const answers = parseAnswers(form)
   const problems = problemsWith(answers)
@@ -132,7 +129,7 @@ export async function recordCalibration(form: CalibrationForm, recordedBy: strin
     p_thresholds: deriveThresholds(answers),
   })
   if (error?.code === '23505' && error.message.includes(ONE_CALIBRATION_KEY)) return { ok: true, alreadyRecorded: true }
-  if (error?.code === 'P0002') return { ok: false, kind: 'refused', reason: NO_NURTURE }
-  if (error) return { ok: false, kind: 'refused', reason: `The database refused the calibration, and nothing was recorded: ${error.message}` }
+  if (error?.code === 'P0002') return { ok: false, kind: 'refused', refusal: NO_NURTURE }
+  if (error) return { ok: false, kind: 'refused', refusal: { key: 'calibration.dbRefused', params: { code: error.code ?? '?' } } }
   return { ok: true, alreadyRecorded: false, recordedAt: data ?? '' }
 }

@@ -7,7 +7,7 @@ import { declareSegment } from '@/lib/segmentation/declare'
 import { resolveDeclaration } from '@/lib/segmentation/declare-core'
 import { readScreen } from '@/lib/segmentation/read'
 import { proposeGroups } from '@/lib/segmentation/groups'
-import { UI } from '@/lib/segmentation/copy'
+import { refusalQuery } from '@/lib/refusals'
 
 /**
  * The one write this screen makes. It parses the form and nothing more: every
@@ -37,7 +37,7 @@ export async function declareGroupAction(formData: FormData): Promise<void> {
   }
   const clientId = text('clientId') ?? ''
   const groupId = text('groupId') ?? ''
-  if (!clientId || !groupId) redirect(`/segmentation/${clientId}?erro=${encodeURIComponent(UI.missingGroup)}`)
+  if (!clientId || !groupId) redirect(`/segmentation/${clientId}?${refusalQuery({ key: 'missingGroup' })}`)
 
   const screen = await readScreen(clientId)
   const resolved = resolveDeclaration(
@@ -55,10 +55,11 @@ export async function declareGroupAction(formData: FormData): Promise<void> {
     { groups: proposeGroups(screen.contacts), contacts: screen.contacts },
     operator.email,
   )
-  if (!resolved.ok) redirect(`/segmentation/${clientId}?erro=${encodeURIComponent(resolved.reason)}`)
+  // The KEY travels, never a sentence: the screen says it in the agency's language.
+  if (!resolved.ok) redirect(`/segmentation/${clientId}?${refusalQuery(resolved.refusal)}`)
 
   const result = await declareSegment(resolved.input)
-  if (!result.ok) redirect(`/segmentation/${clientId}?erro=${encodeURIComponent(result.reason)}`)
+  if (!result.ok) redirect(`/segmentation/${clientId}?${refusalQuery(result.refusal)}`)
   revalidatePath(`/segmentation/${clientId}`)
   // The same form again is not an error: the first submit is the record (0055).
   if (result.alreadyRecorded) redirect(`/segmentation/${clientId}?jaGuardado=1`)

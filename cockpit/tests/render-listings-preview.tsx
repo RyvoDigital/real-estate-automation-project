@@ -59,10 +59,10 @@ const triage: TriageScreen = { listing, clientId: 'c1', groups: groupForTriage(c
 S('triage', 'the floor, one contact open to pick', <TriageView id="l1" screen={triage} />, true)
 S('triage-saved', 'after a pick is recorded', <TriageView id="l1" screen={triage} guardado="1" />)
 S('triage-race', 'a racing second form: someone else just chose', <TriageView id="l1" screen={triage}
-  erro="Rui Antunes just chose this contact for this property, while this form was open. Nothing new was recorded." />)
+  refusal={{ key: 'pick.justChosen', params: { name: 'Rui Antunes' } }} locale="pt-PT" />)
 S('triage-failed', 'the picks could not be read: no picks offered', <TriageView id="l1" screen={{ ...triage, failures: { picks: 'permission denied for table listing_matches' } }} />)
 
-const ex: ExemptionScreen = { listing: { id: 'l1', reference: 'MS-131', area: 'Cascais' }, requirementId: 'pt_energy_class', ambiguous: false, rated: false, current: null, failures: {} }
+const ex: ExemptionScreen = { listing: { id: 'l1', reference: 'MS-131', area: 'Cascais' }, clientId: 'c1', requirementId: 'pt_energy_class', ambiguous: false, rated: false, current: null, failures: {} }
 S('exemption', 'nothing recorded yet: the form', <ExemptionView id="l1" screen={ex} />)
 S('exemption-current', 'an exemption in force, and the form for a new one', <ExemptionView id="l1"
   screen={{ ...ex, current: { declaredBy: 'Marta Soares', basis: 'Edifício anterior a 1951, sem obras de fundo', at: '2026-09-12T10:00:00Z' } }} jaGuardado="1" />)

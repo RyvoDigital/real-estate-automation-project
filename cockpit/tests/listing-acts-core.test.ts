@@ -45,14 +45,14 @@ test('🔒 an exemption is ONE call with both people and their words', async () 
 test('🔴 an exemption over a rating is refused in the rule\'s own words (RY001, decided under the lock)', async () => {
   const r = await recordExemptionAct(exForm(), ME, exStore('rated').deps)
   assert.equal(r.ok, false)
-  assert.match((r as { reason: string }).reason, /already has an energy rating/)
+  assert.deepEqual((r as { refusal: unknown }).refusal, { key: 'exemption.alreadyRated' })
 })
 
 test('the same exemption form again is "already recorded"; any other duplicate is a failure', async () => {
   assert.deepEqual(await recordExemptionAct(exForm(), ME, exStore('dup').deps), { ok: true, alreadyRecorded: true })
   const other = await recordExemptionAct(exForm(), ME, exStore('other').deps)
   assert.equal(other.ok, false)
-  assert.notEqual((other as { reason: string }).reason, undefined)
+  assert.notEqual((other as { refusal: unknown }).refusal, undefined)
 })
 
 test('🔴 BY CONSTRAINT NAME: a racing second exemption form is "someone else just recorded this", named when readable', async () => {
@@ -61,11 +61,11 @@ test('🔴 BY CONSTRAINT NAME: a racing second exemption form is "someone else j
     s.deps.record = async () => ({ error: { code: '23505', message: `duplicate key value violates unique constraint "${ONE_CURRENT_FACT}"` } })
     return recordExemptionAct(exForm(), ME, s.deps)
   }
-  assert.deepEqual(await race('Rui Antunes'), { ok: false, reason: justDeclared('Rui Antunes') })
-  assert.match(justDeclared('Rui Antunes'), /^Rui Antunes just recorded/)
-  assert.deepEqual(await race(null), { ok: false, reason: justDeclared(null) })
-  assert.deepEqual(await race('throws'), { ok: false, reason: justDeclared(null) }, 'an unreadable name still gives the sentence')
-  assert.match(justDeclared(null), /^Someone else just recorded/)
+  assert.deepEqual(await race('Rui Antunes'), { ok: false, refusal: justDeclared('Rui Antunes') })
+  assert.deepEqual(justDeclared('Rui Antunes'), { key: 'exemption.justDeclared', params: { name: 'Rui Antunes' } })
+  assert.deepEqual(await race(null), { ok: false, refusal: justDeclared(null) })
+  assert.deepEqual(await race('throws'), { ok: false, refusal: justDeclared(null) }, 'an unreadable name still gives the sentence')
+  assert.deepEqual(justDeclared(null), { key: 'exemption.justDeclaredUnknown' })
 })
 
 test('🔒 THE AGENCY DECLARES, WE RECORD: our email or our NAME as the declarer is refused before the store', async () => {
@@ -78,11 +78,11 @@ test('🔒 THE AGENCY DECLARES, WE RECORD: our email or our NAME as the declarer
 })
 
 test('an exemption with no id, no requirement, no name or a non-reason is refused before the store', async () => {
-  for (const [over, re] of [[{ exemptionId: 'x' }, EX_NO_ID], [{ requirementId: '' }, /requirement/], [{ declaredBy: '' }, /person at the agency/], [{ basis: 'isento' }, /too short/]] as const) {
+  for (const [over, key] of [[{ exemptionId: 'x' }, EX_NO_ID.key], [{ requirementId: '' }, 'exemption.noRequirement'], [{ declaredBy: '' }, 'exemption.noDeclarer'], [{ basis: 'isento' }, 'exemption.basisTooShort']] as const) {
     const s = exStore()
     const r = await recordExemptionAct(exForm(over as Partial<ExemptionForm>), ME, s.deps)
     assert.equal(r.ok, false)
-    assert.match((r as { reason: string }).reason, typeof re === 'string' ? new RegExp(re.slice(0, 20)) : re)
+    assert.equal((r as { refusal: { key: string } }).refusal.key, key)
     assert.equal(s.calls.length, 0)
   }
 })
@@ -117,9 +117,12 @@ test('🔴 a contact the engine already matched can be chosen: the core reports 
 })
 
 test('🔴 another agency\'s contact is refused in words (RY002); an already-chosen one names who chose it (RY003)', async () => {
-  assert.deepEqual(await recordPick(pickForm(), ME, pickStore({ error: { code: 'RY002', message: 'record_agent_pick: this contact belongs to another agency' } }).deps), { ok: false, reason: OTHER_AGENCY })
-  const r = await recordPick(pickForm(), ME, pickStore({ error: { code: 'RY003', message: 'record_agent_pick: Rui Antunes already chose this contact for this property. Nothing new was recorded.' } }).deps)
-  assert.deepEqual(r, { ok: false, reason: 'Rui Antunes already chose this contact for this property. Nothing new was recorded.' })
+  assert.deepEqual(await recordPick(pickForm(), ME, pickStore({ error: { code: 'RY002', message: 'record_agent_pick: this contact belongs to another agency' } }).deps), { ok: false, refusal: OTHER_AGENCY })
+  // RY003: the name is READ BACK, never taken from the database's (English) sentence.
+  const r = await recordPick(pickForm(), ME, pickStore({ error: { code: 'RY003', message: 'record_agent_pick: Rui Antunes already chose this contact' }, chooser: 'Rui Antunes' }).deps)
+  assert.deepEqual(r, { ok: false, refusal: { key: 'pick.alreadyChosen', params: { name: 'Rui Antunes' } } })
+  const unread = await recordPick(pickForm(), ME, pickStore({ error: { code: 'RY003', message: 'x' }, chooser: 'throws' }).deps)
+  assert.deepEqual(unread, { ok: false, refusal: { key: 'pick.alreadyChosenUnknown' } })
 })
 
 test('the same pick form again is "already recorded"; another duplicate is a failure', async () => {
@@ -128,23 +131,23 @@ test('the same pick form again is "already recorded"; another duplicate is a fai
 
 test('🔴 BY CONSTRAINT NAME: a racing second pick form is "someone else just chose this contact", never "already recorded"', async () => {
   const err = { code: '23505', message: `duplicate key value violates unique constraint "${ONE_CURRENT_MATCH}"` }
-  assert.deepEqual(await recordPick(pickForm(), ME, pickStore({ error: err, chooser: 'Rui Antunes' }).deps), { ok: false, reason: justChosen('Rui Antunes') })
-  assert.match(justChosen('Rui Antunes'), /^Rui Antunes just chose this contact/)
-  assert.deepEqual(await recordPick(pickForm(), ME, pickStore({ error: err, chooser: 'throws' }).deps), { ok: false, reason: justChosen(null) })
-  assert.match(justChosen(null), /^Someone else just chose/)
+  assert.deepEqual(await recordPick(pickForm(), ME, pickStore({ error: err, chooser: 'Rui Antunes' }).deps), { ok: false, refusal: justChosen('Rui Antunes') })
+  assert.deepEqual(justChosen('Rui Antunes'), { key: 'pick.justChosen', params: { name: 'Rui Antunes' } })
+  assert.deepEqual(await recordPick(pickForm(), ME, pickStore({ error: err, chooser: 'throws' }).deps), { ok: false, refusal: justChosen(null) })
+  assert.deepEqual(justChosen(null), { key: 'pick.justChosenUnknown' })
   assert.equal((await recordPick(pickForm(), ME, pickStore({ error: { code: '23505', message: 'duplicate key value violates unique constraint "some_other"' } }).deps)).ok, false)
 })
 
 test('🔴 THE AREAS MUST BE READ: a failed read refuses the pick, never learns from an empty list', async () => {
   const s = pickStore({ areas: null })
-  assert.deepEqual(await recordPick(pickForm(), ME, s.deps), { ok: false, reason: AREAS_UNREAD })
+  assert.deepEqual(await recordPick(pickForm(), ME, s.deps), { ok: false, refusal: AREAS_UNREAD })
   assert.equal(s.calls.length, 0)
 })
 
 test('🔒 THE AGENCY CHOOSES, WE RECORD; and no id or no name is refused before the store', async () => {
   for (const [over, reason] of [[{ chosenBy: 'Manuel Vale' }, SAME_PERSON], [{ chosenBy: ME }, SAME_PERSON], [{ chosenBy: '  ' }, NO_NAME], [{ pickId: null }, NO_ID]] as const) {
     const s = pickStore()
-    assert.deepEqual(await recordPick(pickForm(over as Partial<PickForm>), ME, s.deps), { ok: false, reason })
+    assert.deepEqual(await recordPick(pickForm(over as Partial<PickForm>), ME, s.deps), { ok: false, refusal: reason })
     assert.equal(s.calls.length, 0)
   }
 })

@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { admin } from '@/lib/supabase/admin'
 import { requireOperator } from '@/lib/auth'
 import { recordPick, type PickDeps } from './pick-core'
+import { refusalQuery } from '@/lib/refusals'
 
 /**
  * The agent picks somebody for this listing. It parses the form and nothing
@@ -52,7 +53,8 @@ export async function pickForListingAction(formData: FormData): Promise<void> {
     pickId: text('pickId'), listingId, leadId: text('leadId'), chosenBy: text('declaredBy'), reason: text('reason'),
   }, who.email, deps)
 
-  if (!result.ok) redirect(`${back}?erro=${encodeURIComponent(result.reason)}`)
+  // The KEY travels, never a sentence: the screen says it in the agency's language.
+  if (!result.ok) redirect(`${back}?${refusalQuery(result.refusal)}`)
   revalidatePath(back)
   revalidatePath(`/listings/${listingId}`)
   redirect(`${back}?${result.alreadyRecorded ? 'jaGuardado' : 'guardado'}=1`)

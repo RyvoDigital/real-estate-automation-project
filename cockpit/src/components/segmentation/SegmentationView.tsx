@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { proposeGroups, describeContact } from '@/lib/segmentation/groups'
-import { UI, SEGMENT_CHOICE, STATE_NOTE, STATE_LABEL, jurisdictionSentence } from '@/lib/segmentation/copy'
+import { UI, SEGMENT_CHOICE, STATE_NOTE, STATE_LABEL, jurisdictionSentence, DECLARATION_REFUSALS } from '@/lib/segmentation/copy'
+import { say, type Refusal } from '@/lib/refusals'
 import { presentStep2 } from '@/lib/segmentation/present'
 import { SURFACE } from '@/lib/segmentation/surface'
 import type { ScreenData } from '@/lib/segmentation/read'
@@ -26,11 +27,14 @@ import styles from './segmentation.module.css'
 
 const muted = { color: SURFACE.page.muted }
 
-export function SegmentationView({ clientId, screen, grupo, erro, guardado, jaGuardado }: {
+export function SegmentationView({ clientId, screen, grupo, refusal, locale, guardado, jaGuardado }: {
   clientId: string
   screen: ScreenData
   grupo?: string
-  erro?: string
+  /** what the last save refused, as a KEY: said here in the agency's language, never carried as a sentence */
+  refusal?: Refusal | null
+  /** clients.locale; the refusal's language */
+  locale?: string | null
   guardado?: string
   jaGuardado?: string
 }) {
@@ -48,7 +52,7 @@ export function SegmentationView({ clientId, screen, grupo, erro, guardado, jaGu
           <p className={styles.intro} style={muted}>{UI.intro}</p>
         </header>
 
-        {erro && <p role="alert" className={styles.banner} style={{ ...SURFACE.error }}>{erro}</p>}
+        {refusal && <p role="alert" className={styles.banner} style={{ ...SURFACE.error }}>{say(DECLARATION_REFUSALS, locale, refusal)}</p>}
         {guardado && <p role="status" className={styles.banner} style={{ ...SURFACE.ok }}>{UI.saved(Number(guardado))}</p>}
         {jaGuardado && <p role="status" className={styles.banner} style={{ ...SURFACE.ok }}>{UI.alreadySaved}</p>}
 

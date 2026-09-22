@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
-import { EXEMPTION } from '@/lib/matching/screen-copy'
+import { EXEMPTION, SAVE_REFUSALS } from '@/lib/matching/screen-copy'
+import { say, type Refusal } from '@/lib/refusals'
 import type { ExemptionScreen } from '@/lib/publication/exemption-read'
 import { declareExemptionAction } from '@/lib/publication/exemption-actions'
 import { sittingDate } from '@/lib/matching/calibrate-reference'
@@ -20,8 +21,10 @@ import styles from './listings.module.css'
 const muted = { color: SURFACE.page.muted }
 const field = { ...SURFACE.page }
 
-export function ExemptionView({ id, screen, guardado, jaGuardado, erro }: {
-  id: string; screen: ExemptionScreen; guardado?: string; jaGuardado?: string; erro?: string
+export function ExemptionView({ id, screen, guardado, jaGuardado, refusal, locale }: {
+  id: string; screen: ExemptionScreen; guardado?: string; jaGuardado?: string
+  /** what the last save refused, as a KEY, and the agency's locale to say it in */
+  refusal?: Refusal | null; locale?: string | null
 }) {
   const failed = Object.entries(screen.failures)
   const l = screen.listing
@@ -44,7 +47,7 @@ export function ExemptionView({ id, screen, guardado, jaGuardado, erro }: {
             <code className={styles.detail}>{failed.map(([k, v]) => `${k}: ${v}`).join('\n')}</code>
           </p>
         )}
-        {erro && <p role="alert" className={styles.banner} style={{ ...SURFACE.error }}>{erro}</p>}
+        {refusal && <p role="alert" className={styles.banner} style={{ ...SURFACE.error }}>{say(SAVE_REFUSALS, locale, refusal)}</p>}
         {guardado && <p role="status" className={styles.banner} style={{ ...SURFACE.ok }}>{EXEMPTION.saved}</p>}
         {jaGuardado && <p role="status" className={styles.banner} style={{ ...SURFACE.ok }}>{EXEMPTION.alreadySaved}</p>}
 

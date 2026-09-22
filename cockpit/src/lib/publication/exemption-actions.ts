@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { admin } from '@/lib/supabase/admin'
 import { requireOperator } from '@/lib/auth'
 import { recordExemptionAct, type ExemptionDeps } from './exemption-core'
+import { refusalQuery } from '@/lib/refusals'
 
 /**
  * Recording that a property is exempt from certification. It parses the form
@@ -37,7 +38,8 @@ export async function declareExemptionAction(formData: FormData): Promise<void> 
     declaredBy: text('declaredBy'), basis: text('basis'),
   }, who.email, deps)
 
-  if (!result.ok) redirect(`${back}?erro=${encodeURIComponent(result.reason)}`)
+  // The KEY travels, never a sentence: the screen says it in the agency's language.
+  if (!result.ok) redirect(`${back}?${refusalQuery(result.refusal)}`)
   revalidatePath(`/listings/${listingId}`)
   revalidatePath(back)
   redirect(`${back}?${result.alreadyRecorded ? 'jaGuardado' : 'guardado'}=1`)

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
-import { TRIAGE } from '@/lib/matching/screen-copy'
+import { TRIAGE, SAVE_REFUSALS } from '@/lib/matching/screen-copy'
+import { say, type Refusal } from '@/lib/refusals'
 import type { TriageScreen } from '@/lib/matching/triage-read'
 import type { TriageGroup } from '@/lib/matching/triage'
 import { pickForListingAction } from '@/lib/matching/triage-actions'
@@ -29,8 +30,10 @@ function label(g: TriageGroup): string {
   }
 }
 
-export function TriageView({ id, screen, guardado, jaGuardado, erro }: {
-  id: string; screen: TriageScreen; guardado?: string; jaGuardado?: string; erro?: string
+export function TriageView({ id, screen, guardado, jaGuardado, refusal, locale }: {
+  id: string; screen: TriageScreen; guardado?: string; jaGuardado?: string
+  /** what the last save refused, as a KEY, and the agency's locale to say it in */
+  refusal?: Refusal | null; locale?: string | null
 }) {
   const failed = Object.entries(screen.failures)
   const l = screen.listing
@@ -53,7 +56,7 @@ export function TriageView({ id, screen, guardado, jaGuardado, erro }: {
             <code className={styles.detail}>{failed.map(([k, v]) => `${k}: ${v}`).join('\n')}</code>
           </p>
         )}
-        {erro && <p role="alert" className={styles.banner} style={{ ...SURFACE.error }}>{erro}</p>}
+        {refusal && <p role="alert" className={styles.banner} style={{ ...SURFACE.error }}>{say(SAVE_REFUSALS, locale, refusal)}</p>}
         {guardado && <p role="status" className={styles.banner} style={{ ...SURFACE.ok }}>{TRIAGE.saved}</p>}
         {jaGuardado && <p role="status" className={styles.banner} style={{ ...SURFACE.ok }}>{TRIAGE.alreadySaved}</p>}
 
