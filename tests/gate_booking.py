@@ -59,11 +59,15 @@ def db(method, path, body=None):
         return json.loads(r.read() or b'null')
 
 
+LAST_SID = {}   # phone -> the MessageSid of the last inbound this script sent for it
+
+
 def send(phone, text):
     p = {'AccountSid': E['TWILIO_ACCOUNT_SID'], 'MessageSid': 'SMbook' + uuid.uuid4().hex[:26],
          'From': 'whatsapp:' + phone, 'To': 'whatsapp:' + GATE_NUMBER, 'Body': text,
          'NumMedia': '0', 'ProfileName': 'Gate', 'WaId': phone.lstrip('+')}
     p['SmsMessageSid'] = p['MessageSid']
+    LAST_SID[phone] = p['MessageSid']
     base = PUBLIC_URL + ''.join(k + p[k] for k in sorted(p))
     sig = base64.b64encode(hmac.new(E['TWILIO_AUTH_TOKEN'].encode(), base.encode('utf-8'), hashlib.sha1).digest()).decode()
     req = urllib.request.Request(POST_URL, data=urllib.parse.urlencode(p).encode(), method='POST',
@@ -140,9 +144,15 @@ def lead_id(phone):
     return db('GET', f'leads?select=id&client_id=eq.{cid}&phone=eq.{q(phone)}')[0]['id']
 
 
-def outbound_since(lid, since):
+def outbound_after(lid, inbound_sid):
+    # What the lead was sent AFTER the given inbound, both read from the database.
+    # 🔒 22 Sep 2026: never against this machine's clock. A few seconds of skew between
+    # the server and the database put the slot offer that preceded the pick inside the
+    # window, and race 2 reported the winner as sent ['ai', 'ai'] when it was sent one.
+    rows = db('GET', f'messages?select=created_at&lead_id=eq.{lid}&direction=eq.inbound&external_id=eq.{q(inbound_sid)}')
+    if not rows: return []
     return db('GET', f'messages?select=origin,external_id,created_at&lead_id=eq.{lid}&direction=eq.outbound'
-                     f'&created_at=gte.{q(since)}&order=created_at.asc')
+                     f'&created_at=gt.{q(rows[0]["created_at"])}&order=created_at.asc')
 
 
 def events_since(etype, since):
@@ -192,7 +202,7 @@ for i in range(1, args.runs + 1):
             runs, outs = [], {}
             for _ in range(60):
                 runs = db('GET', f'automation_runs?select=status,error_type,payload&client_automation_id=eq.{ca["id"]}&started_at=gte.{q(since)}&order=started_at.asc&limit=3')
-                outs = {ph: outbound_since(ids[ph], since) for ph in (A, B)}
+                outs = {ph: outbound_after(ids[ph], LAST_SID[ph]) for ph in (A, B)}
                 if len(runs) >= 2 and all(outs.values()): break
                 time.sleep(3)
             if len(runs) != 2: bad.append(f'race: {len(runs)} runs, expected 2')
