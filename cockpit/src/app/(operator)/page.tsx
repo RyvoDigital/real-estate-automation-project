@@ -1,6 +1,5 @@
+import Link from 'next/link'
 import { requireOperator } from '@/lib/auth'
-import { readCounts } from '@/lib/counts'
-import { Frame } from '@/components/Frame'
 import { TheMonth } from '@/components/month/TheMonth'
 import { Entry, type ContractOption, type PartyOption } from '@/components/month/Entry'
 import { buildMonth, eur, cents, lisbonToday, monthKey, monthOf, type Month } from '@/lib/month/model'
@@ -32,8 +31,10 @@ function monthFrom(q: string | string[] | undefined, today: string): Month {
 }
 
 export default async function Landing({ searchParams }: { searchParams: Promise<{ [k: string]: string | string[] | undefined }> }) {
-  const operator = await requireOperator()
-  const [counts, read, q] = await Promise.all([readCounts(), readMonthInputs(), searchParams])
+  // The frame is the group's layout; this page renders its <main> only. The
+  // gate runs here as well as there — see src/app/(operator)/layout.tsx.
+  await requireOperator()
+  const [read, q] = await Promise.all([readMonthInputs(), searchParams])
   const today = lisbonToday(new Date())
   const month = monthFrom(q.m, today)
   const model = buildMonth(read.inputs, month, today)
@@ -72,7 +73,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
   }))
 
   return (
-    <Frame mode="operator" current="month" counts={counts} operatorEmail={operator.email}>
+    <>
       <div className={styles.desk}>
         <TheMonth model={model} activity={activity} readAt={read.readAt} failures={read.failures} hrefFor={(m) => `/?m=${monthKey(m)}`} />
         <Entry parties={parties} contracts={contracts} recordable={read.inputs.clientCostsRecordable !== false} />
@@ -84,14 +85,14 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
           * Month needs a desk, which is not a sentence to show on one.
           */}
         <p className={styles.deskOn}>
-          <a href="/today">What needs you right now is on Today ›</a>
+          <Link href="/today">What needs you right now is on Today ›</Link>
         </p>
       </div>
       <div className={styles.refuse}>
         <h2>The Month needs a desk.</h2>
         <p>It sets two businesses, their clients and their costs side by side. What needs you right now is on Today, and it works here.</p>
-        <a href="/today" className={styles.refuseLink}>Open Today</a>
+        <Link href="/today" className={styles.refuseLink}>Open Today</Link>
       </div>
-    </Frame>
+    </>
   )
 }

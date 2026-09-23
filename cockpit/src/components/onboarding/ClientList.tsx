@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { StateChip } from '@/components/state-chip'
 import type { Checklist } from '@/lib/onboarding-checklist'
 import styles from './onboarding.module.css'
@@ -28,7 +29,7 @@ export function ClientList({ items, failure }: { items: ListItem[] | null; failu
               const unknown = c.checklist.unknown.length
               return (
                 <li key={c.id}>
-                  <a className={styles.row} href={`/onboarding?client=${c.id}`}>
+                  <Link className={styles.row} href={`/onboarding?client=${c.id}`}>
                     <span className={styles.rowName}>
                       {c.name}
                       {c.rehearsal ? <small>rehearsal</small> : null}
@@ -38,7 +39,7 @@ export function ClientList({ items, failure }: { items: ListItem[] | null; failu
                         understate what is left (found in the real render, 22 Sep 2026). */}
                     {c.checklist.onboarded ? <StateChip meaning="through">onboarded</StateChip>
                       : <StateChip meaning="grey">{[out ? `${out} outstanding` : '', unknown ? `${unknown} not known` : ''].filter(Boolean).join(' · ')}</StateChip>}
-                  </a>
+                  </Link>
                 </li>
               )
             })}

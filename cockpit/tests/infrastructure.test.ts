@@ -12,7 +12,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { pageFile } from './lib/routes'
+import { pageFile, layoutFor } from './lib/routes'
 import { buildInfrastructure, type InfrastructureInputs } from '../src/lib/infrastructure/model'
 import { monitorLine, type MonitorLine } from '../src/lib/infrastructure/monitor'
 
@@ -162,7 +162,10 @@ test('🔒 the screen reads, and offers no re-run: no button, no form, no action
   assert.doesNotMatch(view + page, /use server|Action\b/, 'the infrastructure screen must not write anything')
   assert.match(view, /uptime\.betterstack|BETTER_STACK_LINK/, 'the one link through to Better Stack is the whole of its dashboard here')
   assert.match(page, /await requireOperator\(\)/)
-  assert.match(page, /<Frame mode="operator" current="infrastructure"/)
+  // 🔒 The frame is the group's layout from 23 Sep 2026, so the loading
+  // boundary sits below the chrome rather than repainting it.
+  assert.doesNotMatch(page, /<Frame\b/, 'the page must not render the frame; see src/app/(operator)/layout.tsx')
+  assert.match(readFileSync(layoutFor('/ops/infrastructure'), 'utf8'), /<Frame mode="operator"/)
 })
 
 test('🔒 /health is kept as a redirect, so the screen is not lost on the day it matters', () => {

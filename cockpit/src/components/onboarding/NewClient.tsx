@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 
 import { useMemo, useState, useTransition } from 'react'
 import { createClient, validateCalendar, type CalendarProbe } from '@/lib/actions'
@@ -154,7 +155,7 @@ export function NewClient() {
         </button>
         {outcome && !creating ? (
           outcome.ok
-            ? <span className={styles.outcome} role="status"><StateChip meaning="through">created</StateChip> {outcome.message} <a className={styles.out} href={`/onboarding?client=${outcome.clientId}`}>Open its checklist</a></span>
+            ? <span className={styles.outcome} role="status"><StateChip meaning="through">created</StateChip> {outcome.message} <Link className={styles.out} href={`/onboarding?client=${outcome.clientId}`}>Open its checklist</Link></span>
             : <span className={styles.outcome} role="status"><StateChip meaning="red">not created</StateChip> {outcome.message}</span>
         ) : null}
       </div>

@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { randomUUID } from 'node:crypto'
 import { TRIAGE, SAVE_REFUSALS } from '@/lib/matching/screen-copy'
 import { say, type Refusal } from '@/lib/refusals'
@@ -43,7 +44,7 @@ export function TriageView({ id, screen, guardado, jaGuardado, refusal, locale }
   return (
     <main className={styles.page} style={{ ...SURFACE.page }}>
       <div className={styles.inner}>
-        <a className={styles.back} href={`/listings/${id}`}>{TRIAGE.back}</a>
+        <Link className={styles.back} href={`/listings/${id}`}>{TRIAGE.back}</Link>
         <header className={styles.head}>
           <h1 className={styles.title}>{TRIAGE.title}</h1>
           {l && <p className={styles.sub}>{[l.reference, l.area, l.price === null ? null : euro(l.price)].filter(Boolean).join(' · ')}</p>}

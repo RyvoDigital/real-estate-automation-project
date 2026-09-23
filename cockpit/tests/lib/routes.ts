@@ -1,5 +1,5 @@
 import { readdirSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, dirname } from 'node:path'
 
 /**
  * The app's routes, DERIVED FROM THE APP.
@@ -85,6 +85,52 @@ export function pageFile(route: string, kind: 'page' | 'loading' | 'layout' = 'p
   return found
 }
 
+/**
+ * The NEAREST layout above a route — the one that draws its chrome.
+ *
+ * Distinct from `pageFile(route, 'layout')`, which wants a layout at exactly
+ * that segment: /ops/expiries has none of its own and is framed by the
+ * `(operator)` group's, two directories up.
+ */
+export function layoutFor(route: string): string {
+  let dir = dirname(pageFile(route))
+  const root = APP.replace(/\/$/, '')
+  for (;;) {
+    for (const ext of ['tsx', 'ts']) {
+      const f = join(dir, `layout.${ext}`)
+      try { if (statSync(f).isFile()) return f } catch {}
+    }
+    if (dir === root || dir.length <= root.length) {
+      throw new Error(`layoutFor: ${route} has no layout above it, not even the root one — the scan is wrong`)
+    }
+    dir = dirname(dir)
+  }
+}
+
+/**
+ * Does a navigation to this route flush a shell before its data is ready?
+ *
+ * 🔴 The question tests/probe-timing.ts used to answer from a list of four
+ * route names typed into it — which said `/ops/infrastructure` streamed while
+ * that route had no boundary at all, and said nothing about the other 27 that
+ * also had none. Derived here from src/app, so a route added without a
+ * boundary is caught rather than simply unmentioned.
+ *
+ * A `loading.tsx` covers its own segment and everything nested below it, so
+ * this walks from the route's own directory up to src/app.
+ */
+export function hasLoadingBoundary(route: string): boolean {
+  let dir = dirname(pageFile(route))
+  const root = APP.replace(/\/$/, '')
+  for (;;) {
+    for (const ext of ['tsx', 'ts']) {
+      try { if (statSync(join(dir, `loading.${ext}`)).isFile()) return true } catch {}
+    }
+    if (dir === root || dir.length <= root.length) return false
+    dir = dirname(dir)
+  }
+}
+
 export type RouteOpts = {
   /**
    * Values PER ROUTE PATTERN, e.g. { '/leads/[id]': leadId }.
@@ -128,6 +174,35 @@ export function appRoutes(opts: RouteOpts = {}): string[] {
   }
 
   return out.sort()
+}
+
+/**
+ * Every route as BOTH the pattern it is and the URL to fetch for it.
+ *
+ * `appRoutes` fills a pattern and throws the pattern away, which is fine for a
+ * caller that only fetches. A caller that then wants to ask something about
+ * the route — does it have a loading boundary? — needs the pattern back, and
+ * reconstructing it from a filled URL is guesswork.
+ */
+export function appRoutePairs(opts: RouteOpts = {}): { pattern: string; url: string | null }[] {
+  const found = walk(APP)
+  if (found.length < 5) {
+    throw new Error(`appRoutePairs found only ${found.length} pages under src/app — the scan is wrong, and a short list is how coverage disappears silently`)
+  }
+  const byRoute = opts.byRoute ?? {}
+  const exclude = new Set(opts.exclude ?? [])
+  return found
+    .filter((r) => !exclude.has(r))
+    .map((pattern) => {
+      const dynamic = pattern.match(/\[([^\]]+)\]/g)
+      if (!dynamic) return { pattern, url: pattern }
+      const v = byRoute[pattern]
+      if (!v) return { pattern, url: null }
+      let filled = pattern
+      for (const d of dynamic) filled = filled.replace(d, v)
+      return { pattern, url: filled }
+    })
+    .sort((a, b) => a.pattern.localeCompare(b.pattern))
 }
 
 /** Routes actually usable, plus the ones skipped for want of a parameter. */

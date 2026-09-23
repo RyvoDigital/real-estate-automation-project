@@ -1,6 +1,5 @@
+import Link from 'next/link'
 import { requireOperator } from '@/lib/auth'
-import { readCounts } from '@/lib/counts'
-import { Frame } from '@/components/Frame'
 import { NewClient } from '@/components/onboarding/NewClient'
 import styles from '@/components/onboarding/onboarding.module.css'
 
@@ -12,18 +11,17 @@ import styles from '@/components/onboarding/onboarding.module.css'
 export const dynamic = 'force-dynamic'
 
 export default async function NewClientPage() {
-  const operator = await requireOperator()
-  const counts = await readCounts()
+  // The frame is the group's layout; this page renders its <main> only. The
+  // gate runs here as well as there — see src/app/(operator)/layout.tsx.
+  await requireOperator()
   return (
-    <Frame mode="operator" current="onboarding" counts={counts} operatorEmail={operator.email}>
-      <div className={styles.page}>
-        <a className={styles.back} href="/onboarding">← All clients</a>
-        <div className={styles.top}>
-          <h1 className={styles.title}>Take on a new client</h1>
-        </div>
-        <p className={styles.lede}>Nothing is written until you create it, and then the client and its Concierge are created together or not at all. Its checklist opens next.</p>
-        <NewClient />
+    <div className={styles.page}>
+      <Link className={styles.back} href="/onboarding">← All clients</Link>
+      <div className={styles.top}>
+        <h1 className={styles.title}>Take on a new client</h1>
       </div>
-    </Frame>
+      <p className={styles.lede}>Nothing is written until you create it, and then the client and its Concierge are created together or not at all. Its checklist opens next.</p>
+      <NewClient />
+    </div>
   )
 }

@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { StateChip } from '@/components/state-chip'
 import type { Checklist as Model, Step } from '@/lib/onboarding-checklist'
 import { DisclosureForm, RoutingForm } from './RecordForms'
@@ -73,11 +74,11 @@ export function Checklist({ clientId, model, others, recordable, today, createdO
               * calibration is re-answered when what they sell changes.
               */}
             {s.href ? (
-              <a className={styles.out} href={s.href}>
+              <Link className={styles.out} href={s.href}>
                 {s.state === 'done'
                   ? (s.key === 'declaration' ? 'Open the declaration again' : 'Open the calibration again')
                   : (s.key === 'declaration' ? 'Open the declaration, with the agency' : 'Open the calibration, with the agency')}
-              </a>
+              </Link>
             ) : null}
           </li>
         ))}

@@ -11,7 +11,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { pageFile } from './lib/routes'
+import { pageFile, layoutFor } from './lib/routes'
 
 const read = (rel: string) => readFileSync(new URL(rel, import.meta.url), 'utf8')
 /** The file behind a URL, found not typed — see tests/lib/routes.ts pageFile. */
@@ -77,7 +77,16 @@ test('🔒 rows are a sequence of like things: a hairline between them, and none
 test('the page is operator-only, reads once, and sits in the operator frame', () => {
   assert.match(PAGE, /await requireOperator\(\)/)
   assert.match(PAGE, /readClientList\(new Date\(\)\)/)
-  assert.match(PAGE, /<Frame mode="operator" current="clients"/)
+  /*
+   * 🔒 THE FRAME IS THE LAYOUT'S, from 23 Sep 2026. This asserted that the
+   * page rendered <Frame> itself — which is exactly what put the chrome below
+   * the loading boundary, so a navigation blanked the sidebar and the content
+   * together. The page renders its <main>; the group's layout renders the
+   * frame once and it then persists across navigations.
+   */
+  assert.doesNotMatch(PAGE, /<Frame\b/, 'the page must not render the frame; see src/app/(operator)/layout.tsx')
+  const layout = readFileSync(layoutFor('/clients'), 'utf8')
+  assert.match(layout, /<Frame mode="operator"/)
 })
 
 test('🔒 Clients is above Today in the sidebar, and the switcher offers the whole list', () => {

@@ -1,9 +1,7 @@
 import { requireOperator } from '@/lib/auth'
-import { readCounts } from '@/lib/counts'
 import { readExpiries } from '@/lib/expiries/read'
 import { hiddenClients } from '@/lib/hidden-clients'
 import { refusalFrom } from '@/lib/refusals'
-import { Frame } from '@/components/Frame'
 import { ExpiriesView } from '@/components/expiries/ExpiriesView'
 
 /**
@@ -18,18 +16,15 @@ export const revalidate = 0
 export default async function OpsExpiries({ searchParams }: {
   searchParams: Promise<{ recusa?: string; p?: string; guardado?: string; jaGuardado?: string; ensaios?: string }>
 }) {
-  const operator = await requireOperator()
+  // The frame is the group's layout; this page renders its <main> only. The
+  // gate runs here as well as there — see src/app/(operator)/layout.tsx.
+  await requireOperator()
   const sp = await searchParams
-  // 🔒 Off by default, and the badge follows the same answer (lib/hidden-clients.ts).
+  // 🔒 Off by default (lib/hidden-clients.ts).
   const includeRehearsals = sp.ensaios === '1'
-  const hidden = await hiddenClients(includeRehearsals)
-  const [e, counts] = await Promise.all([
+  const [hidden, e] = await Promise.all([
+    hiddenClients(includeRehearsals),
     readExpiries(new Date(), includeRehearsals),
-    readCounts(undefined, includeRehearsals),
   ])
-  return (
-    <Frame mode="operator" current="expiries" counts={counts} operatorEmail={operator.email}>
-      <ExpiriesView e={e} refusal={refusalFrom(sp)} guardado={sp.guardado} jaGuardado={sp.jaGuardado} hidden={hidden} />
-    </Frame>
-  )
+  return <ExpiriesView e={e} refusal={refusalFrom(sp)} guardado={sp.guardado} jaGuardado={sp.jaGuardado} hidden={hidden} />
 }

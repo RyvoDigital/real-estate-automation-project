@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { Signed, StateChip, StateSurface } from '@/components/state-chip'
 import { whyEmpty } from '@/lib/why-empty'
 import {
@@ -318,10 +319,10 @@ export function TheMonth({ model, activity, readAt, failures, hrefFor }: Props) 
       <header className={styles.top}>
         <h1 className={styles.title}>The Month</h1>
         <nav className={styles.stepper} aria-label="Month">
-          <a href={hrefFor(addMonths(M, -1))} aria-label="Previous month">‹</a>
+          <Link href={hrefFor(addMonths(M, -1))} aria-label="Previous month">‹</Link>
           <span>{monthLabel(M)}</span>
           {/* No next arrow in the month in progress: a disabled control is refused here. */}
-          {inProgress ? null : <a href={hrefFor(addMonths(M, 1))} aria-label="Next month">›</a>}
+          {inProgress ? null : <Link href={hrefFor(addMonths(M, 1))} aria-label="Next month">›</Link>}
         </nav>
         <span className={styles.phase}>{inProgress ? `Day ${p.day} of ${p.days}` : p.kind === 'closed' ? 'Closed' : 'Not started'}</span>
         <span className={styles.readAt}>Read {at} · net of VAT</span>

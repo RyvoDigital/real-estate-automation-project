@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { randomUUID } from 'node:crypto'
 import type { Expiries, ExpiryItem, ExpiryStanding, ObligationCurrent } from '@/lib/expiries/model'
 import { OBLIGATION_REFUSALS } from '@/lib/expiries/copy'
@@ -244,9 +245,9 @@ export function ExpiriesView({ e, refusal, guardado, jaGuardado, hidden }: {
       {hidden && (
         <p className={styles.hiddenNote}>
           {hiddenLine(hidden)}{' '}
-          <a className={styles.link} href={hidden.includingRehearsals ? '/ops/expiries' : '/ops/expiries?ensaios=1'}>
+          <Link className={styles.link} href={hidden.includingRehearsals ? '/ops/expiries' : '/ops/expiries?ensaios=1'}>
             {hidden.includingRehearsals ? 'Hide rehearsals again' : 'Include rehearsals'}
-          </a>
+          </Link>
         </p>
       )}
 

@@ -12,7 +12,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { pageFile } from './lib/routes'
+import { pageFile, layoutFor } from './lib/routes'
 
 const code = (rel: string) => readFileSync(new URL(rel, import.meta.url), 'utf8')
   .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/^\s*\/\/.*$/gm, '')
@@ -65,7 +65,10 @@ test('🔴 failed reads and un-checked causes are banners, and the S1 note carri
 test('the page is operator-only, reads the one expiries module, and renders in the operator frame', () => {
   assert.match(PAGE, /await requireOperator\(\)/)
   assert.match(PAGE, /readExpiries\(new Date\(\), includeRehearsals\)/)
-  assert.match(PAGE, /<Frame mode="operator" current="expiries"/)
+  // 🔒 The frame is the group's layout from 23 Sep 2026, so that the loading
+  // boundary sits below the chrome instead of repainting it.
+  assert.doesNotMatch(PAGE, /<Frame\b/, 'the page must not render the frame; see src/app/(operator)/layout.tsx')
+  assert.match(readFileSync(layoutFor('/ops/expiries'), 'utf8'), /<Frame mode="operator"/)
   assert.match(PAGE, /refusal=\{refusalFrom\(sp\)\}/)
 })
 

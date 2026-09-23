@@ -275,7 +275,19 @@ export function frameSide(
     marker: null,
     switcher: null,
     up: null,
-    showsCounts: true,
+    /*
+     * 🔴 FALSE, AND IT WAS `true` UNTIL 23 SEP 2026 — a claim with nowhere to
+     * land. The count is rendered in exactly one place, the "‹ way up" link
+     * (components/Frame.tsx), and the operator frame HAS no way up: it is the
+     * top. So every operator screen ran readCounts() — six database requests —
+     * computed a badge, and threw it away. Measured: 6 of /clients's 32
+     * requests per navigation, for a number no operator has ever seen.
+     *
+     * This does not remove a count from the screen; there was none. If the
+     * operator sidebar should carry one, that is a design decision and it
+     * needs an element to put it in first.
+     */
+    showsCounts: false,
     items: [
       // All five operator screens exist. They are on the OLD visual direction
       // (see docs/cockpit-route-map.md §2.3), which is a different fact from
@@ -294,6 +306,45 @@ export function frameSide(
       { slug: 'expiries', label: 'Expiries', href: '/ops/expiries', built: true },
     ],
   }
+}
+
+/**
+ * The request header the proxy writes the current screen's slug onto, so a
+ * LAYOUT can tell the frame which nav item is current.
+ *
+ * A layout is not given the pathname — there is no server API for it — and the
+ * frame must know which item to mark. It lives here rather than in proxy.ts
+ * because all three layouts need it and proxy.ts pulls in `@supabase/ssr`;
+ * until 23 Sep 2026 two of them wrote the literal `'x-ryvo-screen'` instead.
+ *
+ * 🔴 IT IS COSMETIC. A request header is exactly what a caller can forge
+ * (CVE-2025-29927). Nothing may be refused or permitted on the strength of it;
+ * it decides which nav item is bold. See the top of src/proxy.ts.
+ */
+export const SCREEN_HEADER = 'x-ryvo-screen'
+
+/**
+ * Which operator nav item a path sits on, or null if it is not an operator
+ * screen at all.
+ *
+ * 🔒 DERIVED FROM THE NAV, never a second list. `frameSide('operator')` already
+ * holds every operator destination and its href; a map written out again here
+ * would be a copy that agrees until one of them changes. That is the same rule
+ * `tests/lib/routes.ts` exists for, applied to the product side.
+ */
+export function operatorScreenFor(pathname: string): string | null {
+  const items = frameSide('operator').items
+  const exact = items.find((i) => i.href === pathname)
+  if (exact) return exact.slug
+  /*
+   * Then the longest href this path sits UNDER, so /onboarding/new marks
+   * Onboarding. '/' is excluded deliberately: The Month's href is a prefix of
+   * every path in the cockpit and would otherwise claim all of them.
+   */
+  const under = items
+    .filter((i) => i.href !== '/' && pathname.startsWith(`${i.href}/`))
+    .sort((a, b) => b.href.length - a.href.length)[0]
+  return under ? under.slug : null
 }
 
 /**

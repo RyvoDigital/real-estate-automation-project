@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { randomUUID } from 'node:crypto'
 import { CALIBRATE, SAVE_REFUSALS } from '@/lib/matching/screen-copy'
 import { say, type Refusal } from '@/lib/refusals'
@@ -46,7 +47,7 @@ export function CalibrateView({ clientId, screen, guardado, jaGuardado, refusal,
   return (
     <main className={styles.page} style={{ ...SURFACE.page }}>
       <div className={styles.inner}>
-        <a className={styles.back} href="/calibrate">{CALIBRATE.back}</a>
+        <Link className={styles.back} href="/calibrate">{CALIBRATE.back}</Link>
         <header className={styles.head}>
           <h1 className={styles.title}>{CALIBRATE.title}</h1>
           {screen.client && <p className={styles.agency}>{screen.client.name}</p>}

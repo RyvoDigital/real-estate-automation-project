@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import { CLIENT_SCREENS } from '@/lib/frame'
+import { CLIENT_SCREENS, SCREEN_HEADER, operatorScreenFor } from '@/lib/frame'
+
+export { SCREEN_HEADER }
 
 /**
  * Session refresh only. THIS IS NOT THE SECURITY BOUNDARY.
@@ -105,13 +107,22 @@ export async function proxy(request: NextRequest) {
    * 404 before a render happens.
    */
   const frameMatch = screenFor(path)
-  if (frameMatch) {
-    if (frameMatch.frame === 'p') {
-      const screen = CLIENT_SCREENS.find((s) => s.slug === frameMatch.slug)
-      if (!screen || !screen.presented) return new NextResponse(null, { status: 404 })
-    }
+  if (frameMatch && frameMatch.frame === 'p') {
+    const screen = CLIENT_SCREENS.find((s) => s.slug === frameMatch.slug)
+    if (!screen || !screen.presented) return new NextResponse(null, { status: 404 })
+  }
+
+  /*
+   * 🔒 ONE PLACE THAT SETS THE HEADER, for both frames. The operator level
+   * joined on 23 Sep 2026, when its six screens moved under a shared layout:
+   * a layout is not given the pathname, so the slug has to arrive this way.
+   * `''` is a real answer — a client LANDING — so this tests for null, not
+   * for truthiness.
+   */
+  const slug = frameMatch ? frameMatch.slug : operatorScreenFor(path)
+  if (slug !== null) {
     const headers = new Headers(request.headers)
-    headers.set(SCREEN_HEADER, frameMatch.slug)
+    headers.set(SCREEN_HEADER, slug)
     // Rebuilt rather than mutated, so the cookie work above is preserved.
     const withScreen = NextResponse.next({ request: { headers } })
     for (const c of response.cookies.getAll()) withScreen.cookies.set(c)
@@ -120,8 +131,6 @@ export async function proxy(request: NextRequest) {
 
   return response
 }
-
-export const SCREEN_HEADER = 'x-ryvo-screen'
 
 /** `/c/<client>/<slug…>` or `/p/<client>/<slug…>` → the registered screen. */
 export function screenFor(pathname: string): { frame: 'c' | 'p'; client: string; slug: string } | null {

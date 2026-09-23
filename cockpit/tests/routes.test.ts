@@ -74,6 +74,8 @@ test('🔴 pageFile THROWS on a route that is not there — it never returns a w
    */
   assert.throws(() => pageFile('/no-such-screen'), /no page file for the route \/no-such-screen/)
   assert.throws(() => pageFile('/today/deeper'), /\/today\/deeper/)
-  // A convention that does not exist at a real route is just as loud.
-  assert.throws(() => pageFile('/today', 'loading'), /no loading file for the route \/today/)
+  // A convention that does not exist at a real route is just as loud. /login
+  // is the cockpit's one deliberately unstreamed screen — it touches no
+  // database and is probe-timing.ts's control for "not streaming".
+  assert.throws(() => pageFile('/login', 'loading'), /no loading file for the route \/login/)
 })

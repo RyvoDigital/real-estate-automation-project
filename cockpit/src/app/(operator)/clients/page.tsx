@@ -1,7 +1,5 @@
 import { requireOperator } from '@/lib/auth'
-import { readCounts } from '@/lib/counts'
 import { readClientList } from '@/lib/clients/read'
-import { Frame } from '@/components/Frame'
 import { ClientsView } from '@/components/clients/ClientsView'
 
 /**
@@ -15,11 +13,9 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export default async function ClientsPage() {
-  const operator = await requireOperator()
-  const [list, counts] = await Promise.all([readClientList(new Date()), readCounts()])
-  return (
-    <Frame mode="operator" current="clients" counts={counts} operatorEmail={operator.email}>
-      <ClientsView list={list} />
-    </Frame>
-  )
+  // The frame is the group's layout; this page renders its <main> only. The
+  // gate runs here as well as there — see src/app/(operator)/layout.tsx.
+  await requireOperator()
+  const list = await readClientList(new Date())
+  return <ClientsView list={list} />
 }

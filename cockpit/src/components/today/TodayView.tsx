@@ -47,8 +47,8 @@ function Hidden({ model }: { model: TodayModel }) {
  */
 function Rehearsals({ model }: { model: TodayModel }) {
   return model.includingRehearsals
-    ? <a className={styles.rehearsals} href="/today">Hide rehearsals again</a>
-    : <a className={styles.rehearsals} href="/today?ensaios=1">Include rehearsals</a>
+    ? <Link className={styles.rehearsals} href="/today">Hide rehearsals again</Link>
+    : <Link className={styles.rehearsals} href="/today?ensaios=1">Include rehearsals</Link>
 }
 
 function Head({ g }: { g: TodayGroup }) {

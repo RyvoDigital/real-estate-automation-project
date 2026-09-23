@@ -1,7 +1,5 @@
 import { requireOperator } from '@/lib/auth'
-import { readCounts } from '@/lib/counts'
 import { readInfrastructure } from '@/lib/infrastructure/read'
-import { Frame } from '@/components/Frame'
 import { InfrastructureView } from '@/components/infrastructure/InfrastructureView'
 
 /**
@@ -14,11 +12,9 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export default async function OpsInfrastructure() {
-  const operator = await requireOperator()
-  const [infra, counts] = await Promise.all([readInfrastructure(new Date()), readCounts()])
-  return (
-    <Frame mode="operator" current="infrastructure" counts={counts} operatorEmail={operator.email}>
-      <InfrastructureView infra={infra} />
-    </Frame>
-  )
+  // The frame is the group's layout; this page renders its <main> only. The
+  // gate runs here as well as there — see src/app/(operator)/layout.tsx.
+  await requireOperator()
+  const infra = await readInfrastructure(new Date())
+  return <InfrastructureView infra={infra} />
 }

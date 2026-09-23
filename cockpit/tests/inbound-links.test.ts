@@ -28,7 +28,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, relative } from 'node:path'
 import { appRoutes, pageFile } from './lib/routes'
 
 /**
@@ -202,4 +202,71 @@ test('🔒 The Month has a way onward on a desk, not only on a phone', () => {
   assert.match(css, /\.refuse \{ display: none; \}/)
   const deskOn = css.slice(css.indexOf('.deskOn'), css.indexOf('/* The phone is refused'))
   assert.doesNotMatch(deskOn, /display:\s*none/, 'the desk link must not be hidden the way the phone refusal is')
+})
+
+/*
+ * 🔴 AN INTERNAL LINK IS A <Link>, NEVER AN <a> (23 Sep 2026).
+ *
+ * A raw <a href="/…"> is a full document load: the browser throws away the
+ * running app, re-downloads it, re-runs the proxy's session check and
+ * re-renders the frame from nothing. It cannot be prefetched, so the loading
+ * boundaries added today do not apply to it either.
+ *
+ * Twenty-two of them were in the cockpit when this was written, and they were
+ * not obscure. The Month's only two exits to Today were both raw anchors; so
+ * were the month's prev/next arrows, and both rehearsal toggles. The screens
+ * felt bumpy because half the primary paths were not navigations at all.
+ */
+test('🔴 no internal navigation is a raw <a>: those are full page loads', () => {
+  /*
+   * A fragment (#group-2) and an external link (target=_blank, http…) are
+   * genuinely anchors — the rule is about internal NAVIGATION.
+   */
+  const files: string[] = []
+  const walk = (dir: string) => {
+    for (const n of readdirSync(dir)) {
+      const p = join(dir, n)
+      if (statSync(p).isDirectory()) walk(p)
+      else if (/\.tsx$/.test(p)) files.push(p)
+    }
+  }
+  walk(new URL('../src/', import.meta.url).pathname)
+  assert.ok(files.length > 40, `only ${files.length} components found — the scan is broken`)
+
+  const offences: string[] = []
+  for (const f of files) {
+    const text = readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+    for (const [n, line] of text.split('\n').entries()) {
+      const m = /<a\b[^>]*\bhref=(?:"([^"]*)"|\{`([^`]*)`\}|\{([^}]*)\})/.exec(line)
+      if (!m) continue
+      if (/target=/.test(line)) continue
+      const href = m[1] ?? m[2] ?? m[3] ?? ''
+      if (href.startsWith('#') || /^https?:/.test(href)) continue
+      // An href held in a variable is only safe if it can only be a fragment.
+      if (m[3] && !/^['"`]?[/#]/.test(href) && !/href/i.test(href)) continue
+      if (href.startsWith('/') || m[3]) {
+        offences.push(`${relative(new URL('../src/', import.meta.url).pathname, f)}:${n + 1}: <a href=${href}>`)
+      }
+    }
+  }
+  /*
+   * 🔒 ONE EXEMPTION, AND IT IS PROVED RATHER THAN ASSERTED. The client
+   * landing renders `heldBy.href`, which is a variable, so the scan above
+   * cannot see where it points. It is always the fragment `#nobodys-yet` —
+   * the landing's own third band, because the waiting room is not built — and
+   * the test below reads lib/landing/automations.ts to confirm that. If that
+   * function ever returns a real route, this exemption fails rather than
+   * quietly covering a full page load.
+   */
+  const EXEMPT = 'app/c/[client]/page.tsx'
+  const left = offences.filter((o) => !o.startsWith(`${EXEMPT}:`))
+  assert.deepEqual(left, [], `these are full page loads, not navigations — use next/link:\n  ${left.join('\n  ')}`)
+
+  const automations = readFileSync(new URL('../src/lib/landing/automations.ts', import.meta.url), 'utf8')
+  const fn = automations.slice(automations.indexOf('function heldBy'), automations.indexOf('export async function readAutomations'))
+  const hrefs = [...fn.matchAll(/href:\s*'([^']*)'/g)].map((m) => m[1])
+  assert.ok(hrefs.length > 0, 'heldBy no longer sets an href here — re-check the exemption above')
+  for (const h of hrefs) {
+    assert.ok(h.startsWith('#'), `heldBy now returns the route ${h}, so the client landing renders a real <a> to it — make it a <Link>`)
+  }
 })

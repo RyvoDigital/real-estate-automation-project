@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { MATCHES, STATUS_WORD } from '@/lib/matching/screen-copy'
 import type { MatchesScreen } from '@/lib/matching/screen-read'
 import { SURFACE } from '@/lib/segmentation/surface'
@@ -23,7 +24,7 @@ export function ListingDetailView({ id, screen }: { id: string; screen: MatchesS
   return (
     <main className={styles.page} style={{ ...SURFACE.page }}>
       <div className={styles.inner}>
-        <a className={styles.back} href="/listings">{MATCHES.back}</a>
+        <Link className={styles.back} href="/listings">{MATCHES.back}</Link>
         <header className={styles.head}>
           <h1 className={styles.title}>{MATCHES.title}</h1>
           {l && <p className={styles.sub}>{[l.reference, l.area, l.price === null ? null : euro(l.price)].filter(Boolean).join(' · ')}</p>}
@@ -44,7 +45,7 @@ export function ListingDetailView({ id, screen }: { id: string; screen: MatchesS
             {screen.missingThresholds.length > 0 && (
               <div className={styles.record} style={{ ...SURFACE.note }}>
                 <p>{MATCHES.notCalibrated}</p>
-                {screen.clientId && <a className={styles.link} href={`/calibrate/${screen.clientId}`}>{MATCHES.notCalibratedAction}</a>}
+                {screen.clientId && <Link className={styles.link} href={`/calibrate/${screen.clientId}`}>{MATCHES.notCalibratedAction}</Link>}
               </div>
             )}
 
@@ -54,14 +55,14 @@ export function ListingDetailView({ id, screen }: { id: string; screen: MatchesS
             )}
 
             {/* The triage floor is reachable whatever the run did: it needs no thresholds. */}
-            <a className={styles.link} href={`/listings/${id}/triage`}>{MATCHES.goToTriage}</a>
+            <Link className={styles.link} href={`/listings/${id}/triage`}>{MATCHES.goToTriage}</Link>
             {/*
               * 🔴 THE EXEMPTION HAD NO WAY IN (22 Sep 2026). It was rebuilt in
               * the same week and NOTHING in the cockpit linked to it — not even
               * this page, the one place the question arises. It belongs beside
               * the triage floor: both are things this property needs answered.
               */}
-            <a className={styles.link} href={`/listings/${id}/exemption`}>{MATCHES.goToExemption}</a>
+            <Link className={styles.link} href={`/listings/${id}/exemption`}>{MATCHES.goToExemption}</Link>
 
             {computed.length > 0 && (
               <section className={styles.section}>

@@ -139,7 +139,9 @@ test('🔒 the three speeds, and one curve that does not overshoot', () => {
 })
 
 test('🔒 the skeleton does not move: it is a block of the right shape', () => {
-  const skeleton = CSS.find((c) => c.rel === 'components/FrameSkeleton.module.css')!.text
+  // Was FrameSkeleton.module.css until 23 Sep 2026, when the frame moved into
+  // a layout and the loading state stopped drawing chrome at all.
+  const skeleton = CSS.find((c) => c.rel === 'components/PageSkeleton.module.css')!.text
   assert.doesNotMatch(skeleton, /animation:/, 'the loading skeleton pulses again')
   const globals = CSS.find((c) => c.rel === 'app/globals.css')!.text
   assert.doesNotMatch(globals, /@keyframes sheen/, 'the legacy shimmer is back')

@@ -1,8 +1,6 @@
 import { requireOperator } from '@/lib/auth'
 import { ANOMALY_WINDOW_DAYS } from '@/lib/data'
-import { readCounts } from '@/lib/counts'
 import { readToday } from '@/lib/today/read'
-import { Frame } from '@/components/Frame'
 import { Live } from '@/components/Live'
 import { Stamp } from '@/components/Stamp'
 import { NotDone, TodayView } from '@/components/today/TodayView'
@@ -24,30 +22,26 @@ export const revalidate = 0
 export default async function TodayPage({ searchParams }: {
   searchParams: Promise<{ ensaios?: string }>
 }) {
-  const operator = await requireOperator()
+  // The frame is the group's layout; this page renders its <main> only. The
+  // gate runs here as well as there — see src/app/(operator)/layout.tsx.
+  await requireOperator()
   /*
    * 🔒 OFF BY DEFAULT. A rehearsal is real work on real rows, and it is not
-   * this business's work: it does not belong in the count of who is waiting.
-   * The answer reaches BOTH reads, so the badge and the groups cannot disagree.
+   * this business's work: it does not belong in what the screen reports.
    */
   const includeRehearsals = (await searchParams).ensaios === '1'
-  const [today, counts] = await Promise.all([
-    readToday(new Date(), includeRehearsals),
-    readCounts(undefined, includeRehearsals),
-  ])
+  const today = await readToday(new Date(), includeRehearsals)
 
   return (
-    <Frame mode="operator" current="today" counts={counts} operatorEmail={operator.email}>
-      <Live serverNow={Date.parse(today.readAt)}>
-        <div className={styles.page}>
-          <header className={styles.header}>
-            <h1 className={styles.title}>Today</h1>
-            <NotDone />
-            <span className={styles.stampSlot}><Stamp serverAt={today.readAt} /></span>
-          </header>
-          <TodayView model={today.model} queue={today.queue} anomalies={today.anomalies} windowDays={ANOMALY_WINDOW_DAYS} now={Date.parse(today.readAt)} />
-        </div>
-      </Live>
-    </Frame>
+    <Live serverNow={Date.parse(today.readAt)}>
+      <div className={styles.page}>
+        <header className={styles.header}>
+          <h1 className={styles.title}>Today</h1>
+          <NotDone />
+          <span className={styles.stampSlot}><Stamp serverAt={today.readAt} /></span>
+        </header>
+        <TodayView model={today.model} queue={today.queue} anomalies={today.anomalies} windowDays={ANOMALY_WINDOW_DAYS} now={Date.parse(today.readAt)} />
+      </div>
+    </Live>
   )
 }

@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { randomUUID } from 'node:crypto'
 import { EXEMPTION, SAVE_REFUSALS } from '@/lib/matching/screen-copy'
 import { say, type Refusal } from '@/lib/refusals'
@@ -33,7 +34,7 @@ export function ExemptionView({ id, screen, guardado, jaGuardado, refusal, local
   return (
     <main className={styles.page} style={{ ...SURFACE.page }}>
       <div className={styles.inner}>
-        <a className={styles.back} href={`/listings/${id}`}>{EXEMPTION.back}</a>
+        <Link className={styles.back} href={`/listings/${id}`}>{EXEMPTION.back}</Link>
         <header className={styles.head}>
           <h1 className={styles.title}>{EXEMPTION.title}</h1>
           {l && <p className={styles.sub}>{[l.reference, l.area].filter(Boolean).join(' · ')}</p>}

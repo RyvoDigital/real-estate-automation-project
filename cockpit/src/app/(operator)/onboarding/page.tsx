@@ -1,6 +1,5 @@
+import Link from 'next/link'
 import { requireOperator } from '@/lib/auth'
-import { readCounts } from '@/lib/counts'
-import { Frame } from '@/components/Frame'
 import { StateChip } from '@/components/state-chip'
 import { readOnboardingIndex, readOnboardingOne } from '@/lib/onboarding-read'
 import { Checklist } from '@/components/onboarding/Checklist'
@@ -22,17 +21,18 @@ import styles from '@/components/onboarding/onboarding.module.css'
 export const dynamic = 'force-dynamic'
 
 export default async function OnboardingPage({ searchParams }: { searchParams: Promise<{ [k: string]: string | string[] | undefined }> }) {
-  const operator = await requireOperator()
-  const [counts, q] = await Promise.all([readCounts(), searchParams])
+  // The frame is the group's layout; this page renders its <main> only. The
+  // gate runs here as well as there — see src/app/(operator)/layout.tsx.
+  await requireOperator()
+  const q = await searchParams
   const raw = Array.isArray(q.client) ? q.client[0] : q.client
   const clientId = raw && /^[0-9a-f-]{36}$/i.test(raw) ? raw : null
 
   if (clientId) {
     const one = await readOnboardingOne(clientId)
     return (
-      <Frame mode="operator" current="onboarding" counts={counts} operatorEmail={operator.email}>
         <div className={styles.page}>
-          <a className={styles.back} href="/onboarding">← All clients</a>
+          <Link className={styles.back} href="/onboarding">← All clients</Link>
           {!one ? (
             <p className={styles.empty}><StateChip meaning="grey">not found</StateChip> That client could not be read, or is a deploy-gate test client.</p>
           ) : (
@@ -47,7 +47,6 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
             </>
           )}
         </div>
-      </Frame>
     )
   }
 
@@ -56,15 +55,13 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
     id: client.id, name: client.name, rehearsal: client.rehearsal, createdOn: lisbonToday(new Date(client.created_at)), checklist,
   })) ?? null
   return (
-    <Frame mode="operator" current="onboarding" counts={counts} operatorEmail={operator.email}>
       <div className={styles.page}>
         <div className={styles.top}>
           <h1 className={styles.title}>Onboarding</h1>
-          <a className={styles.primary} href="/onboarding/new">Take on a new client</a>
+          <Link className={styles.primary} href="/onboarding/new">Take on a new client</Link>
         </div>
         <p className={styles.lede}>A client is onboarded when <b>every</b> step is done, including the two conversations only the agency can have. Until then nothing may be sent to anybody, and each client’s checklist says what is left.</p>
         <ClientList items={items} failure={index.failure} />
       </div>
-    </Frame>
   )
 }

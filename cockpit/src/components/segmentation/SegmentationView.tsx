@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { randomUUID } from 'node:crypto'
 import { proposeGroups, describeContact } from '@/lib/segmentation/groups'
 import { UI, SEGMENT_CHOICE, STATE_NOTE, STATE_LABEL, jurisdictionSentence, DECLARATION_REFUSALS } from '@/lib/segmentation/copy'
@@ -75,9 +76,9 @@ export function SegmentationView({ clientId, screen, grupo, refusal, locale, gua
                     <p className={styles.line} style={muted}>{suggestion}</p>
                   </div>
                   {/* The link reopens the GROUP. It carries no answer. */}
-                  <a className={styles.primary} href={`/segmentation/${clientId}?grupo=${encodeURIComponent(g.id)}`}>
+                  <Link className={styles.primary} href={`/segmentation/${clientId}?grupo=${encodeURIComponent(g.id)}`}>
                     {UI.answerGroup}
-                  </a>
+                  </Link>
                 </div>
               )
             }
@@ -109,7 +110,7 @@ export function SegmentationView({ clientId, screen, grupo, refusal, locale, gua
               </div>
             )
           })}
-          {openGroup && <a className={styles.back} href={`/segmentation/${clientId}`}>{UI.backToAll}</a>}
+          {openGroup && <Link className={styles.back} href={`/segmentation/${clientId}`}>{UI.backToAll}</Link>}
         </section>
 
         {screen.history.length > 0 && (

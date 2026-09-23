@@ -1,0 +1,28 @@
+/*
+ * The stand-in for a screen's content while it is read (23 Sep 2026).
+ *
+ * Deliberately almost empty: the GEOMETRY belongs to the screen being covered,
+ * and each loading.tsx takes it from that screen's own stylesheet. What lives
+ * here is only what a bar looks like.
+ *
+ * 🔴 NOTHING MOVES. §1.14 forbids a shimmering skeleton in so many words, and
+ * tests/motion.test.ts holds this file to it. A block of the right shape does
+ * not need to breathe to say it is waiting.
+ */
+.reading { display: contents; }
+
+/*
+ * The neutral column, for a boundary that covers MANY screens rather than one
+ * — the client level, where each of the eighteen screens has its own
+ * stylesheet and there is no single destination geometry to inherit. A screen
+ * that wants its own shape puts a loading.tsx beside its own page.tsx.
+ */
+.column { display: flex; flex-direction: column; gap: 24px; max-width: 1080px; min-width: 0; }
+
+.bar { display: block; background: var(--glass); }
+
+.panel {
+  display: flex; flex-direction: column; gap: 16px;
+  padding: 24px; border-radius: 24px;
+  background: var(--glass); box-shadow: var(--glass-hi);
+}

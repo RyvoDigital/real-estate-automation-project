@@ -1,20 +1,29 @@
-import { FrameSkeleton } from '@/components/FrameSkeleton'
+import { Bar, Panel, Reading } from '@/components/PageSkeleton'
+import styles from '@/components/onboarding/onboarding.module.css'
 
-/**
- * 🔴 THIS FILE RENDERED THE OLD COCKPIT until 23 Sep 2026.
+/*
+ * Onboarding, while it is being read — and the route this whole piece of work
+ * started on.
  *
- * It drew SkeletonShell — the retired chrome, with the Queue / Leads / Report
- * tab bar — and a five-step wizard ("Agency · Voice · Booking · Escalation ·
- * Review") that the rebuilt onboarding does not have. The root layout renders
- * nothing but <body>, so this boundary covers the WHOLE viewport: every
- * navigation into /onboarding or /onboarding/new flashed the old dashboard
- * before the new screen arrived, and that flash is why the cockpit read as
- * half-migrated.
+ * 🔴 IT USED TO DRAW THE WHOLE FRAME, and before that the RETIRED frame: this
+ * file rendered SkeletonShell (the Queue / Leads / Report tab bar and a
+ * five-step wizard that no longer exists) until 23 Sep 2026, then FrameSkeleton
+ * — which was correct while the page rendered <Frame> itself, but still meant
+ * the sidebar blinked out and back on every navigation into onboarding. The
+ * frame is now the group's layout, so this covers <main> and nothing else.
  *
- * 🔒 It is replaced rather than deleted: tests/probe-timing.ts asserts that a
- * streaming boundary exists here, and it is right to — /onboarding reads the
- * clients, their records and their contracts before it can draw.
+ * The geometry is onboarding.module.css: .page, .top, .lede — the screen's own.
  */
 export default function Loading() {
-  return <FrameSkeleton current="onboarding" />
+  return (
+    <Reading>
+      <div className={styles.page}>
+        <div className={styles.top}>
+          <Bar w={168} h={28} r={10} />
+        </div>
+        <Bar w="min(70ch, 100%)" h={15} />
+        <Panel rows={4} />
+      </div>
+    </Reading>
+  )
 }

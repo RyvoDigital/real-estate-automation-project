@@ -16,7 +16,15 @@
  *      tab badge. Replaced with getOpenCount().
  *   3. NO STREAMING BOUNDARY. Only /queue had a loading.tsx. Without one,
  *      Next.js sends nothing until the whole render finishes: first byte and
- *      last byte arrive together. Every route has one now.
+ *      last byte arrive together.
+ *
+ * 🔴 AND THAT THIRD CAUSE CAME BACK. This file used to end the line above with
+ * "Every route has one now." It was true when written and quietly stopped
+ * being true: by 23 Sep 2026 the rebuilt cockpit had 28 of 42 routes with no
+ * boundary — /today, /clients, /ops/expiries, /ops/infrastructure and every
+ * client screen — and measured 485ms, 1018ms, 529ms and 328ms to first byte
+ * with nothing streaming. The route list below is now DERIVED from src/app for
+ * exactly that reason: a sentence in a comment cannot notice.
  *
  * WHAT IT ASSERTS
  *   - every route flushes its shell close to the no-database baseline (/login)
@@ -32,7 +40,7 @@
  */
 import { readFileSync } from 'node:fs'
 import { createClient } from '@supabase/supabase-js'
-import { appRoutes } from './lib/routes'
+import { appRoutePairs, hasLoadingBoundary } from './lib/routes'
 
 for (const l of readFileSync(new URL('../.env.local', import.meta.url), 'utf8').split('\n')) {
   const m = l.match(/^([A-Z_]+)=(.*)$/)
@@ -83,8 +91,12 @@ async function main() {
   // for. /login stays first because it is the no-database baseline.
   const BY_ROUTE: Record<string, string> = { '/leads/[id]': lead?.[0]?.id ?? '' }
   if (process.env.PROBE_IMPORT_BATCH) BY_ROUTE['/import/[id]'] = process.env.PROBE_IMPORT_BATCH
-  const derived = appRoutes({ byRoute: BY_ROUTE }).filter((r) => !r.startsWith('SKIPPED:'))
-  const ROUTES = ['/login', ...derived.filter((r) => r !== '/login' && r !== '/')]
+  const pairs = appRoutePairs({ byRoute: BY_ROUTE }).filter((p): p is { pattern: string; url: string } => p.url !== null)
+  // 🔒 `/` joined the table on 23 Sep 2026. The Month had been excluded since
+  // this probe was written, so the one operator screen nobody had ever timed
+  // was the landing every session starts on.
+  const ROUTES = ['/login', ...pairs.map((p) => p.url).filter((u) => u !== '/login')]
+  const patternOf = new Map(pairs.map((p) => [p.url, p.pattern]))
 
   console.log(`\nNavigation timing — ${BASE}, median of ${SAMPLES}\n`)
   console.log('   route                     first byte      complete      streamed')
@@ -119,7 +131,17 @@ async function main() {
   }
 
   console.log('')
-  for (const p of ['/queue', '/leads', '/report', '/ops/infrastructure']) {
+  /*
+   * 🔴 DERIVED, NEVER LISTED (23 Sep 2026). This was four route names typed in
+   * here. It asserted that /ops/infrastructure streamed — a route with no
+   * loading.tsx, so the check had been failing unnoticed — and said nothing
+   * about the 27 other routes that also had none, including /today and
+   * /clients. A list is how coverage disappears in silence; see
+   * tests/lib/routes.ts, which exists for the same near-miss one level up.
+   */
+  const streams = ROUTES.filter((p) => hasLoadingBoundary(patternOf.get(p) ?? p))
+  if (streams.length < 5) throw new Error(`only ${streams.length} routes claim a boundary — the derivation is wrong`)
+  for (const p of streams) {
     const gap = out[p].total - out[p].ttfb
     check(
       gap > 20,
