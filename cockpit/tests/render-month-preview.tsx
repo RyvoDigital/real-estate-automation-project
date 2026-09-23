@@ -84,10 +84,17 @@ function render(name: string, title: string, sample: boolean, inputs: MonthInput
     ...(inputs.automationClients ?? []).map((c) => ({ value: `a:${c.id}`, label: c.name, business: 'automation' as const, rehearsal: c.rehearsal })),
   ]
   const html = renderToStaticMarkup(
-    <>
+    <div className="desk">
       <TheMonth model={model} activity={activity} readAt={new Date().toISOString()} failures={failures} hrefFor={(m) => `?m=${monthKey(m)}`} />
-      <div style={{ marginTop: 32 }}><Entry parties={parties} contracts={[]} recordable={inputs.clientCostsRecordable !== false} /></div>
-    </>,
+      {/*
+        * 🔒 NO HAND-WRITTEN GAP HERE. This had `marginTop: 32`, which is exactly
+        * the separation the real page did NOT have — so the preview hid the
+        * collision between "What this page does not do" and "Record a contract"
+        * for as long as it existed. The page wraps both in `.desk`; so does
+        * this, and the class is unhashed outside Next.
+        */}
+      <Entry parties={parties} contracts={[]} recordable={inputs.clientCostsRecordable !== false} />
+    </div>,
   )
   writeFileSync(join(OUT, `${name}.html`), page(title, sample, html))
   console.log(`${name}: ${join(OUT, `${name}.html`)}  (phase ${model.phase.kind}, S2 ${model.neverAnything}, failed [${model.failed.join(', ')}])`)

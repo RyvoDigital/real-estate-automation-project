@@ -355,19 +355,29 @@ export function TheMonth({ model, activity, readAt, failures, hrefFor }: Props) 
       </div>
       {!model.clientCostsRecordable ? <p className={styles.footnote}>A single client&rsquo;s own costs are not recordable until migration 0052 is applied.</p> : null}
 
+      {/*
+        * 🔒 THE FOUR LOWER BLOCKS ARE ONE SET (23 Sep 2026). They were two grids
+        * of the same shape with different gaps, one of them holding an unboxed
+        * cell, so four related things fought each other. One grid, one gap, one
+        * column ratio — and the absence keeps its own treatment below.
+        */}
       <div className={styles.lower}>
         <section className={styles.panel} aria-label="Costs of the company">
           <Block label="Costs of the company" aside="never split between the businesses">
             {model.company.costs === null ? <Failed thing="the company's costs" messages={msgs} /> : <CostRows lines={model.company.costs} />}
           </Block>
         </section>
-        {/* Not boxed: the one thing this page does not have yet, said plainly. */}
+        {/*
+          * 🔒 STILL NOT A PANEL. It is the one thing this page does not have
+          * yet, and a filled box would make an absence look like a figure. The
+          * dashed edge is the difference, in texture rather than in colour: it
+          * is not a state, so it gets no state's colour.
+          */}
         <dl className={styles.pending}>
           <div><dt>Invoices to check</dt><dd>Not built — WhatsApp and model usage are not measured yet.</dd></div>
         </dl>
+        {activity ? <ActivityPanels activity={activity} month={M} /> : null}
       </div>
-
-      {activity ? <ActivityPanels activity={activity} month={M} /> : null}
 
       <details className={styles.absent}>
         <summary>What this page does not do</summary>
