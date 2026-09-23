@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+import { pageFile } from './lib/routes'
 import { CONTRACT_COLUMNS, MONTH_SOURCES } from '../src/lib/month/read'
 
 /*
@@ -41,7 +42,10 @@ function files(dir: string): string[] {
 const MONTH_FILES = [
   ...files(join(ROOT, 'lib/month')),
   ...files(join(ROOT, 'components/month')),
-  join(ROOT, 'app/page.tsx'),
+  // 🔒 By ROUTE, not by shelf: The Month is `/`, and on 23 Sep 2026 it moved
+  // into the (operator) route group without its URL changing. A literal path
+  // here made this check fail on a move that changed nothing it tests.
+  pageFile('/'),
 ]
 
 test('no Month file selects *, reads the contracts table, or names a dead column', () => {

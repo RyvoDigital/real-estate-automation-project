@@ -29,7 +29,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import { appRoutes } from './lib/routes'
+import { appRoutes, pageFile } from './lib/routes'
 
 /**
  * The route PATTERNS, dynamic ones included. appRoutes() reports an unfilled
@@ -195,7 +195,7 @@ test('🔴 the declaration and the calibration can always be opened, done or not
 })
 
 test('🔒 The Month has a way onward on a desk, not only on a phone', () => {
-  const page = readFileSync(new URL('../src/app/page.tsx', import.meta.url), 'utf8')
+  const page = readFileSync(pageFile('/'), 'utf8')
   const css = readFileSync(new URL('../src/components/month/month.module.css', import.meta.url), 'utf8')
   assert.match(page, /styles\.deskOn/)
   // The phone refusal keeps its own link, and stays hidden on a desk.

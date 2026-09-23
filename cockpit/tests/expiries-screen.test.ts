@@ -12,11 +12,12 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { pageFile } from './lib/routes'
 
 const code = (rel: string) => readFileSync(new URL(rel, import.meta.url), 'utf8')
   .replace(/\/\*[\s\S]*?\*\//g, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/^\s*\/\/.*$/gm, '')
 const VIEW = code('../src/components/expiries/ExpiriesView.tsx')
-const PAGE = code('../src/app/ops/expiries/page.tsx')
+const PAGE = readFileSync(pageFile('/ops/expiries'), 'utf8')
 
 test('🔒 every write form carries a freshly minted id: each <form> holds a Hidden, and Hidden mints per render', () => {
   const forms = [...VIEW.matchAll(/<form\b[\s\S]*?<\/form>/g)].map((m) => m[0])

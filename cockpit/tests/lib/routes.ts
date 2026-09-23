@@ -36,6 +36,55 @@ function walk(dir: string, prefix = ''): string[] {
   return out
 }
 
+/**
+ * The FILE behind a URL, found rather than typed.
+ *
+ * 🔒 The same lesson as `appRoutes`, one level down. Five tests held a literal
+ * path to a page — `'../src/app/clients/page.tsx'` — and moving those six
+ * screens into the `(operator)` route group on 23 Sep 2026 broke all five at
+ * once, because a route group is a directory that is NOT part of the URL. The
+ * route did not change; only the shelf it sits on did.
+ *
+ * A test that names a shelf is asserting where a file lives. A test should
+ * assert what a screen does, so it takes the URL and this finds the file — and
+ * THROWS when there is no such route, because a check that silently reads
+ * nothing is the vacuous pass this directory exists to prevent.
+ */
+export function pageFile(route: string, kind: 'page' | 'loading' | 'layout' = 'page'): string {
+  const want = route === '/' ? [] : route.replace(/^\//, '').split('/')
+  const hunt = (dir: string, rest: string[]): string | null => {
+    if (rest.length === 0) {
+      for (const ext of ['tsx', 'ts']) {
+        const f = join(dir, `${kind}.${ext}`)
+        try { if (statSync(f).isFile()) return f } catch {}
+      }
+    }
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry)
+      let isDir = false
+      try { isDir = statSync(full).isDirectory() } catch { continue }
+      if (!isDir || entry.startsWith('_')) continue
+      // A group directory spends no URL segment; a named one must match.
+      if (entry.startsWith('(')) {
+        const hit = hunt(full, rest)
+        if (hit) return hit
+      } else if (rest.length > 0 && entry === rest[0]) {
+        const hit = hunt(full, rest.slice(1))
+        if (hit) return hit
+      }
+    }
+    return null
+  }
+  const found = hunt(APP, want)
+  if (!found) {
+    throw new Error(
+      `pageFile: no ${kind} file for the route ${route} under src/app. ` +
+        `Either the route was removed and this check is now vacuous, or it moved and the URL changed.`,
+    )
+  }
+  return found
+}
+
 export type RouteOpts = {
   /**
    * Values PER ROUTE PATTERN, e.g. { '/leads/[id]': leadId }.

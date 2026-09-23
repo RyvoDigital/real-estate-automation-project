@@ -11,11 +11,14 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { pageFile } from './lib/routes'
 
 const read = (rel: string) => readFileSync(new URL(rel, import.meta.url), 'utf8')
+/** The file behind a URL, found not typed — see tests/lib/routes.ts pageFile. */
+const readRoute = (route: string) => readFileSync(pageFile(route), 'utf8')
 const code = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/^\s*\/\/.*$/gm, '')
 const VIEW = code(read('../src/components/clients/ClientsView.tsx'))
-const PAGE = code(read('../src/app/clients/page.tsx'))
+const PAGE = code(readRoute('/clients'))
 const CSS = read('../src/components/clients/clients.module.css')
 
 test('🔒 the order is stated on the screen, in the words it actually sorts by', () => {

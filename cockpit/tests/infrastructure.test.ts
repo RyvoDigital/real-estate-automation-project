@@ -12,6 +12,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+import { pageFile } from './lib/routes'
 import { buildInfrastructure, type InfrastructureInputs } from '../src/lib/infrastructure/model'
 import { monitorLine, type MonitorLine } from '../src/lib/infrastructure/monitor'
 
@@ -156,7 +157,7 @@ test('🔴 STALE STAYS THE LOUDEST THING ON THE PAGE', () => {
 
 test('🔒 the screen reads, and offers no re-run: no button, no form, no action import', () => {
   const view = readFileSync(new URL('../src/components/infrastructure/InfrastructureView.tsx', import.meta.url), 'utf8')
-  const page = readFileSync(new URL('../src/app/ops/infrastructure/page.tsx', import.meta.url), 'utf8')
+  const page = readFileSync(pageFile('/ops/infrastructure'), 'utf8')
   assert.doesNotMatch(view, /<button|<form/, 'a control appeared on a screen whose contract is "read"')
   assert.doesNotMatch(view + page, /use server|Action\b/, 'the infrastructure screen must not write anything')
   assert.match(view, /uptime\.betterstack|BETTER_STACK_LINK/, 'the one link through to Better Stack is the whole of its dashboard here')

@@ -19,6 +19,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, dirname, relative } from 'node:path'
+import { pageFile } from './lib/routes'
 
 const APP = new URL('../src/app/', import.meta.url).pathname
 
@@ -88,7 +89,9 @@ test('🔒 the ledger is honest: every exemption is a route that really is old',
 })
 
 test('🔒 onboarding — the route this was found on — draws the frame, and reads nothing to do it', () => {
-  const loading = code(readFileSync(join(APP, 'onboarding/loading.tsx'), 'utf8'))
+  // 🔒 By ROUTE, not by shelf: /onboarding moved into the (operator) route
+  // group on 23 Sep 2026 without its URL changing. See lib/routes.ts pageFile.
+  const loading = code(readFileSync(pageFile('/onboarding', 'loading'), 'utf8'))
   assert.match(loading, /FrameSkeleton/)
   assert.doesNotMatch(loading, /\bSkeletonShell\b|from '@\/components\/(Skeleton|Shell)'/)
 
