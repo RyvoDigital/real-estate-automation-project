@@ -126,6 +126,34 @@ test('🔴 NO SURFACE HARDCODES A CHECK COUNT: the number comes from the row', (
   assert.deepEqual(offenders, [], `a check count is written into a surface instead of read from the run:\n${offenders.join('\n')}`)
 })
 
+test('🔒 a mark per check, the same one every screen uses — and no icon per check TYPE', () => {
+  /*
+   * Thirteen grey bullets in a stack read by line; a mark per row reads at a
+   * glance. The mark is StateMark, so the colour arrives the one sanctioned way
+   * and means what it means everywhere else. An icon per check type would
+   * decorate the words it sits beside.
+   */
+  const view = readFileSync(new URL('../src/components/infrastructure/InfrastructureView.tsx', import.meta.url), 'utf8')
+  assert.match(view, /<StateMark meaning="red" label="failing" \/>/)
+  assert.match(view, /<StateMark meaning="through" label="passing" \/>/)
+  const css = readFileSync(new URL('../src/components/infrastructure/infrastructure.module.css', import.meta.url), 'utf8')
+  assert.doesNotMatch(css, /var\(--(through|held|clock|red|handled)\b/, 'the screen must not reach for a semantic colour itself')
+  // Every check's words stay the producer's: nothing on this screen rewrites them.
+  assert.match(view, /\{c\}/)
+})
+
+test('🔴 STALE STAYS THE LOUDEST THING ON THE PAGE', () => {
+  const css = readFileSync(new URL('../src/components/infrastructure/infrastructure.module.css', import.meta.url), 'utf8')
+  const view = readFileSync(new URL('../src/components/infrastructure/InfrastructureView.tsx', import.meta.url), 'utf8')
+  // The stamp is the largest type on the screen, and nothing else comes near it.
+  const stampSize = /\.stampAbs \{[^}]*font-size: clamp\((\d+)px/.exec(css)
+  assert.ok(stampSize && Number(stampSize[1]) >= 28, 'the last-run time must be the biggest thing here')
+  assert.match(css, /\.title \{[^}]*font-size: 28px/)
+  // The standing's sentence sits INSIDE the stamp block, not floating below it.
+  const stamp = view.slice(view.indexOf('<section className={`${styles.stamp}'), view.indexOf('</section>'))
+  assert.match(stamp, /styles\.says/, 'the standing must be part of the stamp, or a stale run reads as two quiet things')
+})
+
 test('🔒 the screen reads, and offers no re-run: no button, no form, no action import', () => {
   const view = readFileSync(new URL('../src/components/infrastructure/InfrastructureView.tsx', import.meta.url), 'utf8')
   const page = readFileSync(new URL('../src/app/ops/infrastructure/page.tsx', import.meta.url), 'utf8')

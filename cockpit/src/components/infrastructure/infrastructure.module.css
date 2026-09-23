@@ -1,10 +1,15 @@
 /*
- * /ops/infrastructure — 22 Sep 2026, moved from /health onto the Frame. The
- * Month's direction, one 4px scale, tokens only. State colour ONLY through
- * state-chip and StateSurface (tokens.test.ts, rule 3).
+ * /ops/infrastructure — 22 Sep 2026, reworked 23 Sep. The Month's direction,
+ * one 4px scale, tokens only. State colour ONLY through the state components.
  *
- * 🔒 The stamp is the largest type on the page on purpose (brief §2.4): the
- * screen's question is "is this current?", not "are the checks green".
+ * 🔒 THE STAMP IS THE LARGEST TYPE ON THE PAGE, on purpose (brief §2.4): the
+ * screen's question is "is this current?", not "are the checks green". The
+ * standing's sentence lives INSIDE the stamp block, so a stale run reads as one
+ * loud thing rather than a time and a separate remark.
+ *
+ * 🔒 THE DIVIDER RULE (brief §0.5): the checks are a list of like things, so
+ * they carry a hairline between them and none above the first. The card around
+ * them is the surface; a row is not its own box.
  */
 .page { --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px;
   display: flex; flex-direction: column; gap: var(--s6); min-width: 0; max-width: 1080px; }
@@ -12,35 +17,45 @@
 .title { margin: 0; font-family: var(--display); font-size: 28px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; color: var(--text); }
 .lede { margin: 0; max-width: 72ch; font-size: 14.5px; color: var(--text-2); }
 
-.stamp { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s4); align-items: start;
-  padding: var(--s5); border-radius: 20px; background: var(--glass); box-shadow: var(--glass-hi); }
-.stampLoud { box-shadow: var(--glass-hi), 0 0 0 1px var(--edge-2); }
+/* ── the stamp: the whole screen in one block ─────────────────────────────── */
+.stamp { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s3) var(--s5); align-items: start;
+  padding: var(--s5); border-radius: 24px; background: var(--glass); box-shadow: var(--glass-hi); }
 .stampMain { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
 .eyebrow { font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
-.stampAbs { font-family: var(--display); font-size: clamp(24px, 3.4vw, 34px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; color: var(--text); font-variant-numeric: tabular-nums; }
+.stampAbs { font-family: var(--display); font-size: clamp(28px, 4vw, 42px); font-weight: 700; letter-spacing: -0.03em;
+  line-height: 1.05; color: var(--text); font-variant-numeric: tabular-nums; }
 .stampRel { font-size: 13.5px; color: var(--text-2); }
 .stampSide { display: flex; flex-direction: column; align-items: flex-end; gap: var(--s2); text-align: right; }
 .rendered { font-size: 12px; color: var(--text-3); }
 
-.says { display: block; padding: var(--s3) var(--s4); border-radius: 14px; font-size: 14px; line-height: 1.5; max-width: 80ch; }
+/* The standing's sentence, inside the stamp block: one loud thing, not two. */
+.says { grid-column: 1 / -1; display: block; padding: var(--s3) var(--s4); border-radius: 14px;
+  font-size: 14px; line-height: 1.5; max-width: 82ch; }
+
+/* 🔒 Anything but green widens the stamp's own ground, so the block itself
+   carries the alarm rather than only the words inside it. */
+.stampLoud { box-shadow: var(--glass-hi), inset 0 0 0 1px var(--edge-2); }
+
+/* ── sections ─────────────────────────────────────────────────────────────── */
 .section { display: flex; flex-direction: column; gap: var(--s3); }
 .sectionTitle { margin: 0; display: flex; align-items: baseline; gap: var(--s3); flex-wrap: wrap;
   font-family: var(--display); font-size: 20px; font-weight: 600; letter-spacing: -0.02em; color: var(--text); }
 .sectionTitle span { font-family: var(--sans); font-size: 12.5px; font-weight: 500; letter-spacing: 0; color: var(--text-3); font-variant-numeric: tabular-nums; }
 
-.checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
-.check { display: flex; align-items: center; gap: var(--s3); padding: var(--s3) var(--s4); font-size: 13.5px; color: var(--text-2);
-  background: var(--lift-1); }
-.check:first-child { border-top-left-radius: 14px; border-top-right-radius: 14px; }
-.check:last-child { border-bottom-left-radius: 14px; border-bottom-right-radius: 14px; }
+/* ── the checks: one card, a hairline between rows, a mark per row ────────── */
+.checks { list-style: none; margin: 0; padding: 0 var(--s4); display: flex; flex-direction: column;
+  border-radius: 18px; background: var(--glass); box-shadow: var(--glass-hi); }
+.check { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: var(--s3); align-items: center;
+  padding: var(--s3) 0; border-top: 1px solid var(--edge); font-size: 13.5px; color: var(--text-2); }
+.check:first-child { border-top: 0; }
+.checkText { min-width: 0; }
+/* A failing check is the row worth reading first: its words carry the weight. */
 .checkBad { color: var(--text); font-weight: 600; }
-.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-3); flex: none; }
-.checkBad .dot { background: currentColor; }
 
 .note { margin: 0; max-width: 80ch; font-size: 13px; line-height: 1.55; color: var(--text-3); }
 .link { color: var(--text); text-underline-offset: 3px; }
 
-@media (max-width: 720px) {
+@media (max-width: 760px) {
   .stamp { grid-template-columns: 1fr; }
   .stampSide { align-items: flex-start; text-align: left; }
 }

@@ -23,6 +23,7 @@ const LISTS: Record<string, string> = {
   'Onboarding': '../src/components/onboarding/onboarding.module.css',
   'Expiries': '../src/components/expiries/expiries.module.css',
   'Clients': '../src/components/clients/clients.module.css',
+  'Infrastructure': '../src/components/infrastructure/infrastructure.module.css',
 }
 
 test('🔒 every operator list divides its rows with the hairline, and never above the first', () => {

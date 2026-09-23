@@ -1,7 +1,7 @@
 import type { Infrastructure, InfrastructureStanding } from '@/lib/infrastructure/model'
 import { absoluteTime } from '@/lib/infrastructure/model'
 import { BETTER_STACK_LINK } from '@/lib/infrastructure/monitor'
-import { StateChip, StateSurface, type Meaning } from '@/components/state-chip'
+import { StateChip, StateMark, StateSurface, type Meaning } from '@/components/state-chip'
 import styles from './infrastructure.module.css'
 
 /**
@@ -58,10 +58,15 @@ export function InfrastructureView({ infra }: { infra: Infrastructure }) {
           <StateChip meaning={MEANING[infra.standing]}>{WORD[infra.standing]}</StateChip>
           <span className={styles.rendered}>This page rendered {absoluteTime(stamp.renderedAt)}</span>
         </div>
-      </section>
 
-      {/* The standing's own sentence: stale, never, failed to read, or the count. */}
-      <StateSurface meaning={MEANING[infra.standing]} className={styles.says}>{infra.says}</StateSurface>
+        {/*
+          * 🔒 THE STANDING'S SENTENCE SITS INSIDE THE STAMP, not below it. When
+          * the run is stale, "it is telling you nothing" belongs to the time
+          * above it rather than floating as a separate remark — which is what
+          * keeps staleness the loudest thing on the page.
+          */}
+        <StateSurface meaning={MEANING[infra.standing]} className={styles.says}>{infra.says}</StateSurface>
+      </section>
 
       {/* 🔴 §4.9: ONE line about the monitor, and a link. Never its dashboard. */}
       <section className={styles.section}>
@@ -80,12 +85,27 @@ export function InfrastructureView({ infra }: { infra: Infrastructure }) {
           <h2 className={styles.sectionTitle}>
             The checks<span>{checks.total} published · {checks.failed.length} failing</span>
           </h2>
+          {/*
+            * 🔒 A MARK PER CHECK, so passing and failing read at a glance
+            * instead of by reading every line — and the mark is the SAME one
+            * every other screen uses for that state. No icon per check TYPE: a
+            * container icon beside "container ryvo-n8n is running" decorates
+            * the words it repeats.
+            * 🔒 Every check's words are the producer's, unchanged.
+            */}
           <ul className={styles.checks}>
             {checks.failed.map((c) => (
-              <li key={c} data-check="failing" className={`${styles.check} ${styles.checkBad}`}><span className={styles.dot} />{c}<StateChip meaning="red">failing</StateChip></li>
+              <li key={c} data-check="failing" className={`${styles.check} ${styles.checkBad}`}>
+                <StateMark meaning="red" label="failing" />
+                <span className={styles.checkText}>{c}</span>
+                <StateChip meaning="red">failing</StateChip>
+              </li>
             ))}
             {checks.passed.map((c) => (
-              <li key={c} data-check="passing" className={styles.check}><span className={styles.dot} />{c}</li>
+              <li key={c} data-check="passing" className={styles.check}>
+                <StateMark meaning="through" label="passing" />
+                <span className={styles.checkText}>{c}</span>
+              </li>
             ))}
           </ul>
         </section>
