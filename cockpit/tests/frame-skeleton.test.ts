@@ -134,3 +134,39 @@ test('🔒 the boundary still exists: probe-timing asserts the page streams', ()
   const probe = readFileSync(new URL('./probe-timing.ts', import.meta.url), 'utf8')
   assert.match(probe, /has loading\.tsx been removed\?/)
 })
+
+test('🔴 THE SKELETON RESERVES THE CHROME\'S OWN SPACE, or it guarantees a jump', () => {
+  /*
+   * Fixed 23 Sep 2026, after the flash was gone and the jump was not: the
+   * skeleton's sidebar had TWO children where the real frame has FOUR — the
+   * "Open a client" control (44px) and the operator's line were missing — so
+   * the nav sat 58px too high and the whole sidebar dropped when the screen
+   * arrived. Measured in a browser: navDelta 58 before, 0 after.
+   *
+   * The frame's sidebar is chrome: it is the one part of the screen that must
+   * not move while the content beneath it is still being read.
+   */
+  const skeleton = code(readFileSync(new URL('../src/components/FrameSkeleton.tsx', import.meta.url), 'utf8'))
+  const frame = code(readFileSync(new URL('../src/components/Frame.tsx', import.meta.url), 'utf8'))
+
+  // Both draw the same four boxes down the side, in the same order.
+  const order = (src: string) => [
+    src.indexOf('styles.brand'),
+    // 🔒 Where it RENDERS, not where it is imported: the import sits at the top
+    // of the file and would make every order look wrong.
+    Math.max(src.indexOf('<ClientSwitcher'), src.indexOf('switcherSlot')),
+    src.indexOf('styles.nav'),
+    src.indexOf('styles.foot'),
+  ]
+  for (const [i, where] of order(skeleton).entries()) {
+    assert.ok(where > 0, `the skeleton is missing sidebar box ${i + 1}: it will jump when the real frame lands`)
+  }
+  const s = order(skeleton)
+  assert.deepEqual([...s].sort((a, b) => a - b), s, 'the skeleton draws the sidebar in a different order from the frame')
+  const f = order(frame)
+  assert.deepEqual([...f].sort((a, b) => a - b), f)
+
+  // The reserved control is a BLANK, never a control: this component reads nothing.
+  assert.match(skeleton, /switcherSlot/)
+  assert.doesNotMatch(skeleton, /<button|aria-haspopup|onClick/)
+})

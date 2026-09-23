@@ -32,6 +32,19 @@ export function FrameSkeleton({ current }: { current: string }) {
       <aside className={styles.side}>
         <div className={styles.brand}>Ryvo</div>
 
+        {/*
+          * 🔴 THE SPACE THE CHROME WILL TAKE, RESERVED (23 Sep 2026). The
+          * skeleton had two boxes down the side where the real frame has four —
+          * the "Open a client" control and the operator's line were missing —
+          * so the nav sat 58px too high and the whole sidebar dropped when the
+          * real screen arrived. The flash was gone; the jump was not.
+          *
+          * 🔒 They are BLANKS, never controls: this component reads nothing, so
+          * it has no client list to offer and no session to name. Matching the
+          * metrics is the whole job. Measured: navDelta 58 before, 0 after.
+          */}
+        <div className={skeleton.switcherSlot} aria-hidden="true" />
+
         <nav className={styles.nav} aria-label="Sections">
           {/* The section label the frame uses at the operator level. */}
           <span className={styles.navLabel}>Ryvo</span>
@@ -45,6 +58,9 @@ export function FrameSkeleton({ current }: { current: string }) {
             </span>
           ))}
         </nav>
+        <div className={styles.foot} aria-hidden="true">
+          <span className={`${skeleton.bar} ${skeleton.footLine}`} />
+        </div>
       </aside>
 
       <main className={styles.main}>

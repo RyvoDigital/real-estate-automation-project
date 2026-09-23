@@ -21,3 +21,13 @@
 .bar { animation: wait 1.4s ease-in-out infinite; }
 @keyframes wait { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
 @media (prefers-reduced-motion: reduce) { .bar { animation: none; } }
+
+/*
+ * 🔴 THE CHROME'S OWN SPACE. The real sidebar carries the "Open a client"
+ * control (44px) and the operator's line; without them the nav sat 58px high
+ * and everything dropped when the screen arrived. These reserve exactly that,
+ * and carry no words — there is no session here to name.
+ */
+.switcherSlot { min-height: 44px; border-radius: 14px; background: var(--glass); }
+/* 17px is the operator line's own height: 12.5px text at its line-height. */
+.footLine { width: 70%; height: 19px; border-radius: 6px; }
