@@ -308,6 +308,59 @@ export function frameSide(
   }
 }
 
+/** `/c/<client>/<slug…>` or `/p/<client>/<slug…>` → the registered screen. */
+export function screenFor(pathname: string): { frame: 'c' | 'p'; client: string; slug: string } | null {
+  const m = /^\/(c|p)\/([^/]+)(?:\/(.*))?$/.exec(pathname)
+  if (!m) return null
+  const [, frame, client, rest = ''] = m
+  // Longest-first, and a sub-screen resolves to ITSELF rather than to what it
+  // sits under: /p/<client>/listings/<id>/publish is `publish`, not
+  // `listings`. Registered 20 Sep 2026 after the test found that the gate in
+  // depth would otherwise have inherited the listings screen's answer and been
+  // served to an agency.
+  const candidates = CLIENT_SCREENS.map((s) => s.slug).filter((s) => s !== '')
+  const segments = rest.split('/').filter(Boolean)
+  for (let i = segments.length; i > 0; i--) {
+    const tail = segments.slice(0, i).join('/')
+    const last = segments[i - 1]
+    if (candidates.includes(tail)) return { frame: frame as 'c' | 'p', client, slug: tail }
+    if (candidates.includes(last)) return { frame: frame as 'c' | 'p', client, slug: last }
+  }
+  return { frame: frame as 'c' | 'p', client, slug: '' }
+}
+
+/**
+ * A screen's name, from the one place that holds it.
+ *
+ * 🔴 SO A LOADING STATE CAN DRAW THE DESTINATION RATHER THAN BLANK IT
+ * (23 Sep 2026). The operator, having walked Stage 1: "each click flashes an
+ * empty shape and then fills in… the swap reads as content disappearing rather
+ * than as the page arriving."
+ *
+ * A screen's NAME is not something read from the database — "Today" is true
+ * before any query runs — so a skeleton showing it asserts nothing it has not
+ * read, and the title then does not move at all when the data lands. What a
+ * skeleton must never do is invent, so it takes the name from here instead of
+ * repeating a string: every operator screen's own <h1> is already exactly its
+ * nav label, and tests/loading-boundaries.test.ts holds the two together.
+ */
+export function navLabel(slug: string): string {
+  return frameSide('operator').items.find((i) => i.slug === slug)?.label ?? ''
+}
+
+/**
+ * The nav slug a PATHNAME is on, for any frame — the one question the sidebar
+ * asks on every navigation.
+ *
+ * 🔴 It takes a pathname rather than reading a header, because the frame lives
+ * in a layout now and a layout is not re-rendered on a client navigation. See
+ * components/FrameNav.tsx for what that cost.
+ */
+export function slugForPath(pathname: string, mode: FrameMode): string {
+  if (mode === 'operator') return operatorScreenFor(pathname) ?? ''
+  return screenFor(pathname)?.slug ?? ''
+}
+
 /**
  * The request header the proxy writes the current screen's slug onto, so a
  * LAYOUT can tell the frame which nav item is current.

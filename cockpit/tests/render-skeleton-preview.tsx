@@ -84,10 +84,49 @@ const ROUTES: { slug: string; name: string; Loading: () => React.ReactNode }[] =
   { slug: 'month', name: 'month', Loading: MonthLoading },
 ]
 
+/*
+ * 🔴 AND THE REAL SCREEN, IN THE SAME FRAME, FROM THE SAME READS.
+ *
+ * The whole claim of a loading state is geometric: does anything move when the
+ * screen replaces it? That cannot be answered from one render. These are the
+ * other half of the pair, drawn with the page's own components and the page's
+ * own reads, so the two files can be measured against each other in a browser.
+ */
+async function real(): Promise<{ name: string; slug: string; body: string }[]> {
+  const { ClientsView } = await import('../src/components/clients/ClientsView')
+  const { readClientList } = await import('../src/lib/clients/read')
+  const { InfrastructureView } = await import('../src/components/infrastructure/InfrastructureView')
+  const { readInfrastructure } = await import('../src/lib/infrastructure/read')
+  const { ExpiriesView } = await import('../src/components/expiries/ExpiriesView')
+  const { readExpiries } = await import('../src/lib/expiries/read')
+  const { hiddenClients } = await import('../src/lib/hidden-clients')
+  const now = new Date()
+
+  const [list, infra, e, hidden] = await Promise.all([
+    readClientList(now),
+    readInfrastructure(now),
+    readExpiries(now, false),
+    hiddenClients(false),
+  ])
+  return [
+    { name: 'clients', slug: 'clients', body: renderToStaticMarkup(<ClientsView list={list} />) },
+    { name: 'infrastructure', slug: 'infrastructure', body: renderToStaticMarkup(<InfrastructureView infra={infra} />) },
+    { name: 'expiries', slug: 'expiries', body: renderToStaticMarkup(<ExpiriesView e={e} refusal={null} hidden={hidden} />) },
+  ]
+}
+
 async function main() {
   for (const { slug, name, Loading } of ROUTES) {
     writeFileSync(join(OUT, `${name}-loading.html`), html(`${name} · loading`, await framed(slug, <Loading />)))
     console.log(`${name}-loading`)
+  }
+  for (const { name, slug, body } of await real()) {
+    const el = await Frame({ mode: 'operator', current: slug, counts: null, operatorEmail: 'operator@example.com', children: null })
+    // The frame is already rendered; splice the real screen into its <main>.
+    const frameHtml = renderToStaticMarkup(el as React.ReactElement)
+    const spliced = frameHtml.replace(/(<main[^>]*>)(<\/main>)/, `$1${body}$2`)
+    writeFileSync(join(OUT, `${name}-real.html`), html(`${name} · real`, spliced))
+    console.log(`${name}-real`)
   }
 }
 

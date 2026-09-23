@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import { CLIENT_SCREENS, SCREEN_HEADER, operatorScreenFor } from '@/lib/frame'
+import { CLIENT_SCREENS, SCREEN_HEADER, operatorScreenFor, screenFor } from '@/lib/frame'
 
-export { SCREEN_HEADER }
+export { SCREEN_HEADER, screenFor }
 
 /**
  * Session refresh only. THIS IS NOT THE SECURITY BOUNDARY.
@@ -130,27 +130,6 @@ export async function proxy(request: NextRequest) {
   }
 
   return response
-}
-
-/** `/c/<client>/<slug…>` or `/p/<client>/<slug…>` → the registered screen. */
-export function screenFor(pathname: string): { frame: 'c' | 'p'; client: string; slug: string } | null {
-  const m = /^\/(c|p)\/([^/]+)(?:\/(.*))?$/.exec(pathname)
-  if (!m) return null
-  const [, frame, client, rest = ''] = m
-  // Longest-first, and a sub-screen resolves to ITSELF rather than to what it
-  // sits under: /p/<client>/listings/<id>/publish is `publish`, not
-  // `listings`. Registered 20 Sep 2026 after the test found that the gate in
-  // depth would otherwise have inherited the listings screen's answer and been
-  // served to an agency.
-  const candidates = CLIENT_SCREENS.map((s) => s.slug).filter((s) => s !== '')
-  const segments = rest.split('/').filter(Boolean)
-  for (let i = segments.length; i > 0; i--) {
-    const tail = segments.slice(0, i).join('/')
-    const last = segments[i - 1]
-    if (candidates.includes(tail)) return { frame: frame as 'c' | 'p', client, slug: tail }
-    if (candidates.includes(last)) return { frame: frame as 'c' | 'p', client, slug: last }
-  }
-  return { frame: frame as 'c' | 'p', client, slug: '' }
 }
 
 export const config = {

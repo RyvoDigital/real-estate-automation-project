@@ -1,3 +1,4 @@
+import { navLabel } from '@/lib/frame'
 import { Bar, Panel, Reading } from '@/components/PageSkeleton'
 import styles from '@/components/today/today.module.css'
 
@@ -12,7 +13,7 @@ export default function Loading() {
     <Reading>
       <div className={styles.page}>
         <header className={styles.header}>
-          <Bar w={132} h={28} r={10} />
+          <h1 className={styles.title}>{navLabel('today')}</h1>
         </header>
         <Panel rows={3} />
         <Panel rows={2} />

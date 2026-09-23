@@ -144,13 +144,24 @@ test('🔴 THE BOUNDARY IS BELOW THE FRAME, so the chrome never blinks', () => {
   assert.deepEqual(above, [], `a boundary above the chrome repaints the chrome:\n  ${above.join('\n  ')}`)
 })
 
-test('🔴 A SKELETON SAYS NOTHING: plain bars, never a number and never a sentence', () => {
+test('🔴 A SKELETON ASSERTS NOTHING IT HAS NOT READ: no literal text, ever', () => {
   /*
    * The operator's own constraint, 23 Sep 2026. A skeleton that guessed at
    * content would assert something it has not read — to the one person who
    * came to the screen in order to find out. It is also how a surface comes to
    * hardcode a count: see tests/infrastructure.test.ts, where five screens
    * said "Twelve checks" while the producer published thirteen.
+   *
+   * 🔴 REFINED THE SAME DAY, after the operator walked it: "each click flashes
+   * an empty shape and then fills in… the swap reads as content disappearing
+   * rather than as the page arriving." The first rule banned ALL text, which
+   * banned the one thing that makes a destination recognisable — its NAME. A
+   * screen's name is true before any query runs, so showing it asserts nothing.
+   *
+   * So the rule is not "no words", it is "no LITERAL words": text must come
+   * from an expression, and navLabel() is the only source the skeletons use, so
+   * the title cannot drift from the screen's own <h1>. The scan below rejects
+   * anything between tags that is not an expression, which is exactly that.
    */
   const offences: string[] = []
   for (const f of loadings) {
@@ -295,4 +306,46 @@ test('🔴 onboarding — the route this was found on — is covered, and by the
   assert.doesNotMatch(loading, /\bSkeletonShell\b|from '@\/components\/(Skeleton|Shell)'/)
   assert.match(loading, /PageSkeleton/, 'it draws the content region, not a frame')
   assert.doesNotMatch(loading, /<Frame\b/, 'the frame is the layout\'s; a boundary that draws one is above the chrome')
+})
+
+test('🔴 THE DESTINATION IS DRAWN: each boundary shows the screen’s own name, from the screen’s own source', () => {
+  /*
+   * The fix for "the swap reads as content disappearing rather than as the page
+   * arriving" (operator, 23 Sep 2026, having walked Stage 1).
+   *
+   * Every operator screen's <h1> is already exactly its nav label. The skeleton
+   * renders that label through navLabel(), so the title is IDENTICAL in both
+   * states and does not move when the data lands — the one part of the screen
+   * that can be known before a read, drawn rather than blanked.
+   *
+   * 🔒 This holds the two together. A screen whose heading stops matching its
+   * nav label fails here rather than quietly showing one name and then another.
+   */
+  const SCREENS: { slug: string; boundary: string; heading: string }[] = [
+    { slug: 'today', boundary: '(operator)/today/loading.tsx', heading: '../src/app/(operator)/today/page.tsx' },
+    { slug: 'clients', boundary: '(operator)/clients/loading.tsx', heading: '../src/components/clients/ClientsView.tsx' },
+    { slug: 'expiries', boundary: '(operator)/ops/expiries/loading.tsx', heading: '../src/components/expiries/ExpiriesView.tsx' },
+    { slug: 'infrastructure', boundary: '(operator)/ops/infrastructure/loading.tsx', heading: '../src/components/infrastructure/InfrastructureView.tsx' },
+    { slug: 'onboarding', boundary: '(operator)/onboarding/loading.tsx', heading: '../src/app/(operator)/onboarding/page.tsx' },
+    { slug: 'month', boundary: '(operator)/loading.tsx', heading: '../src/components/month/TheMonth.tsx' },
+  ]
+  const { navLabel, frameSide } = require('../src/lib/frame') as typeof import('../src/lib/frame')
+  assert.equal(SCREENS.length, frameSide('operator').items.length, 'an operator screen was added or removed — give it a boundary here too')
+
+  for (const { slug, boundary, heading } of SCREENS) {
+    const label = navLabel(slug)
+    assert.ok(label, `${slug} has no nav label`)
+
+    // The boundary draws the name through navLabel, never as a literal.
+    const b = src(join(APP, boundary))
+    assert.match(b, new RegExp(`navLabel\\('${slug}'\\)`), `${boundary} must draw its screen's name from navLabel('${slug}')`)
+    assert.match(b, /<h1 className=\{styles\.title\}>/, `${boundary} must use the screen's own title element`)
+    assert.doesNotMatch(b, new RegExp(`>\\s*${label}\\s*<`), `${boundary} writes "${label}" as a literal — it must come from navLabel`)
+
+    // And the screen really is called that.
+    const h = readFileSync(new URL(heading, import.meta.url), 'utf8')
+    const h1 = /<h1 className=\{styles\.title\}>([^<{]+)<\/h1>/.exec(h)
+    assert.ok(h1, `${heading} has no plain <h1> to compare against`)
+    assert.equal(h1![1].trim(), label, `${slug}: the screen says "${h1![1].trim()}" and the nav says "${label}" — the skeleton would show one and the screen the other`)
+  }
 })

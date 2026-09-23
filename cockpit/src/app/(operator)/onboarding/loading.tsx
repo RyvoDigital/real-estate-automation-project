@@ -1,3 +1,4 @@
+import { navLabel } from '@/lib/frame'
 import { Bar, Panel, Reading } from '@/components/PageSkeleton'
 import styles from '@/components/onboarding/onboarding.module.css'
 
@@ -19,7 +20,7 @@ export default function Loading() {
     <Reading>
       <div className={styles.page}>
         <div className={styles.top}>
-          <Bar w={168} h={28} r={10} />
+          <h1 className={styles.title}>{navLabel('onboarding')}</h1>
         </div>
         <Bar w="min(70ch, 100%)" h={15} />
         <Panel rows={4} />

@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { slugForPath, type FrameMode } from '@/lib/frame'
 import styles from './FrameTabs.module.css'
 
 /**
@@ -31,7 +33,14 @@ import styles from './FrameTabs.module.css'
 
 export type Tab = { slug: string; label: string; href: string }
 
-export function FrameTabs({ primary, rest, current }: { primary: Tab[]; rest: Tab[]; current: string }) {
+export function FrameTabs({ primary, rest, mode }: { primary: Tab[]; rest: Tab[]; mode: FrameMode }) {
+  /*
+   * 🔴 FROM THE LIVE URL, not from a prop. This took `current` from the Frame,
+   * which took it from a header read in a layout — and a layout is not
+   * re-rendered on a client navigation, so the answer froze on the first screen
+   * of the session. The sidebar had the same bug; see components/FrameNav.tsx.
+   */
+  const current = slugForPath(usePathname() ?? '', mode)
   const [open, setOpen] = useState(false)
   const inRest = rest.some((t) => t.slug === current)
 

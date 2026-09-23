@@ -3,6 +3,7 @@ import { ClientSwitcher } from '@/components/ClientSwitcher'
 import { frameSide, switchTargets, type FrameMode } from '@/lib/frame'
 import { badge, type CountsOrUnknown } from '@/lib/counts'
 import { switcherClients } from '@/lib/switcher-read'
+import { FrameNav } from './FrameNav'
 import { FrameTabs } from './FrameTabs'
 import styles from './Frame.module.css'
 
@@ -95,36 +96,19 @@ export async function Frame({
             </div>
           ))}
 
-        <nav className={styles.nav} aria-label={mode === 'presented' ? 'Esta reunião' : 'Sections'}>
-          <span className={styles.navLabel}>
-            {mode === 'presented' ? 'Esta reunião' : mode === 'client' ? 'This client' : 'Ryvo'}
-          </span>
-          {side.items.map((item) =>
-            item.built ? (
-              <Link
-                key={item.slug}
-                className={styles.item}
-                href={item.href}
-                aria-current={item.slug === current ? 'page' : undefined}
-              >
-                <span>{item.label}</span>
-              </Link>
-            ) : (
-              /*
-               * 🔒 NOT A DISABLED LINK. §0.4-7: a greyed control still reads as
-               * one click from opening, and this one would open a 404. There is
-               * nothing to open, so there is no control — and the word says
-               * which of the two states it is, because "not built yet" and
-               * "broken" look identical from a dead link and only one of them
-               * is worth reporting.
-               */
-              <span key={item.slug} className={styles.unbuilt}>
-                <span>{item.label}</span>
-                <span className={styles.unbuiltWord}>not built</span>
-              </span>
-            ),
-          )}
-        </nav>
+        {/*
+          * 🔴 The ITEMS are decided here, on the server — presented mode ships
+          * one, because §1.4 forbids another screen's name reaching the HTML.
+          * Only WHICH IS CURRENT is decided from the live URL, inside FrameNav,
+          * because this layout is not re-rendered on a client navigation and a
+          * header read once freezes the answer. See components/FrameNav.tsx.
+          */}
+        <FrameNav
+          items={side.items}
+          mode={mode}
+          label={mode === 'presented' ? 'Esta reunião' : 'Sections'}
+          sectionLabel={mode === 'presented' ? 'Esta reunião' : mode === 'client' ? 'This client' : 'Ryvo'}
+        />
 
         <div className={styles.foot}>{operatorEmail} · Europe/Lisbon</div>
       </aside>
@@ -133,11 +117,7 @@ export async function Frame({
           hidden below 901px. Neither can alter the other. Presented mode gets
           no bar at all, because it has exactly one destination. */}
       {mode !== 'presented' && side.items.length > 1 && (
-        <FrameTabs
-          primary={side.items.slice(0, 3)}
-          rest={side.items.slice(3)}
-          current={current ?? ''}
-        />
+        <FrameTabs primary={side.items.slice(0, 3)} rest={side.items.slice(3)} mode={mode} />
       )}
 
       <main className={styles.main}>{children}</main>

@@ -1,3 +1,4 @@
+import { navLabel } from '@/lib/frame'
 import { Bar, Panel, Reading } from '@/components/PageSkeleton'
 import styles from '@/components/month/month.module.css'
 
@@ -15,8 +16,12 @@ export default function Loading() {
   return (
     <Reading>
       <div className={styles.desk}>
-        <Bar w={200} h={28} r={10} />
-        <Panel rows={4} />
+        <div className={styles.page}>
+          <header className={styles.top}>
+            <h1 className={styles.title}>{navLabel('month')}</h1>
+          </header>
+          <Panel rows={4} />
+        </div>
         <Panel rows={3} />
       </div>
     </Reading>

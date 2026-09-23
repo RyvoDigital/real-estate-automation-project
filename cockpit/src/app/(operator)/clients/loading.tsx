@@ -1,3 +1,4 @@
+import { navLabel } from '@/lib/frame'
 import { Bar, Panel, Reading } from '@/components/PageSkeleton'
 import styles from '@/components/clients/clients.module.css'
 
@@ -10,8 +11,10 @@ export default function Loading() {
   return (
     <Reading>
       <div className={styles.page}>
-        <Bar w={148} h={28} r={10} />
-        <Bar w="min(60ch, 100%)" h={15} />
+        <header className={styles.head}>
+          <h1 className={styles.title}>{navLabel('clients')}</h1>
+          <Bar w="min(60ch, 100%)" h={15} />
+        </header>
         <Panel rows={4} />
       </div>
     </Reading>
