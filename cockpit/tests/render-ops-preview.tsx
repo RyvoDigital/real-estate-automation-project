@@ -31,9 +31,9 @@ const SRC = new URL('../src/', import.meta.url).pathname
  * here they are kept apart by never inlining two modules into one page.
  */
 const read = (f: string) => readFileSync(join(SRC, f), 'utf8')
-const BASE = ['app/tokens.css', 'components/state-chip.module.css'].map(read).join('\n')
+const BASE = ['app/tokens.css', 'app/motion.css', 'components/state-chip.module.css'].map(read).join('\n')
 const CSS = {
-  infra: [...['app/tokens.css', 'components/state-chip.module.css', 'components/infrastructure/infrastructure.module.css'].map(read)].join('\n'),
+  infra: [...['app/tokens.css', 'app/motion.css', 'components/state-chip.module.css', 'components/infrastructure/infrastructure.module.css'].map(read)].join('\n'),
   handback: `${BASE}\n${read('app/c/[client]/escalations/escalations.module.css')}`,
   copy: `${BASE}\n${read('components/report/copy-as-text.module.css')}`,
 }

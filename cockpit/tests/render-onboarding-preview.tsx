@@ -29,7 +29,7 @@ import { lisbonToday } from '../src/lib/month/model'
 const OUT = process.argv[2] ?? '/tmp/onboarding-preview'
 mkdirSync(OUT, { recursive: true })
 const SRC = new URL('../src/', import.meta.url).pathname
-const css = ['app/tokens.css', 'components/onboarding/onboarding.module.css', 'components/state-chip.module.css']
+const css = ['app/tokens.css', 'app/motion.css', 'components/onboarding/onboarding.module.css', 'components/state-chip.module.css']
   .map((f) => readFileSync(join(SRC, f), 'utf8')).join('\n')
 
 function page(title: string, sample: boolean, body: string): string {

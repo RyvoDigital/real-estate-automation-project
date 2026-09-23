@@ -83,7 +83,7 @@ function walk(dir: string, out: string[] = []): string[] {
 // replacements are reachable from the client sidebar), so their four entries
 // left this ledger by deletion rather than by being cleaned up.
 const LEGACY: Record<string, { count: number; until: string }> = {
-  'app/globals.css': { count: 203, until: 'C6 — when the last screen depending on its classes is rebuilt; see build plan §2.2b' },
+  'app/globals.css': { count: 201, until: 'C6 — when the last screen depending on its classes is rebuilt; see build plan §2.2b' },
   'app/layout.tsx': { count: 1, until: 'C6 — the themeColor literal, which a manifest needs as a literal' },
   'app/listings/page.tsx': { count: 9, until: 'C5' },
   'components/Queue.tsx': { count: 1, until: 'C3 — the escalations rebuild' },

@@ -140,4 +140,20 @@
   --display: var(--font-bricolage), "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
   --sans: var(--font-instrument), "Instrument Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --mono: var(--font-geist-mono), "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* ── Motion ───────────────────────────────────────────────────────────────
+     One vocabulary, added 23 Sep 2026. Before it, nine durations and four
+     easings had each been chosen at their own call site.
+
+     🔒 Motion encodes a change in state or in time; nothing moves for any
+     other reason (§1.14). These are the three speeds that encoding needs:
+     the answer to a press, the answer to a pointer, and a thing opening.
+
+     🔒 ONE CURVE, AND IT DOES NOT OVERSHOOT. A spring that passes its target
+     and comes back is a bounce, and nothing in the cockpit bounces
+     (operator, 23 Sep 2026 — it supersedes §1.14's "spring height"). */
+  --motion-press: 100ms;
+  --motion-quick: 120ms;
+  --motion: 200ms;
+  --ease-out: cubic-bezier(0.2, 0.7, 0.3, 1);
 }

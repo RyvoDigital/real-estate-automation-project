@@ -9,7 +9,22 @@
 .head { display: flex; flex-direction: column; gap: var(--s2); }
 .title { margin: 0; font-family: var(--display); font-size: 28px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; color: var(--text); }
 .lede { margin: 0; max-width: 72ch; font-size: 14.5px; color: var(--text-2); }
+/*
+ * 🔒 A CONFIRMATION'S GROUND FADES IN; ITS WORDS DO NOT (rule B, and the
+ * no-delay rule). The surface arrives over 200ms, the sentence is at full
+ * strength from the first frame — a fade on the text would delay reading it by
+ * exactly the duration of the fade.
+ *
+ * 🔴 AND ONLY A QUIET ONE. A red banner — a refusal, a failed read — appears at
+ * full strength, first frame, because a fade on bad news softens it (rule F).
+ * The `.said` class carries the fade; the banner itself never does.
+ */
 .banner { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s3) var(--s4); border-radius: 14px; font-size: 13.5px; }
+@keyframes groundIn { from { opacity: 0; } to { opacity: 1; } }
+.said { position: relative; }
+.said::before { content: ''; position: absolute; inset: 0; border-radius: 14px; background: inherit;
+  animation: groundIn var(--motion) var(--ease-out) both; }
+@media (prefers-reduced-motion: reduce) { .said::before { animation: none; } }
 .banner ul { margin: 0; padding-left: var(--s5); }
 
 .section { display: flex; flex-direction: column; gap: var(--s3); }
@@ -56,12 +71,13 @@ textarea.input { padding: var(--s2) var(--s3); min-height: 64px; }
 .primary { align-self: flex-start; min-height: 40px; padding: 0 var(--s5); border: 0; border-radius: 999px; background: var(--press); box-shadow: var(--press-shadow); color: var(--text); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
 .ghost { min-height: 36px; padding: 0 var(--s4); border: 1px solid var(--edge-2); border-radius: 999px; background: transparent; color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .form .ghost { align-self: flex-start; }
+.primary, .ghost { transition: transform var(--motion-press) var(--ease-out); }
 .primary:active, .ghost:active { transform: scale(0.97); }
 @media (max-width: 760px) { .fields { grid-template-columns: 1fr; } .row { grid-template-columns: 1fr; } .aside { align-items: flex-start; } }
-@media (prefers-reduced-motion: reduce) { .primary:active, .ghost:active { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .primary, .ghost { transition: none; } .primary:active, .ghost:active { transform: none; transition: none; } }
 .confirmAsk { margin: 0; max-width: 62ch; font-size: 13.5px; line-height: 1.5; color: var(--text); }
 .hiddenNote { margin: -12px 0 0; font-size: 12.5px; color: var(--text-3); }
-.link { color: var(--text-2); text-underline-offset: 3px; }
+.link { transition: background-color var(--motion-quick) var(--ease-out), color var(--motion-quick) var(--ease-out); color: var(--text-2); text-underline-offset: 3px; }
 .link:hover { color: var(--text); }
 
 /*
@@ -81,9 +97,11 @@ textarea.input { padding: var(--s2) var(--s3); min-height: 64px; }
  * #obl-<chain>, so the browser scrolls to it and this marks it — the answer to
  * "which one was mine?" after landing back in a list.
  *
- * The motion follows the house convention (globals.css:1200, stamp.module.css):
- * a short settle on OPACITY and background, ~200ms, ease-out, and nothing at
- * all under prefers-reduced-motion — where the mark simply holds instead.
+ * 🔒 IT HOLDS, THEN RELEASES — 2.2s, of which the first 65% is at full
+ * strength. That is not a long fade: it is a mark that survives a SLOW
+ * ARRIVAL. A mark that faded in, or began fading immediately, would be gone by
+ * the time a slow page had finished settling. Off under prefers-reduced-motion,
+ * where the mark simply stays.
  */
 .row:target { animation: recorded 2.2s ease-out 1 both; border-radius: 12px; margin-inline: calc(var(--s3) * -1); padding-inline: var(--s3); }
 @keyframes recorded {

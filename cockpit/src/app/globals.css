@@ -794,7 +794,9 @@ code { font-family: var(--f-mono); font-size: 0.92em; }
 }
 .anom-more__sum::-webkit-details-marker { display: none; }
 .anom-more__sum:hover { border-color: rgba(255, 255, 255, 0.2); color: var(--ink-1); }
-.anom-more__chev { transition: transform 140ms ease; flex-shrink: 0; color: var(--ink-3); }
+/* 🔁 The one animation in the cockpit with no reduced-motion counterpart
+   until 23 Sep 2026. It has one now, at the foot of this file. */
+.anom-more__chev { transition: transform var(--motion-quick) var(--ease-out); flex-shrink: 0; color: var(--ink-3); }
 .anom-more[open] > .anom-more__sum .anom-more__chev { transform: rotate(90deg); }
 .anom-more[open] > .anom-more__sum { border-style: solid; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 .anom-more__body { padding-top: 9px; }
@@ -1183,18 +1185,11 @@ code { font-family: var(--f-mono); font-size: 0.92em; }
 
 .skeleton {
   border-radius: var(--r-sm);
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.035) 0%,
-    rgba(255, 255, 255, 0.075) 50%,
-    rgba(255, 255, 255, 0.035) 100%
-  );
-  background-size: 200% 100%;
-  animation: sheen 1.4s ease-in-out infinite;
-}
-@keyframes sheen {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  /* 🔴 Flat, and still (23 Sep 2026). This was a three-stop gradient swept by
+     `sheen`; §1.14 forbids both the loop and the animated gradient, and with
+     the sweep gone the gradient was a band with no meaning. The SHAPE is what
+     says "something is coming here". See FrameSkeleton.module.css. */
+  background: rgba(255, 255, 255, 0.05);
 }
 
 /*
@@ -1207,7 +1202,8 @@ code { font-family: var(--f-mono); font-size: 0.92em; }
 .tabs { animation: settle 160ms ease-out both; }
 
 @media (prefers-reduced-motion: reduce) {
-  .skeleton, .main > *, .tabs { animation: none; }
+  .main > *, .tabs { animation: none; }
+  .anom-more__chev { transition: none; }
 }
 
 /* ================================================================ desktop */

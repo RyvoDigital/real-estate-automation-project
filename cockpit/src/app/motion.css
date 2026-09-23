@@ -1,0 +1,44 @@
+/*
+ * THE COCKPIT'S GLOBAL MOTION (23 Sep 2026). Brief §1.14, and lib/motion.ts
+ * for the rules in prose.
+ *
+ * 🔒 ELEMENT SELECTORS ONLY, and that is why this file exists rather than a
+ * rule in globals.css: the previews inline the stylesheets a screen uses, and
+ * globals.css is full of legacy CLASS names that collide with the CSS modules
+ * when they are unhashed outside Next. A sheet with no class names cannot
+ * collide with anything, so a preview can load it and show what the page
+ * shows — which is the rule this file was nearly the first to break.
+ */
+
+/*
+ * ── Disclosures open and close (§1.14 rule D) ───────────────────────────────
+ *
+ * ONE RULE FOR ALL TWENTY-FOUR. Today's five groups, Expiries' four forms per
+ * obligation, Onboarding's records, The Month's three entry forms and every
+ * absence block are native <details> — chosen because they need no client
+ * component and work before hydration (today.module.css). Until today they
+ * snapped, which is what "unfinished" meant on the screens that use them most.
+ *
+ * 🔒 `::details-content` is how a native disclosure animates without
+ * JavaScript, so the pre-hydration guarantee survives. `interpolate-size`
+ * lets `auto` be a transition endpoint; where it is unsupported the
+ * disclosure simply snaps, as it does today, and nothing breaks.
+ *
+ * 🔒 ONE CURVE, NO OVERSHOOT: a spring that passes its target and returns is a
+ * bounce, and nothing in the cockpit bounces (operator, 23 Sep 2026).
+ *
+ * 🔒 It cannot fire on its own. A disclosure opens because somebody opened it
+ * — which is rule G, and the reason this is safe on a slow connection.
+ */
+:root { interpolate-size: allow-keywords; }
+
+details::details-content {
+  block-size: 0;
+  overflow: hidden;
+  transition: block-size var(--motion) var(--ease-out), content-visibility var(--motion) allow-discrete;
+}
+details[open]::details-content { block-size: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  details::details-content { transition: none; }
+}

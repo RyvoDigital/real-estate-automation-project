@@ -32,7 +32,7 @@ import type { ScreenData } from '../src/lib/segmentation/read'
 const OUT = process.argv[2] ?? '/tmp/segmentation-preview'
 mkdirSync(OUT, { recursive: true })
 const SRC = new URL('../src/', import.meta.url).pathname
-const css = ['app/tokens.css', 'components/segmentation/segmentation.module.css'].map((f) => readFileSync(join(SRC, f), 'utf8')).join('\n')
+const css = ['app/tokens.css', 'app/motion.css', 'components/segmentation/segmentation.module.css'].map((f) => readFileSync(join(SRC, f), 'utf8')).join('\n')
 
 function page(title: string, body: string): string {
   return `<!doctype html><html lang="pt"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">

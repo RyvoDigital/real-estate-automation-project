@@ -37,7 +37,7 @@ import type { Refusal } from '../src/lib/refusals'
 const OUT = process.argv[2] ?? '/tmp/expiries-preview'
 mkdirSync(OUT, { recursive: true })
 const SRC = new URL('../src/', import.meta.url).pathname
-const css = ['app/tokens.css', 'components/expiries/expiries.module.css', 'components/state-chip.module.css']
+const css = ['app/tokens.css', 'app/motion.css', 'components/expiries/expiries.module.css', 'components/state-chip.module.css']
   .map((f) => readFileSync(join(SRC, f), 'utf8')).join('\n')
 const page = (title: string, body: string) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title}</title>

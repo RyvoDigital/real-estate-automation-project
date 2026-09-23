@@ -185,6 +185,7 @@
 .handbackYes { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; font-size: 13px; color: var(--text); }
 .handbackGo { min-height: 36px; padding: 0 18px; border: 1px solid var(--edge-2); border-radius: 999px; background: transparent;
   color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.handbackGo { transition: transform var(--motion-press) var(--ease-out); }
 .handbackGo:active { transform: scale(0.97); }
 @media (max-width: 900px) { .handback { padding-left: 52px; } }
-@media (prefers-reduced-motion: reduce) { .handbackGo:active { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .handbackGo { transition: none; } .handbackGo:active { transform: none; transition: none; } }

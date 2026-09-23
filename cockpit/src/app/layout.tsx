@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { bricolage, display, geistMono, instrument, mono, sans } from './fonts'
 import './tokens.css'
 import './globals.css'
+import './motion.css'
 
 export const metadata: Metadata = {
   title: 'Ryvo Cockpit',

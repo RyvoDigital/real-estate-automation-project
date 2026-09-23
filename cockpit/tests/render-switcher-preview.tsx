@@ -14,7 +14,7 @@ import { switchTargets } from '../src/lib/frame'
 const OUT = process.argv[2] ?? '/tmp/switcher-preview'
 mkdirSync(OUT, { recursive: true })
 const SRC = new URL('../src/', import.meta.url).pathname
-const css = ['app/tokens.css', 'components/ClientSwitcher.module.css'].map((f) => readFileSync(join(SRC, f), 'utf8')).join('\n')
+const css = ['app/tokens.css', 'app/motion.css', 'components/ClientSwitcher.module.css'].map((f) => readFileSync(join(SRC, f), 'utf8')).join('\n')
 const CLIENTS = [
   { id: 'a', name: 'Marbella Sur' },
   { id: 'b', name: 'Casa Atlântica' },

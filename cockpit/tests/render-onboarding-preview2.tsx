@@ -18,7 +18,7 @@ import type { Checklist as Model, Step, StepKey, StepState } from '../src/lib/on
 const OUT = process.argv[2] ?? '/tmp/onb2'
 mkdirSync(OUT, { recursive: true })
 const SRC = new URL('../src/', import.meta.url).pathname
-const css = ['app/tokens.css', 'components/state-chip.module.css', 'components/onboarding/onboarding.module.css']
+const css = ['app/tokens.css', 'app/motion.css', 'components/state-chip.module.css', 'components/onboarding/onboarding.module.css']
   .map((f) => readFileSync(join(SRC, f), 'utf8')).join('\n')
 const page = (title: string, body: string) => `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <title>${title}</title>

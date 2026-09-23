@@ -21,7 +21,7 @@ import type { Checklist, Step, StepKey, StepState } from '../src/lib/onboarding-
 const OUT = process.argv[2] ?? '/tmp/clients-preview'
 mkdirSync(OUT, { recursive: true })
 const SRC = new URL('../src/', import.meta.url).pathname
-const css = ['app/tokens.css', 'components/state-chip.module.css', 'components/clients/clients.module.css']
+const css = ['app/tokens.css', 'app/motion.css', 'components/state-chip.module.css', 'components/clients/clients.module.css']
   .map((f) => readFileSync(join(SRC, f), 'utf8')).join('\n')
 /** 🔒 The banner must say what the page really is: REAL reads production, SAMPLE
  * is fictional, and the empty one is neither — it is the shape with no rows. */

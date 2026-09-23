@@ -43,7 +43,7 @@
 .group { border-radius: 22px; background: var(--glass); box-shadow: var(--glass-hi); min-width: 0; }
 
 /* The header is a <summary>: native disclosure, keyboard-operable, works before hydration. */
-.head { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto 20px; gap: var(--s4); align-items: start; padding: var(--s4) var(--s5); cursor: pointer; list-style: none; min-height: 44px; border-radius: 22px; }
+.head { transition: background-color var(--motion-quick) var(--ease-out), color var(--motion-quick) var(--ease-out); display: grid; grid-template-columns: 32px minmax(0, 1fr) auto 20px; gap: var(--s4); align-items: start; padding: var(--s4) var(--s5); cursor: pointer; list-style: none; min-height: 44px; border-radius: 22px; }
 .head::-webkit-details-marker { display: none; }
 .head:hover { background: var(--lift-1); }
 .ordinal { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; background: var(--lift-3); color: var(--text-2); font-family: var(--display); font-size: 14px; font-weight: 600; }
@@ -101,5 +101,11 @@ a.row:hover { background: var(--lift-2); }
 /* Who is left out of the operator-wide reads, and the control that includes them (22 Sep 2026). */
 .hiddenNote { margin: 0 0 10px; font-size: 12.5px; color: var(--text-3); }
 .rehearsalsRow { margin: 0 0 14px; }
-.rehearsals { font-size: 12.5px; color: var(--text-2); text-underline-offset: 3px; }
+.rehearsals { transition: background-color var(--motion-quick) var(--ease-out), color var(--motion-quick) var(--ease-out); font-size: 12.5px; color: var(--text-2); text-underline-offset: 3px; }
 .rehearsals:hover { color: var(--text); }
+
+/* Every transition here answers a pointer; under reduced motion the colour
+   still changes, it simply changes at once. */
+@media (prefers-reduced-motion: reduce) {
+  .head, a.row, .about summary, .rehearsals { transition: none; }
+}

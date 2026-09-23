@@ -78,6 +78,7 @@ a.row:hover { border-color: var(--hair-strong); }
 
 .actions { display: flex; align-items: center; gap: var(--s4); flex-wrap: wrap; }
 .primary { min-height: 48px; padding: 0 var(--s6); border-radius: 999px; border: 1px solid currentColor; background: none; color: inherit; font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
+.primary { transition: transform var(--motion-press) var(--ease-out); }
 .primary:active { transform: scale(0.97); }
 .primary:disabled { opacity: 0.55; cursor: progress; }
 .prompt { font-size: 14px; font-weight: 600; }
@@ -96,4 +97,4 @@ a.row:hover { border-color: var(--hair-strong); }
   .pair { grid-template-columns: 1fr; }
   .row { grid-template-columns: 1fr; }
 }
-@media (prefers-reduced-motion: reduce) { .primary:active { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .primary { transition: none; } .primary:active { transform: none; transition: none; } }

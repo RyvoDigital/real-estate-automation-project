@@ -13,7 +13,7 @@ import { FrameSkeleton } from '../src/components/FrameSkeleton'
 const OUT = process.argv[2] ?? '/tmp/skeleton-preview'
 mkdirSync(OUT, { recursive: true })
 const SRC = new URL('../src/', import.meta.url).pathname
-const css = ['app/tokens.css', 'components/Frame.module.css', 'components/FrameSkeleton.module.css']
+const css = ['app/tokens.css', 'app/motion.css', 'components/Frame.module.css', 'components/FrameSkeleton.module.css']
   .map((f) => readFileSync(join(SRC, f), 'utf8')).join('\n')
 
 writeFileSync(join(OUT, 'onboarding.html'), `<!doctype html><html lang="en"><head><meta charset="utf-8">

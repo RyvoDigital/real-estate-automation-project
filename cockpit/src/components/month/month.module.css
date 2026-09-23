@@ -24,9 +24,9 @@
 .top { display: flex; align-items: center; gap: var(--s4); flex-wrap: wrap; }
 .title { margin: 0; font-family: var(--display); font-size: 28px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; color: var(--text); }
 .stepper { display: inline-flex; align-items: center; gap: var(--s1); padding: var(--s1); border-radius: 12px; background: var(--glass); box-shadow: var(--glass-hi); }
-.stepper a { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; color: var(--text-2); text-decoration: none; font-size: 16px; transition: background-color 140ms ease, color 140ms ease; }
+.stepper a { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; color: var(--text-2); text-decoration: none; font-size: 16px; transition: background-color var(--motion-quick) var(--ease-out), color var(--motion-quick) var(--ease-out); }
 .stepper a:hover { background: var(--lift-2); color: var(--text); }
-.stepper a:active { transform: scale(0.96); }
+.stepper a:active { transform: scale(0.97); }
 .stepper span { padding: 0 var(--s2); font-size: 14px; font-weight: 600; color: var(--text); }
 .phase { font-size: 13px; color: var(--text-2); font-variant-numeric: tabular-nums; }
 .readAt { margin-left: auto; font-size: 12.5px; color: var(--text-3); }

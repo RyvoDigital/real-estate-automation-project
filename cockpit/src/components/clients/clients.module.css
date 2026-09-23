@@ -26,7 +26,7 @@
 .row { border-top: 1px solid var(--edge); }
 .row:first-child { border-top: 0; }
 
-.open { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s3) var(--s5); align-items: center;
+.open { transition: background-color var(--motion-quick) var(--ease-out), color var(--motion-quick) var(--ease-out); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s3) var(--s5); align-items: center;
   padding: var(--s4) var(--s2); margin-inline: calc(var(--s2) * -1); border-radius: 16px;
   color: var(--text); text-decoration: none; min-height: 64px; }
 .open:hover { background: var(--lift-2); }
@@ -48,4 +48,10 @@
 @media (max-width: 860px) {
   .open { grid-template-columns: 1fr; align-items: start; }
   .states { justify-content: flex-start; }
+}
+
+/* Every transition here answers a pointer; under reduced motion the colour
+   still changes, it simply changes at once. */
+@media (prefers-reduced-motion: reduce) {
+  .open, .row { transition: none; }
 }

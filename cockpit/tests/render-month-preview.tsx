@@ -33,7 +33,7 @@ import type { ActivityModel } from '../src/components/month/TheMonth'
 const OUT = process.argv[2] ?? '/tmp/month-preview'
 mkdirSync(OUT, { recursive: true })
 const SRC = new URL('../src/', import.meta.url).pathname
-const css = ['app/tokens.css', 'components/month/month.module.css', 'components/month/entry.module.css', 'components/state-chip.module.css']
+const css = ['app/tokens.css', 'app/motion.css', 'components/month/month.module.css', 'components/month/entry.module.css', 'components/state-chip.module.css']
   .map((f) => readFileSync(join(SRC, f), 'utf8')).join('\n')
 
 const SAMPLE: MonthInputs = {

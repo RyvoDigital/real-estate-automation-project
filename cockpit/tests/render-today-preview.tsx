@@ -30,7 +30,7 @@ import type { StillGood } from '../src/lib/publication/still-good'
 const OUT = process.argv[2] ?? '/tmp/today-preview'
 mkdirSync(OUT, { recursive: true })
 const SRC = new URL('../src/', import.meta.url).pathname
-const css = ['app/tokens.css', 'components/today/today.module.css', 'components/state-chip.module.css', 'components/clock.module.css', 'components/stamp.module.css']
+const css = ['app/tokens.css', 'app/motion.css', 'components/today/today.module.css', 'components/state-chip.module.css', 'components/clock.module.css', 'components/stamp.module.css']
   .map((f) => readFileSync(join(SRC, f), 'utf8')).join('\n')
 
 function page(title: string, sample: boolean, body: string): string {

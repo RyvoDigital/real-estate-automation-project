@@ -23,7 +23,7 @@ import { EMPTY_ANSWERS } from '../src/lib/matching/thresholds'
 const OUT = process.argv[2] ?? '/tmp/calibrate-preview'
 mkdirSync(OUT, { recursive: true })
 const SRC = new URL('../src/', import.meta.url).pathname
-const css = ['app/tokens.css', 'components/calibrate/calibrate.module.css'].map((f) => readFileSync(join(SRC, f), 'utf8')).join('\n')
+const css = ['app/tokens.css', 'app/motion.css', 'components/calibrate/calibrate.module.css'].map((f) => readFileSync(join(SRC, f), 'utf8')).join('\n')
 const page = (title: string, body: string) => `<!doctype html><html lang="pt"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title}</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">

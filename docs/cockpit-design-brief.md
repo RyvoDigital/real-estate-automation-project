@@ -258,6 +258,10 @@ the names and the reasons, and a test asserts every name below exists there.
 | `--display` | `"Bricolage Grotesque"` | headings, group names, **clocks and amounts** |
 | `--sans` | `"Instrument Sans"` | all running text |
 | `--mono` | `"Geist Mono"` | **only** text stored verbatim — an event's summary, a message as sent |
+| `--motion-press` | `100ms` | the answer to a press |
+| `--motion-quick` | `120ms` | the answer to a pointer — hover, and a menu arriving |
+| `--motion` | `200ms` | a thing opening or closing |
+| `--ease-out` | `cubic-bezier(0.2,0.7,0.3,1)` | **the one curve.** It does not overshoot: a spring that passes its target and comes back is a bounce, and nothing bounces (operator, 23 Sep 2026 — supersedes §1.14's "spring height") |
 
 ### 🔴 A preview renders what the page renders (23 September 2026)
 

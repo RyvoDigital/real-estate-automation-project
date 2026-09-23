@@ -114,7 +114,7 @@
   text-transform: uppercase;
   color: var(--text-3);
 }
-.item {
+.item { transition: background-color var(--motion-quick) var(--ease-out), color var(--motion-quick) var(--ease-out);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -186,6 +186,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* 🔁 These now HAVE a transition to disable (23 Sep 2026): until today this
+     rule guarded motion that did not exist. */
   .item, .up { transition: none; }
 }
 
