@@ -695,6 +695,50 @@ in the served code instead, which is the only place that difference exists.
 
 Real value, no deadline. Do when a quiet block appears — never while a defect list is open.
 
+### 4.0a The new cockpit has no streaming boundary — 22 of 36 routes
+*Logged 23 Sep 2026, found while auditing a layout shift. Not started, and
+deliberately not folded into the motion work.*
+
+**The finding.** The old cockpit gave every route a `loading.tsx`; the new one
+gives exactly one (`/onboarding`, which also covers `/onboarding/new`). So on
+`/`, `/today`, `/clients`, `/ops/expiries`, `/ops/infrastructure`, every
+`/c/<client>/*` screen and `/p/<client>/notice` — **22 of the 36 routes,
+including Today and the whole client level** — a navigation shows the
+*previous* screen for the entire server render, then swaps. Every one of those
+pages is `dynamic = 'force-dynamic'`, so there is no cached payload to
+short-circuit it.
+
+**Why it matters, and why it is not a motion problem.** `tests/probe-timing.ts`
+exists because this exact complaint was once diagnosed as animation and was
+not: `/leads` took 730–1050ms to first byte, and the file's own conclusion is
+that *"adding a transition over that would have made it worse"*. The fix is a
+boundary, not an easing.
+
+**What it would take.** A `FrameSkeleton`-shaped `loading.tsx` per route group —
+the component already exists and already reserves the chrome's four boxes, so
+the work is one small file per route plus a check that each skeleton's geometry
+matches the screen it covers. `tests/frame-skeleton.test.ts` already holds any
+new one to the frame's shape.
+
+**🔒 Two rules derived on 23 Sep, recorded here so they outlive the day that
+taught them:**
+
+1. **A preview renders what the page renders.** A preview that wraps a screen
+   in a hand-written container is showing a screen that does not exist. It cost
+   two defects in one day: the month preview's `marginTop: 32` hid a collision
+   between "What this page does not do" and "Record a contract" for as long as
+   the collision existed, while the onboarding preview rendered the real grid
+   and caught a layout bug twice. Now in brief §0.5 and enforced by
+   `tests/preview-fidelity.test.ts`.
+2. **A screenshot shows what a screen looks like, not what it measures.**
+   A spacing fix was reviewed, approved and shipped on the strength of a
+   screenshot, and the gap it claimed to add was **zero** — `.desk` read a
+   spacing variable declared on its own child, so `gap` was invalid. The
+   screenshot agreed with me because a hairline had appeared in the same place.
+   Spacing claims get measured in a browser: `tests/month-desk.test.ts` holds
+   that one, and the same method caught a 58px layout shift and a duplicated
+   DOM id the same day.
+
 ### 4.0 Measure usage cost — ⏰ TRIGGER: when the first real client goes live
 *Logged 21 Sep 2026 (operator, The Month checkpoint 1).* The Month says "excludes
 usage" on every net, because nothing measures WhatsApp or model cost:
