@@ -75,3 +75,6 @@
   }
   .sheetItem[aria-current='page'] { background: var(--glass); color: var(--text); font-weight: 600; }
 }
+
+/* Anchored with the rest of the chrome — see Frame.module.css. */
+.tabs { view-transition-name: phonebar; }

@@ -221,3 +221,14 @@
  * the same reservation took the sidebar's jump from 58px to 0.
  */
 .switcherSlot { min-height: 44px; border-radius: 14px; background: var(--glass); }
+
+/*
+ * 🔴 THE CHROME IS NOT PART OF WHAT A NAVIGATION REPLACES (Stage 3, 23 Sep
+ * 2026). Naming these makes the browser snapshot them during a view
+ * transition; src/app/motion.css then holds them still. Without a name they
+ * would be captured inside the page's own snapshot and would dissolve with it
+ * — the sidebar fading out and back on every click, which is the thing three
+ * stages of work have been removing.
+ */
+.side { view-transition-name: chrome; }
+.main { view-transition-name: screen; }

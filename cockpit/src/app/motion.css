@@ -42,3 +42,67 @@ details[open]::details-content { block-size: auto; }
 @media (prefers-reduced-motion: reduce) {
   details::details-content { transition: none; }
 }
+
+/*
+ * ── The screen changes; the chrome does not (§1.14 rule D, Stage 3) ─────────
+ *
+ * 🔴 THE OLD SCREEN LEAVES. THE NEW ONE ARRIVES AT FULL STRENGTH.
+ *
+ * The plan said crossfade, and a crossfade would have broken rule F. A
+ * crossfade fades the destination IN — so a red banner, a "run out", a stale
+ * stamp would each arrive at 40% opacity and climb, and §1.14 is explicit that
+ * a fade on bad news is a softening of it. It would also break the operator's
+ * own constraint that no motion may delay reading a number or a sentence: for
+ * the length of the fade, every figure on the new screen is harder to read
+ * than it will be.
+ *
+ * So only the departure animates. The screen you are leaving dissolves over
+ * 120ms on top of the screen you are arriving at, which is already fully
+ * drawn and fully legible in its first frame. Nothing ever fades in, so no
+ * loud state is ever softened, and nothing moves position — this is opacity
+ * only, which is also why nothing can bounce.
+ *
+ * 🔒 It cannot fire on its own (rule G). A view transition runs inside a React
+ * transition, and in the App Router that is a navigation — something the
+ * operator did. The 60-second re-read is not one.
+ */
+::view-transition-old(screen) {
+  animation: screen-leaves var(--motion-quick) var(--ease-out) both;
+  z-index: 2;
+}
+/* 🔴 Nothing here. The destination is readable at frame one. */
+::view-transition-new(screen) { animation: none; z-index: 1; }
+
+@keyframes screen-leaves { to { opacity: 0; } }
+
+/*
+ * The sidebar and the phone bar are held still. `display: none` on the old
+ * snapshot stops the two being briefly visible at once; without it the chrome
+ * ghosts against itself.
+ */
+::view-transition-group(chrome),
+::view-transition-group(phonebar) { animation: none; z-index: 100; }
+::view-transition-old(chrome),
+::view-transition-old(phonebar) { display: none; }
+::view-transition-new(chrome),
+::view-transition-new(phonebar) { animation: none; }
+
+/*
+ * 🔒 A CLICK DURING THE TRANSITION IS NOT LOST. The overlay captures pointer
+ * events by default, so a second click inside 120ms would land on nothing.
+ */
+::view-transition { pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  /*
+   * Everything off. The screens still change — the browser's own behaviour
+   * with no animation is an instant swap, which is what somebody asking for
+   * reduced motion is asking for.
+   */
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}

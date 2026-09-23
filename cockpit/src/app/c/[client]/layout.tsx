@@ -1,3 +1,4 @@
+import { ViewTransition } from 'react'
 import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { requireOperator } from '@/lib/auth'
@@ -29,7 +30,22 @@ export default async function ClientLayout({
 
   return (
     <Frame mode="client" client={{ id: client.id, name: client.name }} current={screen} counts={counts} operatorEmail={operator.email}>
-      {children}
+      {/*
+        * 🔴 THE BOUNDARY A NAVIGATION ANIMATES ACROSS (Stage 3, 23 Sep 2026).
+        * Its presence is what makes the browser run a view transition at all;
+        * WHAT moves is decided in src/app/motion.css, against the names in
+        * Frame.module.css — the screen leaves, the chrome does not, and the
+        * destination arrives at full strength.
+        *
+        * 🔴 NO PROPS, AND THAT IS THE POINT. This was written as
+        * `<ViewTransition exit="screen" enter="none" default="none">`, reading
+        * the API as "opt everything out and let the CSS names decide". React
+        * took it at its word and skipped the transition entirely:
+        * startViewTransition was called ZERO times. Measured by
+        * tests/probe-transition.ts, which is the only reason it was found —
+        * the build compiled, the CSS was correct, and nothing happened.
+        */}
+      <ViewTransition>{children}</ViewTransition>
     </Frame>
   )
 }

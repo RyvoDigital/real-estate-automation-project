@@ -81,6 +81,15 @@ test('🔒 the vocabulary is the tokens: no new duration literal outside tokens.
        */
       if (rel === 'components/expiries/expiries.module.css' && m[2] === '2.2s') continue
       if (rel === 'components/stamp.module.css' && m[2] === '2s') continue
+      /*
+       * 🔒 ZERO IS NOT A DURATION. `animation-duration: 0s` is how a
+       * prefers-reduced-motion block says "none" — it cannot express a feel,
+       * a pace or a choice, which is what this rule exists to keep out of the
+       * call sites. Tokenising it would mean a `--motion-off: 0s`, which is a
+       * name for nothing. Found when Stage 3's reduced-motion block tripped
+       * this guard on 23 Sep 2026: right in the letter, wrong in the spirit.
+       */
+      if (m[2] === '0s') continue
       offences.push(`${rel}: ${m[0].trim()}`)
     }
   }
@@ -145,4 +154,56 @@ test('🔒 the skeleton does not move: it is a block of the right shape', () => 
   assert.doesNotMatch(skeleton, /animation:/, 'the loading skeleton pulses again')
   const globals = CSS.find((c) => c.rel === 'app/globals.css')!.text
   assert.doesNotMatch(globals, /@keyframes sheen/, 'the legacy shimmer is back')
+})
+
+test('🔴 RULE F, ON THE NAVIGATION ITSELF: nothing ARRIVES with an animation', () => {
+  /*
+   * Stage 3, 23 Sep 2026, and it changed the plan. The plan said crossfade.
+   * A crossfade fades the destination IN — so a red banner, a "run out", a
+   * stale stamp would each arrive faint and climb to full strength, and §1.14
+   * is explicit that a fade on bad news is a softening of it. It also breaks
+   * the operator's own constraint that no motion may delay reading a number or
+   * a sentence: for the length of the fade every figure is harder to read than
+   * it is about to be.
+   *
+   * So only the DEPARTURE animates. This is the rule in the stylesheet, and
+   * tests/probe-transition.ts is the same rule measured in a browser while a
+   * real navigation runs.
+   */
+  const motion = CSS.find((c) => c.rel === 'app/motion.css')!.text
+
+  const rule = (sel: string) => {
+    const m = new RegExp(`::view-transition-${sel}\\s*\\{([^}]*)\\}`).exec(motion)
+    return m ? m[1] : null
+  }
+  const arriving = rule('new\\(screen\\)')
+  assert.ok(arriving, 'the arriving screen must have an explicit rule, not a default crossfade')
+  assert.match(arriving!, /animation:\s*none/, 'the destination must be at full strength in its first frame')
+
+  const leaving = rule('old\\(screen\\)')
+  assert.ok(leaving, 'the departing screen has no rule')
+  assert.match(leaving!, /var\(--motion-quick\)/, 'the departure takes its pace from the tokens')
+  // Opacity only: nothing moves position, so nothing can overshoot.
+  const frames = /@keyframes screen-leaves\s*\{([^}]*\{[^}]*\})*[^}]*\}/.exec(motion)?.[0] ?? ''
+  assert.match(frames, /opacity/)
+  assert.doesNotMatch(frames, /translate|scale|rotate/, 'a navigation moves nothing on the screen')
+
+  // 🔒 The chrome is not part of what a navigation replaces.
+  assert.match(motion, /::view-transition-group\(chrome\)[\s\S]{0,120}animation: none/)
+  // 🔒 And a click inside the transition is not swallowed by the overlay.
+  assert.match(motion, /::view-transition \{ pointer-events: none; \}/)
+
+  /*
+   * 🔴 ITS OWN REDUCED-MOTION BLOCK, and this assertion exists because the
+   * general guard missed it. "every keyframe animation can be turned off, in
+   * its own FILE" asks whether the file mentions prefers-reduced-motion at all
+   * — and motion.css already did, for the disclosures. So deleting the view
+   * transitions' block entirely raised nothing: proved by sabotage on 23 Sep
+   * 2026, where A and B went red and C passed. A file-level answer is too
+   * coarse once a file holds two kinds of motion.
+   */
+  const reduced = motion.slice(motion.lastIndexOf('@media (prefers-reduced-motion: reduce)'))
+  assert.match(reduced, /::view-transition-old\(\*\)/, 'the transitions need their own reduced-motion block')
+  assert.match(reduced, /::view-transition-new\(\*\)/)
+  assert.match(reduced, /animation-duration: 0s/)
 })
