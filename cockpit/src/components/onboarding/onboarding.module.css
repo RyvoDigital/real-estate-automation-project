@@ -4,6 +4,13 @@
  * figure, at most one supporting line), sections separated by space and never
  * by stacked rules, neutral tokens everywhere. State colour (done, broken)
  * comes ONLY through state-chip; absence is grey (tokens.test.ts, rule 3).
+ *
+ * 🔒 THE DIVIDER RULE (23 Sep 2026). Rows inside one list carry a hairline
+ * between them — `1px solid var(--edge)`, never above the first. This REFINES
+ * the rule above rather than reversing it: a list is a sequence of LIKE
+ * THINGS and needs rhythm to be read down; blocks and sections are still
+ * separated by space and never by stacked rules. --edge-2 stays reserved for
+ * something pressable.
  */
 
 .page {
@@ -28,7 +35,7 @@
 /* ── the checklist: one step = number, title + state, one line ───────────── */
 .steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s5); counter-reset: step; }
 .step { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: var(--s2) var(--s4); counter-increment: step; }
-.step::before { content: counter(step); grid-row: span 3; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; background: var(--lift-3); color: var(--text-2); font-family: var(--display); font-size: 14px; font-weight: 600; }
+.step::before { content: counter(step); grid-row: 1 / -1; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; background: var(--lift-3); color: var(--text-2); font-family: var(--display); font-size: 14px; font-weight: 600; }
 .stepHead { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; min-width: 0; }
 .stepTitle { margin: 0; font-family: var(--display); font-size: 17px; font-weight: 600; letter-spacing: -0.015em; color: var(--text); }
 .kind { font-size: 12px; color: var(--text-3); }
@@ -74,7 +81,9 @@ textarea.input { padding: var(--s3); min-height: 64px; height: 64px; resize: ver
 .choice span { display: block; margin-top: 2px; font-size: 12.5px; line-height: 1.4; color: var(--text-2); }
 
 /* ── the list of clients ──────────────────────────────────────────────────── */
-.rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s2); }
+.rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.rows > li { border-top: 1px solid var(--edge); }
+.rows > li:first-child { border-top: 0; }
 .row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--s4); align-items: center; padding: var(--s2) var(--s4); border-radius: 14px; text-decoration: none; color: var(--text); min-height: 48px; }
 .rowMeta { font-size: 12.5px; color: var(--text-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .row:hover { background: var(--lift-2); }

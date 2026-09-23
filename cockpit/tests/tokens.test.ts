@@ -173,7 +173,17 @@ test('🔴 and every token in tokens.css is named in §0.5 — the other directi
  * owners do not all exist yet, and they are listed here before they are built
  * so that the first one cannot quietly become "wherever it was convenient".
  */
-const SEMANTIC = ['--through', '--held', '--clock', '--clock-dim', '--red', '--handled']
+/*
+ * 🔴 THE GROUNDS ARE HALF OF A SEMANTIC COLOUR, and were missing from this list
+ * until 23 Sep 2026 — so a screen could reach for `--red-ground` directly and
+ * pass, which is the same defect one shade quieter. Only the state components
+ * and the stamp use them, so closing it costs nothing today and stops the
+ * erosion that starts with "it is only a background".
+ */
+const SEMANTIC = [
+  '--through', '--held', '--clock', '--clock-dim', '--red', '--handled',
+  '--through-ground', '--held-ground', '--clock-ground', '--red-ground', '--handled-ground',
+]
 const SEMANTIC_OWNERS = [
   'app/tokens.css',
   'components/state-chip.tsx',

@@ -6,6 +6,13 @@
  * stacked rules. Neutral tokens everywhere except the two business accents
  * (--web, --automation: identity, not state). Semantic colour — a sign, a
  * renewal, a failure — comes only through state-chip (tokens.test.ts, rule 3).
+ *
+ * 🔒 THE DIVIDER RULE (23 Sep 2026). Rows inside one list carry a hairline
+ * between them — `1px solid var(--edge)`, never above the first. This REFINES
+ * the rule above rather than reversing it: a list is a sequence of LIKE
+ * THINGS and needs rhythm to be read down; blocks and sections are still
+ * separated by space and never by stacked rules. --edge-2 stays reserved for
+ * something pressable.
  */
 
 .page {
@@ -69,7 +76,10 @@
 .tickNow { fill: var(--accent); font-size: 11px; font-weight: 600; font-family: var(--sans); }
 
 /* ── rows: one family for clients, costs and one-offs ────────────────────── */
-.rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s3); }
+.rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.rows > li { padding: var(--s3) 0; border-top: 1px solid var(--edge); }
+.rows > li:first-child { border-top: 0; padding-top: 0; }
+.rows > li:last-child { padding-bottom: 0; }
 .row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--s3); align-items: baseline; font-size: 14.5px; color: var(--text); }
 .rowName { min-width: 0; }
 .rowName small { display: block; margin-top: 2px; font-size: 12.5px; color: var(--text-3); }

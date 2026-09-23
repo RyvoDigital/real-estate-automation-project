@@ -8,6 +8,13 @@
  * A group keeps its position whatever its state: a resting group is one quiet
  * header IN PLACE, because pulling the quiet ones into a shared bucket would
  * reorder the page and break the fixed order.
+ *
+ * 🔒 THE DIVIDER RULE (23 Sep 2026). Rows inside one list carry a hairline
+ * between them — `1px solid var(--edge)`, never above the first. This REFINES
+ * the rule above rather than reversing it: a list is a sequence of LIKE
+ * THINGS and needs rhythm to be read down; blocks and sections are still
+ * separated by space and never by stacked rules. --edge-2 stays reserved for
+ * something pressable.
  */
 
 .page {
@@ -56,7 +63,9 @@
 
 /* ── a group's body ──────────────────────────────────────────────────────── */
 .body { display: flex; flex-direction: column; gap: var(--s4); padding: 0 var(--s5) var(--s5) calc(var(--s5) + 32px + var(--s4)); min-width: 0; }
-.rows { display: flex; flex-direction: column; gap: var(--s1); }
+.rows { display: flex; flex-direction: column; }
+.rows > * { border-top: 1px solid var(--edge); }
+.rows > *:first-child { border-top: 0; }
 .row { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: var(--s4); align-items: center; padding: var(--s2) var(--s3); margin-inline: calc(var(--s3) * -1); border-radius: 14px; min-height: 52px; text-decoration: none; color: var(--text); }
 .rowPlain { grid-template-columns: minmax(0, 1fr) auto; }
 a.row:hover { background: var(--lift-2); }

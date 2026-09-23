@@ -239,7 +239,7 @@ the names and the reasons, and a test asserts every name below exists there.
 | `--lift-1` | `#0E0E10` | first lift; the gradient's foot |
 | `--lift-2` | `#151517` | row hover |
 | `--lift-3` | `#1C1C1F` | icon wells |
-| `--edge` | `rgba(255,255,255,.07)` | the only border a surface gets |
+| `--edge` | `rgba(255,255,255,.07)` | the only border a surface gets, and the divider between rows in a list (see below) |
 | `--edge-2` | `rgba(255,255,255,.11)` | the border of a pressable thing |
 | `--text` | `#F4F3F0` | primary text — warm, never pure white |
 | `--text-2` | `#A3A29D` | secondary |
@@ -258,6 +258,23 @@ the names and the reasons, and a test asserts every name below exists there.
 | `--display` | `"Bricolage Grotesque"` | headings, group names, **clocks and amounts** |
 | `--sans` | `"Instrument Sans"` | all running text |
 | `--mono` | `"Geist Mono"` | **only** text stored verbatim — an event's summary, a message as sent |
+
+### 🔒 Rows are divided; blocks are not (23 September 2026)
+
+A **list** is a sequence of like things, and it is read down. It gets a hairline
+between its rows — `1px solid var(--edge)`, never above the first — so the eye
+can track one row across without the rows fusing into a block of text.
+
+A **block** is not a list: sections, panels and groups are still separated by
+**space and never by stacked rules**, which is what the cockpit has said since
+the first screen.
+
+This refines that rule rather than reversing it. Before this, five screens drew
+the same list five ways — 4px gaps on Today, 12px on The Month, 8px on
+Onboarding, a separate glass card per row on Expiries — and the operator read
+the result as unfinished, which it was. `--edge-2` stays reserved for the border
+of something pressable.
+
 
 **Named 20 September 2026, during the build.** These seven were used by every
 Stage B design and named in none of the tables above — found by the second
