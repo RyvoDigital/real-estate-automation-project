@@ -14,7 +14,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { pageFile, layoutFor } from './lib/routes'
 import { buildInfrastructure, type InfrastructureInputs } from '../src/lib/infrastructure/model'
-import { monitorLine, type MonitorLine } from '../src/lib/infrastructure/monitor'
+import { monitorLine, askTheMonitor, type MonitorLine } from '../src/lib/infrastructure/monitor'
 
 const NOW = new Date('2026-09-22T18:30:00Z')
 const asked: MonitorLine = { asked: true, askedAt: NOW.toISOString(), monitors: [{ name: 'the cockpit', status: 'up', url: 'https://x' }] }
@@ -172,4 +172,40 @@ test('🔒 /health is kept as a redirect, so the screen is not lost on the day i
   const moved = readFileSync(new URL('../src/app/health/page.tsx', import.meta.url), 'utf8')
   assert.match(moved, /redirect\('\/ops\/infrastructure'\)/)
   assert.doesNotMatch(moved, /health_runs|getHealth/, 'the old screen must be gone, not duplicated')
+})
+
+test('🔴 THE ONE OUTBOUND CALL ON A RENDER PATH HAS A CEILING', async () => {
+  /*
+   * Stage 2, 23 Sep 2026. askTheMonitor was the only fetch in the codebase on a
+   * render path with no timeout — lib/actions.ts sets 25s, 20s and 35s on its
+   * three — and it sits inside a Promise.all with the health-run read, so
+   * Better Stack's latency simply WAS /ops/infrastructure's latency, unbounded.
+   *
+   * 🔒 And a timeout must say what it was: "could not be reached (The operation
+   * was aborted)" reads as something the cockpit did wrong.
+   */
+  const src = readFileSync(new URL('../src/lib/infrastructure/monitor.ts', import.meta.url), 'utf8')
+  assert.match(src, /signal: AbortSignal\.timeout\(MONITOR_TIMEOUT_MS\)/, 'the one render-path fetch must be bounded')
+
+  const { MONITOR_TIMEOUT_MS } = await import('../src/lib/infrastructure/monitor')
+  assert.ok(MONITOR_TIMEOUT_MS > 0 && MONITOR_TIMEOUT_MS <= 10_000, 'a ceiling nobody waits behind')
+
+  /*
+   * A timeout lands on S3 like every other reason we could not ask.
+   * 🔒 The token is stubbed because askTheMonitor returns BEFORE calling the
+   * fetcher when there is none — without this the test passed over the
+   * no-token path and never reached the timeout at all, which is the vacuous
+   * pass this project keeps finding.
+   */
+  const had = process.env.BETTERSTACK_API_TOKEN
+  process.env.BETTERSTACK_API_TOKEN = 'stub-not-a-real-token'
+  const slow: typeof fetch = () => Promise.reject(Object.assign(new Error('timed out'), { name: 'TimeoutError' }))
+  const line = await askTheMonitor(NOW, slow)
+  if (had === undefined) delete process.env.BETTERSTACK_API_TOKEN
+  else process.env.BETTERSTACK_API_TOKEN = had
+  assert.equal(line.asked, false, 'a timeout is one more way of not having asked')
+  const x = buildInfrastructure(i({ monitor: line }))
+  assert.match(x.monitor.says, /^We could not ask the monitor/)
+  assert.doesNotMatch(x.monitor.says, /all up|nothing is wrong|healthy/i)
+  assert.match(x.monitor.says, /did not answer within \d+ seconds/, 'it must say the monitor was slow, not that we failed')
 })

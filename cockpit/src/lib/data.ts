@@ -1,4 +1,5 @@
 import 'server-only'
+import { cache } from 'react'
 
 import { gateClientIds, withoutGateClients, withoutGateClientsKeepingUnattributed } from '@/lib/gate-clients'
 import { hiddenClients } from '@/lib/hidden-clients'
@@ -656,11 +657,11 @@ export async function getLeads(f: LeadFilters): Promise<{
   }
 }
 
-export async function getClients(): Promise<{ id: string; name: string }[]> {
+export const getClients = cache(async (): Promise<{ id: string; name: string }[]> => {
   const { data, error } = await admin().from('clients').select('id, name').order('name')
   if (error) throw new Error(`clients failed: ${error.message}`)
   return (data ?? []).map((c) => ({ id: c.id as string, name: c.name as string }))
-}
+})
 
 export const STAGES = [
   'new',

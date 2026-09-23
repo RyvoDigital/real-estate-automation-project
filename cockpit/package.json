@@ -26,7 +26,8 @@
     "probe:listings": "tsx tests/probe-listing-excludes.ts",
     "probe:matching": "tsx --conditions=react-server tests/probe-matching-screen.ts",
     "probe:controls": "tsx --conditions=react-server tests/probe-controls.ts",
-    "probe:frame": "tsx tests/probe-frame.ts"
+    "probe:frame": "tsx tests/probe-frame.ts",
+    "probe:roundtrips": "tsx --conditions=react-server tests/probe-roundtrips.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.6",

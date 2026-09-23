@@ -1,4 +1,5 @@
 import 'server-only'
+import { cache } from 'react'
 import { admin } from '@/lib/supabase/admin'
 
 /**
@@ -18,7 +19,7 @@ import { admin } from '@/lib/supabase/admin'
  *   🔒 A failed read of the marker hides nothing: the lists show the gate client
  *      rather than risk hiding a real one.
  */
-export async function gateClientIds(): Promise<string[]> {
+export const gateClientIds = cache(async (): Promise<string[]> => {
   try {
     const { data, error } = await admin().from('client_automations').select('client_id').eq('config->>gate_only', 'true')
     if (error) return []
@@ -26,7 +27,7 @@ export async function gateClientIds(): Promise<string[]> {
   } catch {
     return []
   }
-}
+})
 
 /** For a NOT NULL client_id (leads): drop the gate clients' rows. */
 // Typed loosely on purpose: Supabase's builder types are too deep to constrain

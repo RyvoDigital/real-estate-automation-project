@@ -1,4 +1,5 @@
 import 'server-only'
+import { cache } from 'react'
 import { admin } from '@/lib/supabase/admin'
 import { gateClientIds } from '@/lib/gate-clients'
 
@@ -41,7 +42,7 @@ export type Hidden = {
 
 export const NONE_HIDDEN: Hidden = { ids: [], rehearsals: 0, gate: 0, failed: false, includingRehearsals: false }
 
-export async function hiddenClients(includeRehearsals = false): Promise<Hidden> {
+export const hiddenClients = cache(async (includeRehearsals = false): Promise<Hidden> => {
   const [gate, rows] = await Promise.all([
     gateClientIds(),
     admin().from('clients').select('id, rehearsal').then(
@@ -68,7 +69,7 @@ export async function hiddenClients(includeRehearsals = false): Promise<Hidden> 
     failed: false,
     includingRehearsals: includeRehearsals,
   }
-}
+})
 
 /**
  * The line an operator-wide group prints when something is being left out.

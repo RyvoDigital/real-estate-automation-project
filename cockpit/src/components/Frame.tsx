@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { ClientSwitcher } from '@/components/ClientSwitcher'
 import { frameSide, switchTargets, type FrameMode } from '@/lib/frame'
@@ -41,15 +42,6 @@ export async function Frame({
 }) {
   const side = frameSide(mode, { client, current })
   const waiting = side.showsCounts ? badge(counts) : ''
-  /*
-   * 🔒 THE SWITCHER'S LIST IS READ HERE, ONCE, AND NEVER IN PRESENTED MODE.
-   * §1.4 is mechanical about it: no other client's name may appear ANYWHERE in
-   * the served HTML of a presented screen, options and payloads included. A
-   * read that happens and is then filtered out has already put the names in
-   * the render; this one does not happen at all.
-   */
-  const clients = mode === 'presented' ? [] : await switcherClients()
-  const targets = switchTargets(clients, { currentClientId: client?.id, currentSlug: current })
 
   return (
     <div className={styles.app}>
@@ -65,7 +57,9 @@ export async function Frame({
           * and nothing expiring could not be reached by clicking at all.
           */}
         {mode === 'operator' && (
-          <ClientSwitcher current={null} targets={targets} openLabel="Open a client" />
+          <Suspense fallback={<div className={styles.switcherSlot} aria-hidden="true" />}>
+            <Switcher mode={mode} client={client} current={current} name={null} />
+          </Suspense>
         )}
 
         {side.marker && <span className={styles.marker}>{side.marker}</span>}
@@ -86,7 +80,9 @@ export async function Frame({
              * Frame is a server component; until 22 Sep 2026 this was a button
              * with aria-haspopup="menu" and nothing behind it.
              */
-            <ClientSwitcher current={side.switcher.name} targets={targets} openLabel="Open a client" />
+            <Suspense fallback={<div className={styles.switcherSlot} aria-hidden="true" />}>
+              <Switcher mode={mode} client={client} current={current} name={side.switcher.name} />
+            </Suspense>
           ) : (
             // 🔒 Not a disabled button. A greyed control still reads as one
             // click from opening, and what must not exist here is the control
@@ -123,4 +119,40 @@ export async function Frame({
       <main className={styles.main}>{children}</main>
     </div>
   )
+}
+
+/**
+ * The switcher's list, read behind its own boundary.
+ *
+ * 🔴 WHY IT IS NOT READ IN THE FRAME ANY MORE (Stage 2, 23 Sep 2026). The
+ * frame is the layout, and the layout must resolve before ANYTHING can flush —
+ * so this one query sat in front of every screen's first byte. Measured
+ * locally: /onboarding/new does no page read whatsoever and still took 128ms
+ * to first byte against a 6ms baseline, and this was most of it.
+ *
+ * Behind a boundary the chrome flushes immediately and the switcher arrives a
+ * round trip later. Nothing moves when it does: the fallback reserves the
+ * control's own 44px, the same technique that took the sidebar's jump from
+ * 58px to 0 on 23 September.
+ *
+ * 🔒 STILL NEVER READ IN PRESENTED MODE. §1.4 is mechanical about it: no other
+ * client's name may appear ANYWHERE in the served HTML of a presented screen,
+ * options and payloads included. A read that happens and is then filtered out
+ * has already put the names in the render. Presented mode renders a still name
+ * and never reaches this component at all.
+ */
+async function Switcher({
+  mode,
+  client,
+  current,
+  name,
+}: {
+  mode: FrameMode
+  client?: { id: string; name: string }
+  current?: string
+  name: string | null
+}) {
+  const clients = mode === 'presented' ? [] : await switcherClients()
+  const targets = switchTargets(clients, { currentClientId: client?.id, currentSlug: current })
+  return <ClientSwitcher current={name} targets={targets} openLabel="Open a client" />
 }

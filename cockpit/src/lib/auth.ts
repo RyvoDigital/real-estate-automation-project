@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import 'server-only'
 
 import { redirect } from 'next/navigation'
@@ -51,7 +52,7 @@ export type Operator = { email: string; sub: string }
  * check that can be skipped by the caller is not a check. Every route that
  * touches lead data calls this directly.
  */
-export async function requireOperator(): Promise<Operator> {
+export const requireOperator = cache(async (): Promise<Operator> => {
   const supabase = await authClient()
   const { data, error } = await supabase.auth.getClaims()
 
@@ -62,4 +63,4 @@ export async function requireOperator(): Promise<Operator> {
   if (!isAllowed(email)) redirect('/login?denied=1')
 
   return { email, sub: String(claims.sub) }
-}
+})

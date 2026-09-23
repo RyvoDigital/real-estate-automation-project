@@ -212,3 +212,12 @@
   text-transform: uppercase;
   opacity: 0.75;
 }
+
+/*
+ * 🔒 THE SPACE THE SWITCHER WILL TAKE, while its list is read (Stage 2,
+ * 23 Sep 2026). The control moved behind its own Suspense boundary so the
+ * chrome no longer waits a round trip to flush; this reserves exactly its
+ * height, so nothing shifts when it arrives. 44px is the control's own, and
+ * the same reservation took the sidebar's jump from 58px to 0.
+ */
+.switcherSlot { min-height: 44px; border-radius: 14px; background: var(--glass); }

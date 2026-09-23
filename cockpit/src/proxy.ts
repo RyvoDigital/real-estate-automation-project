@@ -80,7 +80,14 @@ export async function proxy(request: NextRequest) {
    * header and no cookie — improvements §3.7, Layer 3. It checks the token
    * before touching anything.
    */
-  const isMachineEndpoint = path === '/api/listings/inbound' || path === '/api/health'
+  /*
+   * 🔒 /api/alive joins them (23 Sep 2026) for the redirect reason above, not
+   * because it is unauthenticated: it verifies the session itself and answers
+   * 401. Routed through the redirect instead, a signed-out poll would follow
+   * to /login and come back 200 — so a dead session would look alive, which is
+   * precisely what that route exists to detect.
+   */
+  const isMachineEndpoint = path === '/api/listings/inbound' || path === '/api/health' || path === '/api/alive'
 
   const isPublic = isAsset || isMachineEndpoint || path.startsWith('/login') || path.startsWith('/auth')
 

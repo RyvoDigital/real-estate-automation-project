@@ -65,6 +65,25 @@ export function monitorLine(res: MonitorFetch, askedAt: Date): MonitorLine {
 }
 
 /**
+ * 🔴 HOW LONG THE SCREEN WILL WAIT FOR SOMEBODY ELSE'S SERVER (Stage 2,
+ * 23 Sep 2026).
+ *
+ * This was the ONLY outbound fetch on any render path with no timeout at all,
+ * while every other fetch in the codebase sets one (lib/actions.ts uses 25s,
+ * 20s and 35s). It sits inside a Promise.all with the health-run read, so
+ * Better Stack's latency simply WAS this page's latency, with no ceiling: a
+ * hung connection would have held /ops/infrastructure open until the platform
+ * killed the function.
+ *
+ * Four seconds, and the number has a reason. This screen is read when
+ * something is wrong, so the answer is wanted quickly; and the failure is not
+ * a failure of the screen — S3 already says every un-asked reason lands on
+ * "we could not ask the monitor", which is never mistaken for "nothing is
+ * wrong". A timeout is one more way of not having asked, and it says so.
+ */
+export const MONITOR_TIMEOUT_MS = 4_000
+
+/**
  * The one call. The token is the operator's, from the environment; absent, we
  * say we could not ask — which is exactly what it means.
  */
@@ -74,10 +93,23 @@ export async function askTheMonitor(now: Date, fetcher: typeof fetch = fetch): P
     return monitorLine({ ok: false, why: 'No Better Stack token is configured here, so the monitor was not asked.' }, now)
   }
   try {
-    const r = await fetcher(MONITORS_URL, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
+    const r = await fetcher(MONITORS_URL, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(MONITOR_TIMEOUT_MS),
+    })
     if (!r.ok) return monitorLine({ ok: false, why: `Better Stack answered HTTP ${r.status}.` }, now)
     return monitorLine({ ok: true, body: await r.json() }, now)
   } catch (e) {
-    return monitorLine({ ok: false, why: `Better Stack could not be reached (${e instanceof Error ? e.message : 'unknown error'}).` }, now)
+    /*
+     * 🔒 A TIMEOUT SAYS SO IN ITS OWN WORDS. "could not be reached (The
+     * operation was aborted)" reads like something we did; the operator needs
+     * to know the monitor was slow, not that the cockpit gave up at random.
+     */
+    const timedOut = e instanceof Error && (e.name === 'TimeoutError' || e.name === 'AbortError')
+    const why = timedOut
+      ? `Better Stack did not answer within ${Math.round(MONITOR_TIMEOUT_MS / 1000)} seconds.`
+      : `Better Stack could not be reached (${e instanceof Error ? e.message : 'unknown error'}).`
+    return monitorLine({ ok: false, why }, now)
   }
 }
