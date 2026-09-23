@@ -1,0 +1,23 @@
+/*
+ * The placeholder inside the frame while a screen is read (23 Sep 2026).
+ * Tokens only, and the one animation follows the house convention: opacity,
+ * ~1.4s, and off entirely under prefers-reduced-motion.
+ */
+.page { --s2: 8px; --s4: 16px; --s5: 24px; --s6: 32px;
+  display: flex; flex-direction: column; gap: var(--s5); max-width: 1080px; }
+
+/* 🔒 Plain bars: a skeleton that guessed at content would assert something it
+   has not read. They carry no words and no numbers. */
+.bar { display: block; border-radius: 10px; background: var(--glass); }
+.title { width: 220px; height: 30px; border-radius: 12px; }
+.lede { width: min(60ch, 100%); height: 15px; }
+.panel { display: flex; flex-direction: column; gap: var(--s4);
+  padding: var(--s5); border-radius: 24px; background: var(--glass); box-shadow: var(--glass-hi); }
+.row { width: 100%; height: 18px; }
+.row:nth-child(2) { width: 82%; }
+.row:nth-child(3) { width: 64%; }
+
+/* The same breathing the live stamp uses: it says "still reading", nothing else. */
+.bar { animation: wait 1.4s ease-in-out infinite; }
+@keyframes wait { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .bar { animation: none; } }

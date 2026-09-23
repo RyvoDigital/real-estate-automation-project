@@ -1,34 +1,20 @@
-import { SkeletonShell, Bar } from '@/components/Skeleton'
+import { FrameSkeleton } from '@/components/FrameSkeleton'
 
+/**
+ * 🔴 THIS FILE RENDERED THE OLD COCKPIT until 23 Sep 2026.
+ *
+ * It drew SkeletonShell — the retired chrome, with the Queue / Leads / Report
+ * tab bar — and a five-step wizard ("Agency · Voice · Booking · Escalation ·
+ * Review") that the rebuilt onboarding does not have. The root layout renders
+ * nothing but <body>, so this boundary covers the WHOLE viewport: every
+ * navigation into /onboarding or /onboarding/new flashed the old dashboard
+ * before the new screen arrived, and that flash is why the cockpit read as
+ * half-migrated.
+ *
+ * 🔒 It is replaced rather than deleted: tests/probe-timing.ts asserts that a
+ * streaming boundary exists here, and it is right to — /onboarding reads the
+ * clients, their records and their contracts before it can draw.
+ */
 export default function Loading() {
-  return (
-    <SkeletonShell
-      active="onboarding"
-      eyebrow="Onboarding"
-      title="New client"
-      note="Opening the form…"
-    >
-      <div className="onb" aria-hidden>
-        <div className="steps">
-          {['Agency', 'Voice', 'Booking', 'Escalation', 'Review'].map((s, i) => (
-            <span className={`step${i === 0 ? ' step--on' : ''}`} key={s}>
-              <span className="step__n">{i + 1}</span>
-              {s}
-            </span>
-          ))}
-        </div>
-        <div className="opanel">
-          <Bar w="34%" h={26} r={8} />
-          <div className="ogrid">
-            {[0, 1, 2, 3, 4, 5].map((i) => (
-              <div className="ofield" key={i}>
-                <Bar w={110} h={11} r={4} />
-                <Bar h={52} r={15} />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </SkeletonShell>
-  )
+  return <FrameSkeleton current="onboarding" />
 }
