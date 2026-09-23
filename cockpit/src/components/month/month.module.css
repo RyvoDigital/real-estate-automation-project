@@ -116,14 +116,34 @@
  * one: a hairline over it, and `.desk` gives the forms their own air.
  */
 .absent { padding-top: var(--s5); border-top: 1px solid var(--edge); font-size: 13px; color: var(--text-3); }
-.absent summary { cursor: pointer; min-height: 44px; display: inline-flex; align-items: center; font-weight: 600; color: var(--text-2); list-style: none; }
+.absent ul li { padding: 2px 0; }
+/*
+ * 🔒 A QUIET SECTION HEADING, IN THE PAGE'S OWN FAMILY (23 Sep 2026). It read
+ * as a footnote — smaller and dimmer than everything near it — which is the
+ * wrong weight for a list of things this page deliberately refuses to do. It
+ * now wears the same treatment as every other block heading here (.label):
+ * uppercase, tracked, 11.5px — one step brighter, because it is a heading the
+ * operator is meant to find rather than a caption under something else.
+ */
+.absent summary { cursor: pointer; min-height: 44px; display: inline-flex; align-items: center;
+  font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-2); list-style: none; }
 .absent summary::-webkit-details-marker { display: none; }
 .absent summary::after { content: '+'; margin-left: var(--s2); color: var(--text-3); }
 .absent[open] summary::after { content: '−'; }
 .absent ul { margin: 0; padding: 0 0 0 var(--s4); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s1) var(--s6); }
 
-/* The desk: The Month, then its footer, then the forms — with air between. */
-.desk { display: flex; flex-direction: column; gap: var(--s7); }
+/*
+ * The desk: The Month, then its footer, then the forms — with air between.
+ *
+ * 🔴 IT DECLARES ITS OWN SCALE, and that is not a style choice. The --s1…--s7
+ * scale is declared on `.page`, which is this element's CHILD: custom
+ * properties inherit DOWNWARD, so `var(--s7)` here resolved to nothing, `gap`
+ * was invalid, and the gap was ZERO — the very collision this rule was added
+ * to fix, still there behind a hairline that made it look fixed. Measured in
+ * the browser, 23 Sep 2026, after a screenshot had already convinced me.
+ */
+.desk { --s7: 48px; display: flex; flex-direction: column; gap: var(--s7); }
 
 @media (max-width: 1100px) {
   .sums { grid-template-columns: 1fr 1fr; }
