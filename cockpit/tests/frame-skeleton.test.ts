@@ -95,11 +95,38 @@ test('🔒 onboarding — the route this was found on — draws the frame, and r
   const skeleton = code(readFileSync(new URL('../src/components/FrameSkeleton.tsx', import.meta.url), 'utf8'))
   // 🔒 It reads nothing: a loading state that awaited would be the thing it covers for.
   assert.doesNotMatch(skeleton, /await |async |readCounts|requireOperator|admin\(\)/)
-  // The same geometry and the same nav, from the same module, so nothing shifts.
-  assert.match(skeleton, /from '@\/lib\/frame'/)
-  assert.match(skeleton, /from '\.\/Frame\.module\.css'/)
   // No counts and no switcher: both would need a read.
   assert.doesNotMatch(skeleton, /ClientSwitcher|badge\(|counts/)
+})
+
+test('🔴 THE SKELETON\'S NAV IS THE FRAME\'S NAV, generated — so it cannot drift', () => {
+  /*
+   * The first screenshot of this skeleton was taken before /clients existed and
+   * showed five destinations where the frame now has six. It was stale, not
+   * wrong — but "the skeleton lists the right screens" is only true by accident
+   * unless the list comes from ONE place. It does: frameSide('operator'), the
+   * same call the Frame makes.
+   *
+   * 🔒 So this asserts the mechanism, not a snapshot: no nav label may be
+   * written in this file at all. A hardcoded "Today" would pass a snapshot test
+   * on the day it was written and drift the day after.
+   */
+  const raw = readFileSync(new URL('../src/components/FrameSkeleton.tsx', import.meta.url), 'utf8')
+  const skeleton = code(raw)
+  assert.match(skeleton, /frameSide\('operator'/, 'the nav must come from the frame\'s own function')
+  assert.match(skeleton, /side\.items\.map/, 'it must render that list, not a copy of it')
+  assert.match(skeleton, /\{item\.label\}/, 'each label comes from the list')
+  assert.match(skeleton, /from '\.\/Frame\.module\.css'/, 'the same geometry, so nothing shifts when the real screen lands')
+
+  // 🔴 Not one destination's name may be typed here.
+  const { frameSide } = require('../src/lib/frame') as typeof import('../src/lib/frame')
+  for (const item of frameSide('operator').items) {
+    assert.ok(
+      !new RegExp(`['\"\`]${item.label}['\"\`]`).test(skeleton),
+      `FrameSkeleton hardcodes the nav label "${item.label}" — it must only ever render what frameSide returns`,
+    )
+  }
+  assert.ok(frameSide('operator').items.length >= 6, 'the operator nav shrank; check this is intended')
 })
 
 test('🔒 the boundary still exists: probe-timing asserts the page streams', () => {

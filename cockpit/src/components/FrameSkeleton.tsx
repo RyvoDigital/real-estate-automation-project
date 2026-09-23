@@ -33,6 +33,7 @@ export function FrameSkeleton({ current }: { current: string }) {
         <div className={styles.brand}>Ryvo</div>
 
         <nav className={styles.nav} aria-label="Sections">
+          {/* The section label the frame uses at the operator level. */}
           <span className={styles.navLabel}>Ryvo</span>
           {side.items.map((item) => (
             <span

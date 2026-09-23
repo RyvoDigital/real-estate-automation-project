@@ -26,18 +26,45 @@
 .lede { margin: calc(var(--s4) * -1) 0 0; max-width: 68ch; font-size: 15px; line-height: 1.5; color: var(--text-2); }
 .lede b { color: var(--text); font-weight: 600; }
 
-.label { font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
-.panel { display: flex; flex-direction: column; gap: var(--s5); padding: var(--s5); border-radius: 24px; background: var(--glass); box-shadow: var(--glass-hi); min-width: 0; }
+.panel { display: flex; flex-direction: column; gap: var(--s5); padding: var(--s5) var(--s5) var(--s6); border-radius: 24px; background: var(--glass); box-shadow: var(--glass-hi); min-width: 0; }
 .panelHead { display: flex; align-items: baseline; gap: var(--s3); flex-wrap: wrap; }
 .panelHead h2 { margin: 0; font-family: var(--display); font-size: 22px; font-weight: 700; letter-spacing: -0.025em; color: var(--text); }
 .panelHead span { font-size: 13px; color: var(--text-2); }
 
 /* ── the checklist: one step = number, title + state, one line ───────────── */
+/*
+ * 🔒 STEPS ARE BLOCKS, so they are separated by space, not by rules (brief
+ * §0.5). What tells them apart is the counter's standing and the chip beside
+ * the title — the two things that actually differ between them.
+ */
 .steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s5); counter-reset: step; }
-.step { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: var(--s2) var(--s4); counter-increment: step; }
-.step::before { content: counter(step); grid-row: 1 / -1; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; background: var(--lift-3); color: var(--text-2); font-family: var(--display); font-size: 14px; font-weight: 600; }
+.step { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: var(--s3) var(--s4); counter-increment: step; }
+/*
+ * The counter carries the step's standing in CONTRAST, not in colour: a done
+ * step recedes, an outstanding one is the one you can read from across the
+ * desk. Colour that means something is the chip's job (state-chip.tsx).
+ */
+/*
+ * 🔴 THE COUNTER SITS WITH THE TITLE, not spanning the step.
+ *
+ * It was `grid-row: span 3` while a step can render four children — and that
+ * span turned out to be LOAD-BEARING, not cosmetic: it was what kept the
+ * counter's column occupied so the step's other children auto-placed into
+ * column 2. Shorten it and the fourth child drops into the 32px column, one
+ * word per line. Both `1 / -1` and `span 20` were attempts to keep that trick
+ * working. The content column is now stated outright — `.step > * { grid-column:
+ * 2 }` — so no span has to hold the layout up, whatever a step renders.
+ * Found by the preview on 23 Sep 2026, twice, which is what previews are for.
+ */
+.step > * { grid-column: 2; }
+.step::before { content: counter(step); grid-column: 1; grid-row: 1; z-index: 1; display: grid; place-items: center;
+  width: 32px; height: 32px; border-radius: 10px; background: var(--lift-3); color: var(--text-2);
+  font-family: var(--display); font-size: 14px; font-weight: 600; }
+.step[data-state='done']::before { background: var(--lift-1); color: var(--text-3); box-shadow: inset 0 0 0 1px var(--edge); }
+.step[data-state='outstanding']::before { background: var(--press); color: var(--text); box-shadow: var(--press-shadow); }
+.step[data-state='not_applicable']::before { background: transparent; color: var(--text-3); box-shadow: inset 0 0 0 1px var(--edge); }
 .stepHead { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; min-width: 0; }
-.stepTitle { margin: 0; font-family: var(--display); font-size: 17px; font-weight: 600; letter-spacing: -0.015em; color: var(--text); }
+.stepTitle { margin: 0; font-family: var(--display); font-size: 17.5px; letter-spacing: -0.015em; font-weight: 600; letter-spacing: -0.015em; color: var(--text); }
 .kind { font-size: 12px; color: var(--text-3); }
 .on { margin-left: auto; font-size: 12.5px; color: var(--text-2); font-variant-numeric: tabular-nums; }
 .stepLine { margin: 0; max-width: 72ch; font-size: 13.5px; line-height: 1.5; color: var(--text-2); }
@@ -98,8 +125,6 @@ textarea.input { padding: var(--s3); min-height: 64px; height: 64px; resize: ver
 .checkCell { display: flex; align-items: flex-end; }
 .primary { margin-left: auto; display: inline-flex; align-items: center; min-height: 44px; padding: 0 var(--s5); border-radius: 999px; background: var(--press); box-shadow: var(--press-shadow); color: var(--text); font-size: 14px; font-weight: 600; text-decoration: none; }
 .primary:active { transform: scale(0.97); }
-.cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: var(--s5); align-items: start; }
-@media (max-width: 1100px) { .cols { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .grid, .choices { grid-template-columns: 1fr; } }
 
 @media (prefers-reduced-motion: reduce) {

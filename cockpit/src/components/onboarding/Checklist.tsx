@@ -20,11 +20,18 @@ const KIND: Record<Step['kind'], string> = {
   conversation: 'a conversation',
 }
 
+/*
+ * 🔴 "OUTSTANDING" AND "NOT KNOWN" WORE THE SAME GREY (fixed 23 Sep 2026), so
+ * a step nobody has done looked exactly like one we could not read. They are
+ * different facts and only one of them is work: outstanding takes the clock,
+ * because an unfinished step ages and that ageing is the reason it matters.
+ * Grey stays what grey means everywhere — uncertainty and absence.
+ */
 function Chip({ state }: { state: Step['state'] }) {
   if (state === 'done') return <StateChip meaning="through">done</StateChip>
   if (state === 'unknown') return <StateChip meaning="grey">not known</StateChip>
   if (state === 'not_applicable') return <StateChip meaning="grey">not sold</StateChip>
-  return <StateChip meaning="grey">outstanding</StateChip>
+  return <StateChip meaning="clock">outstanding</StateChip>
 }
 
 export type ChecklistProps = {
@@ -41,7 +48,7 @@ export function Checklist({ clientId, model, others, recordable, today, createdO
     <section className={styles.panel} aria-label="Onboarding checklist">
       <ol className={styles.steps}>
         {model.steps.map((s) => (
-          <li key={s.key} className={styles.step}>
+          <li key={s.key} className={styles.step} data-state={s.state}>
             <div className={styles.stepHead}>
               <h3 className={styles.stepTitle}>{s.title}</h3>
               <Chip state={s.state} />
