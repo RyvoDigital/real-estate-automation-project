@@ -28,6 +28,36 @@ node_modules/
 npm-debug.log*
 yarn-error.log*
 
+# --- Legal documents ---
+#
+# The repo is code, and it syncs to GitHub. Contracts live with the other legal
+# documents outside it (operator, 23 Sep 2026).
+#
+# 🔒 THE OUTPUT LEAVES; THE SOURCE STAYS. legal/fonte/ holds the markdown these
+# documents are written in and legal/typeset.py is what renders them, so the
+# repo keeps everything needed to produce a document and none of the documents
+# themselves. The eight rendered PDFs were untracked when this rule was added.
+#
+# 🔴 BY FILE TYPE, NOT BY DIRECTORY, and that distinction is load-bearing:
+# legal/modelos/ holds modelos-whatsapp.md BESIDE its rendered PDF, so ignoring
+# the output directories would have taken a source with them.
+legal/**/*.pdf
+
+# --- Python build output ---
+#
+# 🔴 One .pyc was already COMMITTED before this rule existed:
+# infra/scripts/__pycache__/metrics_daily.cpython-314.pyc, carried in since
+# 9552815. Bytecode is a build artefact of a .py that has since changed, so a
+# fresh checkout got a file that no longer matched its source. Untracked at the
+# same time as this line was added (23 Sep 2026).
+__pycache__/
+*.pyc
+
+# --- Local tool state, not the project's ---
+# Per-machine permissions for the agent tooling. It is not configuration the
+# project shares, and it changes on whichever machine is being used.
+.claude/settings.local.json
+
 # --- OS / editor cruft ---
 .DS_Store
 Thumbs.db
