@@ -83,6 +83,15 @@ export function ClientSwitcher({ current, targets, openLabel, defaultOpen = fals
               ))}
             </ul>
           )}
+
+          {/*
+            * 🔒 THE WAY TO THE WHOLE LIST. The menu answers "which client?" and
+            * hands off; it is not the place to read how everyone is doing, and
+            * a menu that grew columns would become that screen badly.
+            */}
+          <Link className={styles.all} href="/clients" role="menuitem" onClick={() => setOpen(false)}>
+            See all clients
+          </Link>
         </div>
       )}
     </div>

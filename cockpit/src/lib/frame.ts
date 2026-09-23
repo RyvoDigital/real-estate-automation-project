@@ -280,6 +280,12 @@ export function frameSide(
       // All five operator screens exist. They are on the OLD visual direction
       // (see docs/cockpit-route-map.md §2.3), which is a different fact from
       // not being built.
+      /*
+       * 🔒 CLIENTS SITS ABOVE TODAY (operator's decision, 23 Sep 2026): this is
+       * the list of who exists, and Today is what needs me now. The list comes
+       * first because it is the smaller question and the stabler one.
+       */
+      { slug: 'clients', label: 'Clients', href: '/clients', built: true },
       { slug: 'today', label: 'Today', href: '/today', built: true },
       { slug: 'month', label: 'The Month', href: '/', built: true },
       { slug: 'infrastructure', label: 'Infrastructure', href: '/ops/infrastructure', built: true },

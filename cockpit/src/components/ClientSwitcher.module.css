@@ -17,3 +17,6 @@
 .item:hover { background: var(--lift-2); }
 .itemName { font-weight: 600; }
 .why { font-size: 11.5px; line-height: 1.4; color: var(--text-3); }
+.all { display: block; margin-top: 6px; padding: 9px 10px; border-top: 1px solid var(--edge);
+  color: var(--text-2); font-size: 12.5px; font-weight: 600; text-decoration: none; }
+.all:hover { color: var(--text); background: var(--lift-2); border-radius: 10px; }

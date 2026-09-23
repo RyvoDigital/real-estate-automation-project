@@ -101,7 +101,7 @@ test('the operator frame has no switcher and no way up, because it is the top', 
   assert.equal(o.switcher, null)
   assert.equal(o.up, null)
   assert.equal(o.marker, null)
-  assert.deepEqual(o.items.map((i) => i.slug), ['today', 'month', 'infrastructure', 'onboarding', 'expiries'])
+  assert.deepEqual(o.items.map((i) => i.slug), ['clients', 'today', 'month', 'infrastructure', 'onboarding', 'expiries'])
 })
 
 test('🔴 the cross-client search answers "which client" and hands off — nothing else', () => {

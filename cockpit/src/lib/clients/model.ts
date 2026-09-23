@@ -184,14 +184,21 @@ export function buildClientList(i: ClientListInputs): ClientList {
   })
 
   /*
-   * 🔒 Attention first, and among equals a REAL agency before a rehearsal: the
-   * operator chose attention over grouping, and this is the tie-break that
-   * honours both — a rehearsal never outranks a real client with the same
-   * problem, and it is never pushed below one that has none.
+   * 🔒 THE ORDER, SETTLED 23 SEP 2026: rehearsals ALWAYS last, whatever state
+   * they are in; then attention; then alphabetical.
+   *
+   * Checkpoint 1 ranked attention first and used real-before-rehearsal only as
+   * a tie-break, which put a rehearsal's waiting lead above a real agency with
+   * nothing wrong. The operator's rule is the right one: a rehearsal is not the
+   * business's work, so it never competes for the top of the list — it is on
+   * the screen because this is who exists, and that is all.
+   *
+   * 🔒 The rule is printed ON the screen (ClientsView), so the order is never a
+   * mystery to somebody reading it cold.
    */
   rows.sort((a, b) =>
-    RANK[a.attention] - RANK[b.attention] ||
     (a.standing === 'rehearsal' ? 1 : 0) - (b.standing === 'rehearsal' ? 1 : 0) ||
+    RANK[a.attention] - RANK[b.attention] ||
     a.name.localeCompare(b.name))
 
   return {

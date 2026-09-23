@@ -71,7 +71,13 @@ test('🔒 THE ORDER: waiting, then the gate refusing, then run out, then faults
   assert.deepEqual(l.rows.map((r) => r.attention), ['waiting', 'refused', 'runOut', 'faults', 'soon', 'onboarding', 'quiet'])
 })
 
-test('🔒 a rehearsal never outranks a real client with the same problem, and is never pushed below one with none', () => {
+test('🔒 REHEARSALS ARE ALWAYS LAST, whatever state they are in (settled 23 Sep 2026)', () => {
+  /*
+   * Checkpoint 1 ranked attention first and used real-before-rehearsal as a
+   * tie-break, so a rehearsal with five people waiting sat above a real agency
+   * with nothing wrong. A rehearsal is not the business's work: it is on this
+   * screen because this is who exists, and it never competes for the top.
+   */
   const l = buildClientList(inputs({
     clients: [
       client('r', 'A rehearsal', { rehearsal: true }),
@@ -80,10 +86,19 @@ test('🔒 a rehearsal never outranks a real client with the same problem, and i
     ],
     waiting: new Map([['r', 5], ['real', 1]]),
   }))
-  // Both are waiting: the real one first, though its name sorts last.
-  assert.deepEqual(l.rows.map((r) => r.id), ['real', 'r', 'calm'])
-  assert.equal(l.rows[1].standing, 'rehearsal')
+  assert.deepEqual(l.rows.map((r) => r.id), ['real', 'calm', 'r'])
+  assert.equal(l.rows[2].standing, 'rehearsal', 'the rehearsal is last even though it is the one with five waiting')
   assert.deepEqual(l.totals, { clients: 3, rehearsals: 1, notAnswered: 0 })
+
+  // Among rehearsals, the same attention order applies — it is a list, not a heap.
+  const many = buildClientList(inputs({
+    clients: [
+      client('quiet', 'Quiet rehearsal', { rehearsal: true }),
+      client('busy', 'Busy rehearsal', { rehearsal: true }),
+    ],
+    waiting: new Map([['busy', 2]]),
+  }))
+  assert.deepEqual(many.rows.map((r) => r.id), ['busy', 'quiet'])
 })
 
 test('🔴 an unanswered rehearsal question is a THIRD state, never quietly "real"', () => {
