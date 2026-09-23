@@ -46,9 +46,23 @@ const when = (x: ExpiryItem) =>
   x.days === null ? (x.date ? day(x.date) : null) : x.days < 0 ? `${-x.days} day${x.days === -1 ? '' : 's'} ago` : x.days === 0 ? 'today' : `in ${x.days} day${x.days === 1 ? '' : 's'}`
 const whose = (x: ExpiryItem) => (x.owner.kind === 'ryvo' ? 'Ryvo' : x.owner.name)
 
-function Row({ x, children }: { x: ExpiryItem; children?: React.ReactNode }) {
+function Row({ x, children, anchored }: { x: ExpiryItem; children?: React.ReactNode; anchored?: boolean }) {
+  /*
+   * 🔒 THE ROW CAN BE POINTED AT. After a save the action sends the browser to
+   * #obl-<chain>, so the row that was just recorded is scrolled to and marked
+   * by :target — no JavaScript, and no "which one was mine?" after a redirect
+   * into a list of fifteen.
+   *
+   * 🔴 ONLY ONCE, ON RYVO'S OWN. An obligation that is about to run out appears
+   * in TWO lists — its own table and "About to run out" — and putting the id on
+   * both made the document carry the same id twice: invalid, and :target would
+   * mark whichever came first rather than the one the operator was sent to.
+   * Ryvo's own is the canonical table, so the anchor lives there. Found by
+   * opening the anchor in a browser, 23 Sep 2026.
+   */
+  const anchor = anchored && x.obligation ? `obl-${x.obligation.obligation_id}` : undefined
   return (
-    <li className={styles.row}>
+    <li className={styles.row} id={anchor}>
       <div className={styles.rowMain}>
         <span className={styles.rowTitle}>{x.what}</span>
         <span className={styles.rowLine}>
@@ -257,9 +271,17 @@ export function ExpiriesView({ e, refusal, guardado, jaGuardado, hidden }: {
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Ryvo&rsquo;s own<span>{e.ryvoOwn.length} · soonest first · never shown to a client</span></h2>
         <ul className={styles.rows}>
-          {e.ryvoOwn.map((x) => <Row key={x.key} x={x}>{x.obligation && <ObligationActions o={x.obligation} />}</Row>)}
+          {e.ryvoOwn.map((x) => <Row key={x.key} x={x} anchored>{x.obligation && <ObligationActions o={x.obligation} />}</Row>)}
         </ul>
+        {/*
+          * 🔒 THE THREE WAYS IN, IN THEIR OWN BOX (23 Sep 2026). They floated
+          * under the list, reading as three more rows of it — and they are not
+          * rows: nothing here has run out, these are the ways to record
+          * something that will. The box says "this is where you add", and the
+          * list above it stays a list.
+          */}
         <div className={styles.adds}>
+          <h3 className={styles.addsTitle}>Record one of Ryvo&rsquo;s own</h3>
           <AddForm kind="certidao" title="Add the certidão permanente" />
           <AddForm kind="procuracao" title="Add a procuração" />
           <AddForm kind="payment_card" title="Add a payment card" />

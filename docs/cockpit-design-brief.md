@@ -259,6 +259,24 @@ the names and the reasons, and a test asserts every name below exists there.
 | `--sans` | `"Instrument Sans"` | all running text |
 | `--mono` | `"Geist Mono"` | **only** text stored verbatim — an event's summary, a message as sent |
 
+### 🔴 A preview renders what the page renders (23 September 2026)
+
+Screens are reviewed by rendering them outside Next (`tests/render-*-preview.tsx`)
+and screenshotting the result. That only works while the preview draws **the
+page's own components inside the page's own layout**. The moment it wraps them
+in a hand-written container, it is showing a screen that does not exist.
+
+**It cost two defects in one day.** `render-month-preview.tsx` wrapped the forms
+in `style={{ marginTop: 32 }}` — exactly the separation the real page did not
+have — so the collision between "What this page does not do" and "Record a
+contract" was invisible in every screenshot for as long as it existed. The
+onboarding preview was the opposite case: it rendered the real grid, and caught
+a layout bug that no test could see, twice.
+
+**The rule:** a preview imports the real component and the real layout class. No
+inline `style` in a preview's JSX, and no wrapper the page does not have. A
+preview that does not render what the page renders is a test that cannot fail.
+
 ### 🔒 Rows are divided; blocks are not (23 September 2026)
 
 A **list** is a sequence of like things, and it is read down. It gets a hairline

@@ -63,3 +63,39 @@ textarea.input { padding: var(--s2) var(--s3); min-height: 64px; }
 .hiddenNote { margin: -12px 0 0; font-size: 12.5px; color: var(--text-3); }
 .link { color: var(--text-2); text-underline-offset: 3px; }
 .link:hover { color: var(--text); }
+
+/*
+ * ── The three ways in, and the row that was just recorded ──────────────────
+ *
+ * 🔒 THE ADD BOX. The three disclosures floated under the list and read as
+ * three more rows of it. They are not rows: the list is what has run out, and
+ * these are how something is recorded. Its own box, its own heading.
+ */
+.adds { display: flex; flex-direction: column; gap: var(--s1); margin-top: var(--s4);
+  padding: var(--s4) var(--s5) var(--s5); border: 1px dashed var(--edge-2); border-radius: 18px; }
+.addsTitle { margin: 0 0 var(--s2); font-family: var(--display); font-size: 13px; font-weight: 600;
+  letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-3); }
+
+/*
+ * 🔒 THE ROW THAT WAS JUST RECORDED, for a moment. The save redirects to
+ * #obl-<chain>, so the browser scrolls to it and this marks it — the answer to
+ * "which one was mine?" after landing back in a list.
+ *
+ * The motion follows the house convention (globals.css:1200, stamp.module.css):
+ * a short settle on OPACITY and background, ~200ms, ease-out, and nothing at
+ * all under prefers-reduced-motion — where the mark simply holds instead.
+ */
+.row:target { animation: recorded 2.2s ease-out 1 both; border-radius: 12px; margin-inline: calc(var(--s3) * -1); padding-inline: var(--s3); }
+@keyframes recorded {
+  /* Held long enough to be seen after the page settles, then gone: it marks
+     the row, it does not decorate it. */
+  0% { background: var(--lift-3); box-shadow: inset 0 0 0 1px var(--edge-2); }
+  65% { background: var(--lift-3); box-shadow: inset 0 0 0 1px var(--edge-2); }
+  100% { background: transparent; box-shadow: inset 0 0 0 1px transparent; }
+}
+/* 🔒 No `html { scroll-behavior }` here: a bare element selector in a CSS
+   module is not pure and fails the build. The anchor still lands on the row;
+   it simply arrives without a glide, which is the honest trade. */
+@media (prefers-reduced-motion: reduce) {
+  .row:target { animation: none; background: var(--lift-2); }
+}

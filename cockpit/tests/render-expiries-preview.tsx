@@ -18,6 +18,11 @@
  *   forms    the same, every form opened
  *   quiet    nothing due: the empty lines and the S1 note's denominators
  *   refused  back from a refusal (a pasted card number)
+ *
+ * 🔒 THE STATE AFTER A SAVE is busy.html + the anchor the action redirects to:
+ *    busy.html?guardado=1#obl-00000000-0000-4000-8000-000000000003
+ *    (the card), which :target marks for a moment — the same thing the browser
+ *    lands on after recording one.
  */
 import assert from 'node:assert/strict'
 import { writeFileSync, mkdirSync, readFileSync } from 'node:fs'
@@ -50,11 +55,21 @@ const sg = (over: Partial<StillGood> = {}): StillGood => ({ documents: [], regis
 const doc = (id: string, daysLeft: number, standing: 'past' | 'soon' | 'good') => ({ listingId: id, reference: `A-${id}`, requirementId: 'pt_energy_certificate', certificateNumber: null, validUntil: iso(daysLeft), daysLeft, standing })
 const reg = (n: string, standing: 'not_valid' | 'never_checked' | 'stale' | 'good', days: number | null = null) => ({ requirementId: 'pt_ami_licence', number: n, country: 'PT', region: null, status: 'valid' as never, checkedAt: null, daysSinceChecked: days, standing })
 const recheck = (over: Partial<Recheck> = {}): Recheck => ({ lapsed: [], expiringSoon: [], toConfirm: [], stillGood: 0, checked: 0, warnWithinDays: 30, staleAfterDays: 90, notCheckedFor: [], ...over })
-const ob = (over: Partial<ObligationCurrent>): ObligationCurrent => ({
-  id: crypto.randomUUID(), obligation_id: crypto.randomUUID(), act: 'entered', kind: 'certidao', label: '', expires_on: null, no_expiry_stated: false,
+/*
+ * 🔒 DETERMINISTIC IDS, so the preview can be opened at #obl-<id> and show the
+ * state after a save — the row the action sends the browser back to. Random
+ * ids would make that anchor unrepeatable, and the screenshot unreviewable.
+ */
+let seq = 0
+const sampleId = () => `00000000-0000-4000-8000-${String(++seq).padStart(12, '0')}`
+const ob = (over: Partial<ObligationCurrent>): ObligationCurrent => {
+  const id = sampleId()
+  return {
+  id, obligation_id: id, act: 'entered', kind: 'certidao', label: '', expires_on: null, no_expiry_stated: false,
   card_brand: null, card_last_four: null, card_exp_month: null, card_exp_year: null, services: null, note: null,
   recorded_by: 'manuelvale@ryvodigital.com', recorded_at: '2026-09-10T10:00:00Z', ...over,
-})
+  }
+}
 
 const busy: ExpiriesInputs = {
   now: NOW,

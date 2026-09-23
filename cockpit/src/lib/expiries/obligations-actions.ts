@@ -33,5 +33,12 @@ export async function recordObligationAction(formData: FormData): Promise<void> 
   if (!result.ok) redirect(`/ops/expiries?${refusalQuery(result.refusal)}`)
   revalidatePath('/ops/expiries')
   revalidatePath('/today')
-  redirect(`/ops/expiries?${result.alreadyRecorded ? 'jaGuardado' : 'guardado'}=1`)
+  /*
+   * 🔒 BACK TO THE ROW IT WROTE. The anchor is the obligation's chain id, which
+   * the screen puts on the row — so the browser lands on the thing that just
+   * changed rather than at the top of a list, and :target marks it for a
+   * moment. An "already recorded" has no new row to point at.
+   */
+  if (result.alreadyRecorded) redirect('/ops/expiries?jaGuardado=1')
+  redirect(`/ops/expiries?guardado=1#obl-${result.obligationId}`)
 }
