@@ -139,10 +139,33 @@ async function main() {
    * /clients. A list is how coverage disappears in silence; see
    * tests/lib/routes.ts, which exists for the same near-miss one level up.
    */
-  const streams = ROUTES.filter((p) => hasLoadingBoundary(patternOf.get(p) ?? p))
-  if (streams.length < 5) throw new Error(`only ${streams.length} routes claim a boundary — the derivation is wrong`)
-  for (const p of streams) {
+  const bounded = ROUTES.filter((p) => hasLoadingBoundary(patternOf.get(p) ?? p))
+  if (bounded.length < 5) throw new Error(`only ${bounded.length} routes claim a boundary — the derivation is wrong`)
+  /*
+   * 🔒 AND ONLY WHERE THERE IS A WAIT TO COVER. A boundary earns its keep by
+   * getting a shell out before slow data arrives. A route with no slow data has
+   * nothing to stream and arrives in one piece, correctly.
+   *
+   * Found the first time this ran against Stage 1: /onboarding/new failed. It
+   * is a FORM, and once the operator-level readCounts was removed it reads
+   * nothing at all, so head and body land together at 130ms. Asserting that it
+   * streams would push towards adding a read in order to satisfy a probe.
+   *
+   * 🔴 AN ABSOLUTE, NOT A RELATIVE ONE, and the first attempt got this wrong.
+   * Deriving it as `baseline + 120` made it move with the weather — the same
+   * fault this file's header names — because /login skips both the auth call
+   * and the frame, so on localhost the baseline is 6ms and on production it is
+   * 119ms. The same route was exempt on one run and failing on the next with
+   * no code change between them. 250ms is the point at which a wait is worth
+   * covering; below it the whole response has already arrived.
+   */
+  const WORTH_STREAMING = 250
+  for (const p of bounded) {
     const gap = out[p].total - out[p].ttfb
+    if (out[p].total <= WORTH_STREAMING) {
+      console.log(`   ----  ${p} arrives whole in ${Math.round(out[p].total)}ms — nothing slow enough to stream`)
+      continue
+    }
     check(
       gap > 20,
       `${p} streams — its body lands after its head`,
