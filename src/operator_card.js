@@ -341,8 +341,11 @@ function ocJaDito(f) {
       ? 'a reunião de ' + ocSlot(b.retired.startUtc, zone) + ' já passou; sem nova reunião marcada'
       : 'a marcação de ' + ocSlot(b.retired.startUtc, zone) + ' deixou de constar da agenda; sem nova reunião marcada');
   } else if (Array.isArray(b.proposed) && b.proposed.length) {
+    // What the row records is that these were OFFERED and that nothing is booked.
+    // Whether the lead chose is not recorded: on 24 Sep the gate's lost races read
+    // "ainda não escolheu" about leads who had chosen and lost the slot.
     items.push('foram-lhe propostos horários (' + b.proposed.slice(0, 3).map(s => ocSlot(s, zone)).join('; ')
-               + ') e ainda não escolheu');
+               + '); nenhum está marcado');
   } else {
     items.push('sem reunião marcada');
   }

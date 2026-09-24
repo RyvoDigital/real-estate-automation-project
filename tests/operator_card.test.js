@@ -118,8 +118,13 @@ chk('disclosure state unreadable is not "told" and not "not told"',
   /não foi possível confirmar se o cliente foi informado/.test(jd({ disclosure: { unknown: true } })));
 chk('disclosed on THIS message: the card time', /assistente de IA \(24 set, 16:03\)/.test(
   jd({ disclosure: { now: true }, at: '2026-09-24T15:03:45Z' })), jd({ disclosure: { now: true }, at: '2026-09-24T15:03:45Z' }));
-chk('offered times the lead has not taken', /foram-lhe propostos horários \(quinta, 1 out, às 10:00 \(Lisboa\); quinta, 1 out, às 15:00 \(Lisboa\)\) e ainda não escolheu/
+chk('offered times: offered, and nothing booked', /foram-lhe propostos horários \(quinta, 1 out, às 10:00 \(Lisboa\); quinta, 1 out, às 15:00 \(Lisboa\)\); nenhum está marcado/
   .test(jd({ booking: { proposed: ['2026-10-01T09:00:00Z', '2026-10-01T14:00:00Z'] } })));
+// 24 Sep 2026, the gate's lost races: the lead HAD chosen, and lost the slot. The row
+// records the offer, not whether a choice was made, so the card must not say either.
+{ const t = jd({ booking: { proposed: ['2026-09-28T08:00:00Z'] }, note: { kind: 'slot_taken', delivered: true } });
+  chk('a lost race: never "ainda não escolheu" beside "o horário escolhido ficou ocupado"',
+    !/ainda não escolheu/.test(t) && /o horário escolhido ficou ocupado/.test(t), t); }
 chk('a retired booking with no new one', /a marcação de sexta, 25 set, às 09:00 \(Lisboa\) deixou de constar da agenda; sem nova reunião marcada/
   .test(jd({ booking: { retired: { startUtc: '2026-09-25T08:00:00Z', reason: 'cancelled' } } })));
 
