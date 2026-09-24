@@ -15,8 +15,9 @@ against the gate copy, after tests/gate_run.py (same gate client, same signing).
             it sent must be the OLD three-line alert; the run row says sent_as 'legacy' and
             an operator_card.fell_back event exists
 
-What was sent is read from what the sink echoed back to each Notify node (it answers with
-the request it received), never from a status. PASS = every scenario OK.
+What was sent is read from each Notify node's recorded output: the sink answers as Twilio
+does, with the message's `body` and `to` (tests/gate_sink.workflow.json), never from a
+status. PASS = every scenario OK.
 """
 import argparse, base64, hashlib, hmac, json, subprocess, time, urllib.parse, urllib.request, uuid
 
@@ -108,10 +109,11 @@ def node_outputs(since, node):
     return out
 
 def posted_body(item):
-    """The WhatsApp Body a Notify node posted, as the sink echoed it back."""
+    """The WhatsApp body a Notify node sent, from the sink's Twilio-shaped response
+    (tests/gate_sink.workflow.json echoes `body` and `to`, as Twilio does)."""
     def find(o):
         if isinstance(o, dict):
-            if isinstance(o.get('Body'), str) and 'To' in o: return o['Body']
+            if isinstance(o.get('body'), str) and 'sid' in o and 'to' in o: return o['body']
             for v in o.values():
                 r = find(v)
                 if r is not None: return r
