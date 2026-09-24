@@ -2101,6 +2101,168 @@ currently sufficient, but 15 runs is not proof of reliability.
 
 ---
 
+## Resetting the test lead: the saved "2 - reset test lead" query (24 Sep 2026)
+
+**A reset that leaves state behind isn't a reset.** On 24 Sep the saved query and
+a hand-back both left test lead …230 (`b35915d1`) with a booking-retired record,
+and every reply, including the first one to a plain "Olá", opened with
+*"Como referido, essa marcação já não consta da nossa agenda"*. The model was
+reading three things the reset had never cleared:
+
+| State | Where it lives | What reads it |
+|---|---|---|
+| The retired booking | `leads.qualification.past_bookings[]` (`retired_reason: cancelled`) | `BuildClaudeRequest` states the last one in the BOOKING STATUS note **on every turn** the lead holds no booking |
+| The retired-booking handoff note, and the old confirmations | `messages` (origin `handoff` / `ai`), 89 rows back to 15 Sep | `LoadHistory` gives the model the last 20 |
+| The booking itself | `leads.qualification.booking` | `MatchConfirmation` → `VerifyBooking` → `ResolveBooking`: a missing or cancelled event retires it and escalates `booking_retired:<reason>` |
+
+Also on the row: `proposed_slots` (the matcher accepts a pick against it),
+`escalated` (the lead is silenced; the cockpit Queue), `escalation_cleared_at`/`_by`
+(the transcript's hand-back note), `stage_signals`, `name_source`, `bedrooms`,
+`budget_history`, `rejected_budgets`; and the columns `stage`, `lead_type`,
+`budget_min/max`, `timeline`, `area` (the known-facts block, the QUALIFIED note, and
+`high_value`, which fires from the budget). A hand-back deletes `escalated` and
+nothing else, which is correct: it is a hand-back and not a reset.
+
+**The definition.** Paste this over the saved "2 - reset test lead" in the Supabase
+editor. Change only `v_lead`. It refuses any lead that is not the Ryvo Test
+Client's, and it ends in a verdict with one row per case.
+
+```sql
+create temp table if not exists reset_test_lead_report (k text primary key, v text);
+truncate reset_test_lead_report;
+
+do $$
+declare
+  v_lead   constant uuid := 'b35915d1-9e11-4046-97db-71ee0f82f9e7';   -- the ONLY line to edit
+  v_client constant uuid := '123e18bc-69a4-44c3-b1ad-b5503820301d';   -- Ryvo Test Client
+  r record; n bigint;
+begin
+  select l.client_id, l.qualification, c.name as client_name into r
+    from leads l join clients c on c.id = l.client_id
+   where l.id = v_lead for update of l;
+  if not found then raise exception 'REFUSED: lead % does not exist', v_lead; end if;
+  if r.client_id <> v_client or r.client_name <> 'Ryvo Test Client' then
+    raise exception 'REFUSED: lead % is not a Ryvo Test Client lead (%)', v_lead, r.client_name;
+  end if;
+  insert into reset_test_lead_report values
+    ('lead_id', v_lead::text),
+    ('event_id_held', coalesce(r.qualification -> 'booking' ->> 'event_id', '(none)'));
+
+  delete from messages where lead_id = v_lead;
+  get diagnostics n = row_count;
+  insert into reset_test_lead_report values ('messages_deleted', n::text);
+
+  delete from events where data ->> 'lead_id' = v_lead::text;
+  get diagnostics n = row_count;
+  insert into reset_test_lead_report values ('events_deleted', n::text);
+
+  update leads
+     set stage = 'new', qualification = '{}'::jsonb,
+         lead_type = null, budget_min = null, budget_max = null, timeline = null,
+         area = null, email = null, instagram_handle = null,
+         last_contact_at = null, updated_at = now()
+   where id = v_lead and client_id = v_client;
+  get diagnostics n = row_count;
+  if n <> 1 then raise exception 'REFUSED: update touched % rows, expected 1', n; end if;
+  insert into reset_test_lead_report values ('leads_updated', n::text);
+end $$;
+
+with rep as (select k, v from reset_test_lead_report),
+l as (select * from leads where id = (select v::uuid from rep where k = 'lead_id')),
+cases(ord, name, ok, reason) as (values
+  (1, 'one_lead_updated', (select v from rep where k = 'leads_updated') = '1',
+      coalesce((select v from rep where k = 'leads_updated'), 'MISSING: the DO block did not run')),
+  (2, 'stage_is_new', (select stage from l) = 'new', coalesce((select stage from l), 'NULL')),
+  (3, 'qualification_empty', (select qualification from l) = '{}'::jsonb,
+      coalesce((select string_agg(k, ',') from l, jsonb_object_keys(l.qualification) k), '(none)')),
+  (4, 'facts_cleared', (select lead_type is null and budget_min is null and budget_max is null
+                               and timeline is null and area is null from l), 'known facts'),
+  (5, 'no_messages_left', (select count(*) from l) = 1
+                       and (select count(*) from messages m, l where m.lead_id = l.id) = 0,
+      'deleted ' || coalesce((select v from rep where k = 'messages_deleted'), '?')),
+  (6, 'no_events_left', (select count(*) from l) = 1
+                     and (select count(*) from events e, l where e.data ->> 'lead_id' = l.id::text) = 0,
+      'deleted ' || coalesce((select v from rep where k = 'events_deleted'), '?')))
+select ord, name, case when ok then 'PASS' else 'FAIL' end as verdict, reason from cases
+union all
+select 99, 'calendar_next_step', 'TODO',
+       'If not (none): NOW delete event ' || (select v from rep where k = 'event_id_held')
+       || ' from the demo calendar. Not before rows 1-6 say PASS.'
+order by ord;
+```
+
+**Order, when the lead holds a booking: the SQL first, then the calendar.** The
+retired-booking path only runs for a lead that holds `qualification.booking`. Once
+the reset has removed it, deleting the event is invisible to the workflow.
+Deleting the event first opens a window in which any inbound from the lead finds
+its booking cancelled, archives it into `past_bookings`, escalates, and sends the
+retired-booking note. That is how 24 Sep started. Deleting an event no longer burns
+its slot (see "Deleting a calendar entry no longer burns the slot"); the next
+booking of that time takes the `g1` id.
+
+What it deliberately leaves: `full_name` (a real first contact arrives with the
+WhatsApp profile name; with `name_source` gone the name is read as exactly that),
+`automation_runs` (run history, not state), the client's config. It also clears
+the AI-disclosure state, which lives in `messages`, so the next reply discloses
+again, as a first contact's does. `listing_ingest.agent_numbers` must still not
+contain the lead's phone, or a first message routes to listing ingest.
+
+The one-off used on 24 Sep, with a further guard pinned to the Friday 13:00 event,
+is `db/tools/reset_test_lead_b35915d1.sql`.
+
+---
+
+## Open items (recorded, not being fixed)
+
+### An escalation re-fires on every message after a hand-back (24 Sep 2026)
+
+**What the operator saw**, on test lead …230: a `high_value` escalation at 11:15
+UTC; the lead wrote "Hello" at 11:17 and received the handoff note again, and a
+second alert arrived still reading *"Reason: high_value:3000000>=2000000 / Last msg:
+Hello"*.
+
+**What the rows show** (events and `automation_runs`, read 24 Sep): the lead was
+**handed back at 11:17:10**, so "Hello" at 11:17:26 was not answered as an escalated
+lead. An escalated lead is silenced (`IsLeadEscalated` → `PrepRunSilenced`: no
+reply, no alert). "Hello" ran the whole AI path, and `DecideEscalation` added
+`high_value` again, because the rule reads the budget the turn carries (3,000,000,
+unchanged, `fields_changed: 0`) rather than asking whether anything changed. So
+`high_value` re-escalates the lead on its first message after every hand-back, for
+as long as the budget stays at or above the threshold: a second handoff note to the
+lead, and a second alert with the original reason and the new message. The same
+lead went through this cycle at 23:00 on 23 Sep (2,500,000).
+
+**The right behaviour needs deciding**, and the decision goes with the
+escalation-alert redesign: tell the lead once; alert the operator on new messages,
+saying that it is a new message on a lead already escalated for that reason. Part
+of the same decision: whether `high_value` should fire only when the budget first
+crosses the threshold, so a hand-back sticks.
+
+**Scheduled:** the structural rebuild (week of 28 Sep), not before (operator,
+24 Sep 2026).
+
+### A cancelled booking is mentioned on every later reply (24 Sep 2026)
+
+When a lead holds no active booking, `BuildClaudeRequest` states the most recent
+entry in `qualification.past_bookings[]` in the BOOKING STATUS note **on every
+turn**, for as long as the lead exists: *"An earlier appointment for … was
+removed from the calendar on our side. If the lead refers to it, say plainly…"*.
+The instruction is conditional, but the model treats a fact it is told on
+every turn as something to say. On 24 Sep every reply to test lead …230,
+including the first to a plain "Olá", opened with *"Como referido, essa marcação
+já não consta da nossa agenda"*. A real lead whose booking was cancelled should
+not be reminded of it on every later reply.
+
+The line exists for a reason that still holds (2026-09-12: without it the model
+read its own earlier "Ficou confirmado!" and told the lead the meeting stood), so
+the fix is not to delete it. It has to stop the model asserting the old booking
+without prompting it to raise the cancellation. That is the decision to make.
+
+**Scheduled:** the structural rebuild (week of 28 Sep), with the `high_value`
+item above (operator, 24 Sep 2026).
+
+---
+
 ## 1. What is running
 
 | Thing | Value |
