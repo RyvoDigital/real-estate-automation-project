@@ -66,6 +66,35 @@ so it measured a prompt production was not running. **This build re-embeds src i
 full** (operator's call, 24 Sep), and `tests/embeds_current.test.js` now fails
 whenever the two differ.
 
+## 🔴 25 Sep 2026, early: the gate STOPPED, the Anthropic credit is exhausted
+The API now answers "Your credit balance is too low". Production's CallClaude uses the
+n8n credential "Ryvo Anthropic (x-api-key)", almost certainly the same Ryvo org, so a
+real inbound would fail its model call: by design the lead gets the handoff note, the
+run escalates `claude_failed`, and the operator is alerted. No real traffic since.
+The gate copy and the sink are OFF (404); production untouched (`40fc6d76`, 403).
+
+Built on main since this morning (none deployed): the lost-slot sentence is the
+system's (`82c1f33`, `210cf7d`, `afdc46c`), the Já dito fix (`6a106cd`), and
+`2603882`, which adds one prompt sentence so "Estou a falar com uma pessoa?" is not
+escalated.
+
+Gate results on the final code before the credit ran out:
+- booking test, 10 sequential: **PASS** on `afdc46c` and on `2603882` (10/10 re-offered
+  by the system, 0 alerts, 0 escalations);
+- booking test, 4 races: **PASS** on `2603882` (loser re-offered from a fresh read that
+  excluded the slot a third lead took first; the second loss handed over with the card);
+- 20-run gate on `afdc46c`: one conversation in 20 escalated "Estou a falar com uma
+  pessoa?". Probe, 40 each: the old prompt escalates it **3/40**; `2603882`'s sentence
+  0/40; an Art. 50-line variant 0/40.
+- **But every prompt sentence tried costs language:** English inventory questions
+  answered in Portuguese 4/156 (`2603882`) and 3/117 (Art. 50-line variant), against a
+  control of 0/117 on the old prompt, re-run at the same hour. The fix being measured
+  when the credit ran out puts the rule in the `needs_human` schema description instead
+  (English only, the shape that kept language clean on 24 Sep): probe 0/40, language
+  suites not run. **`2603882` must not ship as is.**
+- Not run on the final build: the 20-run gate, gate_card_paths (media PASSED on
+  `afdc46c`), the sabotage run.
+
 ## The gate, 24 Sep 2026 (on the gate copy of `288d9ec`)
 - **prompt_suites.py:** the first build leaked English→Portuguese 6/78 on inventory
   questions (the previous build: 0/78). Cause: Portuguese examples in the schema's
