@@ -110,6 +110,8 @@ for (const n of ['ParseClaude', 'ParseGuardRetry']) {
 for (const n of ['ParseClaude', 'ParseGuardRetry'])
   chk(`${n}: judges a lost-slot reply as sent (the 24 Sep gate: "{{LOST_SLOT}}" alone was rejected as too short)`,
     node(n).parameters.jsCode.includes("const shape = checkReplyShape(p, { lostSlot: b.bookingIntent === 'taken' });"));
+chk('PrepRunAI records the language of what was SENT on a lost-slot turn (was null for "{{LOST_SLOT}}")',
+  node('PrepRunAI').parameters.jsCode.includes("reply_lang: (lostSlotRec && lostSlotRec.lang) || (j.replyLang ?? null),"));
 chk('the prompt no longer says "apologise"', !/Apologise plainly, say it has just gone/.test(node('BuildClaudeRequest').parameters.jsCode));
 chk('the prompt asks for the placeholder', node('BuildClaudeRequest').parameters.jsCode.includes("'{{LOST_SLOT}}'"));
 
