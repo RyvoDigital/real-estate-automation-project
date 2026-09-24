@@ -479,6 +479,49 @@ update public.leads
  where phone = '+3519...';
 ```
 
+### A lost slot: the sentence is the system's (2026-09-24, BUILT, NOT DEPLOYED)
+
+On the 24 Sep gate a lead picked 16:00 seconds after another lead had booked it.
+The model had been told "apologise plainly" and wrote *"Peço desculpa, João, mas esse
+horário das 16:00 não está correto da minha parte"*: false (nobody erred), an apology
+for an error we did not make, and a decline the time guard could not read, so
+invariant 1 fired. The operator's rule (24 Sep): fix it properly, not with a phrase list.
+
+`src/lost_slot.js`, the first piece of the structural rebuild, built its way:
+
+- **One rule for both paths.** Sequential: the slot was already busy when the lead
+  picked it (MatchConfirmation's `taken`). Race: the re-check or Google's 409 said
+  another lead just took it. `LostSlotCheck` marks either.
+- **The remaining slots come from a calendar read taken at that moment**
+  (`LostSlotFreeBusy`, the same request as `QueryFreeBusy`), through `computeSlots`:
+  the same checks as any offer. **Never the earlier offer.** A failed read offers
+  nothing.
+- **The sentence is a fixed template** (pt/en/es), in the language already resolved
+  for the reply. It says plainly the time was just taken by someone else and offers
+  the remaining times. It never apologises. The offer stored on the row is exactly
+  the one sent (`proposed_slots.source: lost_slot`), so the next pick matches it and
+  invariant 1 reads it.
+- **Hand-over, never a loop:** nothing left (`booking_lost_race:none_left`), or this
+  lead's **second loss in a row** (`booking_lost_race:second_in_a_row`), goes to a
+  person with the handoff card. `qualification.lost_slot_streak` counts; a booking or
+  a hand-over restarts it.
+- **A race loser with slots left is no longer escalated** (operator, 24 Sep: one rule
+  for both paths). Its Motivo, when it is escalated, says why.
+- **The model's prose is the second line.** It is told to write `{{LOST_SLOT}}` where
+  the sentence goes and nothing about the taken time. The placeholder table from the
+  rebuild plan applies. Prose that names any time (extraction: `tgTimesIn` plus
+  "4pm"/"16h") is dropped and the template goes alone. On a lost-slot turn the
+  parsers no longer reject a named time, because the retry-then-escalate it caused
+  helped nobody. A dropped or misplaced prose writes
+  `reply.delivered_with_warning:<reason>`.
+- **Retired:** the client config's `slot_taken` note is no longer sent. It said
+  "Peço desculpa" and was per-client; the sentence is now the system's.
+
+The gate's booking test checks all of it: the sequential loser is re-offered by the
+template; in a race, a third lead books a slot of the earlier offer first and the
+loser's re-offer must not contain it; then a fourth lead books the first re-offered
+slot, the loser picks it, and the second loss must hand over with the card.
+
 ### The handoff card: what the operator is sent (2026-09-24, BUILT, NOT DEPLOYED)
 
 Until 24 Sep the operator's WhatsApp on an escalation was three lines: the

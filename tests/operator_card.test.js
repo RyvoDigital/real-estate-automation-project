@@ -80,6 +80,10 @@ chk('Motivo without a kind: not classified, not guessed from the text',
   field(r.card, 'motivo') === 'pedido do cliente (motivo não classificado)', field(r.card, 'motivo'));
 r = operatorAlert({ from: '+351912345230', reasons: ['needs_human:x'], escalationKind: 'price_negotiation', legacy: LEGACY });
 chk('the same message with the new field: price', field(r.card, 'motivo') === 'pergunta sobre preço e negociação');
+chk('a lost slot handed over, second in a row', field(operatorAlert({ reasons: ['booking_lost_race:second_in_a_row'], legacy: LEGACY }).card, 'motivo')
+  === 'perdeu dois horários seguidos para outros clientes');
+chk('a lost slot handed over, nothing left', field(operatorAlert({ reasons: ['booking_lost_race:none_left'], legacy: LEGACY }).card, 'motivo')
+  === 'o horário escolhido foi ocupado por outro cliente e não há outros horários livres');
 
 // ---------------------------------------------------------------------------
 console.log('\nrule 1: nothing known renders "não indicado", never blank, never a default');
@@ -245,10 +249,10 @@ console.log('\nsabotage: each must go red, and each sabotage must be shown to ha
   chk('(b) without the try/catch a bad field THROWS: the fallback test above is what catches it', threw);
 }
 {
-  const sab = SRC.replace(/  booking_lost_race: \(\) => [^\n]*\n/, '');
-  chk('(c) the sabotage applied', sab !== SRC && sab.indexOf('booking_lost_race:') === -1);
+  const sab = SRC.replace(/  booking_failed: \(\) => [^\n]*\n/, '');
+  chk('(c) the sabotage applied', sab !== SRC && sab.indexOf('booking_failed:') === -1);
   const map = new Function('DateTime', 'detectLanguage', sab + '\nreturn OC_REASON_PT;')(DateTime, detectLanguage);
-  chk('(c) the coverage check goes red on the deleted sentence', heads.has('booking_lost_race') && typeof map.booking_lost_race !== 'function');
+  chk('(c) the coverage check goes red on the deleted sentence', heads.has('booking_failed') && typeof map.booking_failed !== 'function');
 }
 {
   // (e) Lisbon replaced by a fixed +01:00: the 26 Oct case must go red.

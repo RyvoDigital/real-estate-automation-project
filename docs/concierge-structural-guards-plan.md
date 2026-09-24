@@ -27,6 +27,13 @@ formats are finite. Reading meaning from open language does not: every phrase
 added invites the next miss, and each miss either hands a lead to a person or
 raises a false critical alert.
 
+> **24 Sep 2026: the first piece is BUILT** (not deployed): the lost-slot sentence,
+> sequential and race, in `src/lost_slot.js`, the way this plan builds the rest: a fixed
+> per-language template in the reply's resolved language, the model's prose around a
+> placeholder as the second line, prose that names a time dropped (extraction, not a
+> phrase list), warnings as `reply.delivered_with_warning:<reason>` events, and the
+> rendered times tested across 25 Oct. See the runbook, "A lost slot".
+
 ## The three changes
 
 ### 1. The workflow writes every sentence that carries a time

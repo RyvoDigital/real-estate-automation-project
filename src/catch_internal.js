@@ -42,6 +42,9 @@ const ZONES = {
   // Body falls back to the plain alert. BuildOperatorAlertInternal is not here:
   // it is on this handler's own path and has no error branch (named exception).
   BuildOperatorAlert: 4, BuildOperatorAlertMedia: 4,
+  // A lost slot (src/lost_slot.js), 24 Sep 2026: the booking path, before anything
+  // is sent. Never book, never let a confirmation stand.
+  LostSlotCheck: 3, LostSlotReoffer: 3,
 };
 
 // Hardcoded rather than read from Normalise, because Normalise is one of the

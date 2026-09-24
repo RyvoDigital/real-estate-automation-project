@@ -37,6 +37,8 @@ ap.add_argument('--env', default='/opt/ryvo-automation-platform/.env')
 ap.add_argument('--gate-path', default='twilio-inbound-gate-5e1d8c47')
 ap.add_argument('--out', default='/tmp/gate_booking.json')
 ap.add_argument('--race', action='store_true', help='A and B confirm the same slot at the same instant: the re-check (RecheckFreeBusy) is the only thing between them')
+ap.add_argument('--lost-slot-src', default=__import__('os').path.join(__import__('os').path.dirname(__import__('os').path.dirname(__import__('os').path.abspath(__file__))), 'src', 'lost_slot.js'),
+                help="the BUILD's src/lost_slot.js: the lost-slot sentences are read from it, never copied")
 ap.add_argument('--parse-reply-src', default=__import__('os').path.join(__import__('os').path.dirname(__import__('os').path.dirname(__import__('os').path.abspath(__file__))), 'src', 'parse_reply.js'),
                 help="the BUILD's src/parse_reply.js: its replyLooksBroken() reads every delivered message")
 args = ap.parse_args()
@@ -109,6 +111,44 @@ def calendar_events():
     rd = d['data']['resultData']
     if rd.get('error'): raise RuntimeError('calendar list failed: ' + str(rd['error'].get('message')))
     return rd['runData']['Out'][0]['data']['main'][0][0]['json']['events']
+
+
+# 24 Sep 2026: a lost slot's sentence is the SYSTEM's (src/lost_slot.js). Read from the
+# build's own source, so this script cannot hold a stale copy.
+_LS = open(args.lost_slot_src, encoding='utf-8').read()
+LS_TEXT = {m[0]: {'offer': m[1], 'none_left': m[2], 'second_in_a_row': m[3]} for m in __import__('re').findall(
+    r"(en|pt|es): \{\s*offer: '([^']*)',\s*none_left: '([^']*)',\s*second_in_a_row: '([^']*)'", _LS)}
+assert set(LS_TEXT) == {'en', 'pt', 'es'}, 'could not read the lost-slot templates from ' + args.lost_slot_src
+APOLOGY = __import__('re').compile(r'sorry|apolog|mistake|desculp|lament|engano|disculp|perd[oó]n|equivoc|correct', __import__('re').I)
+
+
+def lost_slot_check(phone, payload, lang, lost_local, busy_locals, bad, who):
+    """The lead who lost a slot was re-offered: the system's sentence, the times from a
+    calendar read taken then (never the taken slot, never one the calendar now holds),
+    and those times are exactly the offer stored on the row."""
+    ls = payload.get('lost_slot') or {}
+    if ls.get('outcome') != 'reoffer':
+        bad.append(f"{who}: lost slot outcome {ls.get('outcome')!r} ({ls.get('detail')}), expected a re-offer"); return []
+    if not (ls.get('fresh_read') or {}).get('ok'): bad.append(f"{who}: re-offer without a fresh calendar read: {ls.get('fresh_read')}")
+    reply = last_reply(phone)
+    head = LS_TEXT[lang]['offer'].split('{slots}')[0]
+    if head not in reply: bad.append(f"{who}: the reply is not the system's sentence: {reply[:90]!r}")
+    if APOLOGY.search(reply): bad.append(f"{who}: the reply apologises: {reply[:90]!r}")
+    stored = offered(phone)
+    offer_locals = [s['local'] for s in stored]
+    if (lead_q(phone).get('proposed_slots') or {}).get('source') != 'lost_slot': bad.append(f"{who}: the stored offer is not the re-offer")
+    if [utc(x['startUtc']) for x in ls.get('offer') or []] != [utc(x) for x in offer_locals]:
+        bad.append(f"{who}: the stored offer differs from the one sent")
+    for x in [lost_local] + list(busy_locals):
+        if any(utc(o) == utc(x) for o in offer_locals): bad.append(f"{who}: re-offered {x}, which the calendar holds")
+    for o in stored:
+        hh_ = datetime.datetime.fromisoformat(o['local']).strftime('%H:%M')
+        if hh_ not in reply: bad.append(f"{who}: the reply does not name the stored {hh_}")
+    return stored
+
+
+def lead_q(phone):
+    return db('GET', f'leads?select=qualification&client_id=eq.{cid}&phone=eq.{q(phone)}')[0]['qualification'] or {}
 
 
 def utc(ts):
@@ -190,6 +230,26 @@ for i in range(1, args.runs + 1):
             bad.append(f'no slot offered to both (A {len(oa)}, B {len(ob)})')
             results.append(rec); print(f'run {i:2d} {lang} FAIL: {bad}', flush=True); continue
         S = common[0]
+        taken_by_c = []
+        if args.race:
+            # Condition 1 (operator, 24 Sep 2026): the loser's re-offer is read from the
+            # calendar at that moment, never taken from the earlier offer. So before the
+            # race a THIRD lead books another slot of that earlier offer; the loser's
+            # re-offer must not contain it.
+            T = next((s_ for s_ in common[1:]), None)
+            if T is None:
+                bad.append('race: no second common slot to book first'); results.append(rec)
+                print(f'run {i:2d} {lang} FAIL: {bad}', flush=True); continue
+            Cph = '+35193' + f'{stamp:05d}{i:02d}'
+            new_lead(Cph); turn(ca['id'], Cph, ASK[lang])
+            if T['local'] not in [s_['local'] for s_ in offered(Cph)]:
+                bad.append("race: the third lead was not offered the slot to take first")
+            else:
+                lt = datetime.datetime.fromisoformat(T['local'])
+                _, rc = turn(ca['id'], Cph, PICK[lang](WEEKDAY[lang][lt.weekday()], lt.strftime('%H:%M')))
+                if ((rc or {}).get('payload') or {}).get('booking_result') != 'created': bad.append('race: the third lead could not book the slot to take first')
+                else: taken_by_c.append(T['local'])
+            rec['taken_first'] = taken_by_c
         local = datetime.datetime.fromisoformat(S['local'])
         hh = local.strftime('%H:%M')
         wd = WEEKDAY[lang][local.weekday()]
@@ -238,21 +298,49 @@ for i in range(1, args.runs + 1):
             lose_ph = B if win_ph == A else A
             pw, pl = (pa, pb) if win_ph == A else (pb, pa)
             rl = rb_ if win_ph == A else ra_
-            # the cross-check: the winner was sent the model's reply, the loser a handoff (lost race)
-            # or a decline (caught at the intent); the loser's row holds no booking
+            # the cross-check: the winner was sent the model's reply; the loser (24 Sep 2026)
+            # the SYSTEM's lost-slot sentence with the remaining slots, never a hand-over while
+            # slots are left; the loser's row holds no booking
             if [o['origin'] for o in outs.get(win_ph, [])] != ['ai']: bad.append(f"race: winner's outbound {[o['origin'] for o in outs.get(win_ph, [])]}, expected ['ai']")
             lose_row = db('GET', f'leads?select=qualification&id=eq.{ids[lose_ph]}')[0]
             if ((lose_row['qualification'] or {}).get('booking')): bad.append("race: the loser's row holds a booking")
-            reasons = pl.get('reasons') or []
-            if any(str(x).startswith('booking_lost_race:') for x in reasons):
-                rec['loser_caught_by'] = 're-check' if 'slot_taken_since_offer' in json.dumps(reasons) else "Google's 409"
-                if [o['origin'] for o in outs.get(lose_ph, [])] != ['handoff']: bad.append(f"race: loser's outbound {[o['origin'] for o in outs.get(lose_ph, [])]}, expected ['handoff']")
-                if rl.get('status') == 'error' or pl.get('system_failure'): bad.append(f"race: a lost race recorded as a system failure (status {rl.get('status')})")
-            elif pl.get('booking_intent') == 'taken' and pl.get('booking_result') == 'not_attempted':
+            ls_ = pl.get('lost_slot') or {}
+            if ls_.get('path') == 'race':
+                rec['loser_caught_by'] = 're-check' if pl.get('booking_error') == 'slot_taken_since_offer' else "Google's 409"
+            elif ls_.get('path') == 'sequential':
                 rec['loser_caught_by'] = 'intent (taken)'
             else:
-                bad.append(f"race: loser not booked for an unexpected reason: {pl.get('booking_result')} / {pl.get('booking_intent')} / {reasons}")
+                bad.append(f"race: loser not handled as a lost slot: {pl.get('booking_result')} / {pl.get('booking_intent')} / {pl.get('reasons')}")
                 rec['loser_caught_by'] = 'unexpected'
+            if pl.get('escalated'): bad.append(f"race: the loser was escalated with slots left: {pl.get('reasons')}")
+            if rl.get('status') == 'error' or pl.get('system_failure'): bad.append(f"race: a lost race recorded as a system failure (status {rl.get('status')})")
+            reoffer = lost_slot_check(lose_ph, pl, lang, S['local'], taken_by_c, bad, 'race loser')
+            rec['reoffer'] = [s_['local'] for s_ in reoffer]
+            # Condition 2: a SECOND loss in a row hands over with the card, no loop of re-offers.
+            # A fourth lead books the first re-offered slot; the loser then picks it.
+            if reoffer:
+                U = reoffer[0]
+                Dph = '+35194' + f'{stamp:05d}{i:02d}'
+                new_lead(Dph); turn(ca['id'], Dph, ASK[lang])
+                lu_ = datetime.datetime.fromisoformat(U['local'])
+                pick_u = PICK[lang](WEEKDAY[lang][lu_.weekday()], lu_.strftime('%H:%M'))
+                if U['local'] not in [s_['local'] for s_ in offered(Dph)]: bad.append('second loss: the fourth lead was not offered the slot')
+                else:
+                    _, rd_ = turn(ca['id'], Dph, pick_u)
+                    if ((rd_ or {}).get('payload') or {}).get('booking_result') != 'created': bad.append('second loss: the fourth lead could not book it')
+                    else:
+                        _, r2 = turn(ca['id'], lose_ph, pick_u)
+                        p2 = (r2 or {}).get('payload') or {}
+                        oa2 = p2.get('operator_alert') or {}
+                        f2 = {x.get('key'): x.get('value') for x in ((oa2.get('card') or {}).get('fields') or [])}
+                        rec['second_loss'] = {'escalated': p2.get('escalated'), 'reasons': p2.get('reasons'), 'alert': oa2.get('sent_as'), 'motivo': f2.get('motivo')}
+                        if not p2.get('escalated') or 'booking_lost_race:second_in_a_row' not in (p2.get('reasons') or []):
+                            bad.append(f"second loss: not handed over as second_in_a_row: {p2.get('reasons')} / {(p2.get('lost_slot') or {}).get('outcome')}")
+                        if oa2.get('sent_as') != 'card': bad.append(f"second loss: the operator got {oa2.get('sent_as')!r}, not the card")
+                        if f2.get('motivo') != 'perdeu dois horários seguidos para outros clientes': bad.append(f"second loss: card Motivo {f2.get('motivo')!r}")
+                        rep_ = last_reply(lose_ph)
+                        if LS_TEXT[lang]['second_in_a_row'] not in rep_: bad.append(f"second loss: the lead was not sent the system's sentence: {rep_[:90]!r}")
+                        if APOLOGY.search(rep_): bad.append('second loss: the handoff apologises')
             if lang_of(pa) != lang or lang_of(pb) != lang: bad.append(f"language {lang_of(pa)}/{lang_of(pb)}, expected {lang}")
             reply = last_reply(win_ph)
             rec['A_reply'] = reply
@@ -280,6 +368,10 @@ for i in range(1, args.runs + 1):
             if pb.get('booking_result') not in ('slot_taken', 'not_attempted') or (pb.get('booking_result') == 'not_attempted' and pb.get('booking_intent') != 'taken'):
                 bad.append(f"B refused for an unexpected reason: {pb.get('booking_result')} / intent {pb.get('booking_intent')}")
             if pb.get('reply_lang') != lang: bad.append(f"B reply_lang {pb.get('reply_lang')}")
+            if pb.get('escalated'): bad.append(f"B was escalated with slots left: {pb.get('reasons')}")
+            rec['B']['lost_slot'] = {k: (pb.get('lost_slot') or {}).get(k) for k in ('path', 'outcome', 'detail', 'prose_used', 'warnings')}
+            reoffer_b = lost_slot_check(B, pb, lang, S['local'], [], bad, 'B')
+            rec['B_reoffer'] = [s_['local'] for s_ in reoffer_b]
         # the calendar itself
         evs = [e for e in calendar_events() if e.get('status') != 'cancelled' and e.get('start')]
         at_s = [e for e in evs if utc(e['start']) == utc(S['local'])]
@@ -290,12 +382,17 @@ for i in range(1, args.runs + 1):
         # 🔒 The alerts, counted here and not read off a payload (22 Sep 2026).
         time.sleep(SETTLE)
         run_ids = {lead_id(A), lead_id(B)}
+        for extra in ('+35193', '+35194'):
+            ph_ = extra + f'{stamp:05d}{i:02d}'
+            if db('GET', f'leads?select=id&client_id=eq.{cid}&phone=eq.{q(ph_)}'): run_ids.add(lead_id(ph_))
         inv = [e for e in events_since('invariant.violated', run_since) if (e.get('data') or {}).get('lead_id') in run_ids]
         esc = [e for e in events_since('lead.escalated', run_since) if (e.get('data') or {}).get('lead_id') in run_ids]
         rec['invariant_alerts'] = [(e['data'].get('invariant'), e['data'].get('slug')) for e in inv]
         rec['escalations'] = len(esc)
         if inv: bad.append(f'{len(inv)} invariant alert(s): {rec["invariant_alerts"]}')
-        want_esc = 1 if (args.race and str(rec.get('loser_caught_by', '')) in ('re-check', "Google's 409")) else 0
+        # 24 Sep 2026: a lost slot with slots left is NOT an escalation; in a race run the
+        # one expected escalation is the loser's SECOND loss in a row.
+        want_esc = 1 if (args.race and rec.get('second_loss')) else 0
         if len(esc) != want_esc: bad.append(f'{len(esc)} escalation(s), expected {want_esc}')
     except Exception as e:
         bad.append(f'the run itself errored: {e}')
@@ -321,8 +418,11 @@ print(f'  invariant alerts (whole run): {len(all_inv)}  {[(e["data"].get("invari
 # ("no slot offered to both") never reaches its per-run count. On 22 Sep run 8 escalated
 # (bad_reply_twice) and the per-run total said 0. Expected: exactly one per lost race.
 all_esc = [e for e in events_since('lead.escalated', start_iso)]
-want_esc = sum(1 for r in results if r.get('loser_caught_by') in ('re-check', "Google's 409"))
-print(f'  escalations (whole run):      {len(all_esc)} (expected {want_esc}: one per lost race)')
+want_esc = sum(1 for r in results if r.get('second_loss'))
+print(f'  escalations (whole run):      {len(all_esc)} (expected {want_esc}: one per second loss in a row)')
+lost = [r for r in results if r.get('reoffer') or r.get('B_reoffer')]
+print(f'  lost slots re-offered by the system: {len(lost)}; second losses handed over with the card: '
+      f'{sum(1 for r in results if (r.get("second_loss") or {}).get("alert") == "card")}')
 n_read, broken = delivered_broken(db, cid, start_iso, args.parse_reply_src)
 print(f'  delivered messages read:      {n_read}, broken: {len(broken)}')
 for b in broken: print(f'    BROKEN {b["at"]} {b["origin"]}: {b["why"]}')

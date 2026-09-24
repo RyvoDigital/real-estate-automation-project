@@ -82,7 +82,13 @@ const OC_REASON_PT = {
   booking_retired: (tail) => tail === 'missing'
     ? 'a marcação já não consta da agenda'
     : 'marcação cancelada',
-  booking_lost_race: () => 'o horário escolhido foi ocupado por outro cliente no mesmo momento',
+  // A lost slot hands over only when nothing is left or it is the second in a row
+  // (src/lost_slot.js); a re-offer is no escalation at all.
+  booking_lost_race: (tail) => tail === 'second_in_a_row'
+    ? 'perdeu dois horários seguidos para outros clientes'
+    : tail === 'none_left'
+      ? 'o horário escolhido foi ocupado por outro cliente e não há outros horários livres'
+      : 'o horário escolhido foi ocupado por outro cliente no mesmo momento',
   booking_failed: () => 'falha técnica ao marcar a reunião',
   no_availability: () => 'sem horários disponíveis para propor',
   claude_failed: () => 'falha técnica: o assistente não conseguiu responder',
