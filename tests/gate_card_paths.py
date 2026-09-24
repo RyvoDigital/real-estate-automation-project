@@ -200,7 +200,10 @@ if args.sabotage:
     elif p.get('operator_notified') is not True: bad.append('operator NOT notified: the fallback did not send')
     time.sleep(5)
     built = node_outputs(since, 'BuildOperatorAlert')
-    if not any('SABOTAGE-CARD-BUILD' in json.dumps(b) for b in built): bad.append('the sabotage did not apply (BuildOperatorAlert did not throw)')
+    # n8n records the throw on the node's ERROR output as {"error": "<message> [line N]"},
+    # and takes "SABOTAGE-CARD-BUILD:" as the error's NAME, dropping it from the message.
+    if not any('deliberate, for the live proof' in str(b.get('error', '')) for b in built):
+        bad.append('the sabotage did not apply (BuildOperatorAlert did not throw)')
     posted = [posted_body(x) for x in node_outputs(since, 'NotifyOperator')]
     body = next((b for b in posted if b), '') or ''
     if not body.startswith('Ryvo escalation\n') or '\nReason: needs_human' not in body or '\nLast msg: "' not in body:
