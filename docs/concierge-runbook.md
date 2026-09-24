@@ -523,6 +523,12 @@ internal-failure path for zones 2 and 3 (`BuildOperatorAlertInternal` →
   already stored ("Cascais or Estoril" → "Cascais ou Estoril", "this week" → "esta
   semana"). A value it cannot translate is quoted, not hidden, and the main path
   writes an `operator_card.untranslated` event.
+  **The schema's wording has no Portuguese words in it, on purpose.** The first
+  version carried Portuguese examples ("Cascais ou Estoril", "esta semana"), and
+  English inventory questions were answered in Portuguese 6 times in 78 suite runs
+  (the previous build: 0 in 78). The same instruction in English only: 0 in 78
+  (`prompt_suites.py`, 24 Sep). An example in the reply's hearing is a language
+  signal, whatever it is labelled.
 - **Times in the client's zone, through the timezone database.** Lisbon moves from
   UTC+1 to UTC+0 on 25 Oct; both sides are tested.
 
