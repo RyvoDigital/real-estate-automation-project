@@ -1,6 +1,6 @@
 # Where we left off
 
-**Last updated:** 2026-09-22, 19:50 UTC: the COCKPIT REDESIGN IS COMPLETE — cockpit `375472e` live; n8n Concierge unchanged at `a7b7786` (served `40fc6d76`). Next: nothing is mid-build; §0000000 says what is owed.
+**Last updated:** 2026-09-24: the HANDOFF CARD is BUILT, NOT DEPLOYED (§00000000). Production unchanged: cockpit `36da540`, n8n Concierge `a7b7786` (served `40fc6d76`).
 **Where the work is:** the COCKPIT REDESIGN is COMPLETE (22 Sep 2026 evening).
 §0000000 is the current state; §0 below is the stage-C record that led to it.
 
@@ -34,6 +34,53 @@ This file is the running state-of-play for whoever (human or agent) picks the
 project up next. The durable *design* lives in the handoff and design documents
 under `docs/`; this file records what is actually deployed right now and what
 tripped us up. **Sections are newest first.**
+
+---
+
+# 00000000. 24 September 2026: THE HANDOFF CARD IS BUILT, NOT DEPLOYED. READ THIS FIRST
+
+§0000000 below is still true about production: **nothing in this section is live.**
+
+## What is built
+The operator's escalation alert becomes the card promised to a client
+(*Passagem para uma pessoa*: Contacto, Idioma, Procura, Orçamento, Prazo, Motivo,
+Já dito, in Portuguese) on all three escalation paths. Runbook, "The handoff card".
+
+| | state |
+|---|---|
+| `src/operator_card.js` and the three builder nodes | **BUILT AND UNWIRED** in production: wired in `workflows/ryvoInboundConc01.json`, not deployed |
+| `escalation_kind` in the reply schema + prompt | **BUILT AND UNWIRED**, same |
+| Media and internal-failure paths alerting on WhatsApp | **BUILT AND UNWIRED**, same (email-only in production) |
+
+Tests: every `tests/*.test.js` green (`operator_card` 100, `operator_card_nodes`
+44), lint clean, cockpit `workflow-error-branches` 7/7, `tsc` clean. Sabotage,
+each shown applied and red: the builder throwing, the try/catch removed, a reason
+sentence deleted, a fixed +01:00 offset, the Body fallback removed, the stale row
+read, an error branch cut, the prompt drifted.
+
+## 🔴 Found on the way: production's prompt had drifted from src since 17 Sep
+`SYSTEM_TEMPLATE` in production lacks cd3e42c's Art. 50 line. Asked "are you a
+bot?", production says "say honestly that you are an assistant", not "an
+artificial-intelligence assistant and not a person". `prompt_suites.py` reads src,
+so it measured a prompt production was not running. **This build re-embeds src in
+full** (operator's call, 24 Sep), and `tests/embeds_current.test.js` now fails
+whenever the two differ.
+
+## Owed before any deploy, in order, each on the operator's go
+1. `prompt_suites.py` on the server (a prompt-shaped change, and the Art. 50 line).
+2. The gate copy imported and switched on (`tests/build_gate.py` builds it: 138
+   nodes, all five new Twilio sends on the sink). Then the booking test
+   (`--runs 10`, then `--runs 4 --race`) and the 20-run gate. Plus the new checks:
+   every escalation a card, the right Motivo, zero `operator_card.untranslated`,
+   a media escalation and a forced internal failure each producing a card, and
+   the legacy fallback proved live with `BuildOperatorAlert` sabotaged on the gate copy.
+3. Deploy only when the operator says the demo calendar is clear. Then all three
+   phone checks; "Talk to a human" must land the card on the operator's phone.
+
+## Open items recorded 24 Sep (runbook, "Open items")
+- `high_value` re-escalates on the first message after every hand-back.
+- A cancelled booking is mentioned on every later reply.
+Both go into the structural rebuild (week of 28 Sep).
 
 ---
 

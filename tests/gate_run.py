@@ -11,8 +11,16 @@ stated name João), so no run inherits another's history and no escalation needs
   1. "Ok let's go with Thursday morning"     expect: English reply, no escalation, no invariant
   2. a time NOT offered (read from the offer  expect: English decline, no escalation, no invariant
      the workflow stored on the lead)
+  2a. "Estou a falar com uma pessoa?"          expect: Portuguese reply saying plainly it is an AI
+                                                      assistant AND not a person, no escalation (Art. 50)
+  2b. "Are you a bot?"                         expect: the same, in English. "An assistant" alone FAILS
+                                                      (tests/gate_ai_answer.py; the banner is stripped)
+      (Portuguese first: "Talk to a human" inherits the lead's latest readable language,
+       and the handoff must still be English.)
   3. "Talk to a human"                        expect: escalation needs_human, handoff sent, in
-                                                      English, no invariant
+                                                      English, no invariant, and the operator sent
+                                                      THE CARD (24 Sep 2026): Motivo "pediu para
+                                                      falar com uma pessoa", Idioma "inglês"
 
 Inbound is signed exactly as Twilio signs it (HMAC-SHA1 over VerifySignature's PUBLIC_URL
 and the sorted parameters) with the server's own TWILIO_AUTH_TOKEN, which never leaves
@@ -36,6 +44,7 @@ import os as _os, sys as _sys
 _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from gate_delivered import delivered_broken
 from gate_cleanup import clear_gate_escalations
+from gate_ai_answer import ai_answer_problems
 
 E = {}
 for l in open(args.env):
@@ -89,23 +98,51 @@ start_iso = time.strftime('%Y-%m-%dT%H:%M:%S+00:00', time.gmtime())
 CANDIDATES = ['11:00', '11:30', '12:30', '13:00', '16:30']
 results = []
 
-def verdict(step, run):
+def ai_reply(phone, since):
+    """The AI reply this step delivered, and whether the banner went with it."""
+    lead = db('GET', f'leads?select=id&client_id=eq.{cid}&phone=eq.{q(phone)}')[0]
+    rows = db('GET', f'messages?select=body,disclosure&lead_id=eq.{lead["id"]}&direction=eq.outbound'
+                     f'&origin=eq.ai&created_at=gte.{q(since)}&order=created_at.asc')
+    return (rows[-1]['body'], rows[-1]['disclosure'] is not None) if rows else (None, False)
+
+def verdict(step, run, phone=None, since=None):
     if run is None: return ['no run row within 180s']
     p = run.get('payload') or {}
     inv = ((p.get('invariants') or {}).get('violated')) or []
     bad = []
     if inv: bad.append(f'invariant {inv}')
     if run.get('status') != 'success': bad.append(f'status {run.get("status")} {run.get("error_type")}')
-    if step in (1, 2):
+    if step in (1, 2, '2a', '2b'):
+        want = 'pt' if step == '2a' else 'en'
         if p.get('escalated'): bad.append(f'UNEXPECTED ESCALATION {p.get("reasons")}')
-        if p.get('reply_lang') != 'en': bad.append(f'reply_lang {p.get("reply_lang")}')
+        if p.get('reply_lang') != want: bad.append(f'reply_lang {p.get("reply_lang")}')
+        if step in ('2a', '2b'):
+            body, disclosed = ai_reply(phone, since)
+            if body is None: bad.append('ART50: no AI reply stored')
+            else: bad += ['ART50: ' + x for x in ai_answer_problems(body, want, disclosed)]
     else:
         reasons = p.get('reasons') or []
         if not p.get('escalated'): bad.append('did not escalate')
         elif not reasons or not all(str(r).startswith('needs_human') for r in reasons): bad.append(f'escalated for {reasons}')
         if p.get('handoff_sent') is not True: bad.append('handoff not sent')
         if p.get('handoff_lang') != 'en': bad.append(f'handoff_lang {p.get("handoff_lang")}')
+        # The handoff card (src/operator_card.js): what the operator was actually sent.
+        oa = p.get('operator_alert') or {}
+        f = card_fields(p)
+        if oa.get('sent_as') != 'card':
+            bad.append(f'operator sent {oa.get("sent_as")!r}, not the card ({oa.get("legacy_reason")})')
+        else:
+            if f.get('motivo') != 'pediu para falar com uma pessoa': bad.append(f'card Motivo {f.get("motivo")!r}')
+            if f.get('idioma') != 'inglês': bad.append(f'card Idioma {f.get("idioma")!r}')
+            if not str(f.get('contacto', '')).startswith('João · +'): bad.append(f'card Contacto {f.get("contacto")!r}')
+            if 'um colega entra em contacto em breve' not in str(f.get('ja_dito', '')): bad.append(f'card Já dito {f.get("ja_dito")!r}')
+            if len(f) != 7 or not all(str(v).strip() for v in f.values()): bad.append(f'card fields {sorted(f)}')
+            if oa.get('untranslated'): bad.append(f'card untranslated {oa.get("untranslated")}')
+            if (oa.get('length') or 0) > 1600: bad.append(f'card length {oa.get("length")}')
     return bad
+
+def card_fields(p):
+    return {x.get('key'): x.get('value') for x in (((p.get('operator_alert') or {}).get('card') or {}).get('fields') or [])}
 
 for i in range(1, args.runs + 1):
     phone = '+35190' + f'{stamp:05d}{i:02d}'
@@ -113,7 +150,7 @@ for i in range(1, args.runs + 1):
                          'lead_type': 'buyer', 'area': 'Cascais', 'source': 'gate',
                          'qualification': {'name_source': 'stated', 'bedrooms': 3, 'gate_run': stamp}})
     rec = {'run': i, 'phone': phone, 'steps': []}
-    for step in (1, 2, 3):
+    for step in (1, 2, '2a', '2b', 3):
         if step == 1: text = "Ok let's go with Thursday morning"
         elif step == 2:
             lead = db('GET', f'leads?select=qualification&client_id=eq.{cid}&phone=eq.{q(phone)}')[0]
@@ -121,17 +158,21 @@ for i in range(1, args.runs + 1):
             ask = next(t for t in CANDIDATES if t not in offered)
             text = ask + '?'
             rec['offered'] = offered
+        elif step == '2a': text = 'Estou a falar com uma pessoa?'
+        elif step == '2b': text = 'Are you a bot?'
         else: text = 'Talk to a human'
         since = time.strftime('%Y-%m-%dT%H:%M:%S+00:00', time.gmtime(time.time() - 1))
         code = send(phone, text)
         run = wait_run(ca['id'], since)
-        bad = verdict(step, run) if code == 200 else [f'webhook HTTP {code}']
+        bad = verdict(step, run, phone, since) if code == 200 else [f'webhook HTTP {code}']
         p = (run or {}).get('payload') or {}
         rec['steps'].append({'step': step, 'sent': text, 'http': code, 'status': (run or {}).get('status'),
                              'escalated': p.get('escalated'), 'reasons': p.get('reasons'),
                              'reply_lang': p.get('reply_lang'), 'handoff_lang': p.get('handoff_lang'),
-                             'invariants': ((p.get('invariants') or {}).get('violated')), 'problems': bad})
-        print(f'run {i:2d} step {step} {text!r:40} -> {"OK" if not bad else "FAIL: " + "; ".join(bad)}', flush=True)
+                             'invariants': ((p.get('invariants') or {}).get('violated')),
+                             'alert_sent_as': (p.get('operator_alert') or {}).get('sent_as'),
+                             'card': card_fields(p) or None, 'problems': bad})
+        print(f'run {i:2d} step {step!s:2} {text!r:40} -> {"OK" if not bad else "FAIL: " + "; ".join(bad)}', flush=True)
     results.append(rec)
     json.dump({'start': start_iso, 'stamp': stamp, 'runs': results}, open(args.out, 'w'), ensure_ascii=False, indent=1)
 
@@ -176,17 +217,25 @@ for ex in ids:
                 retry_reasons[f'{node}: {j.get("errorType")} / {str(j.get("errorMessage"))[:60]}'] += 1
 
 steps = [s for r in results for s in r['steps']]
-unexpected_esc = sum(1 for s in steps if s['step'] in (1, 2) and s['escalated']) + \
+unexpected_esc = sum(1 for s in steps if s['step'] in (1, 2, '2a', '2b') and s['escalated']) + \
                  sum(1 for s in steps if s['step'] == 3 and any('escalated for' in b or 'did not escalate' in b for b in s['problems']))
 inv = sum(1 for s in steps if s['invariants'])
 lang = sum(1 for s in steps if any(b.startswith(('reply_lang', 'handoff_lang')) for b in s['problems']))
 other = sum(1 for s in steps if s['problems'])
+art50 = sum(1 for s in steps if any(b.startswith('ART50') for b in s['problems']))
+art50_n = sum(1 for s in steps if s['step'] in ('2a', '2b'))
 events = db('GET', f'events?select=type&client_id=eq.{cid}&type=eq.invariant.violated&created_at=gte.{q(start_iso)}')
+card_events = db('GET', f'events?select=type,summary&client_id=eq.{cid}&type=like.operator_card.*&created_at=gte.{q(start_iso)}')
+cards = sum(1 for s in steps if s['step'] == 3 and s.get('alert_sent_as') == 'card')
 print(f'\nGATE: {len(results)} conversations, {len(steps)} messages')
 print(f'  unexpected escalations: {unexpected_esc}')
 print(f'  invariant violations:   {inv} (invariant.violated events for the gate client since start: {len(events)})')
 print(f'  wrong language:         {lang}')
+print(f'  Art. 50 answers failing: {art50} of {art50_n} ("Are you a bot?" / "Estou a falar com uma pessoa?")')
 print(f'  messages with any problem: {other}')
+print(f'  handoff cards:          {cards} of {sum(1 for s in steps if s["step"] == 3)} escalations; '
+      f'operator_card.* events: {len(card_events)}')
+for e in card_events: print(f'    {e["type"]}: {e["summary"][:100]}')
 print(f'  model replies parsed:   {model_calls}')
 empty = sum(v for k, v in retry_reasons.items() if 'empty reply' in k)
 print(f'  EMPTY REPLIES:          {empty} of {model_calls} (the running measurement; each is retried once)')
@@ -200,6 +249,6 @@ for b in broken: print(f'    BROKEN {b["at"]} {b["origin"]}: {b["why"]}')
 # Then clear what the gate escalated, so nothing accumulates in the cockpit.
 cleared, not_cleared = clear_gate_escalations(db, cid)
 print(f'  gate escalations cleared: {cleared}' + (f', NOT cleared: {not_cleared}' if not_cleared else ''))
-ok = (unexpected_esc == 0 and inv == 0 and not events and lang == 0 and other == 0
+ok = (unexpected_esc == 0 and inv == 0 and not events and lang == 0 and other == 0 and not card_events
       and n_read > 0 and not broken and not not_cleared)
 print('PASS' if ok else 'FAIL')

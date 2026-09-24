@@ -36,6 +36,12 @@ const ZONES = {
   AfterEmailAlert: 4, MergeLeadFields: 4, AfterLeadUpdate: 4,
   PrepRunAI: 4, PrepRunDuplicate: 4, PrepRunSilenced: 4, PrepRunMedia: 4,
   PrepRunEscalated: 4, AssertDelivery: 4, FinalizeRun: 4,
+  // The handoff card builders (src/operator_card.js), 24 Sep 2026. The lead has
+  // had their handoff note by the time either runs; the operator's alert still
+  // goes, because each one's error output also reaches its Notify node, whose
+  // Body falls back to the plain alert. BuildOperatorAlertInternal is not here:
+  // it is on this handler's own path and has no error branch (named exception).
+  BuildOperatorAlert: 4, BuildOperatorAlertMedia: 4,
 };
 
 // Hardcoded rather than read from Normalise, because Normalise is one of the

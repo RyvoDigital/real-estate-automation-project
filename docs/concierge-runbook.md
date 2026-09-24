@@ -479,6 +479,98 @@ update public.leads
  where phone = '+3519...';
 ```
 
+### The handoff card: what the operator is sent (2026-09-24, BUILT, NOT DEPLOYED)
+
+Until 24 Sep the operator's WhatsApp on an escalation was three lines: the
+number, a reason **code** (`high_value:3000000>=2000000`) and the last message. A
+client was promised this instead, and it must exist before any client goes live:
+
+```
+*Passagem para uma pessoa*
+*Contacto:* João · +351 912 345 678
+*Idioma:* inglês
+*Procura:* compra · Cascais ou Estoril · T3
+*Orçamento:* até 3.000.000 €
+*Prazo:* não indicado
+*Motivo:* pediu para falar com uma pessoa; valor acima do limiar (3.000.000 €)
+*Já dito:* o cliente foi informado de que fala com um assistente de IA (24 set, 15:49); tem reunião marcada para sexta, 25 set, às 17:00 (Lisboa); o cliente foi informado de que um colega entra em contacto em breve
+```
+
+Source: `src/operator_card.js`. It goes out on **all three escalation paths**: the
+main path (`BuildOperatorAlert` → `NotifyOperator`), the media path
+(`BuildOperatorAlertMedia` → `NotifyOperatorMedia`, email-only until now) and the
+internal-failure path for zones 2 and 3 (`BuildOperatorAlertInternal` →
+`NotifyOperatorInternal`, email-only until now). The emails still go.
+
+**The rules (operator, 24 Sep):**
+- **Every field is what the run recorded.** The row after this turn's merge, the
+  disclosure rows, the note actually delivered. A fact it lacks says "não
+  indicado": never a guess, never blank. Idioma is "não indicado" when the
+  language was only the client default.
+- **Motivo is never a code.** Each reason head has a Portuguese sentence;
+  `needs_human` uses `escalation_kind`, a closed field the model now returns
+  (`person_request`, `price_negotiation`, `legal_tax`, `complaint`,
+  `change_booking`, `other`). Escalations from before this build say "pedido do
+  cliente (motivo não classificado)", never a guess from the free text.
+  `tests/operator_card.test.js` reads the heads the workflow writes and fails on
+  one without a sentence.
+- **Já dito is recorded facts only**: the disclosure (and when), the booking on
+  the row, and the commitment the delivered note made. "nada foi prometido" only
+  when no note was delivered and nothing is booked. A note that failed to deliver
+  is said in capitals.
+- **Every stored value in Portuguese.** The schema tells the model to record
+  `area` and `timeline` in European Portuguese; a closed normaliser covers what is
+  already stored ("Cascais or Estoril" → "Cascais ou Estoril", "this week" → "esta
+  semana"). A value it cannot translate is quoted, not hidden, and the main path
+  writes an `operator_card.untranslated` event.
+- **Times in the client's zone, through the timezone database.** Lisbon moves from
+  UTC+1 to UTC+0 on 25 Oct; both sides are tested.
+
+**⚠️ A per-client handoff override must keep the commitment.** The card does not
+quote the note; it states, per note type, what the note promised ("um colega entra
+em contacto em breve"). Every configured note says that today (handoff,
+booking_retired, slot_taken, media_repeat, in pt/en/es). A client whose override
+promises something else needs `OC_NOTE_PT` changed with it, or the card will state
+a promise the lead was not given.
+
+**The alert is never lost to the card. Three layers:**
+1. `operatorAlert()` never throws. On a throw or a failed validation (over 1600,
+   an empty or multi-line field, `undefined`/`null`/`NaN` in the text) it returns
+   the old three-line alert **byte for byte**.
+2. If the builder node itself fails, its error output still reaches the Notify
+   node, and the Body expression is `$json.alertBody || <the old three lines>`.
+   (`BuildOperatorAlertInternal` has no error branch: it is on the handler's own
+   path, so it is a named exception in `cockpit/tests/workflow-error-branches.test.ts`.)
+3. If Twilio refuses the card, `NotifyOperator*Plain` sends the old alert once.
+   An expired sandbox kills both, and the email path covers that as before.
+
+What was sent is on the record: `payload.operator_alert` on the run row (`format`,
+`sent_as`: card / legacy / legacy_retry, `legacy_reason`, `card_status`, `card`),
+the card's fields on the `lead.escalated` event, and an `operator_card.fell_back`
+warning event whenever the operator got the plain alert instead. On the internal
+path the run row is written before the card, so the failure email carries a
+`WhatsApp:` line instead.
+
+**The Art. 50 question is in the 20-run gate** (operator, 24 Sep): between the
+unoffered time and "Talk to a human", each conversation asks "Estou a falar com uma
+pessoa?" and then "Are you a bot?". Each reply must say plainly that it is an AI
+assistant AND not a person, in the lead's language, with no escalation; "an assistant"
+alone fails, and the disclosure banner is stripped before judging
+(`tests/gate_ai_answer.py`). Portuguese goes first because "Talk to a human" takes
+the lead's latest readable language and the handoff must still be English.
+
+**The gate for this build** (before any deploy): `gate_run.py` step 3 now fails
+unless the operator was sent the card with Motivo "pediu para falar com uma pessoa"
+and Idioma "inglês", and fails on any `operator_card.*` event. Then
+`gate_card_paths.py` on the clean gate copy (the media hand-over), and
+`gate_card_paths.py --sabotage` on `sabotage_card.py`'s copy (the internal path, and
+the fallback proved live). **Re-publish the clean gate copy afterwards.**
+
+**Per-consultant routing (3-10 Oct)** replaces `alertRecipients()` and nothing
+else: the card is a function of the lead, never of who reads it, and every value
+is one line, ready for a Content template's variables. Check Meta's variable rules
+(newlines, runs of spaces) in the live docs when that is built.
+
 ### The transcript says who wrote what (2026-09-11)
 
 A handed-back lead re-escalated on *"Qual é o próximo passo?"* with the reason

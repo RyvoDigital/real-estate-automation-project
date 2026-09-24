@@ -35,6 +35,9 @@ SINK_NODES = [
     # Twilio: every WhatsApp the workflow can send
     'SendWhatsApp', 'SendHandoffNote', 'NotifyOperator', 'SendMediaReply', 'ReplyToAgent',
     'SendInternalHandoff', 'AlertInvariant', 'AlertDelivery',
+    # the handoff card and its plain-alert retries, on all three paths (24 Sep 2026)
+    'NotifyOperatorPlain', 'NotifyOperatorMedia', 'NotifyOperatorMediaPlain',
+    'NotifyOperatorInternal', 'NotifyOperatorInternalPlain',
     # Resend: every email
     'EmailNotifyFailure', 'EmailMediaEscalation', 'EmailDbOutage', 'EmailInternalFailure',
     # the cockpit

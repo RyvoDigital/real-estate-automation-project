@@ -43,6 +43,11 @@ const EXEMPT: Record<string, string> = {
   [HANDLER]:
     'is the handler itself; nothing catches the catcher. Its whole body is one ' +
     'try/catch whose recovery block only builds a literal.',
+  BuildOperatorAlertInternal:
+    'builds the handoff card on the handler\'s own path, downstream of CatchInternal. ' +
+    'An error branch back to the handler would loop on a deterministic throw. Its ' +
+    'body is guarded reads and operatorAlert(), which never throws; if the node ' +
+    'still fails, continueRegularOutput passes the item on and the failure email goes.',
 }
 
 const codeNodes = wf.nodes.filter((n) => n.type === 'n8n-nodes-base.code')
@@ -66,6 +71,40 @@ test('every Code node has an error branch, or is a named exception', () => {
       `Set onError: 'continueErrorOutput' and wire output 1 to ${HANDLER}, ` +
       `or add the node to EXEMPT with the reason.`,
   )
+})
+
+test('the exemption list is closed: BuildOperatorAlertInternal is the ONLY node added to it', () => {
+  // Operator, 24 Sep 2026: the exemption for the handoff card's internal builder is
+  // narrow. ThrowDbOutage and the handler itself were exempt before it, for the reasons
+  // above; nothing else may ever be added without this test being changed on purpose.
+  assert.deepEqual(
+    Object.keys(EXEMPT).sort(),
+    ['BuildOperatorAlertInternal', 'ThrowDbOutage', HANDLER].sort(),
+    `the exemption list changed: ${Object.keys(EXEMPT).join(', ')}. An exemption is a hole in ` +
+      `the rule; add one only by changing this test, with the operator's agreement.`,
+  )
+})
+
+test('BuildOperatorAlertInternal is exempt only because it is on the handler\'s own path', () => {
+  // The reason it is exempt: an error branch back to the handler would loop. That is
+  // true only while it sits downstream of CatchInternal. If it is ever moved off that
+  // path, the reason is gone and so is the exemption.
+  const name = 'BuildOperatorAlertInternal'
+  const n = codeNodes.find((x) => x.name === name)
+  assert.ok(n, `${name} is missing`)
+  assert.equal(n!.onError, 'continueRegularOutput', `${name} must pass its item on when it fails`)
+  const seen = new Set<string>()
+  const walk = (from: string) => {
+    for (const out of wf.connections[from]?.main ?? [])
+      for (const c of out ?? []) if (!seen.has(c.node)) { seen.add(c.node); walk(c.node) }
+  }
+  walk(HANDLER)
+  assert.ok(seen.has(name), `${name} is no longer downstream of ${HANDLER}, so its exemption has no reason`)
+  const feeders = Object.entries(wf.connections)
+    .filter(([, v]) => (v.main ?? []).some((o) => (o ?? []).some((c) => c.node === name)))
+    .map(([k]) => k).sort()
+  assert.deepEqual(feeders, ['MarkInternalEscalated', 'NeedsLeadReply'],
+    `${name} is fed from ${feeders.join(', ')}: only the failure spine may reach it`)
 })
 
 test("an exempt node must be real, and must not have quietly acquired a branch", () => {

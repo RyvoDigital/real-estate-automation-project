@@ -45,7 +45,10 @@ const UNMARKED = {
   'src/parse_reply.js': ['ParseClaude', 'ParseGuardRetry'],
   'src/system_reasons.js': ['PrepRunEscalated'],
   'src/language.js': ['BuildClaudeRequest', 'ParseClaude', 'ParseGuardRetry', 'DecideEscalation',
-                      'AfterBooking', 'MediaReply', 'CatchInternal'],
+                      'AfterBooking', 'MediaReply', 'CatchInternal',
+                      'BuildOperatorAlert', 'BuildOperatorAlertMedia', 'BuildOperatorAlertInternal'],
+  // Pasted whole, and unchecked until 24 Sep 2026.
+  'src/catch_internal.js': ['CatchInternal'],
 };
 for (const [file, nodes] of Object.entries(UNMARKED)) {
   const src = fs.readFileSync(path.join(ROOT, file), 'utf8').replace(/\n+$/, '');
@@ -53,6 +56,20 @@ for (const [file, nodes] of Object.entries(UNMARKED)) {
     const n = w.nodes.find(x => x.name === name);
     chk(`${name} <- ${file}`, !!n && code(n).includes(src), n ? '' : 'node missing');
   }
+}
+
+// The prompt is embedded as a JSON string literal, so neither check above sees
+// it. Found 24 Sep 2026: SYSTEM_TEMPLATE had lacked cd3e42c's Art. 50 line since
+// 17 Sep, so production answered "are you a bot?" with wording src had replaced,
+// and prompt_suites.py (which reads src) measured a prompt production did not run.
+console.log('\nthe system prompt the workflow sends IS src/concierge_system_prompt.txt');
+{
+  const n = w.nodes.find(x => x.name === 'BuildClaudeRequest');
+  const m = code(n).match(/const SYSTEM_TEMPLATE = (".*?");\n/);
+  const emb = m ? JSON.parse(m[1]) : null;
+  const src = fs.readFileSync(path.join(ROOT, 'src', 'concierge_system_prompt.txt'), 'utf8');
+  chk('BuildClaudeRequest SYSTEM_TEMPLATE === src/concierge_system_prompt.txt', emb === src,
+      emb === null ? 'SYSTEM_TEMPLATE not found' : 'they differ');
 }
 
 console.log(`\n  ${pass} passed, ${fail} failed`);
