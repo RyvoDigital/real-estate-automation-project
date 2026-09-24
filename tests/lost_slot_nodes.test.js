@@ -107,8 +107,38 @@ for (const n of ['ParseClaude', 'ParseGuardRetry']) {
   const c = node(n).parameters.jsCode;
   chk(`${n}: the invented-time rejection skips 'taken'`, c.includes("if (invented.length && b.bookingIntent !== 'taken') {"));
 }
+for (const n of ['ParseClaude', 'ParseGuardRetry'])
+  chk(`${n}: judges a lost-slot reply as sent (the 24 Sep gate: "{{LOST_SLOT}}" alone was rejected as too short)`,
+    node(n).parameters.jsCode.includes("const shape = checkReplyShape(p, { lostSlot: b.bookingIntent === 'taken' });"));
 chk('the prompt no longer says "apologise"', !/Apologise plainly, say it has just gone/.test(node('BuildClaudeRequest').parameters.jsCode));
 chk('the prompt asks for the placeholder', node('BuildClaudeRequest').parameters.jsCode.includes("'{{LOST_SLOT}}'"));
+
+console.log('\nthe parsers, run for real on the replies the 24 Sep gate rejected (every lost slot became bad_reply_twice)');
+{
+  const S = (d) => ({ startUtc: `2026-10-0${d}T08:00:00.000Z`, endUtc: `2026-10-0${d}T09:00:00.000Z`, startLocal: `2026-10-0${d}T09:00:00.000+01:00`,
+                      zone: Z, timeLocal: '09:00', dateLocal: `2026-10-0${d}` });
+  const B = (intent) => ({ bookingIntent: intent, bookingSlot: S(1), slots: [S(2), S(3)], slotLines: ['x'], body: 'Quinta às 09:00, por favor',
+    priorLead: { full_name: 'João' }, statedName: 'João', leadLang: 'pt', config: { agent_name: 'Sofia', agency_name: 'Gate', areas: ['Cascais'] },
+    claudeBody: { system: 's', messages: [] }, claudeStartedAt: new Date().toISOString(), appointmentKind: 'meeting', propertyRefs: [] });
+  const parse = (nodeName, reply, intent) => {
+    const parsed = { reply, lead_type: 'buyer', full_name: 'João', budget_min: null, budget_max: null, timeline: null, area: 'Cascais',
+      qualification_notes: { financing: null, bedrooms: 3, purpose: null }, stage: 'qualified', intent: 'booking', wants_booking: true,
+      proposed_times: [], needs_human: false, escalation_reason: null, escalation_kind: null };
+    const res = { statusCode: 200, body: { content: [{ type: 'text', text: JSON.stringify(parsed) }], stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 } } };
+    const b = B(intent);
+    const fx = { BuildClaudeRequest: b, DecideEscalation: b, CallClaudeGuardRetry: res, IsRetryableReply: Object.assign({}, b, { retryBody: b.claudeBody }) };
+    return run(nodeName, fx, res);
+  };
+  for (const n of ['ParseClaude', 'ParseGuardRetry']) {
+    let j;
+    try { j = parse(n, '{{LOST_SLOT}}', 'taken'); } catch (e) { j = { ok: false, errorMessage: 'threw: ' + e.message }; }
+    chk(`${n}: "{{LOST_SLOT}}" alone on a lost-slot turn is accepted`, j.ok === true, j.errorMessage);
+    try { j = parse(n, 'Olá João! {{LOST_SLOT}}', 'taken'); } catch (e) { j = { ok: false, errorMessage: 'threw: ' + e.message }; }
+    chk(`${n}: prose around it is accepted`, j.ok === true, j.errorMessage);
+    try { j = parse(n, '{{LOST_SLOT}}', 'none'); } catch (e) { j = { ok: true, errorMessage: 'threw: ' + e.message }; }
+    chk(`${n}: the same text on any other turn is still rejected`, j.ok === false, j.errorMessage);
+  }
+}
 
 console.log('\nwiring');
 const outs = (n, i) => ((w.connections[n] || {}).main || [])[i] || [];

@@ -72,6 +72,23 @@ chk('too short', /too short/.test(replyLooksBroken('Olá!')));
 chk('starts with punctuation (the 3 Sep reply)', /starts with punctuation/.test(replyLooksBroken(': corrigir - vou responder corretamente.}')));
 chk('a brace', /brace/.test(replyLooksBroken('Claro, tenho terça {slot} às 10:00 livre.')));
 
+console.log('\na lost-slot turn: the placeholder stands for the system\'s sentence (24 Sep gate)');
+{
+  const P = (reply) => ({ reply, lead_type: 'buyer', stage: 'qualified', intent: 'booking', wants_booking: true, needs_human: false });
+  chk('"{{LOST_SLOT}}" alone passes on a lost-slot turn', checkReplyShape(P('{{LOST_SLOT}}'), { lostSlot: true }) === null, JSON.stringify(checkReplyShape(P('{{LOST_SLOT}}'), { lostSlot: true })));
+  chk('... and is still rejected on any other turn', checkReplyShape(P('{{LOST_SLOT}}')) !== null);
+  chk('prose around it passes', checkReplyShape(P('Olá João! {{LOST_SLOT}}'), { lostSlot: true }) === null);
+  chk('a mangled placeholder is left to the assembler, not rejected', checkReplyShape(P('{LOST_SLOT} Até já.'), { lostSlot: true }) === null);
+  chk('a brace ELSEWHERE is still rejected on a lost-slot turn', /brace/.test((checkReplyShape(P('{{LOST_SLOT}} Temos {slot} livre.'), { lostSlot: true }) || {}).errorMessage || ''));
+  chk('a garbled reply is still rejected on a lost-slot turn', checkReplyShape(P('{{LOST_SLOT}} ,, ok'), { lostSlot: true }) !== null);
+  const LS = require('fs').readFileSync(require('path').join(__dirname, '..', 'src', 'lost_slot.js'), 'utf8');
+  // Compared as source text: the constants live inside the eval above.
+  const PRS = require('fs').readFileSync(require('path').join(__dirname, '..', 'src', 'parse_reply.js'), 'utf8');
+  const lit = (src, name) => ((src.match(new RegExp('const ' + name + ' = (.+);')) || [])[1] || null);
+  chk('the placeholder is the one src/lost_slot.js assembles', lit(PRS, 'PR_LOST_SLOT') !== null && lit(PRS, 'PR_LOST_SLOT') === lit(LS, 'LS_PLACEHOLDER'));
+  chk('the mangled pattern is the one src/lost_slot.js removes', lit(PRS, 'PR_LOST_SLOT_MANGLED_RX') !== null && lit(PRS, 'PR_LOST_SLOT_MANGLED_RX') === lit(LS, 'LS_MANGLED_RX'));
+}
+
 console.log('\n🔒 FALSE POSITIVES: every real reply captured on 21 Sep (tests/fixtures)');
 {
   const fx = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'real_replies_2026-09-21.json'), 'utf8')).replies;

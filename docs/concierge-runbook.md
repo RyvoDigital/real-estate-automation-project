@@ -514,6 +514,12 @@ invariant 1 fired. The operator's rule (24 Sep): fix it properly, not with a phr
   parsers no longer reject a named time, because the retry-then-escalate it caused
   helped nobody. A dropped or misplaced prose writes
   `reply.delivered_with_warning:<reason>`.
+- **Found by the gate, 24 Sep:** the first build escalated EVERY lost slot as
+  `bad_reply_twice`: the model wrote `{{LOST_SLOT}}` as told, and `replyLooksBroken`
+  rejected it as "too short" (alone) or "contains a brace" (with prose). On a lost-slot
+  turn the parsers now judge the reply as it will be sent, the placeholder standing for
+  the system's sentence (`checkReplyShape(p, { lostSlot })`); a brace anywhere else is
+  still rejected. `tests/lost_slot_nodes.test.js` runs both parsers on those replies.
 - **Retired:** the client config's `slot_taken` note is no longer sent. It said
   "Peço desculpa" and was per-client; the sentence is now the system's.
 

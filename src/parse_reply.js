@@ -140,14 +140,31 @@ function replyLooksBroken(s) {
 // reply escalates as bad_reply_twice. A reply that is not a string at all, a
 // missing key or a non-boolean needs_human is still bad_json: that is the
 // schema failing, not the model leaving a field blank.
-function checkReplyShape(p) {
+// On a lost-slot turn (src/lost_slot.js) the model is told to write {{LOST_SLOT}}
+// where the system's sentence goes, and may write that alone. The reply is judged
+// as the lead will receive it: the placeholder, and the mangled attempts at it
+// that the assembler removes, stand for a well-formed sentence. Found on the
+// 24 Sep gate: "{{LOST_SLOT}}" alone was "too short", and any reply carrying it
+// "contains a brace", so every lost slot escalated as bad_reply_twice. A brace
+// anywhere ELSE is still what it always was. tests/parse_reply.test.js holds
+// these two constants equal to src/lost_slot.js's.
+const PR_LOST_SLOT = '{{LOST_SLOT}}';
+const PR_LOST_SLOT_MANGLED_RX = /[{[]{1,2}\s*lost[\s_-]?slot\s*[}\]]{1,2}/gi;
+const PR_LOST_SLOT_STAND_IN = 'That time has just been taken by someone else.';
+
+// checkReplyShape(p, opts) -> null | { errorType, errorMessage }
+//   opts.lostSlot  true on a lost-slot turn (bookingIntent 'taken')
+function checkReplyShape(p, opts) {
   if (!p || typeof p !== 'object' || Array.isArray(p)) return { errorType: 'bad_json', errorMessage: 'response is not an object' };
   const REQUIRED = ['reply', 'lead_type', 'stage', 'intent', 'wants_booking', 'needs_human'];
   for (const k of REQUIRED) if (!(k in p)) return { errorType: 'bad_json', errorMessage: 'missing key: ' + k };
   if (typeof p.reply !== 'string') return { errorType: 'bad_json', errorMessage: 'empty reply' };
   if (!p.reply.trim()) return { errorType: 'bad_reply', errorMessage: 'empty reply' };
   if (typeof p.needs_human !== 'boolean') return { errorType: 'bad_json', errorMessage: 'needs_human not boolean' };
-  const broken = replyLooksBroken(p.reply);
+  const judged = (opts && opts.lostSlot)
+    ? p.reply.split(PR_LOST_SLOT).join(' ' + PR_LOST_SLOT_STAND_IN + ' ').replace(PR_LOST_SLOT_MANGLED_RX, ' ' + PR_LOST_SLOT_STAND_IN + ' ')
+    : p.reply;
+  const broken = replyLooksBroken(judged);
   if (broken) return { errorType: 'bad_reply', errorMessage: 'reply rejected: ' + broken };
   return null;
 }
