@@ -248,7 +248,7 @@ for i in range(1, args.runs + 1):
                 lt = datetime.datetime.fromisoformat(T['local'])
                 _, rc = turn(ca['id'], Cph, PICK[lang](WEEKDAY[lang][lt.weekday()], lt.strftime('%H:%M')))
                 if ((rc or {}).get('payload') or {}).get('booking_result') != 'created': bad.append('race: the third lead could not book the slot to take first')
-                else: taken_by_c.append(T['local'])
+                else: taken_by_c.append(T['local']); rec['extra_booked'] = rec.get('extra_booked', 0) + 1
             rec['taken_first'] = taken_by_c
         local = datetime.datetime.fromisoformat(S['local'])
         hh = local.strftime('%H:%M')
@@ -329,6 +329,7 @@ for i in range(1, args.runs + 1):
                     _, rd_ = turn(ca['id'], Dph, pick_u)
                     if ((rd_ or {}).get('payload') or {}).get('booking_result') != 'created': bad.append('second loss: the fourth lead could not book it')
                     else:
+                        rec['extra_booked'] = rec.get('extra_booked', 0) + 1
                         _, r2 = turn(ca['id'], lose_ph, pick_u)
                         p2 = (r2 or {}).get('payload') or {}
                         oa2 = p2.get('operator_alert') or {}
@@ -402,11 +403,14 @@ for i in range(1, args.runs + 1):
 
 booked = db('GET', f'events?select=type&client_id=eq.{cid}&type=eq.viewing.booked&created_at=gte.{q(start_iso)}')
 created = sum(1 for r in results if 'created' in [(r.get('A') or {}).get('booking_result'), (r.get('B') or {}).get('booking_result')])
+# In a race run the third and fourth leads each book a slot on purpose (condition 1 and
+# condition 2, 24 Sep 2026): their events are real bookings and count as such.
+extra = sum(r.get('extra_booked', 0) for r in results)
 print(f'\nBOOKING GATE: {len(results)} runs')
 print(f'  booked (A created):           {created}')
 print(f'  second lead not booked:       {sum(1 for r in results if (r.get("B") or {}).get("booking_result") != "created" or (r.get("A") or {}).get("booking_result") != "created")}')
 print(f'  caught by the re-check:       {sum(1 for r in results if "slot_taken" in json.dumps([r.get("A"), r.get("B")]))}')
-print(f'  viewing.booked events:        {len(booked)} (must equal booked)')
+print(f'  viewing.booked events:        {len(booked)} (must equal booked {created} + the extra leads\' {extra})')
 print(f'  language right, both leads:   {sum(1 for r in results if all(((r.get(k) or {}).get("reply_lang") or (r.get(k) or {}).get("handoff_lang")) == r["lang"] for k in ("A", "B")))}')
 if args.race:
     from collections import Counter
@@ -427,7 +431,7 @@ n_read, broken = delivered_broken(db, cid, start_iso, args.parse_reply_src)
 print(f'  delivered messages read:      {n_read}, broken: {len(broken)}')
 for b in broken: print(f'    BROKEN {b["at"]} {b["origin"]}: {b["why"]}')
 print(f'  runs with any problem:        {sum(1 for r in results if r["problems"])}')
-ok = (all(not r['problems'] for r in results) and len(booked) == created and not all_inv and len(all_esc) == want_esc
+ok = (all(not r['problems'] for r in results) and len(booked) == created + extra and not all_inv and len(all_esc) == want_esc
       and n_read > 0 and not broken)
 # The lost races escalated their losers on purpose; clear them, and any backlog.
 cleared, not_cleared = clear_gate_escalations(db, cid)
