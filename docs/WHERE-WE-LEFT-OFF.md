@@ -66,6 +66,30 @@ so it measured a prompt production was not running. **This build re-embeds src i
 full** (operator's call, 24 Sep), and `tests/embeds_current.test.js` now fails
 whenever the two differ.
 
+## The gate, 24 Sep 2026 (on the gate copy of `288d9ec`)
+- **prompt_suites.py:** the first build leaked English→Portuguese 6/78 on inventory
+  questions (the previous build: 0/78). Cause: Portuguese examples in the schema's
+  area/timeline descriptions. `288d9ec` uses the same rule in English only, measured
+  39/39 twice. Other suites at baseline.
+- **Booking test, sequential 10: FAIL on one alert.** 10/10 booked, 10/10 refused, 0
+  escalations, 41 read, 0 broken. Invariant 1 once (run 8, pt): the losing lead's
+  decline said "esse horário das 16:00 não está correto da minha parte". The time
+  guard does not read that as a decline, and it is also untrue: the slot was taken,
+  it was not our error. Not fixed; the 22 Sep gate had 0 in 10.
+- **Booking test, 4 races: PASS.** 4 lost races, each sent as the card (en/pt/es).
+- **20-run gate:** 0 unexpected escalations, 0 invariant alerts, 0 wrong language, 0
+  empty replies, 100/100 delivered unbroken, 20/20 escalations sent as the card.
+  Art. 50: the script reported 17/40, all false alarms from the checker's Portuguese
+  pattern ("não uma pessoa" unread). Re-scored from the stored replies with the
+  fixed checker (`aba4745`): **40/40**. The script's own verdict is FAIL; a clean
+  rerun is owed.
+- **gate_card_paths.py:** media PASS (clean copy); `--sabotage` media, internal and
+  fallback PASS, the fallback delivering the old three-line alert to the sink.
+- **Found by the gate and fixed after it (`6a106cd`, local, not in the gated build):**
+  Já dito said "e ainda não escolheu" about leads who had chosen and lost the slot.
+- The clean gate copy is re-published (`8cc3d6c9`, verify 5/5); the sink now answers
+  as Twilio does (`0299d20a`). Production untouched: `40fc6d76`, 403 unsigned.
+
 ## Owed before any deploy, in order, each on the operator's go
 1. `prompt_suites.py` on the server (a prompt-shaped change, and the Art. 50 line).
 2. The gate copy imported and switched on (`tests/build_gate.py` builds it: 138
