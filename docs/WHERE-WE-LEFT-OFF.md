@@ -1,6 +1,6 @@
 # Where we left off
 
-**Last updated:** 2026-09-25, 16:40 UTC: `75b9f62` IS LIVE (served `362e709d`): the handoff card, the lost-slot sentence, the Art. 50 fixes. Phone checks pending.
+**Last updated:** 2026-09-25: `8dbc8db` IS LIVE (served `f061f384`): the card lists only the times the lead was told. One phone check pending.
 **Where the work is:** the COCKPIT REDESIGN is COMPLETE (22 Sep 2026 evening).
 §0000000 is the current state; §0 below is the stage-C record that led to it.
 
@@ -65,6 +65,24 @@ artificial-intelligence assistant and not a person". `prompt_suites.py` reads sr
 so it measured a prompt production was not running. **This build re-embeds src in
 full** (operator's call, 24 Sep), and `tests/embeds_current.test.js` now fails
 whenever the two differ.
+
+## 🚀 25 Sep 2026, evening: `8dbc8db` IS LIVE (served `f061f384`)
+- The card's "Já dito" lists only the stored slots a message SENT to the lead named
+  (`slotsNamedIn` over the outbound history and this turn's note). Found on the first
+  production card: it listed Sat 26 Sep 18:00, which the lead was never told.
+- Only the three card-builder nodes differ from `75b9f62`. Gate on `8dbc8db`: 20-run
+  **PASS** (0 unexpected escalations, 0 alerts, 0 wrong language, Art. 50 40/40, 20/20
+  cards; the new check: every listed time was sent to that lead, 20 cards with times);
+  gate_card_paths clean **PASS**, `--sabotage` **PASS**. Prompt suites and the booking
+  test not run: nothing on the model or booking path changed (operator-approved round,
+  ~$2). Gate copy and sink OFF.
+- Workflow file confirmed the gated build before the deploy (md5 `712fe24b…` on
+  origin/main, `8dbc8db`, the server). Verify 4/4.
+- **Rollback:** `python3 infra/scripts/n8n_api_deploy.py activate --id ryvoInboundConc01 --version 362e709d-c893-4ac8-90cb-49b32968fd7c`
+  (the `75b9f62` deploy; before it, `40fc6d76`).
+- The handoff note's missing "A" on the phone: Twilio's response (exec 9147) shows
+  "A member of our team..." was accepted; a display or copy artefact, not a send.
+- **Owed:** one phone check (hand …230 back, then "Talk to a human").
 
 ## 🚀 25 Sep 2026, 16:40 UTC: `75b9f62` IS LIVE
 - **n8n Concierge: `75b9f62`, served version `362e709d`**, API deploy with no restart
