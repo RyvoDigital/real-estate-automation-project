@@ -1,6 +1,6 @@
 # Where we left off
 
-**Last updated:** 2026-09-24: the HANDOFF CARD is BUILT, NOT DEPLOYED (§00000000). Production unchanged: cockpit `36da540`, n8n Concierge `a7b7786` (served `40fc6d76`).
+**Last updated:** 2026-09-25: the WHOLE GATE PASSED on `75b9f62` (handoff card, lost slot, Art. 50). BUILT, NOT DEPLOYED. Production unchanged: cockpit `36da540`, n8n Concierge `a7b7786` (served `40fc6d76`).
 **Where the work is:** the COCKPIT REDESIGN is COMPLETE (22 Sep 2026 evening).
 §0000000 is the current state; §0 below is the stage-C record that led to it.
 
@@ -66,7 +66,29 @@ so it measured a prompt production was not running. **This build re-embeds src i
 full** (operator's call, 24 Sep), and `tests/embeds_current.test.js` now fails
 whenever the two differ.
 
-## 🔴 25 Sep 2026, early: the gate STOPPED, the Anthropic credit is exhausted
+## ✅ 25 Sep 2026, afternoon: THE WHOLE GATE PASSED on `75b9f62`. Ready for the go
+Credit topped up. Spend for this step ~$11 of a $20 cap (measured from usage).
+- **The "is this a person?" fix** (`acc7c73`, replacing `2603882`'s prompt sentence):
+  the rule is the `needs_human` field's description in REPLY_SCHEMA, English only; the
+  system prompt is back to `288d9ec`'s. Escalated 0/40 (old prompt 3/40); language
+  39/39 three times, 0/117 leaks (the prompt wordings leaked 4/156 and 3/117).
+- **Every script's own verdict, on the gate copy of `75b9f62`:**
+  prompt_suites language 39/39, never-invent 27/27, the rest full or at baseline
+  (no-promise 10/12, question-not-change 12/13); booking test 10 sequential **PASS**
+  (10/10 re-offered by the system, 0 alerts, 0 escalations); 4 races **PASS** (the
+  re-offer excluded the slot a third lead took first; 4/4 second losses handed over
+  with the card); 20-run gate **PASS** (0 unexpected escalations, 0 invariant alerts, 0
+  wrong language, Art. 50 40/40, 20/20 cards, 100/100 delivered unbroken);
+  gate_card_paths **PASS**; `--sabotage` **PASS** (media, internal, fallback).
+- Gate copy and sink **OFF** (404). Production untouched (`40fc6d76`, 403).
+- **⚠️ The nightly backup overwrites the built workflow on main.** On 25 Sep it exported
+  production over `workflows/ryvoInboundConc01.json` (`adbb69c`), as designed; `75b9f62`
+  merges it back with the BUILD's file. Until the build is deployed, each night will do
+  it again: before a deploy, check the file is the build (`git log -1 -- workflows/`).
+- The deploy, when the operator says go: `n8n_api_deploy.py deploy --production` with
+  the build, verify 4/4, the three phone checks ("Talk to a human" must land the card).
+
+## 25 Sep 2026, early: the gate stopped, the Anthropic credit was exhausted (resolved above)
 The API now answers "Your credit balance is too low". Production's CallClaude uses the
 n8n credential "Ryvo Anthropic (x-api-key)", almost certainly the same Ryvo org, so a
 real inbound would fail its model call: by design the lead gets the handoff note, the
