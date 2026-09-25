@@ -115,3 +115,14 @@ if bad:
     sys.exit(1)
 json.dump(gate, open(OUT, 'w', encoding='utf-8'), indent=2, ensure_ascii=False)
 print(f'\nno other difference: {len(bn)} nodes, connections identical.\nwrote {OUT}')
+# The gate record (infra/scripts/gate_record.py, 25 Sep 2026): this gate copy was built
+# from BUILD. `n8n_api_deploy.py verify` on the gate id stamps it once it is served.
+import sys as _grs
+_grs.path.insert(0, os.path.join(REPO, 'infra', 'scripts'))
+import gate_record
+try:
+    b = gate_record.write_build(BUILD, OUT, REPO)
+    print(f"gate record: build from {b['source']} md5 {b['source_md5'][:8]} at {(b['source_commit'] or '?')[:7]}"
+          + ('' if b['source_committed'] else '  (UNCOMMITTED changes: a deploy will refuse this build)'))
+except Exception as e:
+    print('gate record NOT written (not on the server?):', e)

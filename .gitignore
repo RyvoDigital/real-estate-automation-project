@@ -21,7 +21,10 @@
 ryvo-operations-and-commercial-reference.md
 
 # --- Backups (DB dumps live outside git history) ---
-/backups/
+# /backups/* ignores the dumps; backups/n8n/ (the nightly workflow export) is
+# tracked and pushed offsite. tests/backup_target.test.sh proves a dump stays ignored.
+/backups/*
+!/backups/n8n/
 
 # --- Node / tooling ---
 node_modules/

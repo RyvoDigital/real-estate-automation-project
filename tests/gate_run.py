@@ -45,6 +45,9 @@ _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from gate_delivered import delivered_broken
 from gate_cleanup import clear_gate_escalations
 from gate_ai_answer import ai_answer_problems
+import os as _gro, sys as _grs
+_grs.path.insert(0, _gro.path.join(_gro.path.dirname(_gro.path.dirname(_gro.path.abspath(__file__))), 'infra', 'scripts'))
+import gate_record
 
 E = {}
 for l in open(args.env):
@@ -260,3 +263,10 @@ print(f'  gate escalations cleared: {cleared}' + (f', NOT cleared: {not_cleared}
 ok = (unexpected_esc == 0 and inv == 0 and not events and lang == 0 and other == 0 and not card_events
       and n_read > 0 and not broken and not not_cleared)
 print('PASS' if ok else 'FAIL')
+# The gate record (infra/scripts/gate_record.py, 25 Sep 2026): this verdict, bound to the
+# gated source only if the gate served is the verified build. A deploy reads it.
+try:
+    gate_record.record('gate_run', 'PASS' if ok else 'FAIL', {'runs': args.runs}, E)
+except Exception as _e:
+    print('gate record NOT written:', _e)
+

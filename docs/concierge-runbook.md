@@ -2367,7 +2367,7 @@ is `db/tools/reset_test_lead_b35915d1.sql`.
 
 ## Open items (recorded, not being fixed)
 
-### The nightly backup must never write over the source workflow file (25 Sep 2026)
+### ~~The nightly backup must never write over the source workflow file~~ (25 Sep 2026): BUILT, see "The backup and the gated deploy"
 
 `backup.sh` exports what n8n serves into `workflows/ryvoInboundConc01.json` on `main`
 and pushes it. That file is ALSO the source of every build: a build committed but not
@@ -2768,6 +2768,35 @@ night, deploy Friday, membership lapsed in between.
 Worth doing as step zero rather than discovering at step five, because the
 symptom is a message that simply never arrives — indistinguishable, from the
 operator's side, from a deploy that broke the reply path.
+
+### The backup and the gated deploy (2026-09-25)
+
+**The nightly backup writes `backups/n8n/<YYYY-MM-DD>/`, never `workflows/`.**
+`workflows/` is the source of every build and changes only by a deliberate commit.
+`backup.sh` exports production there, commits and pushes that path ONLY (a guard undoes
+and refuses a commit touching anything else), keeps no directory for a night identical
+to the last, and writes `/var/lib/ryvo/workflow_drift`: `none`, or which workflows
+production differs from `workflows/`. A committed, undeployed build is supposed to
+differ; after a deploy it should read `none`. `.gitignore` is `/backups/*` +
+`!/backups/n8n/`: the DB dumps stay out of git. `tests/backup_target.test.sh` runs the
+real script and fails if it ever writes a source file or tracks a dump.
+
+**A production deploy ships only the file on main, and the Concierge only the last
+gated build** (`infra/scripts/gate_record.py`, server-local record in
+`/var/lib/ryvo/gate/`):
+1. `tests/build_gate.py` records the source (md5, commit) of the gate copy it builds.
+2. `n8n_api_deploy.py verify` on the gate id, ALL PASS, stamps that record with the gate
+   version it verified as served.
+3. `gate_run.py`, `gate_booking.py` and `gate_card_paths.py` record their verdict; it
+   counts for the source only if the gate served at the end is the verified one.
+4. `deploy --production` refuses (exit 4, every reason named) unless the tree is clean
+   on `main`, `HEAD == origin/main`, the file is `workflows/<id>.json`, its md5 is the
+   last gated build's, and that build has a VERIFIED `gate_run` PASS with `--runs >= 20`
+   and no script whose latest verdict failed. It prints the whole recorded round.
+   `deploy --production --check-only` runs the check alone. Other production workflows
+   get the main/clean/pushed check only. A rollback (`activate --version`) needs none.
+The hand-run md5 comparison before a deploy is retired: the deploy does it itself.
+`tests/deploy_gate_check.test.py` holds every refusal, and the 25 Sep case.
 
 ### The standard deploy: n8n's public API, no restart (2026-09-21)
 

@@ -37,7 +37,9 @@ execution actually ran (its snapshot) with the file.
 
 Production workflow ids are refused unless --production is given.
 """
-import argparse, base64, hashlib, hmac, json, subprocess, sys, time, urllib.error, urllib.parse, urllib.request, uuid
+import argparse, base64, hashlib, hmac, json, os, subprocess, sys, time, urllib.error, urllib.parse, urllib.request, uuid
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import gate_record
 
 REPO = '/opt/ryvo-automation-platform'
 BASE = 'https://n8n.ryvodigital.com'
@@ -101,8 +103,39 @@ def guard(args):
         sys.exit(f'REFUSED: {args.id} is a production workflow; pass --production to deploy it')
 
 
+def production_precheck(args):
+    """25 Sep 2026: a production deploy ships ONLY the file on main, pushed, and for the
+    Concierge only the LAST GATED BUILD (infra/scripts/gate_record.py). Refuses, naming
+    every reason. There is no override: a rollback is `activate --version`, which needs none."""
+    subprocess.run(['git', '-C', REPO, 'fetch', '-q', 'origin'], capture_output=True)
+    g = lambda *a: (subprocess.run(['git', '-C', REPO] + list(a), capture_output=True, text=True).stdout.strip())
+    expected = os.path.realpath(os.path.join(REPO, 'workflows', args.id + '.json'))
+    repo_state = {'branch': g('rev-parse', '--abbrev-ref', 'HEAD'), 'head': g('rev-parse', 'HEAD'),
+                  'origin_head': g('rev-parse', 'origin/main'), 'clean': g('status', '--porcelain', '--untracked-files=no') == '',
+                  'file_is_source': os.path.realpath(args.file) == expected and g('ls-files', '--', expected) != ''}
+    fmd5 = gate_record.md5_file(args.file)
+    ok, reasons, rnd = gate_record.gated_build_check(fmd5, repo_state, gate_record.read_build(),
+                                                    gate_record.read_records(), args.id)
+    print(f'production precheck: {args.id}, file md5 {fmd5[:8]}, HEAD {repo_state["head"][:7]}, origin/main {repo_state["origin_head"][:7]}')
+    if args.id == gate_record.CONCIERGE_ID:
+        b = gate_record.read_build() or {}
+        print(f"  last gated build: md5 {(b.get('source_md5') or '-')[:8]} from {(b.get('source_commit') or '-')[:7]}, "
+              f"verified as served {b.get('verified_version') or 'NEVER'}")
+        print('  the round recorded for this build:' if rnd else '  no verified gate record for this build')
+        for line in rnd: print('    ' + line)
+    if not ok:
+        print('REFUSED:')
+        for r in reasons: print('  - ' + r)
+        sys.exit(4)   # 4 = refused before anything was sent
+    print('  precheck PASS')
+
+
 def cmd_deploy(args):
     guard(args)
+    if args.id in PRODUCTION_IDS:
+        production_precheck(args)
+    if args.check_only:
+        print('--check-only: nothing deployed'); sys.exit(0)
     f = load(args.file)
     if f.get('id') not in (None, args.id):
         sys.exit(f'REFUSED: the file is workflow {f.get("id")}, not {args.id}')
@@ -201,6 +234,10 @@ def cmd_verify(args):
     for n, ok, d in checks: print(f"{'PASS' if ok else 'FAIL'}  {n}  ({d})")
     ok = all(c[1] for c in checks)
     print('ALL PASS' if ok else 'SOME FAILED')
+    # The gate copy, verified as served: stamp the gate record (infra/scripts/gate_record.py).
+    if ok and args.id == gate_record.GATE_ID:
+        stamped, why = gate_record.stamp_verified(args.file, state(args.id)[0].split('|')[1])
+        print(f'gate record: {"verified build stamped" if stamped else "NOT stamped: " + why}')
     sys.exit(0 if ok else 1)
 
 
@@ -225,6 +262,7 @@ for name in ('deploy', 'activate', 'deactivate', 'verify', 'state'):
     s.add_argument('--id', required=True)
     s.add_argument('--production', action='store_true')
     if name in ('deploy', 'verify'): s.add_argument('--file', required=True)
+    if name == 'deploy': s.add_argument('--check-only', action='store_true', help='run the production precheck and stop')
     if name == 'activate': s.add_argument('--version', required=True)
     if name == 'verify':
         s.add_argument('--path', required=True)

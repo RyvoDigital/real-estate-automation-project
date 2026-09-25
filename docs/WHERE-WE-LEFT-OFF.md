@@ -1,6 +1,6 @@
 # Where we left off
 
-**Last updated:** 2026-09-25: `8dbc8db` IS LIVE (served `f061f384`) and CLOSED: the phone check passed. Nothing is mid-build.
+**Last updated:** 2026-09-25: the backup-and-gated-deploy change is BUILT, NOT ON THE SERVER (see the top section). Production unchanged: `8dbc8db` (served `f061f384`).
 **Where the work is:** the COCKPIT REDESIGN is COMPLETE (22 Sep 2026 evening).
 §0000000 is the current state; §0 below is the stage-C record that led to it.
 
@@ -65,6 +65,15 @@ artificial-intelligence assistant and not a person". `prompt_suites.py` reads sr
 so it measured a prompt production was not running. **This build re-embeds src in
 full** (operator's call, 24 Sep), and `tests/embeds_current.test.js` now fails
 whenever the two differ.
+
+## 25 Sep 2026, late: the backup never writes the source; the deploy ships only the gated build (BUILT)
+Runbook, "The backup and the gated deploy". Tests: `backup_target.test.sh` 16/16 (real
+script, sabotage red), `deploy_gate_check.test.py` 23/23 (sabotage red). **Not yet on the
+server**, on purpose: the 03:00 backup pulls before it exports, but a pull cannot change
+the code of the run already executing, so a push alone would let tonight's run export
+into `workflows/` one last time. Owed, on the operator's go: push, `git pull` on the
+server, one manual `backup.sh` run to prove it. After that, the next Concierge deploy
+needs a gate run under the new tooling: the record starts empty.
 
 ## 🚀 25 Sep 2026, evening: `8dbc8db` IS LIVE (served `f061f384`)
 - The card's "Já dito" lists only the stored slots a message SENT to the lead named
