@@ -2367,6 +2367,18 @@ is `db/tools/reset_test_lead_b35915d1.sql`.
 
 ## Open items (recorded, not being fixed)
 
+### The nightly backup must never write over the source workflow file (25 Sep 2026)
+
+`backup.sh` exports what n8n serves into `workflows/ryvoInboundConc01.json` on `main`
+and pushes it. That file is ALSO the source of every build: a build committed but not
+yet deployed is overwritten by production the next night. On 25 Sep it replaced the
+gated build (`adbb69c`) and had to be merged back by hand (`75b9f62`); a deploy taken
+from `main` that morning would have shipped production's old workflow while every test
+said the new one passed. **Decided (operator, 25 Sep):** the backup writes to a backup
+path (e.g. `backups/n8n/<date>/`), never to `workflows/`. Until then, before any
+deploy, confirm the file on `main` is the gated build (`git log -1 -- workflows/` and
+its md5 against the gated commit).
+
 ### An escalation re-fires on every message after a hand-back (24 Sep 2026)
 
 **What the operator saw**, on test lead …230: a `high_value` escalation at 11:15

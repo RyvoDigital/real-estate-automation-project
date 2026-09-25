@@ -1,6 +1,6 @@
 # Where we left off
 
-**Last updated:** 2026-09-25: the WHOLE GATE PASSED on `75b9f62` (handoff card, lost slot, Art. 50). BUILT, NOT DEPLOYED. Production unchanged: cockpit `36da540`, n8n Concierge `a7b7786` (served `40fc6d76`).
+**Last updated:** 2026-09-25, 16:40 UTC: `75b9f62` IS LIVE (served `362e709d`): the handoff card, the lost-slot sentence, the Art. 50 fixes. Phone checks pending.
 **Where the work is:** the COCKPIT REDESIGN is COMPLETE (22 Sep 2026 evening).
 §0000000 is the current state; §0 below is the stage-C record that led to it.
 
@@ -65,6 +65,18 @@ artificial-intelligence assistant and not a person". `prompt_suites.py` reads sr
 so it measured a prompt production was not running. **This build re-embeds src in
 full** (operator's call, 24 Sep), and `tests/embeds_current.test.js` now fails
 whenever the two differ.
+
+## 🚀 25 Sep 2026, 16:40 UTC: `75b9f62` IS LIVE
+- **n8n Concierge: `75b9f62`, served version `362e709d`**, API deploy with no restart
+  (PUT 200 in 2.4s). The file on main was confirmed the gated build first (md5
+  `6134fa12…` on origin/main, `75b9f62` and the server). Verify 4/4 (activeVersionId;
+  one `twilio-inbound` row; 403 unsigned; served == file in all 144 nodes and the
+  connections).
+- **Rollback:** `python3 infra/scripts/n8n_api_deploy.py activate --id ryvoInboundConc01 --version 40fc6d76-c172-4229-bbaa-0e256636e575`
+- Cockpit unchanged in behaviour (`36da540` code; later pushes were docs and tests).
+- **Before the phone checks:** test lead …230 was still escalated (24 Sep 15:07) and
+  held a booking (Fri 25 Sep 17:00 Lisbon): the saved reset, then the calendar event.
+- **Owed:** the three phone checks, read back from the run rows.
 
 ## ✅ 25 Sep 2026, afternoon: THE WHOLE GATE PASSED on `75b9f62`. Ready for the go
 Credit topped up. Spend for this step ~$11 of a $20 cap (measured from usage).
