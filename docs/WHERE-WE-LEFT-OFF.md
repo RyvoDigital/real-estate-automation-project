@@ -1,6 +1,6 @@
 # Where we left off
 
-**Last updated:** 2026-09-25: the backup-and-gated-deploy change is BUILT, NOT ON THE SERVER (see the top section). Production unchanged: `8dbc8db` (served `f061f384`).
+**Last updated:** 2026-09-25, 20:15 Lisbon: the backup and gated-deploy change is LIVE on the server (`942a0b8`). Production unchanged: `8dbc8db` (served `f061f384`).
 **Where the work is:** the COCKPIT REDESIGN is COMPLETE (22 Sep 2026 evening).
 §0000000 is the current state; §0 below is the stage-C record that led to it.
 
@@ -74,6 +74,14 @@ the code of the run already executing, so a push alone would let tonight's run e
 into `workflows/` one last time. Owed, on the operator's go: push, `git pull` on the
 server, one manual `backup.sh` run to prove it. After that, the next Concierge deploy
 needs a gate run under the new tooling: the record starts empty.
+
+**Live on the server, 25 Sep 20:11-20:15 Lisbon** (operator's go): pushed, pulled; one
+manual `backup.sh` run exited 0: all 13 `workflows/` files byte-identical, the only
+commit `d99ab7f` touches only `backups/n8n/2026-09-25/` (9 production workflows), pushed,
+`workflow_drift` = `none`, no dump tracked. `deploy --production --check-only` REFUSED
+(exit 4): "no gate build recorded: run the gate under the current tooling first".
+CLAUDE.md's standard deploy section now says so. **The next Concierge deploy needs a
+gate run under the new tooling first.**
 
 ## 🚀 25 Sep 2026, evening: `8dbc8db` IS LIVE (served `f061f384`)
 - The card's "Já dito" lists only the stored slots a message SENT to the lead named

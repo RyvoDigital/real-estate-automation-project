@@ -106,6 +106,13 @@ python3 infra/scripts/n8n_api_deploy.py deploy --id <id> --file <build.json> [--
 python3 infra/scripts/n8n_api_deploy.py verify --id <id> --file <build.json> --path <webhook path>
 ```
 
+- **A Concierge deploy refuses anything but the last gated build with a verified
+  20-run PASS** (25 Sep 2026, `infra/scripts/gate_record.py`): the tree clean on
+  `main` and pushed, the file `workflows/<id>.json`, its md5 the last gated
+  build's, with a verified `gate_run` PASS of `--runs >= 20`. `--check-only` runs
+  the check alone. The record lives on the server and started empty on 25 Sep, so
+  **the next deploy needs a gate run under the new tooling first** (`build_gate.py`,
+  then `verify` on the gate copy, then the gate scripts).
 - `deploy` PUTs the workflow through n8n's public API. That republishes it
   inside the running instance and keeps the webhook row.
 - **Any non-200 is rolled back at once**, by re-activating the version that was
