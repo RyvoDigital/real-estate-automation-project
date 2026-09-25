@@ -208,6 +208,19 @@ const KIND_ENUM = (() => {
   return k ? (k.anyOf || []).flatMap(x => x.enum || []) : null;
 })();
 chk('REPLY_SCHEMA carries escalation_kind', Array.isArray(KIND_ENUM) && KIND_ENUM.length > 0, String(KIND_ENUM));
+{
+  // 25 Sep 2026: "Estou a falar com uma pessoa?" was escalated 3 times in 40 as a
+  // request for a person. The rule lives in the needs_human DESCRIPTION: two wordings
+  // in the system prompt stopped it and cost language (English answered in
+  // Portuguese 4/156 and 3/117 against 0/117); this shape measured 0/40 and 0/117.
+  const b = wf.nodes.find(n => n.name === 'BuildClaudeRequest').parameters.jsCode;
+  const sch = JSON.parse(b.match(/const REPLY_SCHEMA = (\{.*?\});\n/)[1]);
+  const d = (sch.properties.needs_human || {}).description || '';
+  chk('needs_human says asking WHETHER it is a person is not a request for one', /asking WHETHER they are talking to a person, a bot or an AI/.test(d), d);
+  chk('... in English only (a Portuguese example is a language signal)', !/[ãõçáéíóúâêô]/i.test(d));
+  const P = S('concierge_system_prompt.txt');
+  chk('... and NOT in the system prompt, where it cost language', !/Asking WHETHER they are talking|That question is about you/.test(P));
+}
 for (const k of (KIND_ENUM || [])) chk(`escalation_kind "${k}" has a sentence`, typeof OC_KIND_PT[k] === 'string');
 chk('every sentence is Portuguese, not a code', Object.values(OC_KIND_PT).every(t => !/_/.test(t)));
 r = operatorAlert({ reasons: ['some_new_code:x'], legacy: LEGACY });
