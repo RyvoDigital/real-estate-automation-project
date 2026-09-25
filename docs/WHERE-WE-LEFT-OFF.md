@@ -1,6 +1,6 @@
 # Where we left off
 
-**Last updated:** 2026-09-25: `8dbc8db` IS LIVE (served `f061f384`): the card lists only the times the lead was told. One phone check pending.
+**Last updated:** 2026-09-25: `8dbc8db` IS LIVE (served `f061f384`) and CLOSED: the phone check passed. Nothing is mid-build.
 **Where the work is:** the COCKPIT REDESIGN is COMPLETE (22 Sep 2026 evening).
 §0000000 is the current state; §0 below is the stage-C record that led to it.
 
@@ -82,7 +82,11 @@ whenever the two differ.
   (the `75b9f62` deploy; before it, `40fc6d76`).
 - The handoff note's missing "A" on the phone: Twilio's response (exec 9147) shows
   "A member of our team..." was accepted; a display or copy artefact, not a send.
-- **Owed:** one phone check (hand …230 back, then "Talk to a human").
+- **Phone check PASSED (17:21:37 UTC, 19:21 Madrid):** "Talk to a human" after a hand-back;
+  English handoff sent, card sent, 0 invariants. "Já dito" lists only quinta 1 out 09:00 and
+  10:00, while the stored offer still held sábado 26 set 18:00 (never sent): the exact
+  production case, now correct. The 16:43 card on the same lead listed all three. **Closed.**
+- Test lead …230 is escalated again, on purpose, from this check: hand it back before the next test.
 
 ## 🚀 25 Sep 2026, 16:40 UTC: `75b9f62` IS LIVE
 - **n8n Concierge: `75b9f62`, served version `362e709d`**, API deploy with no restart
