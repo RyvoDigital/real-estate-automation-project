@@ -68,6 +68,29 @@ chk('the exact card, from the row AFTER the merge (not priorLead)', o.alertBody 
 chk('NotifyOperator sends what the node built', evalExpr(param('NotifyOperator', 'Body'), o, MAIN) === o.alertBody);
 chk('... to the node\'s recipient', evalExpr(param('NotifyOperator', 'To'), o, MAIN) === 'whatsapp:' + TO);
 
+console.log('\nthe card names only times the lead was SENT (production, 25 Sep 2026, word for word)');
+{
+  const OFFER = [
+    { zone: 'Europe/Lisbon', local: '2026-10-01T09:00:00.000+01:00', endUtc: '2026-10-01T09:00:00.000Z', startUtc: '2026-10-01T08:00:00.000Z' },
+    { zone: 'Europe/Lisbon', local: '2026-10-01T10:00:00.000+01:00', endUtc: '2026-10-01T10:00:00.000Z', startUtc: '2026-10-01T09:00:00.000Z' },
+    { zone: 'Europe/Lisbon', local: '2026-09-26T18:00:00.000+01:00', endUtc: '2026-09-26T18:00:00.000Z', startUtc: '2026-09-26T17:00:00.000Z' },
+  ];
+  const HIST = { statusCode: 200, body: [
+    { direction: 'outbound', origin: 'handoff', body: 'x' },
+    { direction: 'inbound', origin: 'lead', body: 'Talk to a human' },
+    { direction: 'outbound', origin: 'ai', body: "That time isn't available, but I can offer 09:00 or 10:00 Lisbon time on Thursday 1 October 2026 - would either of those work for you?" },
+    { direction: 'inbound', origin: 'lead', body: '11:00? Saturday at 18:00 maybe?' },
+    { direction: 'outbound', origin: 'ai', body: 'Great choice! We have two Thursday morning slots - 09:00 or 10:00 Lisbon time, on 1 October 2026. Which one works best for you?' },
+  ] };
+  const fx = Object.assign({}, MAIN, { LoadHistory: HIST,
+    AfterLeadUpdate: { leadAfter: Object.assign({}, MAIN.AfterLeadUpdate.leadAfter, { qualification: { proposed_slots: { at: 'x', slots: OFFER } } }) } });
+  const o2 = runCode('BuildOperatorAlert', fx);
+  chk('Já dito names the two Thursdays sent', /quinta, 1 out, às 09:00 \(Lisboa\); quinta, 1 out, às 10:00 \(Lisboa\)\); nenhum está marcado/.test(o2.alertBody), o2.alertBody);
+  chk('... and NOT Saturday 18:00, which only the LEAD wrote and the stored offer holds', !/sábado/.test(o2.alertBody));
+  const o3 = runCode('BuildOperatorAlert', Object.assign({}, fx, { LoadHistory: { statusCode: 200, body: [] } }));
+  chk('no history readable -> no proposed times claimed', !/propostos/.test(o3.alertBody), o3.alertBody);
+}
+
 console.log('\nthe note actually sent decides the promise');
 o = runCode('BuildOperatorAlert', Object.assign({}, MAIN, {
   AfterBooking: { disclosure: {}, promisedButFailed: true, bookingResult: 'slot_taken' } }));

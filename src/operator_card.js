@@ -301,7 +301,8 @@ function ocStamp(iso, zone) {
 //                     (this turn's message carried it), ever: bool (told,
 //                     time not at hand), unknown: bool (state unreadable) }
 //   booking         { active: {startUtc}, retired: {startUtc, reason},
-//                     proposed: [startUtc, ...] }
+//                     proposed: [startUtc, ...] ONLY the slots the lead was
+//                     told (ocProposedTold), never the whole stored offer }
 //   note            { kind: 'handoff'|'booking_retired'|'slot_taken'|
 //                     'media_repeat'|null, delivered: true|false|null }
 //   zone            the client's IANA zone
@@ -370,6 +371,24 @@ function ocJaDito(f) {
   }
   if (!promised) items.push('nada foi prometido');
   return items.join('; ');
+}
+
+// ocProposedTold(slots, texts, namedIn) -> the startUtc of each stored slot that a
+// message the lead was actually SENT named (time AND day), in offer order.
+// 25 Sep 2026, the first production card: the stored offer held Thu 09:00, Thu
+// 10:00 and Sat 18:00; the replies sent named only the two Thursdays; the card
+// listed all three. The stored offer is what the workflow can match against, not
+// what the lead heard. `namedIn` is src/booking_stated.js's slotsNamedIn, the
+// parsers' own reading of "the offered slots this text named"; without it, or with
+// no text, nothing is listed: the card under-reports rather than overstates.
+function ocProposedTold(slots, texts, namedIn) {
+  if (typeof namedIn !== 'function' || !Array.isArray(slots) || !slots.length) return [];
+  const told = new Set();
+  for (const t of (Array.isArray(texts) ? texts : [])) {
+    if (!t) continue;
+    for (const s of namedIn(String(t), slots)) told.add(s.startUtc);
+  }
+  return slots.filter(s => told.has(s.startUtc)).map(s => s.startUtc);
 }
 
 function buildOperatorCard(facts) {

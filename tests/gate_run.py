@@ -139,6 +139,14 @@ def verdict(step, run, phone=None, since=None):
             if len(f) != 7 or not all(str(v).strip() for v in f.values()): bad.append(f'card fields {sorted(f)}')
             if oa.get('untranslated'): bad.append(f'card untranslated {oa.get("untranslated")}')
             if (oa.get('length') or 0) > 1600: bad.append(f'card length {oa.get("length")}')
+            # 25 Sep 2026: every proposed time the card lists must be one the lead was SENT.
+            prop = __import__('re').search(r'foram-lhe propostos horários \((.*?)\); nenhum', str(f.get('ja_dito', '')))
+            if prop and phone:
+                listed = __import__('re').findall(r'\b\d\d:\d\d\b', prop.group(1))
+                lid = db('GET', f'leads?select=id&client_id=eq.{cid}&phone=eq.{q(phone)}')[0]['id']
+                sent = ' '.join(r_['body'] or '' for r_ in db('GET', f'messages?select=body&lead_id=eq.{lid}&direction=eq.outbound'))
+                never = [t for t in listed if t not in sent and t.lstrip('0') not in sent]
+                if never: bad.append(f'card lists proposed time(s) never sent to the lead: {never}')
     return bad
 
 def card_fields(p):

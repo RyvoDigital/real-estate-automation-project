@@ -20,8 +20,9 @@ const SRC = S('operator_card.js');
 const {
   operatorAlert, buildOperatorCard, validateCard, legacyAlert, alertRecipients, ocSlot,
   OC_FIELDS, OC_REASON_PT, OC_KIND_PT, detectLanguage,
-} = new Function('DateTime', S('language.js') + SRC + '\nreturn { operatorAlert, buildOperatorCard, validateCard, '
-  + 'legacyAlert, alertRecipients, ocSlot, OC_FIELDS, OC_REASON_PT, OC_KIND_PT, detectLanguage };')(DateTime);
+  ocProposedTold, slotsNamedIn,
+} = new Function('DateTime', S('language.js') + S('booking_stated.js') + SRC + '\nreturn { operatorAlert, buildOperatorCard, validateCard, '
+  + 'legacyAlert, alertRecipients, ocSlot, OC_FIELDS, OC_REASON_PT, OC_KIND_PT, detectLanguage, ocProposedTold, slotsNamedIn };')(DateTime);
 
 let pass = 0, fail = 0;
 const chk = (n, c, d) => { c ? pass++ : fail++; console.log(`  [${c ? 'PASS' : 'FAIL'}] ${n}${d && !c ? '  ' + d : ''}`); };
@@ -133,6 +134,33 @@ chk('a retired booking with no new one', /a marcação de sexta, 25 set, às 09:
   .test(jd({ booking: { retired: { startUtc: '2026-09-25T08:00:00Z', reason: 'cancelled' } } })));
 
 // ---------------------------------------------------------------------------
+console.log('\nJá dito lists only the times the lead was TOLD (the first production card, 25 Sep 2026)');
+{
+  // The stored offer and the two replies sent, word for word, as the rows hold them.
+  const OFFER = [
+    { zone: 'Europe/Lisbon', local: '2026-10-01T09:00:00.000+01:00', endUtc: '2026-10-01T09:00:00.000Z', startUtc: '2026-10-01T08:00:00.000Z' },
+    { zone: 'Europe/Lisbon', local: '2026-10-01T10:00:00.000+01:00', endUtc: '2026-10-01T10:00:00.000Z', startUtc: '2026-10-01T09:00:00.000Z' },
+    { zone: 'Europe/Lisbon', local: '2026-09-26T18:00:00.000+01:00', endUtc: '2026-09-26T18:00:00.000Z', startUtc: '2026-09-26T17:00:00.000Z' },
+  ];
+  const SENT = [
+    '🤖 Sofia, Ryvo Test Client’s virtual assistant. This conversation is answered by artificial intelligence, not by a person.\n\nGreat choice! We have two Thursday morning slots - 09:00 or 10:00 Lisbon time, on 1 October 2026. Which one works best for you?',
+    "That time isn't available, but I can offer 09:00 or 10:00 Lisbon time on Thursday 1 October 2026 - would either of those work for you?",
+    'A member of our team will take over from here and will be in touch with you shortly.',
+  ];
+  const told = ocProposedTold(OFFER, SENT, slotsNamedIn);
+  chk('only the two Thursdays, never Saturday 18:00', JSON.stringify(told) === JSON.stringify([OFFER[0].startUtc, OFFER[1].startUtc]), JSON.stringify(told));
+  const t = jd({ booking: { proposed: told }, note: { kind: 'handoff', delivered: true } });
+  chk('the card reads exactly the two times sent', /foram-lhe propostos horários \(quinta, 1 out, às 09:00 \(Lisboa\); quinta, 1 out, às 10:00 \(Lisboa\)\); nenhum está marcado/.test(t) && !/sábado/.test(t), t);
+  chk('nothing sent names a slot -> no proposed times at all', ocProposedTold(OFFER, ['Olá! Que tipo de imóvel procura?'], slotsNamedIn).length === 0);
+  chk('a time without its day is not "told" (09:00 is in every offer)', ocProposedTold(OFFER, ['Temos às 09:00.'], slotsNamedIn).length === 0);
+  chk('no reader -> nothing listed, never the whole offer', ocProposedTold(OFFER, SENT, undefined).length === 0);
+  // SABOTAGE: the stored offer holds a slot that was never sent. The old behaviour
+  // (the whole stored offer) must be what lists it, so the check above is load-bearing.
+  const everything = OFFER.map(s => s.startUtc);
+  const old = jd({ booking: { proposed: everything }, note: { kind: 'handoff', delivered: true } });
+  chk('sabotage: the whole stored offer lists Saturday 18:00, which was never sent', /sábado, 26 set, às 18:00/.test(old));
+}
+
 console.log('\nevery time in Europe/Lisbon through the timezone database: 25 Oct 2026 changes the clock');
 chk('24 Oct 09:00Z is 10:00 in Lisbon (WEST, UTC+1)', ocSlot('2026-10-24T09:00:00Z', 'Europe/Lisbon') === 'sábado, 24 out, às 10:00 (Lisboa)',
   ocSlot('2026-10-24T09:00:00Z', 'Europe/Lisbon'));
