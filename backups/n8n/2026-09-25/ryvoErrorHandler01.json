@@ -1,0 +1,337 @@
+{
+  "updatedAt": "2026-09-16T11:14:59.255Z",
+  "createdAt": "2026-09-16T11:07:00.416Z",
+  "id": "ryvoErrorHandler01",
+  "name": "ryvo_error_handler",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "b0000000-0000-4000-8000-00000000d001",
+      "name": "ErrorTrigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        0
+      ],
+      "notes": "Layer 1 (improvements 3.7). Every other workflow names this one in settings.errorWorkflow, so any execution that ENDS IN ERROR -- a node threw with no error branch -- lands here with the workflow, the node and the message. An execution the internal handler caught never ends in error and never arrives here; the two deliberate throws that already alert are named in ShapeError and suppressed. n8n does not fire an error workflow for manual test runs, so the proof is the webhook probe (ryvo_error_probe), not the Test button."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Shape the trigger item into one message, and decide whether to stay silent.\n//\n// The two deliberate throws already alert on their own path before throwing:\n//   ThrowDbOutage        EmailDbOutage has emailed with the lead's message verbatim\n//   ThrowKeepaliveFailure the keepalive emailed AND messaged, then threw so the\n//                         execution is recorded as failed (the pull signal)\n// Reporting them again here is a second alert for one fact, which is how\n// alerting gets muted. Named, not pattern-matched, like the zone table.\nconst j = $input.first().json || {};\nconst ex = j.execution || {};\nconst wf = j.workflow || {};\nconst tr = j.trigger || {};\nconst err = ex.error || tr.error || {};\nconst node = ex.lastNodeExecuted || (tr.error ? 'trigger' : 'unknown');\n// n8n hands the Code node's error with `message` cut to the text after the last\n// colon -- the probe's 'error probe: ... (2026-09-16T11:10:55.836Z)' arrived as\n// '55.836Z) [line 2]' (proof run, 16 Sep). The first line of the stack still\n// carries it whole, so the longer of the two is the message.\nconst fromMsg = String(err.message || err.description || '');\nconst fromStack = String(err.stack || '').split('\\n')[0].replace(/^[A-Za-z]*Error:\\s*/, '');\nconst line = err.lineNumber != null ? ' [line ' + err.lineNumber + ']' : '';\nconst message = ((fromStack.length > fromMsg.length ? fromStack + line : fromMsg) || 'no message').slice(0, 400);\nconst stack = String(err.stack || '').split('\\n').slice(0, 4).join('\\n').slice(0, 600);\nconst SUPPRESS = {\n  ThrowDbOutage: 'EmailDbOutage already emailed, with the lead message verbatim',\n  ThrowKeepaliveFailure: 'the keepalive already emailed and messaged before throwing',\n};\nconst suppressed = SUPPRESS[node] || null;\nconst at = new Date().toISOString();\nconst name = wf.name || wf.id || 'unknown workflow';\nconst subject = 'Ryvo RUN ERROR: ' + name + ' at ' + node;\nconst text = [\n  'An n8n execution ended in error. The node threw with no error branch, so no',\n  'run row and no handoff came out of it: whatever this run was doing for a lead',\n  'did not happen, and nobody was told except by this message.',\n  '',\n  'Workflow:  ' + name + ' (' + (wf.id || '?') + ')',\n  'Node:      ' + node,\n  'Mode:      ' + (ex.mode || tr.mode || '?'),\n  'Execution: ' + (ex.id || '?') + (ex.url ? '  ' + ex.url : ''),\n  'At:        ' + at,\n  '',\n  'Error: ' + message,\n  stack ? '\\n' + stack : '',\n].join('\\n');\nconst wa = 'Ryvo run error\\n' + name + '\\nnode: ' + node + '\\n' + message.slice(0, 220) + (ex.url ? '\\n' + ex.url : '');\nreturn [{ json: { workflowId: wf.id || null, workflowName: name, node, message, executionId: ex.id || null,\n                  executionUrl: ex.url || null, mode: ex.mode || tr.mode || null, suppressed, subject, text, wa, at } }];"
+      },
+      "id": "b0000000-0000-4000-8000-00000000d002",
+      "name": "ShapeError",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -380,
+        0
+      ],
+      "notes": "No error branch on purpose: n8n never runs an error workflow for the error workflow, so a throw here is simply a failed execution of the handler, visible in the list."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "is-suppressed",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ !!$('ShapeError').first().json.suppressed }}",
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b0000000-0000-4000-8000-00000000d003",
+      "name": "IsSuppressed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -160,
+        0
+      ],
+      "notes": "True only for the two named deliberate throws, which already alerted on their own path."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Recorded, not sent. The execution shows WHY nothing went out.\nconst s = $('ShapeError').first().json;\nreturn [{ json: { suppressed: true, node: s.node, reason: s.suppressed, workflow: s.workflowName, executionId: s.executionId } }];"
+      },
+      "id": "b0000000-0000-4000-8000-00000000d004",
+      "name": "Suppressed",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        60,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ from: \"alerts@ryvodigital.com\", to: [\"manuel.seixasvale@gmail.com\", \"hello@ryvodigital.com\"], subject: $('ShapeError').first().json.subject, text: $('ShapeError').first().json.text }) }}",
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "b0000000-0000-4000-8000-00000000d005",
+      "name": "EmailError",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        60,
+        100
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Bum4hS1iTO90RNKs",
+          "name": "Ryvo Resend"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Email first: the leg that does not expire. Addresses hardcoded on purpose -- an alert target read from the monitored system is gone when it is needed (D1)."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{ $env.TWILIO_ACCOUNT_SID }}/Messages.json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "twilioApi",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "From",
+              "value": "={{ $env.TWILIO_WHATSAPP_FROM }}"
+            },
+            {
+              "name": "To",
+              "value": "whatsapp:+351933048230"
+            },
+            {
+              "name": "Body",
+              "value": "={{ $('ShapeError').first().json.wa }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "b0000000-0000-4000-8000-00000000d006",
+      "name": "NotifyError",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        280,
+        100
+      ],
+      "credentials": {
+        "twilioApi": {
+          "id": "ryvoTwilioCred",
+          "name": "Ryvo Twilio (sandbox)"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "The 'tell me now' leg (3.7 tiers). Target hardcoded like the keepalive's: config.escalate_to lives in Supabase, which may be the thing that failed. Rides the sandbox, so the email is the record."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://txxkqskhxhwtrhbmwwig.supabase.co/rest/v1/events",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify((() => { const s = $('ShapeError').first().json; return { client_id: null, type: 'run.errored', severity: 'critical', summary: 'Execution ended in error: ' + s.workflowName + ' at ' + s.node + ' - ' + String(s.message).slice(0, 120), data: { workflow_id: s.workflowId, workflow: s.workflowName, node: s.node, execution_id: s.executionId, execution_url: s.executionUrl, mode: s.mode, message: s.message, at: s.at } }; })()) }}",
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "b0000000-0000-4000-8000-00000000d007",
+      "name": "RecordEvent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        100
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "ryvoSupabaseCred",
+          "name": "Ryvo Supabase (service_role)"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Best effort: the record for the cockpit. Supabase may be what failed, so a refused insert is noted by AssertDelivered and never blocks the alert."
+    },
+    {
+      "parameters": {
+        "jsCode": "// A send that was not accepted must not look like one that was. If NEITHER\n// channel accepted the alert, this execution fails with the reason, so the\n// handler's own list shows it. One accepted channel is a delivered alert.\nconst code = (n) => { try { const r = $(n).first().json || {}; return r.statusCode == null ? null : Number(r.statusCode); } catch (e) { return null; } };\nconst ok = (c) => c !== null && c >= 200 && c < 300;\nconst email = code('EmailError'), wa = code('NotifyError'), ev = code('RecordEvent');\nconst s = $('ShapeError').first().json;\nif (!ok(email) && !ok(wa)) {\n  throw new Error('RUN ERROR ALERT NOT DELIVERED for ' + s.workflowName + ' at ' + s.node\n    + ': email HTTP ' + email + ', WhatsApp HTTP ' + wa + ', event HTTP ' + ev + '. Original error: ' + s.message);\n}\nreturn [{ json: { delivered: true, emailStatus: email, whatsappStatus: wa, eventStatus: ev, workflow: s.workflowName, node: s.node, executionId: s.executionId } }];"
+      },
+      "id": "b0000000-0000-4000-8000-00000000d008",
+      "name": "AssertDelivered",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        100
+      ]
+    }
+  ],
+  "connections": {
+    "ErrorTrigger": {
+      "main": [
+        [
+          {
+            "node": "ShapeError",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ShapeError": {
+      "main": [
+        [
+          {
+            "node": "IsSuppressed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IsSuppressed": {
+      "main": [
+        [
+          {
+            "node": "Suppressed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "EmailError",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EmailError": {
+      "main": [
+        [
+          {
+            "node": "NotifyError",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NotifyError": {
+      "main": [
+        [
+          {
+            "node": "RecordEvent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RecordEvent": {
+      "main": [
+        [
+          {
+            "node": "AssertDelivered",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Lisbon",
+    "saveManualExecutions": true,
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "staticData": null,
+  "meta": null,
+  "nodeGroups": [],
+  "pinData": null,
+  "versionId": "6a93d4bd-ab09-47df-b8b3-31c44b38b3b7",
+  "activeVersionId": "6a93d4bd-ab09-47df-b8b3-31c44b38b3b7",
+  "versionCounter": 2,
+  "triggerCount": 0,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-09-16T11:07:00.416Z",
+      "createdAt": "2026-09-16T11:07:00.416Z",
+      "role": "workflow:owner",
+      "workflowId": "ryvoErrorHandler01",
+      "projectId": "uJAXibMof3BDHwvP",
+      "project": {
+        "updatedAt": "2026-07-04T23:01:35.388Z",
+        "createdAt": "2026-07-04T22:58:34.115Z",
+        "id": "uJAXibMof3BDHwvP",
+        "name": "Manuel Vale <hello@ryvodigital.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "customTelemetryTags": [],
+        "creatorId": "e3386b92-bb92-47d2-89c0-7fc4fb66650c"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

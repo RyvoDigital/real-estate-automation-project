@@ -1,0 +1,140 @@
+{
+  "updatedAt": "2026-09-16T11:07:12.250Z",
+  "createdAt": "2026-09-16T10:50:23.667Z",
+  "id": "ryvoHeartbeat01",
+  "name": "ryvo_heartbeat",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "b0000000-0000-4000-8000-00000000c001",
+      "name": "Every 5 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -400,
+        0
+      ],
+      "notes": "Layer 3 (improvements 3.7). The outside monitor expects a ping every 5 minutes with a 5-minute grace; when the pings stop it alerts from OUTSIDE. This is the only layer that catches the server, n8n or the scheduler being dead -- a system cannot report its own death. Successes ARE saved: with saveDataSuccessExecution=none n8n 2.28 left every run as an orphan row in status 'running' with no stoppedAt (observed 16 Sep), which reads as a hang. 288 rows a day, pruned at 14 days, is the honest option. The proof the schedule fires is workflow_statistics.production_success and the monitor's last-ping time."
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.BETTERSTACK_HEARTBEAT_URL }}",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "b0000000-0000-4000-8000-00000000c002",
+      "name": "PingHeartbeat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -180,
+        0
+      ],
+      "notes": "The URL is an environment variable (compose passes BETTERSTACK_HEARTBEAT_URL from .env), never a value in this file: the file is committed. onError=continueRegularOutput so a transport error (DNS, refused, timeout) reaches AssertPinged and is recorded as a failed execution with a reason, rather than dying silently.",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// A ping that did not land is a failed execution, stated plainly. It is not\n// alerted from here -- if this workflow cannot reach the monitor, the monitor\n// notices the silence and alerts on its own, which is the whole design. The\n// failed execution is the record for the human who then asks why.\nconst target = String($env.BETTERSTACK_HEARTBEAT_URL || '');\nif (!target) throw new Error('BETTERSTACK_HEARTBEAT_URL is not set in the n8n environment; the heartbeat pinged nothing');\nconst res = $('PingHeartbeat').first().json || {};\nconst code = res.statusCode;\nif (!(code >= 200 && code < 300)) {\n  throw new Error('heartbeat ping failed: HTTP ' + (code == null ? 'none (transport error: ' + String(res.message || res.error || 'unknown').slice(0, 120) + ')' : code));\n}\nreturn [{ json: { ok: true, statusCode: code, pingedAt: new Date().toISOString() } }];"
+      },
+      "id": "b0000000-0000-4000-8000-00000000c003",
+      "name": "AssertPinged",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        40,
+        0
+      ],
+      "notes": "Throws on purpose on a non-2xx or a missing URL. No error branch, deliberately: the throw IS the record. When the error workflow (Layer 1) exists it will report this too."
+    }
+  ],
+  "connections": {
+    "Every 5 minutes": {
+      "main": [
+        [
+          {
+            "node": "PingHeartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PingHeartbeat": {
+      "main": [
+        [
+          {
+            "node": "AssertPinged",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Lisbon",
+    "saveManualExecutions": true,
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all",
+    "errorWorkflow": "ryvoErrorHandler01"
+  },
+  "staticData": {
+    "node:Every 5 minutes": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": null,
+  "nodeGroups": [],
+  "pinData": null,
+  "versionId": "32412c31-9512-4135-a035-aa86393826eb",
+  "activeVersionId": "32412c31-9512-4135-a035-aa86393826eb",
+  "versionCounter": 2,
+  "triggerCount": 1,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-09-16T10:50:23.667Z",
+      "createdAt": "2026-09-16T10:50:23.667Z",
+      "role": "workflow:owner",
+      "workflowId": "ryvoHeartbeat01",
+      "projectId": "uJAXibMof3BDHwvP",
+      "project": {
+        "updatedAt": "2026-07-04T23:01:35.388Z",
+        "createdAt": "2026-07-04T22:58:34.115Z",
+        "id": "uJAXibMof3BDHwvP",
+        "name": "Manuel Vale <hello@ryvodigital.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "customTelemetryTags": [],
+        "creatorId": "e3386b92-bb92-47d2-89c0-7fc4fb66650c"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}
